@@ -156,7 +156,10 @@
     padding:16px 18px; display:flex; flex-direction:column; gap:4px;
   }
   .fee-box .fee-label{ font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); }
+  .fee-price-row{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+  .fee-box .fee-strike{ font-size:15px; color:var(--muted-dim); text-decoration:line-through; }
   .fee-box .fee-amount{ font-size:30px; font-weight:700; color:var(--phosphor-soft); }
+  .fee-box .fee-savings{ font-size:12px; color:var(--phosphor-soft); }
   .fee-box .fee-note{ font-size:11.5px; color:var(--muted-dim); line-height:1.5; max-width:52ch; }
 
   /* ---------- Console (Risk Co-Pilot) ---------- */
@@ -376,7 +379,7 @@
   </div>
 
   <footer>
-    <p>Figures reflect LucidFlex / LucidPro / LucidDaily / LucidDirect rules as publicly documented in 2026 (Lucid Trading support center and independent prop-firm rule trackers). On the 25K Flex, the Max Loss Limit is a fixed $1,000; the Daily Loss Limit is a separate, optional setting &mdash; OFF by default, or a firm-enforced $600 if you opted into it &mdash; toggled above. Pro, Daily and Direct figures beyond target and Max Loss Limit are less firmly sourced than Flex, and the Daily Loss Limit toggle is confirmed only for the 25K Flex &mdash; always check your live Lucid dashboard before sizing a trade. The one-time eval fee and reset fee are shown only for the 25K Flex, taken from Lucid's own checkout screen &mdash; third-party sources disagree on pricing for every other size and plan, so those show as unverified rather than a guessed number; eval prices also change with frequent limited-time promos, so treat the figure as a baseline, not what you'll pay today. The maximum payout table is sourced from independent payout-rules trackers, not Lucid directly, and is shown only where the rest of that plan's figures are already marked verified. This page is a planning aid, not trading or financial advice, and doesn't place trades or connect to your broker.</p>
+    <p>Figures reflect LucidFlex / LucidPro / LucidDaily / LucidDirect rules as publicly documented in 2026 (Lucid Trading support center and independent prop-firm rule trackers). On the 25K Flex, the Max Loss Limit is a fixed $1,000; the Daily Loss Limit is a separate, optional setting &mdash; OFF by default, or a firm-enforced $600 if you opted into it. LucidPro offers the same OFF/$600 Daily Loss Limit choice at every account size, and LucidDaily lets you choose Intraday or End-of-Day drawdown tracking &mdash; both toggled above. Eval and reset pricing is populated for the 25K Flex and all four LucidPro sizes, taken directly from Lucid's own checkout screen at the time this was written; a couple of the LucidPro "DLL OFF" list prices look like they may contain a transcription error (the digits don't follow the pattern the other sizes show), so double-check those specifically before relying on them. Every price changes with Lucid's current promos, so treat these as a snapshot, not what you'll pay today. Everything else &mdash; Daily, Direct, and any plan/size combo not listed above &mdash; is unverified here rather than guessed; always check your live Lucid dashboard or checkout before sizing a trade or paying for an account. The maximum payout table is sourced from independent payout-rules trackers, not Lucid directly, and is shown only where the rest of that plan's figures are already marked verified. This page is a planning aid, not trading or financial advice, and doesn't place trades or connect to your broker.</p>
   </footer>
 
 </div>
@@ -401,11 +404,18 @@
     150000: { maxMini:10, maxMicro:100, fundedMini:4, fundedMicro:40 }
   };
 
-  // Only the 25K Flex eval fee and reset fee are confirmed (Lucid's own checkout screen).
-  // Other plan/size combos are left unset rather than guessing at conflicting third-party numbers.
+  // Pricing confirmed straight off Lucid's own checkout screen (list -> limited-time -> coupon price),
+  // keyed by plan -> size -> "on"/"off" (the Daily Loss Limit choice). Anything not filled in here
+  // is shown as unverified in the UI rather than guessed from conflicting third-party numbers.
   var EVAL_PRICING = {
     flex: {
-      25000: { fee:89, resetFee:50 }
+      25000: { on: { list:89,  current:65.30,  coupon:50.30,  resetFee:50 } }
+    },
+    pro: {
+      25000:  { on: { list:123, current:90.60,  coupon:70.60,  resetFee:70  }, off: { list:423, coupon:90.60,  resetFee:90  } },
+      50000:  { on: { list:402, current:140.40, coupon:115.40, resetFee:115 }, off: { list:102, coupon:140.40, resetFee:140 } },
+      100000: { on: { list:307, current:225.40, coupon:180.40, resetFee:180 }, off: { list:307, coupon:225.40, resetFee:225 } },
+      150000: { on: { list:410, current:300.50, coupon:245.50, resetFee:245 }, off: { list:440, coupon:300.50, resetFee:300 } }
     }
   };
   var PAYOUT_MIN = 500;
@@ -432,7 +442,7 @@
     },
     pro: {
       name: "LucidPro",
-      tagline: "Fixed daily loss limit in evaluation, then LucidScale once funded.",
+      tagline: "Daily Loss Limit is optional at every size &mdash; OFF or $600, toggled below. Choosing it on lowers your eval price.",
       verified: false,
       sizes: {
         25000:  { target:1250, mll:1000, dailyMin:100 },
@@ -444,7 +454,7 @@
     },
     daily: {
       name: "LucidDaily",
-      tagline: "Built around strict daily-loss discipline for intraday-only traders.",
+      tagline: "Choose Intraday or End-of-Day drawdown tracking, toggled below. Intraday is tighter; EOD gives you room to recover by the close.",
       verified: false,
       sizes: {
         25000:  { target:1250, mll:1000, dailyMin:100 },
@@ -470,18 +480,26 @@
   var PLAN_ORDER = ["flex","pro","daily","direct"];
   var SIZE_ORDER = [25000,50000,100000,150000];
 
-  var state = { plan: "flex", size: 25000, dll600On: false };
-  var STORAGE_KEY = "lucidCockpit.v1";
+  var state = { plan: "flex", size: 25000, dllOn: {}, drawdownChoice: {} };
+  var STORAGE_KEY = "lucidCockpit.v2";
 
-  function dllAvailable(){ return state.plan === "flex" && state.size === 25000; }
-  function dllActive(){ return dllAvailable() && state.dll600On; }
+  function comboKey(){ return state.plan + "_" + state.size; }
+  function dllAvailable(){ return (state.plan === "flex" && state.size === 25000) || state.plan === "pro"; }
+  function isDllOn(){ return !!state.dllOn[comboKey()]; }
+  function setDllOn(on){ state.dllOn[comboKey()] = on; }
+  function dllActive(){ return dllAvailable() && isDllOn(); }
+
+  function drawdownAvailable(){ return state.plan === "daily"; }
+  function isIntraday(){ return state.drawdownChoice[comboKey()] === "intraday"; }
+  function setDrawdown(type){ state.drawdownChoice[comboKey()] = type; }
 
   function saveState(){
     try{
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         plan: state.plan,
         size: state.size,
-        dll600On: state.dll600On,
+        dllOn: state.dllOn,
+        drawdownChoice: state.drawdownChoice,
         pnl: document.getElementById("pnlInput").value,
         days: document.getElementById("daysInput").value,
         bestDay: document.getElementById("bestDayInput").value
@@ -496,7 +514,8 @@
       var saved = JSON.parse(raw);
       if (saved.plan && PLANS[saved.plan]) state.plan = saved.plan;
       if (saved.size && PLANS[state.plan].sizes[saved.size]) state.size = saved.size;
-      if (typeof saved.dll600On === "boolean") state.dll600On = saved.dll600On;
+      if (saved.dllOn && typeof saved.dllOn === "object") state.dllOn = saved.dllOn;
+      if (saved.drawdownChoice && typeof saved.drawdownChoice === "object") state.drawdownChoice = saved.drawdownChoice;
       if (saved.pnl !== undefined) document.getElementById("pnlInput").value = saved.pnl;
       if (saved.days !== undefined) document.getElementById("daysInput").value = saved.days;
       if (saved.bestDay !== undefined) document.getElementById("bestDayInput").value = saved.bestDay;
@@ -505,6 +524,8 @@
 
   var fmt = new Intl.NumberFormat("en-US", { style:"currency", currency:"USD", maximumFractionDigits:0 });
   function money(n){ return fmt.format(Math.round(n)); }
+  var fmtCents = new Intl.NumberFormat("en-US", { style:"currency", currency:"USD", minimumFractionDigits:2, maximumFractionDigits:2 });
+  function moneyCents(n){ return fmtCents.format(n); }
 
   var statList = document.getElementById("statList");
   var snapshotTitle = document.getElementById("snapshotTitle");
@@ -533,21 +554,35 @@
     snapshotTitle.textContent = (state.size/1000) + "K " + c.plan.name.replace("Lucid","").toUpperCase() + " EVAL";
     snapshotSub.textContent = c.plan.name + " · $" + (state.size/1000) + "K account";
 
+    var dllOnNow = isDllOn();
     var dllValueHtml;
     if (dllAvailable()){
       dllValueHtml =
         '<div class="rcontrol">' +
-          '<button type="button" class="opt-pill' + (!state.dll600On ? ' active' : '') + '" data-dll="off">OFF</button>' +
-          '<button type="button" class="opt-pill' + (state.dll600On ? ' active' : '') + '" data-dll="on">$600</button>' +
+          '<button type="button" class="opt-pill' + (!dllOnNow ? ' active' : '') + '" data-dll="off">OFF</button>' +
+          '<button type="button" class="opt-pill' + (dllOnNow ? ' active' : '') + '" data-dll="on">$600</button>' +
         '</div>';
-    } else if (state.plan === "flex"){
+    } else if (state.plan === "flex" || state.plan === "pro"){
       dllValueHtml = plainValue("Optional", "");
     } else {
       dllValueHtml = plainValue("Fixed", "");
     }
 
-    var drawdownHtml = c.plan.verified ? plainValue("EOD", "") : plainValue("&mdash;", "");
-    var drawdownSub = c.plan.verified ? "Trailing max loss updates only at the close (4:45 PM ET)" : "Confirm on your dashboard";
+    var drawdownHtml, drawdownSub;
+    if (drawdownAvailable()){
+      var intraday = isIntraday();
+      drawdownHtml =
+        '<div class="rcontrol">' +
+          '<button type="button" class="opt-pill' + (!intraday ? ' active' : '') + '" data-drawdown="eod">EOD</button>' +
+          '<button type="button" class="opt-pill' + (intraday ? ' active' : '') + '" data-drawdown="intraday">Intraday</button>' +
+        '</div>';
+      drawdownSub = intraday
+        ? "Trailing max loss tracks in real time during the session — tighter, no end-of-day grace"
+        : "Trailing max loss only updates at the close (4:45 PM ET)";
+    } else {
+      drawdownHtml = c.plan.verified ? plainValue("EOD", "") : plainValue("&mdash;", "");
+      drawdownSub = c.plan.verified ? "Trailing max loss updates only at the close (4:45 PM ET)" : "Confirm on your dashboard";
+    }
 
     var maxSizeSub = state.plan === "flex"
       ? "Funded starts at " + contracts.fundedMini + " mini / " + contracts.fundedMicro + " micro and scales up as profit builds"
@@ -631,23 +666,36 @@
 
   function renderCosts(){
     var c = current();
-    var pricing = EVAL_PRICING[state.plan] && EVAL_PRICING[state.plan][state.size];
+    var priceSet = EVAL_PRICING[state.plan] && EVAL_PRICING[state.plan][state.size];
+    var variant = dllAvailable() ? (isDllOn() ? "on" : "off") : "on";
+    var pricing = priceSet && priceSet[variant];
     var payout = PAYOUT_MAX[state.size];
 
-    document.getElementById("costSub").textContent = c.plan.name + " · $" + (state.size/1000) + "K account";
+    document.getElementById("costSub").textContent = c.plan.name + " · $" + (state.size/1000) + "K account" + (dllAvailable() ? " · DLL " + (variant === "on" ? "$600" : "OFF") : "");
 
-    document.getElementById("feeBox").innerHTML = pricing ?
-      '<div class="fee-box">' +
-        '<span class="fee-label">One-Time Eval Fee</span>' +
-        '<span class="fee-amount mono">' + money(pricing.fee) + '</span>' +
-        '<span class="fee-note">List price — Lucid runs limited-time discounts at checkout, so you may pay less on the day. DLL set to $600 (the cheaper option) at this price.</span>' +
-      '</div>'
-      :
-      '<div class="fee-box">' +
-        '<span class="fee-label">One-Time Eval Fee</span>' +
-        '<span class="fee-amount mono">&mdash;</span>' +
-        '<span class="fee-note">Pricing for this plan and size isn’t verified here — check lucidtrading.com at checkout.</span>' +
-      '</div>';
+    if (pricing){
+      var headline = pricing.current !== undefined ? pricing.current : pricing.coupon;
+      var savingsLine = pricing.current !== undefined
+        ? "LIMITED TIME — an extra " + moneyCents(pricing.current - pricing.coupon) + " off with a coupon at checkout → " + moneyCents(pricing.coupon)
+        : moneyCents(pricing.coupon) + " with a coupon at checkout";
+      document.getElementById("feeBox").innerHTML =
+        '<div class="fee-box">' +
+          '<span class="fee-label">One-Time Eval Fee</span>' +
+          '<div class="fee-price-row">' +
+            '<span class="fee-strike mono">' + moneyCents(pricing.list) + '</span>' +
+            '<span class="fee-amount mono">' + moneyCents(headline) + '</span>' +
+          '</div>' +
+          '<span class="fee-savings mono">' + savingsLine + '</span>' +
+          '<span class="fee-note">Prices reflect Lucid’s checkout at the time this was written and change with their current promos — treat this as a snapshot, not a guarantee.</span>' +
+        '</div>';
+    } else {
+      document.getElementById("feeBox").innerHTML =
+        '<div class="fee-box">' +
+          '<span class="fee-label">One-Time Eval Fee</span>' +
+          '<span class="fee-amount mono">&mdash;</span>' +
+          '<span class="fee-note">Pricing for this plan, size' + (dllAvailable() ? " and Daily Loss Limit choice" : "") + ' isn’t verified here — check lucidtrading.com at checkout.</span>' +
+        '</div>';
+    }
 
     document.getElementById("costList").innerHTML =
       row("Activation Fee", plainValue("Free", ""), "", "No charge moving from evaluation to funded") +
@@ -685,9 +733,15 @@
 
   statList.addEventListener("click", function(e){
     if (e.target.dataset.dll !== undefined){
-      state.dll600On = e.target.dataset.dll === "on";
+      setDllOn(e.target.dataset.dll === "on");
       renderStats();
       renderCoPilot();
+      renderCosts();
+      saveState();
+    }
+    if (e.target.dataset.drawdown !== undefined){
+      setDrawdown(e.target.dataset.drawdown);
+      renderStats();
       saveState();
     }
   });
