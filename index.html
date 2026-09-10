@@ -318,17 +318,17 @@
       <div>
         <div class="field">
           <label for="pnlInput">Net P&amp;L so far ($)</label>
-          <input id="pnlInput" type="number" step="1" value="1025" />
-          <span class="hint">Example figure &mdash; pull your real number from the Lucid dashboard.</span>
+          <input id="pnlInput" type="number" step="1" value="1221" />
+          <span class="hint">Pull your real number from the Lucid dashboard.</span>
         </div>
         <div class="field">
           <label for="daysInput">Trading days you want left</label>
-          <input id="daysInput" type="number" step="1" min="1" value="2" />
+          <input id="daysInput" type="number" step="1" min="1" value="1" />
           <span class="hint">How many more sessions you're planning to trade before the target.</span>
         </div>
         <div class="field">
           <label for="bestDayInput">Best single day so far ($)</label>
-          <input id="bestDayInput" type="number" step="1" value="640" />
+          <input id="bestDayInput" type="number" step="1" value="617" />
           <span class="hint">Needed to check the 50% consistency rule during evaluation.</span>
         </div>
       </div>
@@ -613,7 +613,8 @@
 
     var maxRiskPerTrade = Math.min(state.size * 0.01, effMll * 0.10, dllOn ? 600 * 0.15 : Infinity);
     var maxDailyLossCap = dllOn ? 600 * 0.8 : effMll * 0.40;
-    var consistencyCeiling = Math.max(pnl, 1) * (c.plan.consistencyEval / 100);
+    var projectedFinal = remaining > 0 ? Math.max(d.target, pnl) : pnl;
+    var consistencyCeiling = Math.max(projectedFinal, 1) * (c.plan.consistencyEval / 100);
     var consistencyBreach = pnl > 0 && bestDay > consistencyCeiling;
 
     var paceLevel, paceWord;
@@ -634,7 +635,7 @@
       coRow("Max risk per trade", money(maxRiskPerTrade), "") +
       (dllOn ? coRow("Daily Loss Limit (firm)", money(600), "red") : "") +
       coRow(dllOn ? "Recommended stop-out" : "Self-imposed daily stop", money(maxDailyLossCap), "") +
-      coRow("Consistency ceiling (today)", money(consistencyCeiling), consistencyBreach ? "red" : "");
+      coRow("Consistency ceiling (at target)", money(consistencyCeiling), consistencyBreach ? "red" : "");
 
     var lines = [];
     if (remaining === 0){
@@ -656,9 +657,9 @@
       lines.push(c.plan.name + (dllAvailable() ? ' has your Daily Loss Limit set to OFF' : ' sets no firm daily loss limit here') + ', so stop yourself at <b>' + money(maxDailyLossCap) + '</b> down for the day &mdash; the firm won’t, so you have to.');
     }
     if (consistencyBreach){
-      lines.push('<span class="flag-red">Consistency flag:</span> your best day (' + money(bestDay) + ') is above the ' + c.plan.consistencyEval + '% ceiling for your current profit. Bank a couple more solid days before you’d be eligible to pass.');
+      lines.push('<span class="flag-red">Consistency flag:</span> your best day (' + money(bestDay) + ') is above the ' + c.plan.consistencyEval + '% ceiling projected at target (' + money(consistencyCeiling) + '). Bank a couple more solid days before you’d be eligible to pass.');
     } else if (pnl > 0){
-      lines.push('Consistency check passes for now &mdash; keep any single day under <b>' + money(consistencyCeiling) + '</b> as your total grows.');
+      lines.push('Consistency check passes &mdash; your best day stays under <b>' + money(consistencyCeiling) + '</b>, the ' + c.plan.consistencyEval + '% ceiling once you hit target.');
     }
 
     coachText.innerHTML = lines.join(' ');
