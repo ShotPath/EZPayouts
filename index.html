@@ -83,32 +83,33 @@
     gap:12px; padding-bottom:16px; margin-bottom:22px;
     border-bottom:1px solid var(--hairline);
   }
-  .brand{ display:flex; align-items:center; gap:8px; min-width:0; }
+  .brand{ display:flex; align-items:center; gap:11px; min-width:0; }
   .brand-mark{
-    width:26px; height:26px; border-radius:50%; flex:none;
+    width:34px; height:34px; border-radius:50%; flex:none;
     background:radial-gradient(circle at 34% 30%, #e8f5ec 0%, #4b8f6a 34%, #0e1c14 72%, #050806 100%);
     box-shadow:0 0 0 1px var(--hairline-bright), 0 0 14px rgba(62,224,140,0.25);
   }
   .brand-text{ display:flex; flex-direction:column; line-height:1.15; min-width:0; }
   .brand-name{
-    font-family:var(--font-display); font-weight:700; font-size:13px; letter-spacing:0.02em; color:var(--ice);
+    font-family:var(--font-display); font-weight:700; font-size:16.5px; letter-spacing:0.02em; color:var(--ice);
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
-  .brand-sub{ font-size:9px; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted-dim); }
+  .brand-sub{ font-size:10.5px; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted-dim); }
 
   .topbar-right{ display:flex; align-items:center; gap:10px; flex:none; }
 
   .market-status{
-    display:inline-flex; align-items:center; gap:7px; white-space:nowrap;
-    padding:5px 12px 5px 10px; border-radius:999px;
+    display:inline-flex; align-items:center; gap:5px; white-space:nowrap;
+    padding:3px 9px 3px 7px; border-radius:999px;
     background:var(--panel); border:1px solid var(--hairline);
   }
   .market-status .dot{
-    width:8px; height:8px; border-radius:50%; flex:none;
+    width:6px; height:6px; border-radius:50%; flex:none;
     animation:pulse 2.2s ease-in-out infinite;
   }
   @keyframes pulse{ 0%,100%{ opacity:1; } 50%{ opacity:0.35; } }
-  .market-status .label{ font-weight:700; letter-spacing:0.1em; font-size:11px; }
+  .market-status .label{ font-weight:700; letter-spacing:0.08em; font-size:9px; }
+  .market-status strong{ font-size:11px; }
   .market-status.open{ background:rgba(62,224,140,0.12); border-color:var(--phosphor-dim); }
   .market-status.open .dot{ background:var(--phosphor); box-shadow:0 0 8px 2px var(--phosphor-glow); }
   .market-status.open .label{ color:var(--phosphor-soft); }
