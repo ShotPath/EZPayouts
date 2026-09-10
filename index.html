@@ -8,16 +8,19 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
 <style>
   :root{
-    --void:#070a08;
-    --panel:#0d130e;
-    --panel-raised:#121b13;
+    --void:#07090a;
+    --panel:#0c1310;
+    --panel-raised:#121b16;
     --panel-hi:#182319;
-    --hairline:#23331f;
-    --hairline-bright:#345a37;
+    --hairline:#23332a;
+    --hairline-bright:#345a44;
     --phosphor:#3ee08c;
     --phosphor-soft:#8fe6b6;
     --phosphor-dim:#1c5c3d;
     --phosphor-glow:rgba(62,224,140,0.35);
+    --mint:#7ee8ac;
+    --mint-text:#062b17;
+    --navy:#2b3550;
     --amber:#f0b429;
     --red:#ef5a5a;
     --ice:#dcefe2;
@@ -39,7 +42,7 @@
     color:var(--ice);
     font-family:var(--font-body);
     padding:0 clamp(16px,4vw,48px);
-    padding-block:clamp(20px,4vw,40px) 60px;
+    padding-block:clamp(18px,3.4vw,32px) 60px;
     position:relative;
     overflow-x:hidden;
   }
@@ -74,29 +77,37 @@
   .mono{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
   a{ color:var(--phosphor-soft); }
 
-  /* ---------- HUD top bar ---------- */
-  .hud-bar{
+  /* ---------- Top bar ---------- */
+  .topbar{
     display:flex; align-items:center; justify-content:space-between;
-    gap:12px; flex-wrap:wrap;
-    padding-bottom:16px; margin-bottom:22px;
+    gap:12px; padding-bottom:16px; margin-bottom:22px;
     border-bottom:1px solid var(--hairline);
   }
-  .hud-id{ display:flex; align-items:center; gap:10px; }
-  .hud-dot{
-    width:9px; height:9px; border-radius:50%;
-    background:var(--phosphor); box-shadow:0 0 8px 2px var(--phosphor-glow);
-    animation:pulse 2.4s ease-in-out infinite;
+  .brand{ display:flex; align-items:center; gap:11px; }
+  .brand-mark{
+    width:34px; height:34px; border-radius:50%; flex:none;
+    background:radial-gradient(circle at 34% 30%, #e8f5ec 0%, #4b8f6a 34%, #0e1c14 72%, #050806 100%);
+    box-shadow:0 0 0 1px var(--hairline-bright), 0 0 14px rgba(62,224,140,0.25);
   }
-  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:0.4;} }
-  .hud-id .callsign{ font-family:var(--font-mono); font-size:13px; letter-spacing:0.12em; color:var(--muted); text-transform:uppercase; }
-  .hud-status{
-    display:flex; gap:18px; flex-wrap:wrap;
-    font-family:var(--font-mono); font-size:12px; color:var(--muted); letter-spacing:0.04em;
+  .brand-text{ display:flex; flex-direction:column; line-height:1.15; }
+  .brand-name{ font-family:var(--font-display); font-weight:700; font-size:16.5px; letter-spacing:0.02em; color:var(--ice); }
+  .brand-sub{ font-size:10.5px; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted-dim); }
+
+  .topbar-right{ display:flex; align-items:center; gap:14px; }
+  .nyclock{ font-size:12px; color:var(--muted); letter-spacing:0.03em; }
+  .nyclock strong{ color:var(--phosphor-soft); font-weight:600; }
+  .menu-btn{
+    width:38px; height:38px; border-radius:50%; flex:none;
+    background:var(--panel); border:1px solid var(--hairline); cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition:border-color .15s, background .15s;
   }
-  .hud-status strong{ color:var(--phosphor-soft); font-weight:600; }
+  .menu-btn:hover{ border-color:var(--hairline-bright); background:var(--panel-raised); }
+  .menu-lines{ width:16px; display:flex; flex-direction:column; gap:3.5px; }
+  .menu-lines span{ display:block; height:2px; border-radius:1px; background:var(--ice); }
 
   /* ---------- Hero ---------- */
-  .hero{ padding:6px 0 28px; }
+  .hero{ padding:6px 0 26px; }
   .hero .eyebrow{
     font-family:var(--font-mono); font-size:12px; letter-spacing:0.22em; text-transform:uppercase;
     color:var(--phosphor); margin-bottom:10px; display:flex; align-items:center; gap:10px;
@@ -106,66 +117,69 @@
   .hero h1 span{ color:var(--phosphor); }
   .hero p{ margin:14px 0 0; max-width:62ch; color:var(--muted); font-size:15.5px; line-height:1.6; }
 
-  /* ---------- Tabs ---------- */
-  .selector{ display:flex; flex-direction:column; gap:12px; margin:28px 0 26px; }
+  /* ---------- Selector ---------- */
+  .selector{ display:flex; flex-direction:column; gap:12px; margin:26px 0 24px; }
   .selector-row{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
   .selector-label{ font-family:var(--font-mono); font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted-dim); width:100%; margin-bottom:2px; }
   .tab, .chip{
     font-family:var(--font-display); font-weight:600; font-size:14px;
     background:var(--panel); border:1px solid var(--hairline); color:var(--muted);
-    padding:10px 16px; border-radius:8px; cursor:pointer; letter-spacing:0.02em;
+    padding:9px 18px; border-radius:999px; cursor:pointer; letter-spacing:0.02em;
     transition:border-color .15s, color .15s, background .15s;
-    position:relative;
   }
   .tab:hover, .chip:hover{ border-color:var(--hairline-bright); color:var(--ice); }
   .tab[aria-selected="true"], .chip[aria-selected="true"]{
-    background:linear-gradient(180deg, rgba(62,224,140,0.16), rgba(62,224,140,0.05));
-    border-color:var(--phosphor-dim); color:var(--phosphor-soft);
-    box-shadow:inset 0 0 0 1px rgba(62,224,140,0.15);
+    background:var(--mint); border-color:var(--mint); color:var(--mint-text); font-weight:700;
   }
   .tab .flag{
-    font-family:var(--font-mono); font-size:9px; letter-spacing:0.08em;
-    background:var(--phosphor); color:#04160c; padding:2px 6px; border-radius:4px;
-    margin-left:8px; vertical-align:2px;
+    font-family:var(--font-mono); font-size:9px; letter-spacing:0.06em;
+    background:var(--mint-text); color:var(--mint); padding:2px 6px; border-radius:4px;
+    margin-left:7px; vertical-align:2px;
   }
   .plan-tagline{ font-size:13.5px; color:var(--muted); font-family:var(--font-mono); }
   .verify-note{ font-size:12px; color:var(--muted-dim); font-family:var(--font-mono); }
 
-  /* ---------- Stat grid ---------- */
-  .stat-grid{
-    display:grid; grid-template-columns:repeat(auto-fit, minmax(190px,1fr));
-    gap:1px; background:var(--hairline);
-    border:1px solid var(--hairline); border-radius:12px; overflow:hidden;
-    margin-bottom:26px;
+  /* ---------- Snapshot card ---------- */
+  .snapshot-card{
+    background:var(--panel); border:1px solid var(--hairline); border-radius:20px;
+    padding:24px clamp(16px,3vw,30px) 26px; margin-bottom:26px;
   }
-  .stat{ background:var(--panel); padding:18px 18px 16px; display:flex; flex-direction:column; gap:8px; }
-  .stat .label{ font-family:var(--font-mono); font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted-dim); }
-  .stat .value{ font-family:var(--font-mono); font-size:clamp(22px,2.4vw,28px); font-weight:600; color:var(--ice); }
-  .stat .value.pos{ color:var(--phosphor-soft); }
-  .stat .value.warn{ color:var(--amber); }
-  .stat .sub{ font-size:12px; color:var(--muted); line-height:1.4; }
-  .gauge{ height:5px; border-radius:3px; background:var(--panel-hi); overflow:hidden; margin-top:2px; }
-  .gauge > i{ display:block; height:100%; background:linear-gradient(90deg, var(--phosphor-dim), var(--phosphor)); }
+  .snapshot-title{ font-size:20px; color:var(--ice); margin-bottom:2px; }
+  .snapshot-sub{ font-family:var(--font-mono); font-size:12px; color:var(--muted); margin-bottom:18px; }
 
-  .mll-edit{ display:flex; align-items:baseline; gap:2px; }
-  .mll-edit .mll-prefix{ font-size:clamp(20px,2.2vw,26px); font-weight:600; color:var(--amber); }
-  .mll-input{
-    width:100%; background:transparent; border:none; outline:none;
-    font-family:var(--font-mono); font-size:clamp(22px,2.4vw,28px); font-weight:600; color:var(--amber);
-    padding:0; border-bottom:1px dashed transparent;
+  .readout-list{ display:flex; flex-direction:column; gap:14px; }
+  .readout{
+    display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap;
+    padding-bottom:12px; border-bottom:1px dashed var(--hairline);
   }
-  .mll-input:hover, .mll-input:focus{ border-bottom-color:var(--hairline-bright); }
-  .mll-options{ display:flex; gap:6px; flex-wrap:wrap; }
-  .mll-opt{
-    font-family:var(--font-mono); font-size:11px; padding:3px 9px; border-radius:5px;
-    background:var(--void); border:1px solid var(--hairline); color:var(--muted); cursor:pointer;
+  .readout:last-child{ border-bottom:none; padding-bottom:0; }
+  .readout .rlabel{ font-size:13.5px; color:var(--muted); }
+  .readout .rsub{ display:block; font-size:11.5px; color:var(--muted-dim); margin-top:2px; }
+  .readout .rvalue{ font-family:var(--font-mono); font-size:17px; font-weight:600; color:var(--phosphor-soft); white-space:nowrap; }
+  .readout .rvalue.amber{ color:var(--amber); }
+  .readout .rvalue.red{ color:var(--red); }
+  .readout .rcontrol{ display:flex; align-items:center; gap:8px; }
+
+  .opt-pill{
+    font-family:var(--font-mono); font-size:12px; font-weight:600; padding:6px 14px;
+    border-radius:999px; background:var(--panel-raised); border:1px solid var(--hairline);
+    color:var(--muted); cursor:pointer; transition:border-color .15s, background .15s, color .15s;
   }
-  .mll-opt:hover{ border-color:var(--hairline-bright); color:var(--ice); }
-  .mll-opt.active{ border-color:var(--phosphor-dim); color:var(--phosphor-soft); background:rgba(62,224,140,0.08); }
+  .opt-pill:hover{ border-color:var(--hairline-bright); color:var(--ice); }
+  .opt-pill.active{ background:var(--mint); border-color:var(--mint); color:var(--mint-text); }
+
+  .inline-edit{ display:flex; align-items:baseline; gap:1px; }
+  .inline-edit .prefix{ font-family:var(--font-mono); font-size:16px; color:var(--ice); }
+  .inline-edit input{
+    width:80px; background:transparent; border:none; border-bottom:1px dashed var(--hairline);
+    text-align:right; font-family:var(--font-mono); font-size:17px; font-weight:600; color:var(--ice);
+    padding:0 0 1px; outline:none;
+  }
+  .inline-edit input:hover, .inline-edit input:focus{ border-bottom-color:var(--mint); }
 
   /* ---------- Console (Risk Co-Pilot) ---------- */
   .console{
-    background:var(--panel); border:1px solid var(--hairline); border-radius:12px;
+    background:var(--panel); border:1px solid var(--hairline); border-radius:20px;
     padding:22px clamp(16px,3vw,28px); margin-bottom:26px;
   }
   .console-head{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:18px; }
@@ -179,26 +193,15 @@
   .field{ display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
   .field label{ font-family:var(--font-mono); font-size:11.5px; letter-spacing:0.06em; color:var(--muted); text-transform:uppercase; }
   .field input{
-    background:var(--void); border:1px solid var(--hairline); border-radius:7px;
+    background:var(--void); border:1px solid var(--hairline); border-radius:10px;
     padding:10px 12px; color:var(--ice); font-family:var(--font-mono); font-size:15px;
     outline:none; transition:border-color .15s;
   }
-  .field input:focus{ border-color:var(--phosphor); box-shadow:0 0 0 3px rgba(62,224,140,0.12); }
+  .field input:focus{ border-color:var(--mint); box-shadow:0 0 0 3px rgba(126,232,172,0.14); }
   .field .hint{ font-size:11.5px; color:var(--muted-dim); }
 
-  .readout-list{ display:flex; flex-direction:column; gap:14px; }
-  .readout{
-    display:flex; justify-content:space-between; align-items:baseline; gap:10px;
-    padding-bottom:12px; border-bottom:1px dashed var(--hairline);
-  }
-  .readout:last-child{ border-bottom:none; padding-bottom:0; }
-  .readout .rlabel{ font-size:13px; color:var(--muted); max-width:60%; }
-  .readout .rvalue{ font-family:var(--font-mono); font-size:17px; font-weight:600; color:var(--phosphor-soft); white-space:nowrap; }
-  .readout .rvalue.amber{ color:var(--amber); }
-  .readout .rvalue.red{ color:var(--red); }
-
   .coach{
-    margin-top:20px; padding:16px 18px; border-radius:9px;
+    margin-top:20px; padding:16px 18px; border-radius:14px;
     background:var(--void); border:1px solid var(--hairline-bright);
     font-family:var(--font-mono); font-size:13.5px; line-height:1.75; color:var(--ice);
   }
@@ -218,7 +221,7 @@
   .phases{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
   @media (max-width:860px){ .phases{ grid-template-columns:1fr; } }
   .phase{
-    background:var(--panel); border:1px solid var(--hairline); border-radius:12px;
+    background:var(--panel); border:1px solid var(--hairline); border-radius:20px;
     padding:20px 20px 22px; display:flex; flex-direction:column; gap:12px;
   }
   .phase .phase-num{ font-family:var(--font-mono); font-size:12px; color:var(--phosphor-dim); letter-spacing:0.1em; }
@@ -232,22 +235,65 @@
   footer{ margin-top:40px; padding-top:18px; border-top:1px solid var(--hairline); }
   footer p{ font-size:12px; color:var(--muted-dim); line-height:1.7; max-width:80ch; margin:0 0 8px; }
   footer a{ color:var(--muted); }
+
+  /* ---------- Account menu ---------- */
+  .menu-overlay{
+    position:fixed; inset:0; background:rgba(4,7,5,0.6); backdrop-filter:blur(2px);
+    opacity:0; pointer-events:none; transition:opacity .2s; z-index:40;
+  }
+  .menu-overlay.show{ opacity:1; pointer-events:auto; }
+  .account-menu{
+    position:fixed; top:0; right:0; bottom:0; width:min(340px,88vw);
+    background:var(--panel-raised); border-left:1px solid var(--hairline);
+    transform:translateX(100%); transition:transform .25s ease; z-index:41;
+    display:flex; flex-direction:column; padding:20px 18px; overflow-y:auto;
+  }
+  .account-menu.open{ transform:translateX(0); }
+  .account-menu-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; padding-bottom:14px; border-bottom:1px solid var(--hairline); }
+  .account-menu-head span{ font-family:var(--font-display); font-weight:700; font-size:16px; color:var(--ice); }
+  .menu-close{
+    width:32px; height:32px; border-radius:50%; border:1px solid var(--hairline); background:transparent;
+    color:var(--ice); font-size:18px; line-height:1; cursor:pointer;
+  }
+  .menu-close:hover{ border-color:var(--hairline-bright); }
+  .menu-section{ padding:16px 0; border-bottom:1px solid var(--hairline); }
+  .menu-section:last-child{ border-bottom:none; }
+  .menu-section-title{
+    display:flex; align-items:center; gap:8px; font-family:var(--font-display); font-weight:600;
+    font-size:14.5px; color:var(--ice); margin-bottom:10px;
+  }
+  .menu-current{
+    font-family:var(--font-mono); font-size:9px; letter-spacing:0.08em; background:var(--mint);
+    color:var(--mint-text); padding:2px 7px; border-radius:4px; font-weight:700;
+  }
+  .menu-sizes{ display:flex; gap:8px; flex-wrap:wrap; }
+  .menu-size-btn{
+    font-family:var(--font-mono); font-size:13px; font-weight:600; padding:8px 14px;
+    border-radius:999px; background:var(--panel); border:1px solid var(--hairline); color:var(--muted);
+    cursor:pointer; transition:border-color .15s, background .15s, color .15s;
+  }
+  .menu-size-btn:hover{ border-color:var(--hairline-bright); color:var(--ice); }
+  .menu-size-btn.active{ background:var(--mint); border-color:var(--mint); color:var(--mint-text); }
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <div class="hud-bar">
-    <div class="hud-id">
-      <span class="hud-dot" aria-hidden="true"></span>
-      <span class="callsign">EZPAYOUTS · COCKPIT-01</span>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <div class="brand-text">
+        <span class="brand-name">Lucid Cockpit</span>
+        <span class="brand-sub">by EZPayouts</span>
+      </div>
     </div>
-    <div class="hud-status">
-      <span>OPERATOR <strong id="opName">TRADER</strong></span>
-      <span>NY TIME <strong id="nyTime" class="mono">--:--:--</strong></span>
-      <span>FLATTEN <strong id="flattenIn" class="mono">--:--</strong></span>
+    <div class="topbar-right">
+      <span class="nyclock mono">NY <strong id="nyTime">--:--:--</strong></span>
+      <button type="button" class="menu-btn" id="menuBtn" aria-haspopup="true" aria-expanded="false" aria-controls="accountMenu" aria-label="Select account">
+        <span class="menu-lines" aria-hidden="true"><span></span><span></span><span></span></span>
+      </button>
     </div>
-  </div>
+  </header>
 
   <div class="hero">
     <div class="eyebrow">Lucid Trading &mdash; Mission Console</div>
@@ -276,7 +322,11 @@
     </div>
   </div>
 
-  <div class="stat-grid" id="statGrid"></div>
+  <div class="snapshot-card">
+    <div class="snapshot-title" id="snapshotTitle">25K FLEX EVAL</div>
+    <div class="snapshot-sub" id="snapshotSub">Live rule sheet for this plan and size</div>
+    <div class="readout-list" id="statList"></div>
+  </div>
 
   <div class="console">
     <div class="console-head">
@@ -319,7 +369,7 @@
       <h3>Evaluation</h3>
       <ul>
         <li>Clear the <b>profit target</b> for your size without your balance touching the trailing <b>Max Loss Limit</b>.</li>
-        <li>The <b>Daily Loss Limit is optional</b> &mdash; OFF, or a firm $600 cap if you opted in. Either way, the Co-Pilot above sets a stop for you.</li>
+        <li>The <b>Daily Loss Limit is optional</b> on the 25K Flex &mdash; OFF, or a firm $600 cap if you opted in. Either way, the Co-Pilot above sets a stop for you.</li>
         <li><b>Consistency rule:</b> no single day can exceed 50% of your total profit when you hit target. Spread wins across at least 2&ndash;3 sessions.</li>
         <li>Positions auto-flatten at <b>4:45 PM ET</b>. Holding past it doesn't fail you, but plan your exits before then.</li>
         <li>No minimum trading days &mdash; pass as fast as the math allows, just don't let one hot day carry the whole account.</li>
@@ -348,25 +398,41 @@
   </div>
 
   <footer>
-    <p>Figures reflect LucidFlex / LucidPro / LucidDaily / LucidDirect rules as publicly documented in 2026 (Lucid Trading support center and independent prop-firm rule trackers). On the 25K Flex, the Max Loss Limit is a fixed $1,000; the Daily Loss Limit is a separate, optional setting &mdash; OFF by default, or a firm-enforced $600 if you opted into it &mdash; toggled above. Both fields are editable in case your dashboard shows different numbers. Pro, Daily and Direct figures beyond target and Max Loss Limit are less firmly sourced than Flex &mdash; always confirm against your live Lucid dashboard before sizing a trade. This page is a planning aid, not trading or financial advice, and doesn't place trades or connect to your broker.</p>
+    <p>Figures reflect LucidFlex / LucidPro / LucidDaily / LucidDirect rules as publicly documented in 2026 (Lucid Trading support center and independent prop-firm rule trackers). On the 25K Flex, the Max Loss Limit is a fixed $1,000; the Daily Loss Limit is a separate, optional setting &mdash; OFF by default, or a firm-enforced $600 if you opted into it &mdash; toggled above. The Max Loss Limit field is editable in case your dashboard shows a different number. Pro, Daily and Direct figures beyond target and Max Loss Limit are less firmly sourced than Flex, and the Daily Loss Limit toggle is confirmed only for the 25K Flex &mdash; always check your live Lucid dashboard before sizing a trade. This page is a planning aid, not trading or financial advice, and doesn't place trades or connect to your broker.</p>
   </footer>
 
 </div>
+
+<div class="menu-overlay" id="menuOverlay" hidden></div>
+<aside class="account-menu" id="accountMenu" aria-hidden="true">
+  <div class="account-menu-head">
+    <span>Select Account</span>
+    <button type="button" class="menu-close" id="menuClose" aria-label="Close menu">&times;</button>
+  </div>
+  <div id="accountMenuBody"></div>
+</aside>
 
 <script>
 (function(){
   "use strict";
 
+  var CONTRACTS = {
+    25000:  { maxMini:2,  maxMicro:20,  fundedMini:1, fundedMicro:10 },
+    50000:  { maxMini:4,  maxMicro:40,  fundedMini:2, fundedMicro:20 },
+    100000: { maxMini:6,  maxMicro:60,  fundedMini:3, fundedMicro:30 },
+    150000: { maxMini:10, maxMicro:100, fundedMini:4, fundedMicro:40 }
+  };
+
   var PLANS = {
     flex: {
       name: "LucidFlex",
-      tagline: "Daily Loss Limit is optional (OFF or $600). The trailing Max Loss Limit only updates at the close.",
+      tagline: "Daily Loss Limit is optional (OFF or $600) on the 25K. The trailing Max Loss Limit only updates at the close.",
       verified: true,
       sizes: {
-        25000:  { target:1250, mll:1000, dailyMin:100, dllDefault:600 },
-        50000:  { target:3000, mll:2000, dailyMin:150, dllDefault:null },
-        100000: { target:6000, mll:3000, dailyMin:200, dllDefault:null },
-        150000: { target:9000, mll:4500, dailyMin:250, dllDefault:null }
+        25000:  { target:1250, mll:1000, dailyMin:100 },
+        50000:  { target:3000, mll:2000, dailyMin:150 },
+        100000: { target:6000, mll:3000, dailyMin:200 },
+        150000: { target:9000, mll:4500, dailyMin:250 }
       },
       consistencyEval: 50
     },
@@ -407,8 +473,10 @@
       consistencyEval: 20
     }
   };
+  var PLAN_ORDER = ["flex","pro","daily","direct"];
+  var SIZE_ORDER = [25000,50000,100000,150000];
 
-  var state = { plan: "flex", size: 25000, mllOverrides: {}, dllState: {} };
+  var state = { plan: "flex", size: 25000, mllOverrides: {}, dll600On: false };
 
   function mllKey(){ return state.plan + "_" + state.size; }
   function getMll(){
@@ -419,25 +487,15 @@
     var v = Math.max(1, Math.round(parseFloat(value) || current().size.mll));
     state.mllOverrides[mllKey()] = v;
   }
-
-  function getDll(){
-    var k = state.size;
-    if (!(k in state.dllState)){
-      var d = current().size.dllDefault;
-      state.dllState[k] = { on:false, amount:d };
-    }
-    return state.dllState[k];
-  }
-  function setDllOn(on){ getDll().on = on; }
-  function setDllAmount(value){
-    var v = Math.max(1, Math.round(parseFloat(value) || 0));
-    getDll().amount = v || null;
-  }
+  function dllAvailable(){ return state.plan === "flex" && state.size === 25000; }
+  function dllActive(){ return dllAvailable() && state.dll600On; }
 
   var fmt = new Intl.NumberFormat("en-US", { style:"currency", currency:"USD", maximumFractionDigits:0 });
   function money(n){ return fmt.format(Math.round(n)); }
 
-  var statGrid = document.getElementById("statGrid");
+  var statList = document.getElementById("statList");
+  var snapshotTitle = document.getElementById("snapshotTitle");
+  var snapshotSub = document.getElementById("snapshotSub");
   var planTagline = document.getElementById("planTagline");
   var verifyNote = document.getElementById("verifyNote");
   var readoutList = document.getElementById("readoutList");
@@ -449,61 +507,53 @@
     return { plan:plan, size:plan.sizes[state.size] };
   }
 
-  function mllPercent(mll){ return Math.round((mll / state.size) * 1000) / 10; }
+  function row(label, valueHtml, cls, sub){
+    return '<div class="readout"><span class="rlabel">' + label + (sub ? '<span class="rsub">' + sub + '</span>' : '') + '</span>' + valueHtml + '</div>';
+  }
+  function plainValue(text, cls){
+    return '<span class="rvalue' + (cls ? " " + cls : "") + '">' + text + '</span>';
+  }
 
   function renderStats(){
     var c = current();
     var d = c.size;
     var effMll = getMll();
-    var mllPct = mllPercent(effMll);
+    var contracts = CONTRACTS[state.size];
 
-    var dllHtml;
-    if (state.plan === "flex"){
-      var dll = getDll();
-      dllHtml =
-        '<div class="stat">' +
-          '<span class="label">Daily Loss Limit</span>' +
-          '<div class="mll-options">' +
-            '<button type="button" class="mll-opt' + (!dll.on ? ' active' : '') + '" data-dll="off">OFF</button>' +
-            '<button type="button" class="mll-opt' + (dll.on ? ' active' : '') + '" data-dll="on">' + (dll.amount ? money(dll.amount) : "Set $") + '</button>' +
-          '</div>' +
-          (dll.on ?
-            '<div class="mll-edit" style="margin-top:6px;"><span class="mll-prefix mono">$</span><input class="mll-input mono" id="dllInput" type="number" step="1" min="1" value="' + (dll.amount || '') + '" placeholder="600" aria-label="Daily Loss Limit amount" /></div>'
-            : '') +
-          '<span class="sub">' + (dll.on ? "Firm-enforced &mdash; trip it and today’s trading is done." : "LucidFlex lets you run with no firm cap &mdash; toggle on if your plan has one.") + '</span>' +
+    snapshotTitle.textContent = (state.size/1000) + "K " + c.plan.name.replace("Lucid","").toUpperCase() + " EVAL";
+    snapshotSub.textContent = c.plan.name + " · $" + (state.size/1000) + "K account";
+
+    var dllValueHtml;
+    if (dllAvailable()){
+      dllValueHtml =
+        '<div class="rcontrol">' +
+          '<button type="button" class="opt-pill' + (!state.dll600On ? ' active' : '') + '" data-dll="off">OFF</button>' +
+          '<button type="button" class="opt-pill' + (state.dll600On ? ' active' : '') + '" data-dll="on">$600</button>' +
         '</div>';
+    } else if (state.plan === "flex"){
+      dllValueHtml = plainValue("Optional", "");
     } else {
-      dllHtml =
-        '<div class="stat">' +
-          '<span class="label">Daily Loss Limit</span>' +
-          '<span class="value mono">Fixed</span>' +
-          '<span class="sub">Confirm the exact amount on your dashboard</span>' +
-        '</div>';
+      dllValueHtml = plainValue("Fixed", "");
     }
 
-    statGrid.innerHTML =
-      '<div class="stat">' +
-        '<span class="label">Profit Target</span>' +
-        '<span class="value pos mono">' + money(d.target) + '</span>' +
-        '<span class="sub">' + (Math.round((d.target/state.size)*1000)/10) + '% of account size</span>' +
-      '</div>' +
-      '<div class="stat">' +
-        '<span class="label">Max Loss Limit</span>' +
-        '<div class="mll-edit"><span class="mll-prefix mono">$</span><input class="mll-input mono" id="mllInput" type="number" step="1" min="1" value="' + effMll + '" aria-label="Max Loss Limit override" /></div>' +
-        '<span class="sub">Trailing, end-of-day only &mdash; <span id="mllPctText">' + mllPct + '</span>% of size. Edit if your dashboard shows a different number.</span>' +
-        '<div class="gauge"><i id="mllGaugeBar" style="width:' + mllPct + '%"></i></div>' +
-      '</div>' +
-      dllHtml +
-      '<div class="stat">' +
-        '<span class="label">Consistency Rule</span>' +
-        '<span class="value mono">' + c.plan.consistencyEval + '%</span>' +
-        '<span class="sub">Evaluation only &mdash; largest day &le; ' + c.plan.consistencyEval + '% of total profit</span>' +
-      '</div>' +
-      '<div class="stat">' +
-        '<span class="label">Qualifying Days</span>' +
-        '<span class="value mono">5 &times; ' + money(d.dailyMin) + '</span>' +
-        '<span class="sub">Needed funded, before your first payout request</span>' +
-      '</div>';
+    var mllValueHtml =
+      '<div class="rcontrol"><div class="inline-edit"><span class="prefix mono">$</span><input class="mono" id="mllInput" type="number" step="1" min="1" value="' + effMll + '" aria-label="Max Loss Limit" /></div></div>';
+
+    var drawdownHtml = c.plan.verified ? plainValue("EOD", "") : plainValue("&mdash;", "");
+    var drawdownSub = c.plan.verified ? "Trailing max loss updates only at the close (4:45 PM ET)" : "Confirm on your dashboard";
+
+    var maxSizeSub = state.plan === "flex"
+      ? "Funded starts at " + contracts.fundedMini + " mini / " + contracts.fundedMicro + " micro and scales up as profit builds"
+      : "Confirm on your dashboard";
+
+    statList.innerHTML =
+      row("Profit Target", plainValue(money(d.target), "pos"), "", Math.round((d.target/state.size)*1000)/10 + "% of account size") +
+      row("Daily Loss Limit", dllValueHtml, "", dllAvailable() ? "Trip it and today's trading is done" : (state.plan === "flex" ? "Available on the 25K &mdash; confirm this size on your dashboard" : "Confirm on your dashboard")) +
+      row("Max Loss Limit", mllValueHtml, "", "Trailing, end-of-day only — edit if your dashboard differs") +
+      row("Drawdown Type", drawdownHtml, "", drawdownSub) +
+      row("Consistency", plainValue(c.plan.consistencyEval + "%", ""), "", "Evaluation only — largest day ≤ " + c.plan.consistencyEval + "% of total profit") +
+      row("Max Size", plainValue(contracts.maxMini + " Mini or " + contracts.maxMicro + " Micro", ""), "", maxSizeSub) +
+      row("Qualifying Days", plainValue("5 &times; " + money(d.dailyMin), ""), "", "Needed funded, before your first payout request");
   }
 
   function renderMeta(){
@@ -529,14 +579,13 @@
     var bestDay = parseFloat(document.getElementById("bestDayInput").value) || 0;
 
     var effMll = getMll();
-    var dll = state.plan === "flex" ? getDll() : null;
-    var dllActive = !!(dll && dll.on && dll.amount);
+    var dllOn = dllActive();
     var remaining = Math.max(0, d.target - pnl);
     var perDay = remaining / days;
     var perDayPctOfSize = (perDay / state.size) * 100;
 
-    var maxRiskPerTrade = Math.min(state.size * 0.01, effMll * 0.10, dllActive ? dll.amount * 0.15 : Infinity);
-    var maxDailyLossCap = dllActive ? dll.amount * 0.8 : effMll * 0.40;
+    var maxRiskPerTrade = Math.min(state.size * 0.01, effMll * 0.10, dllOn ? 600 * 0.15 : Infinity);
+    var maxDailyLossCap = dllOn ? 600 * 0.8 : effMll * 0.40;
     var consistencyCeiling = Math.max(pnl, 1) * (c.plan.consistencyEval / 100);
     var consistencyBreach = pnl > 0 && bestDay > consistencyCeiling;
 
@@ -548,17 +597,17 @@
     paceStatus.textContent = remaining === 0 ? "TARGET CLEARED" : paceWord;
     paceStatus.style.color = remaining === 0 ? "var(--phosphor-soft)" : (paceLevel === "good" ? "var(--phosphor-soft)" : paceLevel === "amber" ? "var(--amber)" : "var(--red)");
 
-    function row(label, value, cls){
+    function coRow(label, value, cls){
       return '<div class="readout"><span class="rlabel">' + label + '</span><span class="rvalue' + (cls ? " " + cls : "") + '">' + value + '</span></div>';
     }
 
     readoutList.innerHTML =
-      row("Remaining to target", money(remaining)) +
-      row("Required pace / day", money(perDay) + " &nbsp;(" + perDayPctOfSize.toFixed(2) + "% of size)", paceLevel === "good" ? "" : paceLevel) +
-      row("Max risk per trade", money(maxRiskPerTrade), "") +
-      (dllActive ? row("Daily Loss Limit (firm)", money(dll.amount), "red") : "") +
-      row(dllActive ? "Recommended stop-out" : "Self-imposed daily stop", money(maxDailyLossCap), "amber") +
-      row("Consistency ceiling (today)", money(consistencyCeiling), consistencyBreach ? "red" : "");
+      coRow("Remaining to target", money(remaining)) +
+      coRow("Required pace / day", money(perDay) + " &nbsp;(" + perDayPctOfSize.toFixed(2) + "% of size)", paceLevel === "good" ? "" : paceLevel) +
+      coRow("Max risk per trade", money(maxRiskPerTrade), "") +
+      (dllOn ? coRow("Daily Loss Limit (firm)", money(600), "red") : "") +
+      coRow(dllOn ? "Recommended stop-out" : "Self-imposed daily stop", money(maxDailyLossCap), "amber") +
+      coRow("Consistency ceiling (today)", money(consistencyCeiling), consistencyBreach ? "red" : "");
 
     var lines = [];
     if (remaining === 0){
@@ -573,11 +622,11 @@
         lines.push('That’s a <b>reasonable pace</b> relative to your Max Loss Limit &mdash; no need to force trades.');
       }
     }
-    lines.push('Keep risk at or under <b>' + money(maxRiskPerTrade) + '</b> per trade' + (dllActive ? ' &mdash; sized so a bad run doesn’t threaten your ' + money(dll.amount) + ' Daily Loss Limit.' : ' (1% of size, capped at 10% of your Max Loss Limit).'));
-    if (dllActive){
-      lines.push('You’re running a <b>' + money(dll.amount) + ' Daily Loss Limit</b> &mdash; trip it and today’s session is over. Pull the plug yourself at <b>' + money(maxDailyLossCap) + '</b> down (80% of the limit) so a slippage spike doesn’t blow it for you.');
+    lines.push('Keep risk at or under <b>' + money(maxRiskPerTrade) + '</b> per trade' + (dllOn ? ' &mdash; sized so a bad run doesn’t threaten your $600 Daily Loss Limit.' : ' (1% of size, capped at 10% of your Max Loss Limit).'));
+    if (dllOn){
+      lines.push('You’re running a <b>$600 Daily Loss Limit</b> &mdash; trip it and today’s session is over. Pull the plug yourself at <b>' + money(maxDailyLossCap) + '</b> down (80% of the limit) so a slippage spike doesn’t blow it for you.');
     } else {
-      lines.push(c.plan.name + ' sets no firm daily loss limit here, so stop yourself at <b>' + money(maxDailyLossCap) + '</b> down for the day &mdash; the firm won’t, so you have to.');
+      lines.push(c.plan.name + (dllAvailable() ? ' has your Daily Loss Limit set to OFF' : ' sets no firm daily loss limit here') + ', so stop yourself at <b>' + money(maxDailyLossCap) + '</b> down for the day &mdash; the firm won’t, so you have to.');
     }
     if (consistencyBreach){
       lines.push('<span class="flag-red">Consistency flag:</span> your best day (' + money(bestDay) + ') is above the ' + c.plan.consistencyEval + '% ceiling for your current profit. Bank a couple more solid days before you’d be eligible to pass.');
@@ -588,11 +637,28 @@
     coachText.innerHTML = lines.join(' ');
   }
 
+  function renderAccountMenu(){
+    var body = document.getElementById("accountMenuBody");
+    var html = "";
+    PLAN_ORDER.forEach(function(planKey){
+      var plan = PLANS[planKey];
+      var isCurrentPlan = planKey === state.plan;
+      html += '<div class="menu-section"><div class="menu-section-title">' + plan.name + (isCurrentPlan ? ' <span class="menu-current">CURRENT</span>' : '') + '</div><div class="menu-sizes">';
+      SIZE_ORDER.forEach(function(size){
+        var active = isCurrentPlan && size === state.size;
+        html += '<button type="button" class="menu-size-btn' + (active ? ' active' : '') + '" data-plan="' + planKey + '" data-size="' + size + '">$' + (size/1000) + 'K</button>';
+      });
+      html += '</div></div>';
+    });
+    body.innerHTML = html;
+  }
+
   function renderAll(){
     renderStats();
     renderMeta();
     renderTabs();
     renderCoPilot();
+    renderAccountMenu();
   }
 
   document.querySelectorAll(".tab").forEach(function(btn){
@@ -608,37 +674,56 @@
     });
   });
 
-  statGrid.addEventListener("input", function(e){
+  statList.addEventListener("input", function(e){
     if (e.target.id === "mllInput"){
       setMll(e.target.value);
-      var pct = mllPercent(getMll());
-      var pctText = document.getElementById("mllPctText");
-      var gaugeBar = document.getElementById("mllGaugeBar");
-      if (pctText) pctText.textContent = pct;
-      if (gaugeBar) gaugeBar.style.width = pct + "%";
-      renderCoPilot();
-    }
-    if (e.target.id === "dllInput"){
-      setDllAmount(e.target.value);
-      var onChip = statGrid.querySelector('.mll-opt[data-dll="on"]');
-      if (onChip) onChip.textContent = getDll().amount ? money(getDll().amount) : "Set $";
       renderCoPilot();
     }
   });
-  statGrid.addEventListener("click", function(e){
-    if (e.target.dataset.mll !== undefined){
-      setMll(e.target.dataset.mll);
-      renderStats();
-      renderCoPilot();
-    }
+  statList.addEventListener("click", function(e){
     if (e.target.dataset.dll !== undefined){
-      setDllOn(e.target.dataset.dll === "on");
+      state.dll600On = e.target.dataset.dll === "on";
       renderStats();
       renderCoPilot();
     }
   });
   ["pnlInput","daysInput","bestDayInput"].forEach(function(id){
     document.getElementById(id).addEventListener("input", renderCoPilot);
+  });
+
+  // Account menu open/close
+  var menuBtn = document.getElementById("menuBtn");
+  var menuClose = document.getElementById("menuClose");
+  var menuOverlay = document.getElementById("menuOverlay");
+  var accountMenu = document.getElementById("accountMenu");
+
+  function openMenu(){
+    accountMenu.classList.add("open");
+    accountMenu.setAttribute("aria-hidden", "false");
+    menuOverlay.hidden = false;
+    requestAnimationFrame(function(){ menuOverlay.classList.add("show"); });
+    menuBtn.setAttribute("aria-expanded", "true");
+  }
+  function closeMenu(){
+    accountMenu.classList.remove("open");
+    accountMenu.setAttribute("aria-hidden", "true");
+    menuOverlay.classList.remove("show");
+    menuBtn.setAttribute("aria-expanded", "false");
+    setTimeout(function(){ if (!menuOverlay.classList.contains("show")) menuOverlay.hidden = true; }, 200);
+  }
+  menuBtn.addEventListener("click", openMenu);
+  menuClose.addEventListener("click", closeMenu);
+  menuOverlay.addEventListener("click", closeMenu);
+  document.addEventListener("keydown", function(e){
+    if (e.key === "Escape") closeMenu();
+  });
+  document.getElementById("accountMenuBody").addEventListener("click", function(e){
+    if (e.target.classList.contains("menu-size-btn")){
+      state.plan = e.target.dataset.plan;
+      state.size = parseInt(e.target.dataset.size, 10);
+      renderAll();
+      closeMenu();
+    }
   });
 
   renderAll();
@@ -657,20 +742,6 @@
       if (p.type === "second") s = parseInt(p.value,10);
     });
     document.getElementById("nyTime").textContent = pad(h)+":"+pad(m)+":"+pad(s);
-
-    var nowSec = h*3600+m*60+s;
-    var cutoffSec = 16*3600+45*60;
-    var diff = cutoffSec - nowSec;
-    var label;
-    if (diff > 0){
-      var hh = Math.floor(diff/3600), mm = Math.floor((diff%3600)/60);
-      label = pad(hh)+"h "+pad(mm)+"m";
-    } else {
-      var next = 24*3600 - nowSec + cutoffSec;
-      var hh2 = Math.floor(next/3600), mm2 = Math.floor((next%3600)/60);
-      label = "closed · " + pad(hh2)+"h "+pad(mm2)+"m";
-    }
-    document.getElementById("flattenIn").textContent = label;
   }
   tick();
   setInterval(tick, 1000);
