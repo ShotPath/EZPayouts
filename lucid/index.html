@@ -200,12 +200,12 @@
 
   .field{ display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
   .field label{ font-family:var(--font-mono); font-size:11.5px; letter-spacing:0.06em; color:var(--muted); text-transform:uppercase; }
-  .field input{
+  .field input, .field select{
     background:var(--void); border:1px solid var(--hairline); border-radius:10px;
     padding:10px 12px; color:var(--ice); font-family:var(--font-mono); font-size:15px;
     outline:none; transition:border-color .15s;
   }
-  .field input:focus{ border-color:var(--mint); box-shadow:0 0 0 3px rgba(126,232,172,0.14); }
+  .field input:focus, .field select:focus{ border-color:var(--mint); box-shadow:0 0 0 3px rgba(126,232,172,0.14); }
   .field .hint{ font-size:11.5px; color:var(--muted-dim); }
 
   .coach{
@@ -338,6 +338,40 @@
 
   <div class="console">
     <div class="console-head">
+      <h2>Connect Tradovate</h2>
+      <span class="clock" id="tvStatusLabel">Not connected</span>
+    </div>
+    <div class="console-grid">
+      <div>
+        <div class="field">
+          <label for="tvUsername">Tradovate username</label>
+          <input id="tvUsername" type="text" autocomplete="username" />
+        </div>
+        <div class="field">
+          <label for="tvPassword">Password</label>
+          <input id="tvPassword" type="password" autocomplete="current-password" />
+        </div>
+      </div>
+      <div>
+        <div class="field">
+          <label for="tvEnv">Environment</label>
+          <select id="tvEnv">
+            <option value="live">Live</option>
+            <option value="demo">Demo</option>
+          </select>
+          <span class="hint">Goes straight to Tradovate's own login through our backend &mdash; never stored here.</span>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+      <button type="button" class="switch-btn" id="tvConnectBtn">Connect</button>
+      <button type="button" class="switch-btn" id="tvDisconnectBtn" hidden>Disconnect</button>
+      <span class="hint" id="tvMessage"></span>
+    </div>
+  </div>
+
+  <div class="console">
+    <div class="console-head">
       <h2>Risk Co-Pilot</h2>
       <span class="clock">STATUS: <strong id="paceStatus">CALCULATING</strong></span>
     </div>
@@ -406,7 +440,7 @@
   </div>
 
   <footer>
-    <p>Figures reflect LucidFlex / LucidPro / LucidDaily / LucidDirect rules as publicly documented in 2026 (Lucid Trading support center and independent prop-firm rule trackers). On the 25K Flex, the Max Loss Limit is a fixed $1,000; the Daily Loss Limit is a separate, optional setting &mdash; OFF by default, or a firm-enforced $600 if you opted into it. LucidPro offers the same OFF/$600 Daily Loss Limit choice at every account size, and LucidDaily lets you choose Intraday or End-of-Day drawdown tracking &mdash; both toggled above. Eval and reset pricing is populated for the 25K Flex and all four LucidPro sizes, taken directly from Lucid's own checkout screen at the time this was written. Every price changes with Lucid's current promos, so treat these as a snapshot, not what you'll pay today. Everything else &mdash; Daily, Direct, and any plan/size combo not listed above &mdash; is unverified here rather than guessed; always check your live Lucid dashboard or checkout before sizing a trade or paying for an account. The maximum payout table is sourced from independent payout-rules trackers, not Lucid directly, and is shown only where the rest of that plan's figures are already marked verified. This page is a planning aid, not trading or financial advice, and doesn't place trades or connect to your broker.</p>
+    <p>Figures reflect LucidFlex / LucidPro / LucidDaily / LucidDirect rules as publicly documented in 2026 (Lucid Trading support center and independent prop-firm rule trackers). On the 25K Flex, the Max Loss Limit is a fixed $1,000; the Daily Loss Limit is a separate, optional setting &mdash; OFF by default, or a firm-enforced $600 if you opted into it. LucidPro offers the same OFF/$600 Daily Loss Limit choice at every account size, and LucidDaily lets you choose Intraday or End-of-Day drawdown tracking &mdash; both toggled above. Eval and reset pricing is populated for the 25K Flex and all four LucidPro sizes, taken directly from Lucid's own checkout screen at the time this was written. Every price changes with Lucid's current promos, so treat these as a snapshot, not what you'll pay today. Everything else &mdash; Daily, Direct, and any plan/size combo not listed above &mdash; is unverified here rather than guessed; always check your live Lucid dashboard or checkout before sizing a trade or paying for an account. The maximum payout table is sourced from independent payout-rules trackers, not Lucid directly, and is shown only where the rest of that plan's figures are already marked verified. This page is a planning aid, not trading or financial advice, and never places trades. The optional Tradovate connection is read-only (balance and fill history only) and its account-summary math is a first pass not yet verified against a live account &mdash; confirm any number it shows against your actual Tradovate/Lucid dashboards before relying on it.</p>
   </footer>
 
 </div>
@@ -815,6 +849,96 @@
     }
   });
   document.getElementById("switchAccountBtn").addEventListener("click", openMenu);
+
+  // Tradovate connect — talks to the backend Worker, never to Tradovate directly.
+  // Set this to your deployed Worker URL (see worker/README.md); connecting is a
+  // no-op with a clear message until this is filled in.
+  var TRADOVATE_API_BASE = "https://REPLACE-ME.workers.dev";
+
+  var tvStatusLabel = document.getElementById("tvStatusLabel");
+  var tvConnectBtn = document.getElementById("tvConnectBtn");
+  var tvDisconnectBtn = document.getElementById("tvDisconnectBtn");
+  var tvMessage = document.getElementById("tvMessage");
+
+  function tvSetMessage(text, isError){
+    tvMessage.textContent = text || "";
+    tvMessage.style.color = isError ? "var(--red)" : "var(--muted-dim)";
+  }
+
+  function tvSetConnected(connected, name){
+    tvStatusLabel.textContent = connected ? ("Connected" + (name ? " — " + name : "")) : "Not connected";
+    tvStatusLabel.style.color = connected ? "var(--phosphor-soft)" : "";
+    tvConnectBtn.hidden = connected;
+    tvDisconnectBtn.hidden = !connected;
+  }
+
+  async function tvFetchSummary(){
+    var res = await fetch(TRADOVATE_API_BASE + "/api/summary", { credentials: "include" });
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Couldn't fetch account data.");
+    return data;
+  }
+
+  async function tvConnect(){
+    if (TRADOVATE_API_BASE.indexOf("REPLACE-ME") !== -1){
+      tvSetMessage("Backend not deployed yet — see worker/README.md.", true);
+      return;
+    }
+    var username = document.getElementById("tvUsername").value.trim();
+    var password = document.getElementById("tvPassword").value;
+    var environment = document.getElementById("tvEnv").value;
+    if (!username || !password){
+      tvSetMessage("Enter your Tradovate username and password.", true);
+      return;
+    }
+    tvConnectBtn.disabled = true;
+    tvSetMessage("Connecting…");
+    try {
+      var loginRes = await fetch(TRADOVATE_API_BASE + "/api/login", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: username, password: password, environment: environment })
+      });
+      var loginData = await loginRes.json();
+      if (!loginRes.ok) throw new Error(loginData.error || "Login failed.");
+      document.getElementById("tvPassword").value = "";
+      tvSetConnected(true, loginData.name);
+
+      var summary = await tvFetchSummary();
+      if (summary.balance != null){
+        var pnl = summary.balance - state.size;
+        document.getElementById("pnlInput").value = Math.round(pnl);
+        renderCoPilot();
+        saveState();
+      }
+      tvSetMessage("Pulled live from Tradovate — balance " + money(summary.balance) + ", " + summary.daysTraded + " day(s) with fills so far. Best-day and days-remaining still need your own numbers for now.");
+    } catch (err) {
+      tvSetConnected(false);
+      tvSetMessage(err.message, true);
+    } finally {
+      tvConnectBtn.disabled = false;
+    }
+  }
+
+  async function tvDisconnect(){
+    try {
+      await fetch(TRADOVATE_API_BASE + "/api/logout", { method: "POST", credentials: "include" });
+    } catch (err) { /* ignore network errors on logout */ }
+    tvSetConnected(false);
+    tvSetMessage("Disconnected.");
+  }
+
+  tvConnectBtn.addEventListener("click", tvConnect);
+  tvDisconnectBtn.addEventListener("click", tvDisconnect);
+
+  // Quiet check on load in case a session cookie from an earlier visit is still valid.
+  if (TRADOVATE_API_BASE.indexOf("REPLACE-ME") === -1){
+    tvFetchSummary().then(function(summary){
+      tvSetConnected(true);
+      tvSetMessage("Still connected from a previous visit — balance " + money(summary.balance) + ".");
+    }).catch(function(){ /* not connected — leave default state */ });
+  }
 
   loadState();
   renderAll();
