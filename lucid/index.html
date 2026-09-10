@@ -237,6 +237,19 @@
   }
   .field input:focus, .field select:focus{ border-color:var(--mint); box-shadow:0 0 0 3px rgba(126,232,172,0.14); }
   .field .hint{ font-size:11.5px; color:var(--muted-dim); }
+  .field input[type="file"]{ padding:8px; font-size:13px; }
+  .field input[type="file"]::file-selector-button{
+    font-family:var(--font-mono); font-weight:600; font-size:12px;
+    padding:8px 14px; border-radius:999px; border:1px solid var(--hairline-bright);
+    background:var(--panel-raised); color:var(--phosphor-soft); cursor:pointer; margin-right:10px;
+  }
+  .field input[type="file"]::file-selector-button:hover{ background:var(--mint); color:var(--mint-text); border-color:var(--mint); }
+
+  .csv-steps{ margin:0 0 18px; padding-left:20px; display:flex; flex-direction:column; gap:8px; }
+  .csv-steps li{ font-size:13.5px; color:var(--muted); line-height:1.55; }
+  .csv-steps li::marker{ color:var(--phosphor-dim); font-family:var(--font-mono); }
+  .csv-steps b{ color:var(--ice); font-weight:600; }
+  .csv-steps a{ color:var(--phosphor-soft); }
 
   .coach{
     margin-top:20px; padding:16px 18px; border-radius:14px;
@@ -369,35 +382,21 @@
 
   <div class="console">
     <div class="console-head">
-      <h2>Connect Tradovate</h2>
-      <span class="clock" id="tvStatusLabel">Not connected</span>
+      <h2>Import Trade History</h2>
     </div>
-    <div class="console-grid">
-      <div>
-        <div class="field">
-          <label for="tvUsername">Tradovate username</label>
-          <input id="tvUsername" type="text" autocomplete="username" />
-        </div>
-        <div class="field">
-          <label for="tvPassword">Password</label>
-          <input id="tvPassword" type="password" autocomplete="current-password" />
-        </div>
-      </div>
-      <div>
-        <div class="field">
-          <label for="tvEnv">Environment</label>
-          <select id="tvEnv">
-            <option value="live">Live</option>
-            <option value="demo">Demo</option>
-          </select>
-          <span class="hint">Goes straight to Tradovate's own login through our backend &mdash; never stored here.</span>
-        </div>
-      </div>
-    </div>
-    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-      <button type="button" class="switch-btn" id="tvConnectBtn">Connect</button>
-      <button type="button" class="switch-btn" id="tvDisconnectBtn" hidden>Disconnect</button>
-      <span class="hint" id="tvMessage"></span>
+    <p class="hint" style="margin:-6px 0 16px; font-size:13px; line-height:1.6;">No login, no password &mdash; export a CSV from Tradovate and drop it in below. The file is read entirely in your browser; nothing gets uploaded anywhere.</p>
+    <ol class="csv-steps">
+      <li>Open your Tradovate profile: <a href="https://trader.tradovate.com/#profile" target="_blank" rel="noopener">trader.tradovate.com/#profile</a> (opens in a new tab)</li>
+      <li>If that link doesn't take you straight there: log into Tradovate &rarr; click your name/profile icon &rarr; <b>Settings</b> &rarr; <b>Profile</b></li>
+      <li>Scroll down to the cash balance / transaction history section</li>
+      <li>Change the start date to the day you first opened the account, so it captures everything</li>
+      <li>Click <b>Download</b> to save the CSV</li>
+      <li>Come back here and upload that file below</li>
+    </ol>
+    <div class="field">
+      <label for="csvFile">Cash balance CSV</label>
+      <input id="csvFile" type="file" accept=".csv,text/csv" />
+      <span class="hint" id="csvMessage">Auto-fills Net P&amp;L and Best Day below once uploaded.</span>
     </div>
   </div>
 
@@ -478,7 +477,7 @@
   </div>
 
   <footer>
-    <p>Figures reflect LucidFlex / LucidPro / LucidDaily / LucidDirect rules as publicly documented in 2026 (Lucid Trading support center and independent prop-firm rule trackers). On the 25K Flex, the Max Loss Limit is a fixed $1,000; the Daily Loss Limit is a separate, optional setting &mdash; OFF by default, or a firm-enforced $600 if you opted into it. LucidPro offers the same OFF/$600 Daily Loss Limit choice at every account size, and LucidDaily lets you choose Intraday or End-of-Day drawdown tracking &mdash; both toggled above. Eval and reset pricing is populated for the 25K Flex and all four LucidPro sizes, taken directly from Lucid's own checkout screen at the time this was written. Every price changes with Lucid's current promos, so treat these as a snapshot, not what you'll pay today. Everything else &mdash; Daily, Direct, and any plan/size combo not listed above &mdash; is unverified here rather than guessed; always check your live Lucid dashboard or checkout before sizing a trade or paying for an account. The maximum payout table is sourced from independent payout-rules trackers, not Lucid directly, and is shown only where the rest of that plan's figures are already marked verified. This page is a planning aid, not trading or financial advice, and never places trades. The optional Tradovate connection is read-only (balance and fill history only) and its account-summary math is a first pass not yet verified against a live account &mdash; confirm any number it shows against your actual Tradovate/Lucid dashboards before relying on it.</p>
+    <p>Figures reflect LucidFlex / LucidPro / LucidDaily / LucidDirect rules as publicly documented in 2026 (Lucid Trading support center and independent prop-firm rule trackers). On the 25K Flex, the Max Loss Limit is a fixed $1,000; the Daily Loss Limit is a separate, optional setting &mdash; OFF by default, or a firm-enforced $600 if you opted into it. LucidPro offers the same OFF/$600 Daily Loss Limit choice at every account size, and LucidDaily lets you choose Intraday or End-of-Day drawdown tracking &mdash; both toggled above. Eval and reset pricing is populated for the 25K Flex and all four LucidPro sizes, taken directly from Lucid's own checkout screen at the time this was written. Every price changes with Lucid's current promos, so treat these as a snapshot, not what you'll pay today. Everything else &mdash; Daily, Direct, and any plan/size combo not listed above &mdash; is unverified here rather than guessed; always check your live Lucid dashboard or checkout before sizing a trade or paying for an account. The maximum payout table is sourced from independent payout-rules trackers, not Lucid directly, and is shown only where the rest of that plan's figures are already marked verified. This page is a planning aid, not trading or financial advice, and never places trades or requires a login. The optional CSV import runs entirely in your browser &mdash; the file is never uploaded anywhere &mdash; and its column detection is a first pass not yet tested against a real Tradovate export; double-check the imported totals against your actual dashboard, especially the first time.</p>
   </footer>
 
 </div>
@@ -1008,98 +1007,134 @@
   });
   document.getElementById("switchAccountBtn").addEventListener("click", openMenu);
 
-  // Tradovate connect — talks to the backend Worker, never to Tradovate directly.
-  // Set this to your deployed Worker URL (see worker/README.md); connecting is a
-  // no-op with a clear message until this is filled in.
-  var TRADOVATE_API_BASE = "https://REPLACE-ME.workers.dev";
-
-  var tvStatusLabel = document.getElementById("tvStatusLabel");
-  var tvConnectBtn = document.getElementById("tvConnectBtn");
-  var tvDisconnectBtn = document.getElementById("tvDisconnectBtn");
-  var tvMessage = document.getElementById("tvMessage");
-
-  function tvSetMessage(text, isError){
-    tvMessage.textContent = text || "";
-    tvMessage.style.color = isError ? "var(--red)" : "var(--muted-dim)";
+  // CSV import — everything happens locally in the browser, nothing is ever
+  // uploaded. Column names are auto-detected from the file's header row since
+  // this hasn't been tested against a real Tradovate export yet; if it can't
+  // find a date/amount column, it shows the headers it did find so they can
+  // be reported back and the matching fixed.
+  function csvSetMessage(text, isError){
+    var el = document.getElementById("csvMessage");
+    el.textContent = text || "";
+    el.style.color = isError ? "var(--red)" : "var(--muted-dim)";
   }
 
-  function tvSetConnected(connected, name){
-    tvStatusLabel.textContent = connected ? ("Connected" + (name ? " — " + name : "")) : "Not connected";
-    tvStatusLabel.style.color = connected ? "var(--phosphor-soft)" : "";
-    tvConnectBtn.hidden = connected;
-    tvDisconnectBtn.hidden = !connected;
-  }
-
-  async function tvFetchSummary(){
-    var res = await fetch(TRADOVATE_API_BASE + "/api/summary", { credentials: "include" });
-    var data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Couldn't fetch account data.");
-    return data;
-  }
-
-  async function tvConnect(){
-    if (TRADOVATE_API_BASE.indexOf("REPLACE-ME") !== -1){
-      tvSetMessage("Backend not deployed yet — see worker/README.md.", true);
-      return;
-    }
-    var username = document.getElementById("tvUsername").value.trim();
-    var password = document.getElementById("tvPassword").value;
-    var environment = document.getElementById("tvEnv").value;
-    if (!username || !password){
-      tvSetMessage("Enter your Tradovate username and password.", true);
-      return;
-    }
-    tvConnectBtn.disabled = true;
-    tvSetMessage("Connecting…");
-    try {
-      var loginRes = await fetch(TRADOVATE_API_BASE + "/api/login", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: username, password: password, environment: environment })
-      });
-      var loginData = await loginRes.json();
-      if (!loginRes.ok) throw new Error(loginData.error || "Login failed.");
-      document.getElementById("tvPassword").value = "";
-      tvSetConnected(true, loginData.name);
-
-      var summary = await tvFetchSummary();
-      if (summary.balance != null){
-        var pnl = summary.balance - state.size;
-        document.getElementById("pnlInput").value = Math.round(pnl);
+  function parseCsvText(text){
+    var rows = [];
+    var row = [];
+    var field = "";
+    var inQuotes = false;
+    for (var i = 0; i < text.length; i++){
+      var c = text[i];
+      if (inQuotes){
+        if (c === '"'){
+          if (text[i + 1] === '"'){ field += '"'; i++; } else { inQuotes = false; }
+        } else {
+          field += c;
+        }
+        continue;
       }
-      if (summary.bestDay != null){
-        document.getElementById("bestDayInput").value = Math.round(summary.bestDay);
-      }
-      renderCoPilot();
-      saveState();
-      tvSetMessage("Pulled live from Tradovate — balance " + money(summary.balance) + ", best day " + money(summary.bestDay) + ", " + summary.daysTraded + " day(s) traded. Days-remaining is still yours to set.");
-    } catch (err) {
-      tvSetConnected(false);
-      tvSetMessage(err.message, true);
-    } finally {
-      tvConnectBtn.disabled = false;
+      if (c === '"'){ inQuotes = true; continue; }
+      if (c === ','){ row.push(field); field = ""; continue; }
+      if (c === '\r'){ continue; }
+      if (c === '\n'){ row.push(field); rows.push(row); row = []; field = ""; continue; }
+      field += c;
     }
+    if (field.length || row.length){ row.push(field); rows.push(row); }
+    return rows.filter(function(r){ return r.length > 1 || (r.length === 1 && r[0] !== ""); });
   }
 
-  async function tvDisconnect(){
-    try {
-      await fetch(TRADOVATE_API_BASE + "/api/logout", { method: "POST", credentials: "include" });
-    } catch (err) { /* ignore network errors on logout */ }
-    tvSetConnected(false);
-    tvSetMessage("Disconnected.");
+  function findColumn(headers, candidates){
+    var lower = headers.map(function(h){ return h.trim().toLowerCase(); });
+    for (var c = 0; c < candidates.length; c++){
+      var idx = lower.indexOf(candidates[c]);
+      if (idx !== -1) return idx;
+    }
+    for (var c2 = 0; c2 < candidates.length; c2++){
+      for (var i2 = 0; i2 < lower.length; i2++){
+        if (lower[i2].indexOf(candidates[c2]) !== -1) return i2;
+      }
+    }
+    return -1;
   }
 
-  tvConnectBtn.addEventListener("click", tvConnect);
-  tvDisconnectBtn.addEventListener("click", tvDisconnect);
-
-  // Quiet check on load in case a session cookie from an earlier visit is still valid.
-  if (TRADOVATE_API_BASE.indexOf("REPLACE-ME") === -1){
-    tvFetchSummary().then(function(summary){
-      tvSetConnected(true);
-      tvSetMessage("Still connected from a previous visit — balance " + money(summary.balance) + ".");
-    }).catch(function(){ /* not connected — leave default state */ });
+  function parseAmount(str){
+    if (!str) return NaN;
+    var cleaned = String(str).replace(/[$,]/g, "").trim();
+    var neg = false;
+    if (/^\(.*\)$/.test(cleaned)){ neg = true; cleaned = cleaned.slice(1, -1); }
+    var n = parseFloat(cleaned);
+    if (isNaN(n)) return NaN;
+    return neg ? -n : n;
   }
+
+  function handleCsvFile(file){
+    var reader = new FileReader();
+    reader.onload = function(e){
+      try {
+        var rows = parseCsvText(String(e.target.result));
+        if (rows.length < 2){
+          csvSetMessage("That file doesn't look like it has any data rows.", true);
+          return;
+        }
+        var headers = rows[0];
+        var dateIdx = findColumn(headers, ["trade date", "date"]);
+        var amountIdx = findColumn(headers, ["amount", "delta", "net amount", "cash amount"]);
+        var typeIdx = findColumn(headers, ["type", "cash change type", "description", "category"]);
+
+        if (dateIdx === -1 || amountIdx === -1){
+          csvSetMessage("Couldn't find a date and amount column in that file. Headers found: " + headers.join(", ") + " — send that list back and the import can be fixed.", true);
+          return;
+        }
+
+        var excludeWords = ["deposit", "funding", "transfer", "initial"];
+        var byDay = {};
+        for (var r = 1; r < rows.length; r++){
+          var row = rows[r];
+          if (!row || row.length <= amountIdx) continue;
+          var dateStr = row[dateIdx];
+          var amt = parseAmount(row[amountIdx]);
+          if (!dateStr || isNaN(amt)) continue;
+          if (typeIdx !== -1){
+            var typeVal = (row[typeIdx] || "").toLowerCase();
+            var excluded = false;
+            for (var w = 0; w < excludeWords.length; w++){
+              if (typeVal.indexOf(excludeWords[w]) !== -1){ excluded = true; break; }
+            }
+            if (excluded) continue;
+          }
+          var dayKey = dateStr.trim().slice(0, 10);
+          byDay[dayKey] = (byDay[dayKey] || 0) + amt;
+        }
+
+        var days = Object.keys(byDay);
+        if (!days.length){
+          csvSetMessage("Found the file, but no usable trade rows in it. Double-check the date range covers your trading activity.", true);
+          return;
+        }
+
+        var total = 0, best = -Infinity;
+        days.forEach(function(d){
+          total += byDay[d];
+          if (byDay[d] > best) best = byDay[d];
+        });
+
+        document.getElementById("pnlInput").value = Math.round(total);
+        document.getElementById("bestDayInput").value = Math.round(best);
+        renderCoPilot();
+        saveState();
+        csvSetMessage("Imported " + (rows.length - 1) + " row(s) across " + days.length + " day(s). Total P&L " + money(total) + ", best day " + money(best) + ". Double-check this against your dashboard, especially on a first import.");
+      } catch (err) {
+        csvSetMessage("Couldn't parse that file: " + err.message, true);
+      }
+    };
+    reader.onerror = function(){ csvSetMessage("Couldn't read that file — try again.", true); };
+    reader.readAsText(file);
+  }
+
+  document.getElementById("csvFile").addEventListener("change", function(e){
+    var file = e.target.files[0];
+    if (file) handleCsvFile(file);
+  });
 
   loadState();
   renderAll();
