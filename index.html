@@ -841,8 +841,13 @@
     if (isOpen){
       marketStatusEl.classList.add("open");
       marketDotEl.hidden = false;
-      marketLabelEl.textContent = "NY OPEN";
-      marketOpenInEl.hidden = true;
+      marketLabelEl.textContent = "NY OPEN — CLOSES IN";
+      marketOpenInEl.hidden = false;
+      var closeDiff = MARKET_CLOSE_SEC - nowSec;
+      var ch = Math.floor(closeDiff / 3600);
+      var cm = Math.floor((closeDiff % 3600) / 60);
+      var cs = closeDiff % 60;
+      marketOpenInEl.textContent = pad(ch) + ":" + pad(cm) + ":" + pad(cs);
       return;
     }
 
