@@ -274,7 +274,7 @@
       </div>
     </div>
     <div class="topbar-right">
-      <span class="nyclock mono">NY <strong id="nyTime">--:--:--</strong></span>
+      <span class="nyclock mono">NY OPEN IN <strong id="marketOpenIn">--:--:--</strong></span>
       <button type="button" class="menu-btn" id="menuBtn" aria-haspopup="true" aria-expanded="false" aria-controls="accountMenu" aria-label="Select account">
         <span class="menu-lines" aria-hidden="true"><span></span><span></span><span></span></span>
       </button>
@@ -792,20 +792,53 @@
   loadState();
   renderAll();
 
-  // NY clock + flatten countdown
+  // Countdown to next NY market open (9:30 AM ET, next weekday)
   function pad(n){ return String(n).padStart(2,"0"); }
+  var WEEKDAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  var MARKET_OPEN_SEC = 9 * 3600 + 30 * 60;
+
   function tick(){
     var nyParts = new Intl.DateTimeFormat("en-US", {
-      timeZone:"America/New_York", hour12:false,
+      timeZone:"America/New_York", hour12:false, weekday:"short",
       hour:"2-digit", minute:"2-digit", second:"2-digit"
     }).formatToParts(new Date());
-    var h=0,m=0,s=0;
+    var h=0, m=0, s=0, weekday="Sun";
     nyParts.forEach(function(p){
-      if (p.type === "hour") h = parseInt(p.value,10);
+      if (p.type === "hour") h = parseInt(p.value,10) % 24;
       if (p.type === "minute") m = parseInt(p.value,10);
       if (p.type === "second") s = parseInt(p.value,10);
+      if (p.type === "weekday") weekday = p.value;
     });
-    document.getElementById("nyTime").textContent = pad(h)+":"+pad(m)+":"+pad(s);
+    var weekdayIdx = WEEKDAYS.indexOf(weekday);
+    var nowSec = h * 3600 + m * 60 + s;
+    var isWeekday = weekdayIdx >= 1 && weekdayIdx <= 5;
+
+    var daysToAdd;
+    if (isWeekday && nowSec < MARKET_OPEN_SEC){
+      daysToAdd = 0;
+    } else {
+      daysToAdd = 1;
+      var nextIdx = (weekdayIdx + 1) % 7;
+      while (nextIdx === 0 || nextIdx === 6){
+        daysToAdd++;
+        nextIdx = (nextIdx + 1) % 7;
+      }
+    }
+
+    var diff = daysToAdd * 86400 - nowSec + MARKET_OPEN_SEC;
+    var label;
+    if (diff >= 86400){
+      var days = Math.floor(diff / 86400);
+      var hrs = Math.floor((diff % 86400) / 3600);
+      var mins = Math.floor((diff % 3600) / 60);
+      label = days + "d " + pad(hrs) + "h " + pad(mins) + "m";
+    } else {
+      var hh = Math.floor(diff / 3600);
+      var mm = Math.floor((diff % 3600) / 60);
+      var ss = diff % 60;
+      label = pad(hh) + ":" + pad(mm) + ":" + pad(ss);
+    }
+    document.getElementById("marketOpenIn").textContent = label;
   }
   tick();
   setInterval(tick, 1000);
