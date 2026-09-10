@@ -147,6 +147,22 @@
   .gauge{ height:5px; border-radius:3px; background:var(--panel-hi); overflow:hidden; margin-top:2px; }
   .gauge > i{ display:block; height:100%; background:linear-gradient(90deg, var(--phosphor-dim), var(--phosphor)); }
 
+  .mll-edit{ display:flex; align-items:baseline; gap:2px; }
+  .mll-edit .mll-prefix{ font-size:clamp(20px,2.2vw,26px); font-weight:600; color:var(--amber); }
+  .mll-input{
+    width:100%; background:transparent; border:none; outline:none;
+    font-family:var(--font-mono); font-size:clamp(22px,2.4vw,28px); font-weight:600; color:var(--amber);
+    padding:0; border-bottom:1px dashed transparent;
+  }
+  .mll-input:hover, .mll-input:focus{ border-bottom-color:var(--hairline-bright); }
+  .mll-options{ display:flex; gap:6px; flex-wrap:wrap; }
+  .mll-opt{
+    font-family:var(--font-mono); font-size:11px; padding:3px 9px; border-radius:5px;
+    background:var(--void); border:1px solid var(--hairline); color:var(--muted); cursor:pointer;
+  }
+  .mll-opt:hover{ border-color:var(--hairline-bright); color:var(--ice); }
+  .mll-opt.active{ border-color:var(--phosphor-dim); color:var(--phosphor-soft); background:rgba(62,224,140,0.08); }
+
   /* ---------- Console (Risk Co-Pilot) ---------- */
   .console{
     background:var(--panel); border:1px solid var(--hairline); border-radius:12px;
@@ -332,7 +348,7 @@
   </div>
 
   <footer>
-    <p>Figures reflect LucidFlex / LucidPro / LucidDaily / LucidDirect rules as publicly documented in 2026 (Lucid Trading support center and independent prop-firm rule trackers). Pro, Daily and Direct numbers beyond target and Max Loss Limit are less firmly sourced than Flex &mdash; always confirm against your live Lucid dashboard before sizing a trade. This page is a planning aid, not trading or financial advice, and doesn't place trades or connect to your broker.</p>
+    <p>Figures reflect LucidFlex / LucidPro / LucidDaily / LucidDirect rules as publicly documented in 2026 (Lucid Trading support center and independent prop-firm rule trackers). The Max Loss Limit depends on which pricing option you chose at checkout &mdash; the 25K Flex ships with a cheaper $600 option alongside the $1,000 one &mdash; so that field is editable above; type your real number from the dashboard if it differs. Pro, Daily and Direct numbers beyond target and Max Loss Limit are less firmly sourced than Flex &mdash; always confirm against your live Lucid dashboard before sizing a trade. This page is a planning aid, not trading or financial advice, and doesn't place trades or connect to your broker.</p>
   </footer>
 
 </div>
@@ -347,7 +363,7 @@
       tagline: "No daily loss limit. The trailing Max Loss Limit only updates at the close.",
       verified: true,
       sizes: {
-        25000:  { target:1250, mll:1000, dailyMin:100 },
+        25000:  { target:1250, mll:600, dailyMin:100, mllOptions:[600,1000] },
         50000:  { target:3000, mll:2000, dailyMin:150 },
         100000: { target:6000, mll:3000, dailyMin:200 },
         150000: { target:9000, mll:4500, dailyMin:250 }
@@ -392,7 +408,17 @@
     }
   };
 
-  var state = { plan: "flex", size: 25000 };
+  var state = { plan: "flex", size: 25000, mllOverrides: {} };
+
+  function mllKey(){ return state.plan + "_" + state.size; }
+  function getMll(){
+    var k = mllKey();
+    return (k in state.mllOverrides) ? state.mllOverrides[k] : current().size.mll;
+  }
+  function setMll(value){
+    var v = Math.max(1, Math.round(parseFloat(value) || current().size.mll));
+    state.mllOverrides[mllKey()] = v;
+  }
 
   var fmt = new Intl.NumberFormat("en-US", { style:"currency", currency:"USD", maximumFractionDigits:0 });
   function money(n){ return fmt.format(Math.round(n)); }
@@ -409,10 +435,19 @@
     return { plan:plan, size:plan.sizes[state.size] };
   }
 
+  function mllPercent(mll){ return Math.round((mll / state.size) * 1000) / 10; }
+
   function renderStats(){
     var c = current();
     var d = c.size;
-    var mllPct = Math.round((d.mll / state.size) * 1000) / 10;
+    var effMll = getMll();
+    var mllPct = mllPercent(effMll);
+    var optionsHtml = "";
+    if (d.mllOptions){
+      optionsHtml = '<div class="mll-options">' + d.mllOptions.map(function(opt){
+        return '<button type="button" class="mll-opt' + (opt === effMll ? ' active' : '') + '" data-mll="' + opt + '">' + money(opt) + '</button>';
+      }).join('') + '</div>';
+    }
     statGrid.innerHTML =
       '<div class="stat">' +
         '<span class="label">Profit Target</span>' +
@@ -421,9 +456,10 @@
       '</div>' +
       '<div class="stat">' +
         '<span class="label">Max Loss Limit</span>' +
-        '<span class="value warn mono">' + money(d.mll) + '</span>' +
-        '<span class="sub">Trailing, end-of-day only &mdash; ' + mllPct + '% of size</span>' +
-        '<div class="gauge"><i style="width:' + mllPct + '%"></i></div>' +
+        '<div class="mll-edit"><span class="mll-prefix mono">$</span><input class="mll-input mono" id="mllInput" type="number" step="1" min="1" value="' + effMll + '" aria-label="Max Loss Limit override" /></div>' +
+        optionsHtml +
+        '<span class="sub">Trailing, end-of-day only &mdash; <span id="mllPctText">' + mllPct + '</span>% of size. Varies by the option chosen at checkout &mdash; edit to match your dashboard.</span>' +
+        '<div class="gauge"><i id="mllGaugeBar" style="width:' + mllPct + '%"></i></div>' +
       '</div>' +
       '<div class="stat">' +
         '<span class="label">Daily Loss Limit</span>' +
@@ -464,12 +500,13 @@
     var days = Math.max(1, parseInt(document.getElementById("daysInput").value, 10) || 1);
     var bestDay = parseFloat(document.getElementById("bestDayInput").value) || 0;
 
+    var effMll = getMll();
     var remaining = Math.max(0, d.target - pnl);
     var perDay = remaining / days;
     var perDayPctOfSize = (perDay / state.size) * 100;
 
-    var maxRiskPerTrade = Math.min(state.size * 0.01, d.mll * 0.10);
-    var maxDailyLossCap = d.mll * 0.40;
+    var maxRiskPerTrade = Math.min(state.size * 0.01, effMll * 0.10);
+    var maxDailyLossCap = effMll * 0.40;
     var consistencyCeiling = Math.max(pnl, 1) * (c.plan.consistencyEval / 100);
     var consistencyBreach = pnl > 0 && bestDay > consistencyCeiling;
 
@@ -498,7 +535,7 @@
     } else {
       lines.push('You need <b>' + money(remaining) + '</b> more across <b>' + days + '</b> session' + (days === 1 ? '' : 's') + ' &mdash; about <b>' + money(perDay) + '/day</b>, roughly ' + perDayPctOfSize.toFixed(1) + '% of your ' + money(state.size) + ' account.');
       if (paceLevel === "red"){
-        lines.push('That pace is <span class="flag-red">too hot</span> for a ' + money(d.mll) + ' Max Loss Limit. Add a trading day or two rather than sizing up to force it.');
+        lines.push('That pace is <span class="flag-red">too hot</span> for a ' + money(effMll) + ' Max Loss Limit. Add a trading day or two rather than sizing up to force it.');
       } else if (paceLevel === "amber"){
         lines.push('That’s <span class="flag-amber">an aggressive pace</span> &mdash; doable, but leaves little room for a losing session before it snowballs.');
       } else {
@@ -534,6 +571,25 @@
       state.size = parseInt(btn.dataset.size, 10);
       renderAll();
     });
+  });
+
+  statGrid.addEventListener("input", function(e){
+    if (e.target.id === "mllInput"){
+      setMll(e.target.value);
+      var pct = mllPercent(getMll());
+      var pctText = document.getElementById("mllPctText");
+      var gaugeBar = document.getElementById("mllGaugeBar");
+      if (pctText) pctText.textContent = pct;
+      if (gaugeBar) gaugeBar.style.width = pct + "%";
+      renderCoPilot();
+    }
+  });
+  statGrid.addEventListener("click", function(e){
+    if (e.target.classList.contains("mll-opt")){
+      setMll(e.target.dataset.mll);
+      renderStats();
+      renderCoPilot();
+    }
   });
   ["pnlInput","daysInput","bestDayInput"].forEach(function(id){
     document.getElementById(id).addEventListener("input", renderCoPilot);
