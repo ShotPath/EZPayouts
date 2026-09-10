@@ -202,7 +202,7 @@
   .phase ul{ margin:0; padding-left:18px; display:flex; flex-direction:column; gap:9px; }
   .phase li{ font-size:13.5px; color:var(--muted); line-height:1.55; }
   .phase li::marker{ color:var(--phosphor-dim); }
-  .phase li b{ color:var(--ice); font-weight:600; }
+  .phase li b{ color:var(--phosphor-soft); font-weight:600; }
 
   /* ---------- Footer ---------- */
   footer{ margin-top:40px; padding-top:18px; border-top:1px solid var(--hairline); }
@@ -436,9 +436,37 @@
   var SIZE_ORDER = [25000,50000,100000,150000];
 
   var state = { plan: "flex", size: 25000, dll600On: false };
+  var STORAGE_KEY = "lucidCockpit.v1";
 
   function dllAvailable(){ return state.plan === "flex" && state.size === 25000; }
   function dllActive(){ return dllAvailable() && state.dll600On; }
+
+  function saveState(){
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        plan: state.plan,
+        size: state.size,
+        dll600On: state.dll600On,
+        pnl: document.getElementById("pnlInput").value,
+        days: document.getElementById("daysInput").value,
+        bestDay: document.getElementById("bestDayInput").value
+      }));
+    } catch(e){}
+  }
+
+  function loadState(){
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      var saved = JSON.parse(raw);
+      if (saved.plan && PLANS[saved.plan]) state.plan = saved.plan;
+      if (saved.size && PLANS[state.plan].sizes[saved.size]) state.size = saved.size;
+      if (typeof saved.dll600On === "boolean") state.dll600On = saved.dll600On;
+      if (saved.pnl !== undefined) document.getElementById("pnlInput").value = saved.pnl;
+      if (saved.days !== undefined) document.getElementById("daysInput").value = saved.days;
+      if (saved.bestDay !== undefined) document.getElementById("bestDayInput").value = saved.bestDay;
+    } catch(e){}
+  }
 
   var fmt = new Intl.NumberFormat("en-US", { style:"currency", currency:"USD", maximumFractionDigits:0 });
   function money(n){ return fmt.format(Math.round(n)); }
@@ -597,10 +625,14 @@
       state.dll600On = e.target.dataset.dll === "on";
       renderStats();
       renderCoPilot();
+      saveState();
     }
   });
   ["pnlInput","daysInput","bestDayInput"].forEach(function(id){
-    document.getElementById(id).addEventListener("input", renderCoPilot);
+    document.getElementById(id).addEventListener("input", function(){
+      renderCoPilot();
+      saveState();
+    });
   });
 
   // Account menu open/close
@@ -634,11 +666,13 @@
       state.plan = e.target.dataset.plan;
       state.size = parseInt(e.target.dataset.size, 10);
       renderAll();
+      saveState();
       closeMenu();
     }
   });
   document.getElementById("switchAccountBtn").addEventListener("click", openMenu);
 
+  loadState();
   renderAll();
 
   // NY clock + flatten countdown
