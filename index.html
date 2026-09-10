@@ -1,0 +1,578 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lucid Cockpit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
+<style>
+  :root{
+    --void:#070a08;
+    --panel:#0d130e;
+    --panel-raised:#121b13;
+    --panel-hi:#182319;
+    --hairline:#23331f;
+    --hairline-bright:#345a37;
+    --phosphor:#3ee08c;
+    --phosphor-soft:#8fe6b6;
+    --phosphor-dim:#1c5c3d;
+    --phosphor-glow:rgba(62,224,140,0.35);
+    --amber:#f0b429;
+    --red:#ef5a5a;
+    --ice:#dcefe2;
+    --muted:#7c9584;
+    --muted-dim:#4d6055;
+    --font-display:'Chakra Petch', 'Segoe UI', sans-serif;
+    --font-body:'IBM Plex Sans', 'Segoe UI', sans-serif;
+    --font-mono:'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+  }
+
+  *{box-sizing:border-box;}
+  html{color-scheme:dark;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(ellipse 120% 60% at 50% -10%, rgba(62,224,140,0.10), transparent 60%),
+      radial-gradient(ellipse 80% 50% at 100% 100%, rgba(62,224,140,0.06), transparent 60%),
+      var(--void);
+    color:var(--ice);
+    font-family:var(--font-body);
+    padding:0 clamp(16px,4vw,48px);
+    padding-block:clamp(20px,4vw,40px) 60px;
+    position:relative;
+    overflow-x:hidden;
+  }
+  body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    background:repeating-linear-gradient(
+      to bottom,
+      rgba(62,224,140,0.035) 0px,
+      rgba(62,224,140,0.035) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    mix-blend-mode:overlay;
+    z-index:0;
+    animation:scan 9s linear infinite;
+  }
+  @keyframes scan{
+    0%{ background-position:0 0; }
+    100%{ background-position:0 120px; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    body::before{ animation:none; }
+    *{ animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; }
+  }
+
+  .wrap{ max-width:1180px; margin:0 auto; position:relative; z-index:1; }
+
+  h1,h2,h3{ font-family:var(--font-display); text-wrap:balance; margin:0; }
+  .mono{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
+  a{ color:var(--phosphor-soft); }
+
+  /* ---------- HUD top bar ---------- */
+  .hud-bar{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px; flex-wrap:wrap;
+    padding-bottom:16px; margin-bottom:22px;
+    border-bottom:1px solid var(--hairline);
+  }
+  .hud-id{ display:flex; align-items:center; gap:10px; }
+  .hud-dot{
+    width:9px; height:9px; border-radius:50%;
+    background:var(--phosphor); box-shadow:0 0 8px 2px var(--phosphor-glow);
+    animation:pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+  .hud-id .callsign{ font-family:var(--font-mono); font-size:13px; letter-spacing:0.12em; color:var(--muted); text-transform:uppercase; }
+  .hud-status{
+    display:flex; gap:18px; flex-wrap:wrap;
+    font-family:var(--font-mono); font-size:12px; color:var(--muted); letter-spacing:0.04em;
+  }
+  .hud-status strong{ color:var(--phosphor-soft); font-weight:600; }
+
+  /* ---------- Hero ---------- */
+  .hero{ padding:6px 0 28px; }
+  .hero .eyebrow{
+    font-family:var(--font-mono); font-size:12px; letter-spacing:0.22em; text-transform:uppercase;
+    color:var(--phosphor); margin-bottom:10px; display:flex; align-items:center; gap:10px;
+  }
+  .hero .eyebrow::before{ content:"//"; color:var(--muted-dim); }
+  .hero h1{ font-size:clamp(28px,4.6vw,44px); font-weight:700; line-height:1.08; color:var(--ice); letter-spacing:-0.01em; }
+  .hero h1 span{ color:var(--phosphor); }
+  .hero p{ margin:14px 0 0; max-width:62ch; color:var(--muted); font-size:15.5px; line-height:1.6; }
+
+  /* ---------- Tabs ---------- */
+  .selector{ display:flex; flex-direction:column; gap:12px; margin:28px 0 26px; }
+  .selector-row{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .selector-label{ font-family:var(--font-mono); font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted-dim); width:100%; margin-bottom:2px; }
+  .tab, .chip{
+    font-family:var(--font-display); font-weight:600; font-size:14px;
+    background:var(--panel); border:1px solid var(--hairline); color:var(--muted);
+    padding:10px 16px; border-radius:8px; cursor:pointer; letter-spacing:0.02em;
+    transition:border-color .15s, color .15s, background .15s;
+    position:relative;
+  }
+  .tab:hover, .chip:hover{ border-color:var(--hairline-bright); color:var(--ice); }
+  .tab[aria-selected="true"], .chip[aria-selected="true"]{
+    background:linear-gradient(180deg, rgba(62,224,140,0.16), rgba(62,224,140,0.05));
+    border-color:var(--phosphor-dim); color:var(--phosphor-soft);
+    box-shadow:inset 0 0 0 1px rgba(62,224,140,0.15);
+  }
+  .tab .flag{
+    font-family:var(--font-mono); font-size:9px; letter-spacing:0.08em;
+    background:var(--phosphor); color:#04160c; padding:2px 6px; border-radius:4px;
+    margin-left:8px; vertical-align:2px;
+  }
+  .plan-tagline{ font-size:13.5px; color:var(--muted); font-family:var(--font-mono); }
+  .verify-note{ font-size:12px; color:var(--muted-dim); font-family:var(--font-mono); }
+
+  /* ---------- Stat grid ---------- */
+  .stat-grid{
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(190px,1fr));
+    gap:1px; background:var(--hairline);
+    border:1px solid var(--hairline); border-radius:12px; overflow:hidden;
+    margin-bottom:26px;
+  }
+  .stat{ background:var(--panel); padding:18px 18px 16px; display:flex; flex-direction:column; gap:8px; }
+  .stat .label{ font-family:var(--font-mono); font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted-dim); }
+  .stat .value{ font-family:var(--font-mono); font-size:clamp(22px,2.4vw,28px); font-weight:600; color:var(--ice); }
+  .stat .value.pos{ color:var(--phosphor-soft); }
+  .stat .value.warn{ color:var(--amber); }
+  .stat .sub{ font-size:12px; color:var(--muted); line-height:1.4; }
+  .gauge{ height:5px; border-radius:3px; background:var(--panel-hi); overflow:hidden; margin-top:2px; }
+  .gauge > i{ display:block; height:100%; background:linear-gradient(90deg, var(--phosphor-dim), var(--phosphor)); }
+
+  /* ---------- Console (Risk Co-Pilot) ---------- */
+  .console{
+    background:var(--panel); border:1px solid var(--hairline); border-radius:12px;
+    padding:22px clamp(16px,3vw,28px); margin-bottom:26px;
+  }
+  .console-head{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:18px; }
+  .console-head h2{ font-size:19px; color:var(--ice); }
+  .console-head .clock{ font-family:var(--font-mono); font-size:12.5px; color:var(--muted); }
+  .console-head .clock strong{ color:var(--phosphor-soft); }
+
+  .console-grid{ display:grid; grid-template-columns:1fr 1fr; gap:22px; }
+  @media (max-width:720px){ .console-grid{ grid-template-columns:1fr; } }
+
+  .field{ display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
+  .field label{ font-family:var(--font-mono); font-size:11.5px; letter-spacing:0.06em; color:var(--muted); text-transform:uppercase; }
+  .field input{
+    background:var(--void); border:1px solid var(--hairline); border-radius:7px;
+    padding:10px 12px; color:var(--ice); font-family:var(--font-mono); font-size:15px;
+    outline:none; transition:border-color .15s;
+  }
+  .field input:focus{ border-color:var(--phosphor); box-shadow:0 0 0 3px rgba(62,224,140,0.12); }
+  .field .hint{ font-size:11.5px; color:var(--muted-dim); }
+
+  .readout-list{ display:flex; flex-direction:column; gap:14px; }
+  .readout{
+    display:flex; justify-content:space-between; align-items:baseline; gap:10px;
+    padding-bottom:12px; border-bottom:1px dashed var(--hairline);
+  }
+  .readout:last-child{ border-bottom:none; padding-bottom:0; }
+  .readout .rlabel{ font-size:13px; color:var(--muted); max-width:60%; }
+  .readout .rvalue{ font-family:var(--font-mono); font-size:17px; font-weight:600; color:var(--phosphor-soft); white-space:nowrap; }
+  .readout .rvalue.amber{ color:var(--amber); }
+  .readout .rvalue.red{ color:var(--red); }
+
+  .coach{
+    margin-top:20px; padding:16px 18px; border-radius:9px;
+    background:var(--void); border:1px solid var(--hairline-bright);
+    font-family:var(--font-mono); font-size:13.5px; line-height:1.75; color:var(--ice);
+  }
+  .coach .coach-label{ display:flex; align-items:center; gap:8px; color:var(--phosphor); font-size:11px; letter-spacing:0.14em; text-transform:uppercase; margin-bottom:10px; }
+  .coach .coach-label .cursor{ display:inline-block; width:7px; height:13px; background:var(--phosphor); animation:blink 1.1s step-end infinite; }
+  @keyframes blink{ 50%{ opacity:0; } }
+  .coach b{ color:var(--phosphor-soft); font-weight:600; }
+  .coach .flag-amber{ color:var(--amber); font-weight:600; }
+  .coach .flag-red{ color:var(--red); font-weight:600; }
+
+  /* ---------- Mission plan ---------- */
+  .section-head{ margin:36px 0 16px; }
+  .section-head .eyebrow{ font-family:var(--font-mono); font-size:12px; letter-spacing:0.22em; text-transform:uppercase; color:var(--phosphor); margin-bottom:8px; }
+  .section-head .eyebrow::before{ content:"//"; color:var(--muted-dim); margin-right:8px; }
+  .section-head h2{ font-size:24px; color:var(--ice); }
+
+  .phases{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  @media (max-width:860px){ .phases{ grid-template-columns:1fr; } }
+  .phase{
+    background:var(--panel); border:1px solid var(--hairline); border-radius:12px;
+    padding:20px 20px 22px; display:flex; flex-direction:column; gap:12px;
+  }
+  .phase .phase-num{ font-family:var(--font-mono); font-size:12px; color:var(--phosphor-dim); letter-spacing:0.1em; }
+  .phase h3{ font-size:18px; color:var(--ice); }
+  .phase ul{ margin:0; padding-left:18px; display:flex; flex-direction:column; gap:9px; }
+  .phase li{ font-size:13.5px; color:var(--muted); line-height:1.55; }
+  .phase li::marker{ color:var(--phosphor-dim); }
+  .phase li b{ color:var(--ice); font-weight:600; }
+
+  /* ---------- Footer ---------- */
+  footer{ margin-top:40px; padding-top:18px; border-top:1px solid var(--hairline); }
+  footer p{ font-size:12px; color:var(--muted-dim); line-height:1.7; max-width:80ch; margin:0 0 8px; }
+  footer a{ color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hud-bar">
+    <div class="hud-id">
+      <span class="hud-dot" aria-hidden="true"></span>
+      <span class="callsign">EZPAYOUTS · COCKPIT-01</span>
+    </div>
+    <div class="hud-status">
+      <span>OPERATOR <strong id="opName">TRADER</strong></span>
+      <span>NY TIME <strong id="nyTime" class="mono">--:--:--</strong></span>
+      <span>FLATTEN <strong id="flattenIn" class="mono">--:--</strong></span>
+    </div>
+  </div>
+
+  <div class="hero">
+    <div class="eyebrow">Lucid Trading &mdash; Mission Console</div>
+    <h1>Get through the eval. Get <span>funded</span>. Get <span>paid</span>.</h1>
+    <p>A cockpit for your Lucid Trading accounts &mdash; live rules, a risk co-pilot that tells you the minimum pace you need and the max you should risk, and the exact path from evaluation to your first payout.</p>
+  </div>
+
+  <div class="selector">
+    <div class="selector-row">
+      <span class="selector-label">Plan</span>
+      <button class="tab" data-plan="flex" aria-selected="true">LucidFlex <span class="flag">YOURS</span></button>
+      <button class="tab" data-plan="pro" aria-selected="false">LucidPro</button>
+      <button class="tab" data-plan="daily" aria-selected="false">LucidDaily</button>
+      <button class="tab" data-plan="direct" aria-selected="false">LucidDirect</button>
+    </div>
+    <div class="selector-row">
+      <span class="selector-label">Account Size</span>
+      <button class="chip" data-size="25000" aria-selected="true">$25K</button>
+      <button class="chip" data-size="50000" aria-selected="false">$50K</button>
+      <button class="chip" data-size="100000" aria-selected="false">$100K</button>
+      <button class="chip" data-size="150000" aria-selected="false">$150K</button>
+    </div>
+    <div class="selector-row" style="justify-content:space-between;">
+      <span class="plan-tagline" id="planTagline"></span>
+      <span class="verify-note" id="verifyNote"></span>
+    </div>
+  </div>
+
+  <div class="stat-grid" id="statGrid"></div>
+
+  <div class="console">
+    <div class="console-head">
+      <h2>Risk Co-Pilot</h2>
+      <span class="clock">STATUS: <strong id="paceStatus">CALCULATING</strong></span>
+    </div>
+    <div class="console-grid">
+      <div>
+        <div class="field">
+          <label for="pnlInput">Net P&amp;L so far ($)</label>
+          <input id="pnlInput" type="number" step="1" value="1025" />
+          <span class="hint">Example figure &mdash; pull your real number from the Lucid dashboard.</span>
+        </div>
+        <div class="field">
+          <label for="daysInput">Trading days you want left</label>
+          <input id="daysInput" type="number" step="1" min="1" value="2" />
+          <span class="hint">How many more sessions you're planning to trade before the target.</span>
+        </div>
+        <div class="field">
+          <label for="bestDayInput">Best single day so far ($)</label>
+          <input id="bestDayInput" type="number" step="1" value="640" />
+          <span class="hint">Needed to check the 50% consistency rule during evaluation.</span>
+        </div>
+      </div>
+      <div class="readout-list" id="readoutList"></div>
+    </div>
+    <div class="coach">
+      <div class="coach-label">Co-Pilot Read <span class="cursor"></span></div>
+      <div id="coachText">Calculating&hellip;</div>
+    </div>
+  </div>
+
+  <div class="section-head">
+    <div class="eyebrow">Flight Plan</div>
+    <h2>Evaluation &rarr; Funded &rarr; First Payout</h2>
+  </div>
+  <div class="phases">
+    <div class="phase">
+      <span class="phase-num">PHASE 01</span>
+      <h3>Evaluation</h3>
+      <ul>
+        <li>Clear the <b>profit target</b> for your size without your balance touching the trailing <b>Max Loss Limit</b>.</li>
+        <li>LucidFlex has <b>no daily loss limit</b> &mdash; but the Co-Pilot above gives you one anyway.</li>
+        <li><b>Consistency rule:</b> no single day can exceed 50% of your total profit when you hit target. Spread wins across at least 2&ndash;3 sessions.</li>
+        <li>Positions auto-flatten at <b>4:45 PM ET</b>. Holding past it doesn't fail you, but plan your exits before then.</li>
+        <li>No minimum trading days &mdash; pass as fast as the math allows, just don't let one hot day carry the whole account.</li>
+      </ul>
+    </div>
+    <div class="phase">
+      <span class="phase-num">PHASE 02</span>
+      <h3>Funded</h3>
+      <ul>
+        <li>The <b>consistency rule drops away</b>. Only the trailing Max Loss Limit matters now.</li>
+        <li>Still no firm daily loss limit &mdash; this is where real discipline replaces the guardrail.</li>
+        <li>Positions still flatten by <b>4:45 PM ET</b> every session.</li>
+        <li>Bank <b>5 qualifying profitable days</b> (each clearing your size's daily minimum) with the cycle net positive.</li>
+      </ul>
+    </div>
+    <div class="phase">
+      <span class="phase-num">PHASE 03</span>
+      <h3>First Payout</h3>
+      <ul>
+        <li>Once your 5 qualifying days are banked and the cycle is net positive, <b>submit from the dashboard</b>.</li>
+        <li>Lucid runs a <b>90/10 split</b> in your favor, with a <b>$500 minimum</b> payout request.</li>
+        <li>Balance is deducted within minutes of approval &mdash; disbursement then rides the processor's clock.</li>
+        <li>Timing: same day via Plaid (US), 1&ndash;2 business days to a US bank, 2&ndash;4 international, up to 8 via PayPal.</li>
+      </ul>
+    </div>
+  </div>
+
+  <footer>
+    <p>Figures reflect LucidFlex / LucidPro / LucidDaily / LucidDirect rules as publicly documented in 2026 (Lucid Trading support center and independent prop-firm rule trackers). Pro, Daily and Direct numbers beyond target and Max Loss Limit are less firmly sourced than Flex &mdash; always confirm against your live Lucid dashboard before sizing a trade. This page is a planning aid, not trading or financial advice, and doesn't place trades or connect to your broker.</p>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var PLANS = {
+    flex: {
+      name: "LucidFlex",
+      tagline: "No daily loss limit. The trailing Max Loss Limit only updates at the close.",
+      verified: true,
+      sizes: {
+        25000:  { target:1250, mll:1000, dailyMin:100 },
+        50000:  { target:3000, mll:2000, dailyMin:150 },
+        100000: { target:6000, mll:3000, dailyMin:200 },
+        150000: { target:9000, mll:4500, dailyMin:250 }
+      },
+      consistencyEval: 50
+    },
+    pro: {
+      name: "LucidPro",
+      tagline: "Fixed daily loss limit in evaluation, then LucidScale once funded.",
+      verified: false,
+      sizes: {
+        25000:  { target:1250, mll:1000, dailyMin:100 },
+        50000:  { target:3000, mll:2000, dailyMin:150 },
+        100000: { target:6000, mll:3000, dailyMin:200 },
+        150000: { target:9000, mll:4500, dailyMin:250 }
+      },
+      consistencyEval: 40
+    },
+    daily: {
+      name: "LucidDaily",
+      tagline: "Built around strict daily-loss discipline for intraday-only traders.",
+      verified: false,
+      sizes: {
+        25000:  { target:1250, mll:1000, dailyMin:100 },
+        50000:  { target:3000, mll:2000, dailyMin:150 },
+        100000: { target:6000, mll:3000, dailyMin:200 },
+        150000: { target:9000, mll:4500, dailyMin:250 }
+      },
+      consistencyEval: 40
+    },
+    direct: {
+      name: "LucidDirect",
+      tagline: "Skips the evaluation entirely &mdash; pay more upfront, trade funded from day one.",
+      verified: false,
+      sizes: {
+        25000:  { target:1500, mll:1000, dailyMin:100 },
+        50000:  { target:3000, mll:2000, dailyMin:150 },
+        100000: { target:6000, mll:3000, dailyMin:200 },
+        150000: { target:9000, mll:5000, dailyMin:250 }
+      },
+      consistencyEval: 20
+    }
+  };
+
+  var state = { plan: "flex", size: 25000 };
+
+  var fmt = new Intl.NumberFormat("en-US", { style:"currency", currency:"USD", maximumFractionDigits:0 });
+  function money(n){ return fmt.format(Math.round(n)); }
+
+  var statGrid = document.getElementById("statGrid");
+  var planTagline = document.getElementById("planTagline");
+  var verifyNote = document.getElementById("verifyNote");
+  var readoutList = document.getElementById("readoutList");
+  var coachText = document.getElementById("coachText");
+  var paceStatus = document.getElementById("paceStatus");
+
+  function current(){
+    var plan = PLANS[state.plan];
+    return { plan:plan, size:plan.sizes[state.size] };
+  }
+
+  function renderStats(){
+    var c = current();
+    var d = c.size;
+    var mllPct = Math.round((d.mll / state.size) * 1000) / 10;
+    statGrid.innerHTML =
+      '<div class="stat">' +
+        '<span class="label">Profit Target</span>' +
+        '<span class="value pos mono">' + money(d.target) + '</span>' +
+        '<span class="sub">' + (Math.round((d.target/state.size)*1000)/10) + '% of account size</span>' +
+      '</div>' +
+      '<div class="stat">' +
+        '<span class="label">Max Loss Limit</span>' +
+        '<span class="value warn mono">' + money(d.mll) + '</span>' +
+        '<span class="sub">Trailing, end-of-day only &mdash; ' + mllPct + '% of size</span>' +
+        '<div class="gauge"><i style="width:' + mllPct + '%"></i></div>' +
+      '</div>' +
+      '<div class="stat">' +
+        '<span class="label">Daily Loss Limit</span>' +
+        '<span class="value mono">None</span>' +
+        '<span class="sub">' + (state.plan === "flex" ? "Flex’s signature rule — self-impose your own below" : "Confirm current rule on your dashboard") + '</span>' +
+      '</div>' +
+      '<div class="stat">' +
+        '<span class="label">Consistency Rule</span>' +
+        '<span class="value mono">' + c.plan.consistencyEval + '%</span>' +
+        '<span class="sub">Evaluation only &mdash; largest day &le; ' + c.plan.consistencyEval + '% of total profit</span>' +
+      '</div>' +
+      '<div class="stat">' +
+        '<span class="label">Qualifying Days</span>' +
+        '<span class="value mono">5 &times; ' + money(d.dailyMin) + '</span>' +
+        '<span class="sub">Needed funded, before your first payout request</span>' +
+      '</div>';
+  }
+
+  function renderMeta(){
+    var c = current();
+    planTagline.innerHTML = c.plan.name + " &mdash; " + c.plan.tagline;
+    verifyNote.textContent = c.plan.verified ? "Figures verified against Lucid rule trackers." : "Less-certain figures — verify on your dashboard.";
+  }
+
+  function renderTabs(){
+    document.querySelectorAll(".tab").forEach(function(btn){
+      btn.setAttribute("aria-selected", btn.dataset.plan === state.plan ? "true" : "false");
+    });
+    document.querySelectorAll(".chip").forEach(function(btn){
+      btn.setAttribute("aria-selected", String(btn.dataset.size) === String(state.size) ? "true" : "false");
+    });
+  }
+
+  function renderCoPilot(){
+    var c = current();
+    var d = c.size;
+    var pnl = parseFloat(document.getElementById("pnlInput").value) || 0;
+    var days = Math.max(1, parseInt(document.getElementById("daysInput").value, 10) || 1);
+    var bestDay = parseFloat(document.getElementById("bestDayInput").value) || 0;
+
+    var remaining = Math.max(0, d.target - pnl);
+    var perDay = remaining / days;
+    var perDayPctOfSize = (perDay / state.size) * 100;
+
+    var maxRiskPerTrade = Math.min(state.size * 0.01, d.mll * 0.10);
+    var maxDailyLossCap = d.mll * 0.40;
+    var consistencyCeiling = Math.max(pnl, 1) * (c.plan.consistencyEval / 100);
+    var consistencyBreach = pnl > 0 && bestDay > consistencyCeiling;
+
+    var paceLevel, paceWord;
+    if (perDayPctOfSize <= 1.2){ paceLevel = "good"; paceWord = "ON PACE"; }
+    else if (perDayPctOfSize <= 2.5){ paceLevel = "amber"; paceWord = "AGGRESSIVE"; }
+    else { paceLevel = "red"; paceWord = "OVER-REACHING"; }
+
+    paceStatus.textContent = remaining === 0 ? "TARGET CLEARED" : paceWord;
+    paceStatus.style.color = remaining === 0 ? "var(--phosphor-soft)" : (paceLevel === "good" ? "var(--phosphor-soft)" : paceLevel === "amber" ? "var(--amber)" : "var(--red)");
+
+    function row(label, value, cls){
+      return '<div class="readout"><span class="rlabel">' + label + '</span><span class="rvalue' + (cls ? " " + cls : "") + '">' + value + '</span></div>';
+    }
+
+    readoutList.innerHTML =
+      row("Remaining to target", money(remaining)) +
+      row("Required pace / day", money(perDay) + " &nbsp;(" + perDayPctOfSize.toFixed(2) + "% of size)", paceLevel === "good" ? "" : paceLevel) +
+      row("Max risk per trade", money(maxRiskPerTrade), "") +
+      row("Self-imposed daily stop", money(maxDailyLossCap), "amber") +
+      row("Consistency ceiling (today)", money(consistencyCeiling), consistencyBreach ? "red" : "");
+
+    var lines = [];
+    if (remaining === 0){
+      lines.push('Target already <b>cleared</b> at your current P&amp;L. Stop pushing size &mdash; from here, protecting the pass matters more than adding profit.');
+    } else {
+      lines.push('You need <b>' + money(remaining) + '</b> more across <b>' + days + '</b> session' + (days === 1 ? '' : 's') + ' &mdash; about <b>' + money(perDay) + '/day</b>, roughly ' + perDayPctOfSize.toFixed(1) + '% of your ' + money(state.size) + ' account.');
+      if (paceLevel === "red"){
+        lines.push('That pace is <span class="flag-red">too hot</span> for a ' + money(d.mll) + ' Max Loss Limit. Add a trading day or two rather than sizing up to force it.');
+      } else if (paceLevel === "amber"){
+        lines.push('That’s <span class="flag-amber">an aggressive pace</span> &mdash; doable, but leaves little room for a losing session before it snowballs.');
+      } else {
+        lines.push('That’s a <b>reasonable pace</b> relative to your Max Loss Limit &mdash; no need to force trades.');
+      }
+    }
+    lines.push('Keep risk at or under <b>' + money(maxRiskPerTrade) + '</b> per trade (1% of size, capped at 10% of your Max Loss Limit).');
+    lines.push('Even though ' + c.plan.name + ' sets no daily loss limit, stop yourself at <b>' + money(maxDailyLossCap) + '</b> down for the day &mdash; the firm won’t, so you have to.');
+    if (consistencyBreach){
+      lines.push('<span class="flag-red">Consistency flag:</span> your best day (' + money(bestDay) + ') is above the ' + c.plan.consistencyEval + '% ceiling for your current profit. Bank a couple more solid days before you’d be eligible to pass.');
+    } else if (pnl > 0){
+      lines.push('Consistency check passes for now &mdash; keep any single day under <b>' + money(consistencyCeiling) + '</b> as your total grows.');
+    }
+
+    coachText.innerHTML = lines.join(' ');
+  }
+
+  function renderAll(){
+    renderStats();
+    renderMeta();
+    renderTabs();
+    renderCoPilot();
+  }
+
+  document.querySelectorAll(".tab").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      state.plan = btn.dataset.plan;
+      renderAll();
+    });
+  });
+  document.querySelectorAll(".chip").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      state.size = parseInt(btn.dataset.size, 10);
+      renderAll();
+    });
+  });
+  ["pnlInput","daysInput","bestDayInput"].forEach(function(id){
+    document.getElementById(id).addEventListener("input", renderCoPilot);
+  });
+
+  renderAll();
+
+  // NY clock + flatten countdown
+  function pad(n){ return String(n).padStart(2,"0"); }
+  function tick(){
+    var nyParts = new Intl.DateTimeFormat("en-US", {
+      timeZone:"America/New_York", hour12:false,
+      hour:"2-digit", minute:"2-digit", second:"2-digit"
+    }).formatToParts(new Date());
+    var h=0,m=0,s=0;
+    nyParts.forEach(function(p){
+      if (p.type === "hour") h = parseInt(p.value,10);
+      if (p.type === "minute") m = parseInt(p.value,10);
+      if (p.type === "second") s = parseInt(p.value,10);
+    });
+    document.getElementById("nyTime").textContent = pad(h)+":"+pad(m)+":"+pad(s);
+
+    var nowSec = h*3600+m*60+s;
+    var cutoffSec = 16*3600+45*60;
+    var diff = cutoffSec - nowSec;
+    var label;
+    if (diff > 0){
+      var hh = Math.floor(diff/3600), mm = Math.floor((diff%3600)/60);
+      label = pad(hh)+"h "+pad(mm)+"m";
+    } else {
+      var next = 24*3600 - nowSec + cutoffSec;
+      var hh2 = Math.floor(next/3600), mm2 = Math.floor((next%3600)/60);
+      label = "closed · " + pad(hh2)+"h "+pad(mm2)+"m";
+    }
+    document.getElementById("flattenIn").textContent = label;
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
+</script>
+</body>
+</html>
