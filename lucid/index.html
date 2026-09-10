@@ -166,6 +166,20 @@
   .readout .rvalue.red{ color:var(--red); }
   .rcontrol{ display:flex; align-items:center; gap:8px; }
 
+  .collapse-btn{
+    width:30px; height:30px; border-radius:50%; flex:none; padding:0;
+    background:var(--panel-raised); border:1px solid var(--hairline); cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition:border-color .15s, background .15s;
+  }
+  .collapse-btn:hover{ border-color:var(--hairline-bright); background:var(--panel-hi); }
+  .collapse-btn .chev{
+    width:8px; height:8px; border-right:2px solid var(--muted); border-bottom:2px solid var(--muted);
+    transform:rotate(45deg); margin-top:-3px; transition:transform .2s ease, border-color .15s;
+  }
+  .collapse-btn:hover .chev{ border-color:var(--ice); }
+  .collapse-btn.collapsed .chev{ transform:rotate(-135deg); margin-top:3px; }
+
   .opt-pill{
     font-family:var(--font-mono); font-size:12px; font-weight:600; padding:6px 14px;
     border-radius:999px; background:var(--panel-raised); border:1px solid var(--hairline);
@@ -274,6 +288,8 @@
     background:var(--panel); border:1px solid var(--hairline); border-radius:20px;
     padding:20px 20px 22px; display:flex; flex-direction:column; gap:12px;
   }
+  .phase-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+  .phase-head-text{ display:flex; flex-direction:column; gap:4px; }
   .phase .phase-num{ font-family:var(--font-mono); font-size:12px; color:var(--phosphor-dim); letter-spacing:0.1em; }
   .phase h3{ font-size:18px; color:var(--ice); }
   .phase ul{ margin:0; padding-left:18px; display:flex; flex-direction:column; gap:9px; }
@@ -358,92 +374,108 @@
     <p>A cockpit for your Lucid Trading accounts &mdash; live rules, a risk co-pilot that tells you the minimum pace you need and the max you should risk, and the exact path from evaluation to your first payout.</p>
   </div>
 
-  <div class="snapshot-card">
+  <div class="snapshot-card" id="snapshotCard">
     <div class="snapshot-head">
       <div>
         <div class="snapshot-title" id="snapshotTitle">25K FLEX EVAL</div>
         <div class="snapshot-sub" id="snapshotSub">Live rule sheet for this plan and size</div>
       </div>
-      <button type="button" class="switch-btn" id="switchAccountBtn">Switch Account</button>
+      <div class="rcontrol">
+        <button type="button" class="switch-btn" id="switchAccountBtn">Switch Account</button>
+        <button type="button" class="collapse-btn" data-card="snapshotCard" aria-expanded="true" aria-label="Collapse Account Snapshot"><span class="chev" aria-hidden="true"></span></button>
+      </div>
     </div>
-    <div class="readout-list" id="statList"></div>
+    <div class="card-body" id="snapshotCardBody">
+      <div class="readout-list" id="statList"></div>
+    </div>
   </div>
 
-  <div class="snapshot-card">
+  <div class="snapshot-card" id="costCard">
     <div class="snapshot-head">
       <div>
         <div class="snapshot-title">Cost &amp; Payouts</div>
         <div class="snapshot-sub" id="costSub">What this account costs, and what you can pull out</div>
       </div>
+      <button type="button" class="collapse-btn" data-card="costCard" aria-expanded="true" aria-label="Collapse Cost &amp; Payouts"><span class="chev" aria-hidden="true"></span></button>
     </div>
-    <div id="feeBox"></div>
-    <div class="readout-list" id="costList" style="margin-top:16px;"></div>
+    <div class="card-body" id="costCardBody">
+      <div id="feeBox"></div>
+      <div class="readout-list" id="costList" style="margin-top:16px;"></div>
+    </div>
   </div>
 
-  <div class="console">
+  <div class="console" id="importCard">
     <div class="console-head">
       <h2>Import Trade History</h2>
+      <button type="button" class="collapse-btn" data-card="importCard" aria-expanded="true" aria-label="Collapse Import Trade History"><span class="chev" aria-hidden="true"></span></button>
     </div>
-    <p class="hint" style="margin:-6px 0 16px; font-size:13px; line-height:1.6;">No login, no password &mdash; export a CSV from Tradovate and drop it in below. The file is read entirely in your browser; nothing gets uploaded anywhere.</p>
-    <ol class="csv-steps">
-      <li>Log into Tradovate: <a href="https://trader.tradovate.com/" target="_blank" rel="noopener">trader.tradovate.com</a> (opens in a new tab)</li>
-      <li>Click your <b>account name</b> at the top, then the small <b>gear icon</b> next to it &mdash; this opens <b>Account Reports</b> (some versions show this as a <b>Reports</b> item in the main menu instead)</li>
-      <li>Click the <b>Account Balance History</b> tab &mdash; not Client Statements or Performance, those are different reports (Cash History also works if that's what you've got)</li>
-      <li>Set the date range back to the day you first opened the account, so it captures everything</li>
-      <li>Click <b>Download Report</b> to save the CSV</li>
-      <li>Come back here and upload that file below</li>
-    </ol>
-    <div class="field">
-      <label for="csvFile">Account Balance History CSV</label>
-      <input id="csvFile" type="file" accept=".csv,text/csv" />
-      <span class="hint" id="csvMessage">Auto-fills Net P&amp;L and Best Day below once uploaded. Cash History files are also accepted.</span>
+    <div class="card-body" id="importCardBody">
+      <p class="hint" style="margin:-6px 0 16px; font-size:13px; line-height:1.6;">No login, no password &mdash; export a CSV from Tradovate and drop it in below. The file is read entirely in your browser; nothing gets uploaded anywhere.</p>
+      <ol class="csv-steps">
+        <li>Log into Tradovate: <a href="https://trader.tradovate.com/" target="_blank" rel="noopener">trader.tradovate.com</a> (opens in a new tab)</li>
+        <li>Click your <b>account name</b> at the top, then the small <b>gear icon</b> next to it &mdash; this opens <b>Account Reports</b> (some versions show this as a <b>Reports</b> item in the main menu instead)</li>
+        <li>Click the <b>Account Balance History</b> tab &mdash; not Client Statements or Performance, those are different reports (Cash History also works if that's what you've got)</li>
+        <li>Set the date range back to the day you first opened the account, so it captures everything</li>
+        <li>Click <b>Download Report</b> to save the CSV</li>
+        <li>Come back here and upload that file below</li>
+      </ol>
+      <div class="field">
+        <label for="csvFile">Account Balance History CSV</label>
+        <input id="csvFile" type="file" accept=".csv,text/csv" />
+        <span class="hint" id="csvMessage">Auto-fills Net P&amp;L and Best Day below once uploaded. Cash History files are also accepted.</span>
+      </div>
     </div>
   </div>
 
-  <div class="console">
+  <div class="console" id="copilotCard">
     <div class="console-head">
       <h2>Risk Co-Pilot</h2>
-      <div class="rcontrol" id="phaseToggle">
-        <button type="button" class="opt-pill active" data-phase="eval">Evaluation</button>
-        <button type="button" class="opt-pill" data-phase="funded">Funded</button>
+      <div class="rcontrol">
+        <div class="rcontrol" id="phaseToggle">
+          <button type="button" class="opt-pill active" data-phase="eval">Evaluation</button>
+          <button type="button" class="opt-pill" data-phase="funded">Funded</button>
+        </div>
+        <button type="button" class="collapse-btn" data-card="copilotCard" aria-expanded="true" aria-label="Collapse Risk Co-Pilot"><span class="chev" aria-hidden="true"></span></button>
       </div>
     </div>
-    <div class="status-banner" id="statusBanner">
-      <div class="status-badge" id="statusBadge">
-        <span class="status-dot" id="statusDot" aria-hidden="true"></span>
-        <span class="status-label" id="statusLabel">Calculating</span>
+    <div class="card-body" id="copilotCardBody">
+      <div class="status-banner" id="statusBanner">
+        <div class="status-badge" id="statusBadge">
+          <span class="status-dot" id="statusDot" aria-hidden="true"></span>
+          <span class="status-label" id="statusLabel">Calculating</span>
+        </div>
+        <p class="status-rec" id="statusRec"></p>
+        <button type="button" class="switch-btn" id="celebrateBtn" hidden>&#127881; Celebrate again</button>
       </div>
-      <p class="status-rec" id="statusRec"></p>
-      <button type="button" class="switch-btn" id="celebrateBtn" hidden>&#127881; Celebrate again</button>
-    </div>
-    <div class="console-grid">
-      <div>
-        <div class="field">
-          <label for="pnlInput" id="pnlLabel">Net P&amp;L so far ($)</label>
-          <input id="pnlInput" type="number" step="1" value="1221" />
-          <span class="hint">Pull your real number from the Lucid dashboard.</span>
+      <div class="console-grid">
+        <div>
+          <div class="field">
+            <label for="pnlInput" id="pnlLabel">Net P&amp;L so far ($)</label>
+            <input id="pnlInput" type="number" step="1" value="1221" />
+            <span class="hint">Pull your real number from the Lucid dashboard.</span>
+          </div>
+          <div class="field" id="daysField">
+            <label for="daysInput">Trading days you want left</label>
+            <input id="daysInput" type="number" step="1" min="1" value="1" />
+            <span class="hint">How many more sessions you're planning to trade before the target.</span>
+          </div>
+          <div class="field" id="qualDaysField" hidden>
+            <label for="qualDaysInput">Qualifying days banked</label>
+            <input id="qualDaysInput" type="number" step="1" min="0" max="5" value="0" />
+            <span class="hint">Days that cleared your size's daily minimum, out of the 5 needed for a payout.</span>
+          </div>
+          <div class="field" id="bestDayField">
+            <label for="bestDayInput">Best single day so far ($)</label>
+            <input id="bestDayInput" type="number" step="1" value="617" />
+            <span class="hint">Needed to check the 50% consistency rule during evaluation.</span>
+          </div>
         </div>
-        <div class="field" id="daysField">
-          <label for="daysInput">Trading days you want left</label>
-          <input id="daysInput" type="number" step="1" min="1" value="1" />
-          <span class="hint">How many more sessions you're planning to trade before the target.</span>
-        </div>
-        <div class="field" id="qualDaysField" hidden>
-          <label for="qualDaysInput">Qualifying days banked</label>
-          <input id="qualDaysInput" type="number" step="1" min="0" max="5" value="0" />
-          <span class="hint">Days that cleared your size's daily minimum, out of the 5 needed for a payout.</span>
-        </div>
-        <div class="field" id="bestDayField">
-          <label for="bestDayInput">Best single day so far ($)</label>
-          <input id="bestDayInput" type="number" step="1" value="617" />
-          <span class="hint">Needed to check the 50% consistency rule during evaluation.</span>
-        </div>
+        <div class="readout-list" id="readoutList"></div>
       </div>
-      <div class="readout-list" id="readoutList"></div>
-    </div>
-    <div class="coach">
-      <div class="coach-label">Co-Pilot Read <span class="cursor"></span></div>
-      <div id="coachText">Calculating&hellip;</div>
+      <div class="coach">
+        <div class="coach-label">Co-Pilot Read <span class="cursor"></span></div>
+        <div id="coachText">Calculating&hellip;</div>
+      </div>
     </div>
   </div>
 
@@ -452,36 +484,57 @@
     <h2>Evaluation &rarr; Funded &rarr; First Payout</h2>
   </div>
   <div class="phases">
-    <div class="phase">
-      <span class="phase-num">PHASE 01</span>
-      <h3>Evaluation</h3>
-      <ul>
-        <li>Clear the <b>profit target</b> for your size without your balance touching the trailing <b>Max Loss Limit</b>.</li>
-        <li>The <b>Daily Loss Limit is optional</b> on the 25K Flex &mdash; OFF, or a firm $600 cap if you opted in. Either way, the Co-Pilot above sets a stop for you.</li>
-        <li><b>Consistency rule:</b> no single day can exceed 50% of your total profit when you hit target. Spread wins across at least 2&ndash;3 sessions.</li>
-        <li>Positions auto-flatten at <b>4:45 PM ET</b>. Holding past it doesn't fail you, but plan your exits before then.</li>
-        <li>No minimum trading days &mdash; pass as fast as the math allows, just don't let one hot day carry the whole account.</li>
-      </ul>
+    <div class="phase" id="phaseCard1">
+      <div class="phase-head">
+        <div class="phase-head-text">
+          <span class="phase-num">PHASE 01</span>
+          <h3>Evaluation</h3>
+        </div>
+        <button type="button" class="collapse-btn" data-card="phaseCard1" aria-expanded="true" aria-label="Collapse Phase 1"><span class="chev" aria-hidden="true"></span></button>
+      </div>
+      <div class="card-body" id="phaseCard1Body">
+        <ul>
+          <li>Clear the <b>profit target</b> for your size without your balance touching the trailing <b>Max Loss Limit</b>.</li>
+          <li>The <b>Daily Loss Limit is optional</b> on the 25K Flex &mdash; OFF, or a firm $600 cap if you opted in. Either way, the Co-Pilot above sets a stop for you.</li>
+          <li><b>Consistency rule:</b> no single day can exceed 50% of your total profit when you hit target. Spread wins across at least 2&ndash;3 sessions.</li>
+          <li>Positions auto-flatten at <b>4:45 PM ET</b>. Holding past it doesn't fail you, but plan your exits before then.</li>
+          <li>No minimum trading days &mdash; pass as fast as the math allows, just don't let one hot day carry the whole account.</li>
+        </ul>
+      </div>
     </div>
-    <div class="phase">
-      <span class="phase-num">PHASE 02</span>
-      <h3>Funded</h3>
-      <ul>
-        <li>The <b>consistency rule drops away</b>. Only the trailing Max Loss Limit matters now.</li>
-        <li>Same Daily Loss Limit setting carries over from evaluation &mdash; if you're running OFF, this is where real discipline replaces the guardrail.</li>
-        <li>Positions still flatten by <b>4:45 PM ET</b> every session.</li>
-        <li>Bank <b>5 qualifying profitable days</b> (each clearing your size's daily minimum) with the cycle net positive.</li>
-      </ul>
+    <div class="phase" id="phaseCard2">
+      <div class="phase-head">
+        <div class="phase-head-text">
+          <span class="phase-num">PHASE 02</span>
+          <h3>Funded</h3>
+        </div>
+        <button type="button" class="collapse-btn" data-card="phaseCard2" aria-expanded="true" aria-label="Collapse Phase 2"><span class="chev" aria-hidden="true"></span></button>
+      </div>
+      <div class="card-body" id="phaseCard2Body">
+        <ul>
+          <li>The <b>consistency rule drops away</b>. Only the trailing Max Loss Limit matters now.</li>
+          <li>Same Daily Loss Limit setting carries over from evaluation &mdash; if you're running OFF, this is where real discipline replaces the guardrail.</li>
+          <li>Positions still flatten by <b>4:45 PM ET</b> every session.</li>
+          <li>Bank <b>5 qualifying profitable days</b> (each clearing your size's daily minimum) with the cycle net positive.</li>
+        </ul>
+      </div>
     </div>
-    <div class="phase">
-      <span class="phase-num">PHASE 03</span>
-      <h3>First Payout</h3>
-      <ul>
-        <li>Once your 5 qualifying days are banked and the cycle is net positive, <b>submit from the dashboard</b>.</li>
-        <li>Lucid runs a <b>90/10 split</b> in your favor, with a <b>$500 minimum</b> payout request.</li>
-        <li>Balance is deducted within minutes of approval &mdash; disbursement then rides the processor's clock.</li>
-        <li>Timing: same day via Plaid (US), 1&ndash;2 business days to a US bank, 2&ndash;4 international, up to 8 via PayPal.</li>
-      </ul>
+    <div class="phase" id="phaseCard3">
+      <div class="phase-head">
+        <div class="phase-head-text">
+          <span class="phase-num">PHASE 03</span>
+          <h3>First Payout</h3>
+        </div>
+        <button type="button" class="collapse-btn" data-card="phaseCard3" aria-expanded="true" aria-label="Collapse Phase 3"><span class="chev" aria-hidden="true"></span></button>
+      </div>
+      <div class="card-body" id="phaseCard3Body">
+        <ul>
+          <li>Once your 5 qualifying days are banked and the cycle is net positive, <b>submit from the dashboard</b>.</li>
+          <li>Lucid runs a <b>90/10 split</b> in your favor, with a <b>$500 minimum</b> payout request.</li>
+          <li>Balance is deducted within minutes of approval &mdash; disbursement then rides the processor's clock.</li>
+          <li>Timing: same day via Plaid (US), 1&ndash;2 business days to a US bank, 2&ndash;4 international, up to 8 via PayPal.</li>
+        </ul>
+      </div>
     </div>
   </div>
 
@@ -589,8 +642,9 @@
   var PLAN_ORDER = ["flex","pro","daily","direct"];
   var SIZE_ORDER = [25000,50000,100000,150000];
 
-  var state = { plan: "flex", size: 25000, dllOn: {}, drawdownChoice: {}, phase: "eval" };
+  var state = { plan: "flex", size: 25000, dllOn: {}, drawdownChoice: {}, phase: "eval", collapsed: {} };
   var STORAGE_KEY = "lucidCockpit.v2";
+  var CARD_IDS = ["snapshotCard","costCard","importCard","copilotCard","phaseCard1","phaseCard2","phaseCard3"];
 
   function comboKey(){ return state.plan + "_" + state.size; }
   function dllAvailable(){ return (state.plan === "flex" && state.size === 25000) || state.plan === "pro"; }
@@ -610,6 +664,7 @@
         dllOn: state.dllOn,
         drawdownChoice: state.drawdownChoice,
         phase: state.phase,
+        collapsed: state.collapsed,
         pnl: document.getElementById("pnlInput").value,
         days: document.getElementById("daysInput").value,
         bestDay: document.getElementById("bestDayInput").value,
@@ -628,6 +683,7 @@
       if (saved.dllOn && typeof saved.dllOn === "object") state.dllOn = saved.dllOn;
       if (saved.drawdownChoice && typeof saved.drawdownChoice === "object") state.drawdownChoice = saved.drawdownChoice;
       if (saved.phase === "eval" || saved.phase === "funded") state.phase = saved.phase;
+      if (saved.collapsed && typeof saved.collapsed === "object") state.collapsed = saved.collapsed;
       if (saved.pnl !== undefined) document.getElementById("pnlInput").value = saved.pnl;
       if (saved.days !== undefined) document.getElementById("daysInput").value = saved.days;
       if (saved.bestDay !== undefined) document.getElementById("bestDayInput").value = saved.bestDay;
@@ -798,6 +854,23 @@
   }
 
   celebrateBtn.addEventListener("click", fireConfetti);
+
+  function setCardCollapsed(cardId, collapsed){
+    var body = document.getElementById(cardId + "Body");
+    var btn = document.querySelector('.collapse-btn[data-card="' + cardId + '"]');
+    if (!body || !btn) return;
+    body.hidden = collapsed;
+    btn.classList.toggle("collapsed", collapsed);
+    btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    state.collapsed[cardId] = collapsed;
+  }
+
+  document.addEventListener("click", function(e){
+    var btn = e.target.closest ? e.target.closest(".collapse-btn") : null;
+    if (!btn) return;
+    setCardCollapsed(btn.dataset.card, !btn.classList.contains("collapsed"));
+    saveState();
+  });
 
   function current(){
     var plan = PLANS[state.plan];
@@ -1271,6 +1344,7 @@
 
   loadState();
   renderAll();
+  CARD_IDS.forEach(function(id){ setCardCollapsed(id, !!state.collapsed[id]); });
 
   // NY market status: live "OPEN" badge from 9:30 AM to 4:15 PM ET on weekdays
   // (stocks close at 4:00, but futures keep trading another 15 minutes),
