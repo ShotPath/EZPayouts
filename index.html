@@ -95,6 +95,19 @@
   .topbar-right{ display:flex; align-items:center; gap:14px; }
   .nyclock{ font-size:12px; color:var(--muted); letter-spacing:0.03em; }
   .nyclock strong{ color:var(--phosphor-soft); font-weight:600; }
+
+  .market-status{ display:inline-flex; align-items:center; gap:7px; }
+  .market-status .dot{
+    width:8px; height:8px; border-radius:50%; flex:none;
+    background:var(--phosphor); box-shadow:0 0 8px 2px var(--phosphor-glow);
+    animation:pulse 2.2s ease-in-out infinite;
+  }
+  @keyframes pulse{ 0%,100%{ opacity:1; } 50%{ opacity:0.35; } }
+  .market-status.open{
+    background:rgba(62,224,140,0.12); border:1px solid var(--phosphor-dim);
+    padding:5px 12px 5px 10px; border-radius:999px;
+  }
+  .market-status.open .label{ color:var(--phosphor-soft); font-weight:700; letter-spacing:0.1em; font-size:11px; }
   .menu-btn{
     width:38px; height:38px; border-radius:50%; flex:none;
     background:var(--panel); border:1px solid var(--hairline); cursor:pointer;
@@ -274,7 +287,11 @@
       </div>
     </div>
     <div class="topbar-right">
-      <span class="nyclock mono">NY OPEN IN <strong id="marketOpenIn">--:--:--</strong></span>
+      <span class="market-status" id="marketStatus">
+        <span class="dot" aria-hidden="true"></span>
+        <span class="label mono" id="marketLabel">NY OPEN IN</span>
+        <strong class="mono" id="marketOpenIn">--:--:--</strong>
+      </span>
       <button type="button" class="menu-btn" id="menuBtn" aria-haspopup="true" aria-expanded="false" aria-controls="accountMenu" aria-label="Select account">
         <span class="menu-lines" aria-hidden="true"><span></span><span></span><span></span></span>
       </button>
@@ -792,10 +809,17 @@
   loadState();
   renderAll();
 
-  // Countdown to next NY market open (9:30 AM ET, next weekday)
+  // NY market status: live "OPEN" badge during 9:30-4:00 ET on weekdays,
+  // otherwise a countdown to the next 9:30 AM ET open.
   function pad(n){ return String(n).padStart(2,"0"); }
   var WEEKDAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
   var MARKET_OPEN_SEC = 9 * 3600 + 30 * 60;
+  var MARKET_CLOSE_SEC = 16 * 3600;
+
+  var marketStatusEl = document.getElementById("marketStatus");
+  var marketDotEl = marketStatusEl.querySelector(".dot");
+  var marketLabelEl = document.getElementById("marketLabel");
+  var marketOpenInEl = document.getElementById("marketOpenIn");
 
   function tick(){
     var nyParts = new Intl.DateTimeFormat("en-US", {
@@ -812,6 +836,20 @@
     var weekdayIdx = WEEKDAYS.indexOf(weekday);
     var nowSec = h * 3600 + m * 60 + s;
     var isWeekday = weekdayIdx >= 1 && weekdayIdx <= 5;
+    var isOpen = isWeekday && nowSec >= MARKET_OPEN_SEC && nowSec < MARKET_CLOSE_SEC;
+
+    if (isOpen){
+      marketStatusEl.classList.add("open");
+      marketDotEl.hidden = false;
+      marketLabelEl.textContent = "NY OPEN";
+      marketOpenInEl.hidden = true;
+      return;
+    }
+
+    marketStatusEl.classList.remove("open");
+    marketDotEl.hidden = true;
+    marketLabelEl.textContent = "NY OPEN IN";
+    marketOpenInEl.hidden = false;
 
     var daysToAdd;
     if (isWeekday && nowSec < MARKET_OPEN_SEC){
@@ -838,7 +876,7 @@
       var ss = diff % 60;
       label = pad(hh) + ":" + pad(mm) + ":" + pad(ss);
     }
-    document.getElementById("marketOpenIn").textContent = label;
+    marketOpenInEl.textContent = label;
   }
   tick();
   setInterval(tick, 1000);
