@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Lucid Payout Guide</title>
+<title>EZPayouts</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
 <style>
@@ -17,12 +17,8 @@
     --phosphor:#3ee08c;
     --phosphor-soft:#8fe6b6;
     --phosphor-dim:#1c5c3d;
-    --phosphor-glow:rgba(62,224,140,0.35);
     --mint:#7ee8ac;
     --mint-text:#062b17;
-    --navy:#2b3550;
-    --red:#ef5a5a;
-    --red-glow:rgba(239,90,90,0.35);
     --ice:#dcefe2;
     --muted:#7c9584;
     --muted-dim:#4d6055;
@@ -35,6 +31,7 @@
   html{color-scheme:dark;}
   body{
     margin:0;
+    min-height:100vh;
     background:
       radial-gradient(ellipse 120% 60% at 50% -10%, rgba(62,224,140,0.10), transparent 60%),
       radial-gradient(ellipse 80% 50% at 100% 100%, rgba(62,224,140,0.06), transparent 60%),
@@ -71,829 +68,134 @@
     *{ animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; }
   }
 
-  .wrap{ max-width:1180px; margin:0 auto; position:relative; z-index:1; }
+  .wrap{ max-width:1080px; margin:0 auto; position:relative; z-index:1; }
 
-  h1,h2,h3{ font-family:var(--font-display); text-wrap:balance; margin:0; }
-  .mono{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
+  h1,h2{ font-family:var(--font-display); text-wrap:balance; margin:0; }
   a{ color:var(--phosphor-soft); }
 
-  /* ---------- Top bar ---------- */
-  .topbar{
-    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap;
-    gap:12px; padding-bottom:16px; margin-bottom:22px;
-    border-bottom:1px solid var(--hairline);
-  }
-  .brand{ display:flex; align-items:center; gap:11px; min-width:0; }
+  .topbar{ display:flex; align-items:center; padding-bottom:16px; margin-bottom:8px; border-bottom:1px solid var(--hairline); }
+  .brand{ display:flex; align-items:center; gap:11px; text-decoration:none; }
   .brand-mark{
     width:34px; height:34px; border-radius:50%; flex:none;
     background:radial-gradient(circle at 34% 30%, #e8f5ec 0%, #4b8f6a 34%, #0e1c14 72%, #050806 100%);
     box-shadow:0 0 0 1px var(--hairline-bright), 0 0 14px rgba(62,224,140,0.25);
   }
-  .brand-text{ display:flex; flex-direction:column; line-height:1.15; min-width:0; }
-  .brand-name{
-    font-family:var(--font-display); font-weight:700; font-size:16.5px; letter-spacing:0.02em; color:var(--ice);
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  }
+  .brand-text{ display:flex; flex-direction:column; line-height:1.15; }
+  .brand-name{ font-family:var(--font-display); font-weight:700; font-size:16.5px; letter-spacing:0.02em; color:var(--ice); }
   .brand-sub{ font-size:10.5px; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted-dim); }
 
-  .topbar-right{ display:flex; align-items:center; gap:8px; flex:none; }
-
-  .market-status{
-    display:inline-flex; align-items:center; gap:4px; white-space:nowrap;
-    padding:2px 7px 2px 6px; border-radius:999px;
-    background:var(--panel); border:1px solid var(--hairline);
-  }
-  .market-status .dot{
-    width:5px; height:5px; border-radius:50%; flex:none;
-    animation:pulse 2.2s ease-in-out infinite;
-  }
-  @keyframes pulse{ 0%,100%{ opacity:1; } 50%{ opacity:0.35; } }
-  .market-status .label{ font-weight:700; letter-spacing:0.02em; font-size:8px; }
-  .market-status strong{ font-size:9.5px; }
-  .market-status.open{ background:rgba(62,224,140,0.12); border-color:var(--phosphor-dim); }
-  .market-status.open .dot{ background:var(--phosphor); box-shadow:0 0 8px 2px var(--phosphor-glow); }
-  .market-status.open .label{ color:var(--phosphor-soft); }
-  .market-status.closed{ background:rgba(239,90,90,0.10); border-color:var(--red); }
-  .market-status.closed .dot{ background:var(--red); box-shadow:0 0 8px 2px var(--red-glow); }
-  .market-status.closed .label{ color:var(--red); }
-  .market-status.open strong{ color:var(--phosphor-soft); font-weight:600; }
-  .market-status.closed strong{ color:var(--red); font-weight:600; }
-  .menu-btn{
-    width:38px; height:38px; border-radius:50%; flex:none;
-    background:var(--panel); border:1px solid var(--hairline); cursor:pointer;
-    display:flex; align-items:center; justify-content:center;
-    transition:border-color .15s, background .15s;
-  }
-  .menu-btn:hover{ border-color:var(--hairline-bright); background:var(--panel-raised); }
-  .menu-lines{ width:16px; display:flex; flex-direction:column; gap:3.5px; }
-  .menu-lines span{ display:block; height:2px; border-radius:1px; background:var(--ice); }
-
-  /* ---------- Hero ---------- */
-  .hero{ padding:6px 0 26px; }
+  .hero{ max-width:620px; margin:0 auto; text-align:center; padding:56px 0 46px; }
   .hero .eyebrow{
     font-family:var(--font-mono); font-size:12px; letter-spacing:0.22em; text-transform:uppercase;
-    color:var(--phosphor); margin-bottom:10px; display:flex; align-items:center; gap:10px;
+    color:var(--phosphor); margin-bottom:14px; display:flex; align-items:center; justify-content:center; gap:10px;
   }
   .hero .eyebrow::before{ content:"//"; color:var(--muted-dim); }
-  .hero h1{ font-size:clamp(28px,4.6vw,44px); font-weight:700; line-height:1.08; color:var(--ice); letter-spacing:-0.01em; }
-  .hero h1 span{ color:var(--phosphor); }
-  .hero p{ margin:14px 0 0; max-width:62ch; color:var(--muted); font-size:15.5px; line-height:1.6; }
+  .hero h1{ font-size:clamp(30px,5.2vw,46px); font-weight:700; line-height:1.08; color:var(--ice); letter-spacing:-0.01em; }
+  .hero p{ margin:16px auto 0; max-width:52ch; color:var(--muted); font-size:15.5px; line-height:1.65; }
 
-  /* ---------- Snapshot card ---------- */
-  .snapshot-card{
-    background:var(--panel); border:1px solid var(--hairline); border-radius:20px;
-    padding:24px clamp(16px,3vw,30px) 26px; margin-bottom:26px;
+  .firm-row{
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(128px, 1fr)); gap:14px;
+    margin-top:8px;
   }
-  .snapshot-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:18px; }
-  .snapshot-title{ font-size:20px; color:var(--ice); margin-bottom:2px; }
-  .snapshot-sub{ font-family:var(--font-mono); font-size:12px; color:var(--muted); }
-  .switch-btn{
-    font-family:var(--font-mono); font-size:12px; font-weight:600; padding:8px 16px;
-    border-radius:999px; background:var(--panel-raised); border:1px solid var(--hairline-bright);
-    color:var(--phosphor-soft); cursor:pointer; white-space:nowrap; transition:background .15s, color .15s;
+  .firm-card{
+    display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center;
+    padding:26px 14px 22px; border-radius:20px;
+    background:var(--panel); border:1px solid var(--hairline);
+    text-decoration:none; transition:transform .18s ease, border-color .18s, box-shadow .18s;
   }
-  .switch-btn:hover{ background:var(--mint); border-color:var(--mint); color:var(--mint-text); }
-
-  .readout-list{ display:flex; flex-direction:column; gap:14px; }
-  .readout{
-    display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap;
-    padding-bottom:12px; border-bottom:1px dashed var(--hairline);
+  .firm-mark{
+    width:54px; height:54px; border-radius:50%; flex:none;
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-display); font-weight:700; font-size:15px;
+    background:var(--panel-hi); color:var(--muted-dim); border:1px solid var(--hairline);
   }
-  .readout:last-child{ border-bottom:none; padding-bottom:0; }
-  .readout .rlabel{ font-size:13.5px; color:var(--muted); }
-  .readout .rsub{ display:block; font-size:11.5px; color:var(--muted-dim); margin-top:2px; }
-  .readout .rvalue{ font-family:var(--font-mono); font-size:17px; font-weight:600; color:var(--phosphor-soft); white-space:nowrap; }
-  .readout .rvalue.red{ color:var(--red); }
-  .readout .rcontrol{ display:flex; align-items:center; gap:8px; }
-
-  .opt-pill{
-    font-family:var(--font-mono); font-size:12px; font-weight:600; padding:6px 14px;
-    border-radius:999px; background:var(--panel-raised); border:1px solid var(--hairline);
-    color:var(--muted); cursor:pointer; transition:border-color .15s, background .15s, color .15s;
+  .firm-name{ font-family:var(--font-display); font-weight:600; font-size:13.5px; color:var(--muted); line-height:1.3; }
+  .firm-status{
+    font-family:var(--font-mono); font-size:9.5px; letter-spacing:0.1em; text-transform:uppercase;
+    padding:3px 10px; border-radius:999px; background:var(--panel-hi); color:var(--muted-dim); border:1px solid var(--hairline);
   }
-  .opt-pill:hover{ border-color:var(--hairline-bright); color:var(--ice); }
-  .opt-pill.active{ background:var(--mint); border-color:var(--mint); color:var(--mint-text); }
 
-  .fee-box{
-    background:rgba(126,232,172,0.07); border:1px solid var(--hairline-bright); border-radius:14px;
-    padding:16px 18px; display:flex; flex-direction:column; gap:4px;
+  .firm-card.disabled{ cursor:not-allowed; opacity:0.55; }
+
+  .firm-card.active{
+    border-color:var(--phosphor-dim);
+    background:linear-gradient(180deg, rgba(62,224,140,0.10), var(--panel));
+    cursor:pointer;
   }
-  .fee-box .fee-label{ font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); }
-  .fee-price-row{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
-  .fee-box .fee-strike{ font-size:15px; color:var(--muted-dim); text-decoration:line-through; }
-  .fee-box .fee-amount{ font-size:30px; font-weight:700; color:var(--phosphor-soft); }
-  .fee-box .fee-savings{ font-size:12px; color:var(--phosphor-soft); }
-  .fee-box .fee-note{ font-size:11.5px; color:var(--muted-dim); line-height:1.5; max-width:52ch; }
-
-  /* ---------- Console (Risk Co-Pilot) ---------- */
-  .console{
-    background:var(--panel); border:1px solid var(--hairline); border-radius:20px;
-    padding:22px clamp(16px,3vw,28px); margin-bottom:26px;
+  .firm-card.active .firm-mark{
+    background:radial-gradient(circle at 34% 30%, #e8f5ec 0%, #4b8f6a 34%, #0e1c14 72%, #050806 100%);
+    box-shadow:0 0 0 1px var(--hairline-bright), 0 0 16px rgba(62,224,140,0.3);
+    border:none;
   }
-  .console-head{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:18px; }
-  .console-head h2{ font-size:19px; color:var(--ice); }
-  .console-head .clock{ font-family:var(--font-mono); font-size:12.5px; color:var(--muted); }
-  .console-head .clock strong{ color:var(--phosphor-soft); }
-
-  .console-grid{ display:grid; grid-template-columns:1fr 1fr; gap:22px; }
-  @media (max-width:720px){ .console-grid{ grid-template-columns:1fr; } }
-
-  .field{ display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
-  .field label{ font-family:var(--font-mono); font-size:11.5px; letter-spacing:0.06em; color:var(--muted); text-transform:uppercase; }
-  .field input{
-    background:var(--void); border:1px solid var(--hairline); border-radius:10px;
-    padding:10px 12px; color:var(--ice); font-family:var(--font-mono); font-size:15px;
-    outline:none; transition:border-color .15s;
+  .firm-card.active .firm-name{ color:var(--ice); font-size:14.5px; }
+  .firm-card.active .firm-status{ background:var(--mint); color:var(--mint-text); font-weight:700; border-color:var(--mint); }
+  .firm-card.active:hover{
+    transform:translateY(-5px);
+    border-color:var(--phosphor);
+    box-shadow:0 14px 34px -14px rgba(62,224,140,0.4);
   }
-  .field input:focus{ border-color:var(--mint); box-shadow:0 0 0 3px rgba(126,232,172,0.14); }
-  .field .hint{ font-size:11.5px; color:var(--muted-dim); }
+  .firm-card.active:focus-visible{ outline:2px solid var(--phosphor); outline-offset:3px; }
 
-  .coach{
-    margin-top:20px; padding:16px 18px; border-radius:14px;
-    background:var(--void); border:1px solid var(--hairline-bright);
-    font-family:var(--font-mono); font-size:13.5px; line-height:1.75; color:var(--ice);
-  }
-  .coach .coach-label{ display:flex; align-items:center; gap:8px; color:var(--phosphor); font-size:11px; letter-spacing:0.14em; text-transform:uppercase; margin-bottom:10px; }
-  .coach .coach-label .cursor{ display:inline-block; width:7px; height:13px; background:var(--phosphor); animation:blink 1.1s step-end infinite; }
-  @keyframes blink{ 50%{ opacity:0; } }
-  .coach b{ color:var(--phosphor-soft); font-weight:600; }
-  .coach .flag-red{ color:var(--red); font-weight:600; }
-
-  /* ---------- Mission plan ---------- */
-  .section-head{ margin:36px 0 16px; }
-  .section-head .eyebrow{ font-family:var(--font-mono); font-size:12px; letter-spacing:0.22em; text-transform:uppercase; color:var(--phosphor); margin-bottom:8px; }
-  .section-head .eyebrow::before{ content:"//"; color:var(--muted-dim); margin-right:8px; }
-  .section-head h2{ font-size:24px; color:var(--ice); }
-
-  .phases{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
-  @media (max-width:860px){ .phases{ grid-template-columns:1fr; } }
-  .phase{
-    background:var(--panel); border:1px solid var(--hairline); border-radius:20px;
-    padding:20px 20px 22px; display:flex; flex-direction:column; gap:12px;
-  }
-  .phase .phase-num{ font-family:var(--font-mono); font-size:12px; color:var(--phosphor-dim); letter-spacing:0.1em; }
-  .phase h3{ font-size:18px; color:var(--ice); }
-  .phase ul{ margin:0; padding-left:18px; display:flex; flex-direction:column; gap:9px; }
-  .phase li{ font-size:13.5px; color:var(--muted); line-height:1.55; }
-  .phase li::marker{ color:var(--phosphor-dim); }
-  .phase li b{ color:var(--phosphor-soft); font-weight:600; }
-
-  /* ---------- Footer ---------- */
-  footer{ margin-top:40px; padding-top:18px; border-top:1px solid var(--hairline); }
-  footer p{ font-size:12px; color:var(--muted-dim); line-height:1.7; max-width:80ch; margin:0 0 8px; }
+  footer{ margin-top:52px; text-align:center; }
+  footer p{ font-size:12px; color:var(--muted-dim); line-height:1.7; margin:0; }
   footer a{ color:var(--muted); }
 
-  /* ---------- Account menu ---------- */
-  .menu-overlay{
-    position:fixed; inset:0; background:rgba(4,7,5,0.6); backdrop-filter:blur(2px);
-    opacity:0; pointer-events:none; transition:opacity .2s; z-index:40;
+  @media (max-width:460px){
+    .hero{ padding:40px 0 34px; }
   }
-  .menu-overlay.show{ opacity:1; pointer-events:auto; }
-  .account-menu{
-    position:fixed; top:0; right:0; bottom:0; width:min(340px,88vw);
-    background:var(--panel-raised); border-left:1px solid var(--hairline);
-    transform:translateX(100%); transition:transform .25s ease; z-index:41;
-    display:flex; flex-direction:column; padding:20px 18px; overflow-y:auto;
-  }
-  .account-menu.open{ transform:translateX(0); }
-  .account-menu-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; padding-bottom:14px; border-bottom:1px solid var(--hairline); }
-  .account-menu-head span{ font-family:var(--font-display); font-weight:700; font-size:16px; color:var(--ice); }
-  .menu-close{
-    width:32px; height:32px; border-radius:50%; border:1px solid var(--hairline); background:transparent;
-    color:var(--ice); font-size:18px; line-height:1; cursor:pointer;
-  }
-  .menu-close:hover{ border-color:var(--hairline-bright); }
-  .menu-section{ padding:16px 0; border-bottom:1px solid var(--hairline); }
-  .menu-section:last-child{ border-bottom:none; }
-  .menu-section-title{
-    display:flex; align-items:center; gap:8px; font-family:var(--font-display); font-weight:600;
-    font-size:14.5px; color:var(--ice); margin-bottom:10px;
-  }
-  .menu-current{
-    font-family:var(--font-mono); font-size:9px; letter-spacing:0.08em; background:var(--mint);
-    color:var(--mint-text); padding:2px 7px; border-radius:4px; font-weight:700;
-  }
-  .menu-tagline{ font-size:12px; color:var(--muted); line-height:1.5; margin-bottom:6px; font-family:var(--font-mono); }
-  .menu-verify{ font-size:11px; color:var(--muted-dim); margin-bottom:12px; font-family:var(--font-mono); }
-  .menu-sizes{ display:flex; gap:8px; flex-wrap:wrap; }
-  .menu-size-btn{
-    font-family:var(--font-mono); font-size:13px; font-weight:600; padding:8px 14px;
-    border-radius:999px; background:var(--panel); border:1px solid var(--hairline); color:var(--muted);
-    cursor:pointer; transition:border-color .15s, background .15s, color .15s;
-  }
-  .menu-size-btn:hover{ border-color:var(--hairline-bright); color:var(--ice); }
-  .menu-size-btn.active{ background:var(--mint); border-color:var(--mint); color:var(--mint-text); }
 </style>
 </head>
 <body>
 <div class="wrap">
 
   <header class="topbar">
-    <div class="brand">
+    <span class="brand">
       <span class="brand-mark" aria-hidden="true"></span>
-      <div class="brand-text">
-        <span class="brand-name">Lucid Payout Guide</span>
+      <span class="brand-text">
+        <span class="brand-name">EZPayouts</span>
         <span class="brand-sub">by ShotPath</span>
-      </div>
-    </div>
-    <div class="topbar-right">
-      <span class="market-status" id="marketStatus">
-        <span class="dot" aria-hidden="true"></span>
-        <span class="label mono" id="marketLabel">NY OPEN IN</span>
-        <strong class="mono" id="marketOpenIn">--:--:--</strong>
       </span>
-      <button type="button" class="menu-btn" id="menuBtn" aria-haspopup="true" aria-expanded="false" aria-controls="accountMenu" aria-label="Select account">
-        <span class="menu-lines" aria-hidden="true"><span></span><span></span><span></span></span>
-      </button>
-    </div>
+    </span>
   </header>
 
   <div class="hero">
-    <div class="eyebrow">Lucid Trading &mdash; Mission Console</div>
-    <h1>Get through the eval. Get <span>funded</span>. Get <span>paid</span>.</h1>
-    <p>A cockpit for your Lucid Trading accounts &mdash; live rules, a risk co-pilot that tells you the minimum pace you need and the max you should risk, and the exact path from evaluation to your first payout.</p>
+    <div class="eyebrow">Prop Firm Payout Guides</div>
+    <h1>Welcome to EZPayouts</h1>
+    <p>Cockpits for passing your evaluation, getting funded, and collecting your first payout &mdash; built firm by firm. Pick one below to open its guide.</p>
   </div>
 
-  <div class="snapshot-card">
-    <div class="snapshot-head">
-      <div>
-        <div class="snapshot-title" id="snapshotTitle">25K FLEX EVAL</div>
-        <div class="snapshot-sub" id="snapshotSub">Live rule sheet for this plan and size</div>
-      </div>
-      <button type="button" class="switch-btn" id="switchAccountBtn">Switch Account</button>
+  <div class="firm-row">
+    <div class="firm-card disabled" aria-disabled="true">
+      <span class="firm-mark" aria-hidden="true">A</span>
+      <span class="firm-name">Apex Trader Funding</span>
+      <span class="firm-status">Coming Soon</span>
     </div>
-    <div class="readout-list" id="statList"></div>
-  </div>
-
-  <div class="snapshot-card">
-    <div class="snapshot-head">
-      <div>
-        <div class="snapshot-title">Cost &amp; Payouts</div>
-        <div class="snapshot-sub" id="costSub">What this account costs, and what you can pull out</div>
-      </div>
+    <div class="firm-card disabled" aria-disabled="true">
+      <span class="firm-mark" aria-hidden="true">FN</span>
+      <span class="firm-name">FundedNext</span>
+      <span class="firm-status">Coming Soon</span>
     </div>
-    <div id="feeBox"></div>
-    <div class="readout-list" id="costList" style="margin-top:16px;"></div>
-  </div>
-
-  <div class="console">
-    <div class="console-head">
-      <h2>Risk Co-Pilot</h2>
-      <span class="clock">STATUS: <strong id="paceStatus">CALCULATING</strong></span>
+    <a class="firm-card active" href="lucid/">
+      <span class="firm-mark" aria-hidden="true"></span>
+      <span class="firm-name">Lucid Trading</span>
+      <span class="firm-status">Live</span>
+    </a>
+    <div class="firm-card disabled" aria-disabled="true">
+      <span class="firm-mark" aria-hidden="true">TS</span>
+      <span class="firm-name">TopStep</span>
+      <span class="firm-status">Coming Soon</span>
     </div>
-    <div class="console-grid">
-      <div>
-        <div class="field">
-          <label for="pnlInput">Net P&amp;L so far ($)</label>
-          <input id="pnlInput" type="number" step="1" value="1221" />
-          <span class="hint">Pull your real number from the Lucid dashboard.</span>
-        </div>
-        <div class="field">
-          <label for="daysInput">Trading days you want left</label>
-          <input id="daysInput" type="number" step="1" min="1" value="1" />
-          <span class="hint">How many more sessions you're planning to trade before the target.</span>
-        </div>
-        <div class="field">
-          <label for="bestDayInput">Best single day so far ($)</label>
-          <input id="bestDayInput" type="number" step="1" value="617" />
-          <span class="hint">Needed to check the 50% consistency rule during evaluation.</span>
-        </div>
-      </div>
-      <div class="readout-list" id="readoutList"></div>
-    </div>
-    <div class="coach">
-      <div class="coach-label">Co-Pilot Read <span class="cursor"></span></div>
-      <div id="coachText">Calculating&hellip;</div>
-    </div>
-  </div>
-
-  <div class="section-head">
-    <div class="eyebrow">Flight Plan</div>
-    <h2>Evaluation &rarr; Funded &rarr; First Payout</h2>
-  </div>
-  <div class="phases">
-    <div class="phase">
-      <span class="phase-num">PHASE 01</span>
-      <h3>Evaluation</h3>
-      <ul>
-        <li>Clear the <b>profit target</b> for your size without your balance touching the trailing <b>Max Loss Limit</b>.</li>
-        <li>The <b>Daily Loss Limit is optional</b> on the 25K Flex &mdash; OFF, or a firm $600 cap if you opted in. Either way, the Co-Pilot above sets a stop for you.</li>
-        <li><b>Consistency rule:</b> no single day can exceed 50% of your total profit when you hit target. Spread wins across at least 2&ndash;3 sessions.</li>
-        <li>Positions auto-flatten at <b>4:45 PM ET</b>. Holding past it doesn't fail you, but plan your exits before then.</li>
-        <li>No minimum trading days &mdash; pass as fast as the math allows, just don't let one hot day carry the whole account.</li>
-      </ul>
-    </div>
-    <div class="phase">
-      <span class="phase-num">PHASE 02</span>
-      <h3>Funded</h3>
-      <ul>
-        <li>The <b>consistency rule drops away</b>. Only the trailing Max Loss Limit matters now.</li>
-        <li>Same Daily Loss Limit setting carries over from evaluation &mdash; if you're running OFF, this is where real discipline replaces the guardrail.</li>
-        <li>Positions still flatten by <b>4:45 PM ET</b> every session.</li>
-        <li>Bank <b>5 qualifying profitable days</b> (each clearing your size's daily minimum) with the cycle net positive.</li>
-      </ul>
-    </div>
-    <div class="phase">
-      <span class="phase-num">PHASE 03</span>
-      <h3>First Payout</h3>
-      <ul>
-        <li>Once your 5 qualifying days are banked and the cycle is net positive, <b>submit from the dashboard</b>.</li>
-        <li>Lucid runs a <b>90/10 split</b> in your favor, with a <b>$500 minimum</b> payout request.</li>
-        <li>Balance is deducted within minutes of approval &mdash; disbursement then rides the processor's clock.</li>
-        <li>Timing: same day via Plaid (US), 1&ndash;2 business days to a US bank, 2&ndash;4 international, up to 8 via PayPal.</li>
-      </ul>
+    <div class="firm-card disabled" aria-disabled="true">
+      <span class="firm-mark" aria-hidden="true">TP</span>
+      <span class="firm-name">Take Profit Trader</span>
+      <span class="firm-status">Coming Soon</span>
     </div>
   </div>
 
   <footer>
-    <p>Figures reflect LucidFlex / LucidPro / LucidDaily / LucidDirect rules as publicly documented in 2026 (Lucid Trading support center and independent prop-firm rule trackers). On the 25K Flex, the Max Loss Limit is a fixed $1,000; the Daily Loss Limit is a separate, optional setting &mdash; OFF by default, or a firm-enforced $600 if you opted into it. LucidPro offers the same OFF/$600 Daily Loss Limit choice at every account size, and LucidDaily lets you choose Intraday or End-of-Day drawdown tracking &mdash; both toggled above. Eval and reset pricing is populated for the 25K Flex and all four LucidPro sizes, taken directly from Lucid's own checkout screen at the time this was written. Every price changes with Lucid's current promos, so treat these as a snapshot, not what you'll pay today. Everything else &mdash; Daily, Direct, and any plan/size combo not listed above &mdash; is unverified here rather than guessed; always check your live Lucid dashboard or checkout before sizing a trade or paying for an account. The maximum payout table is sourced from independent payout-rules trackers, not Lucid directly, and is shown only where the rest of that plan's figures are already marked verified. This page is a planning aid, not trading or financial advice, and doesn't place trades or connect to your broker.</p>
+    <p>More firm guides are on the way. Have one you want next? Let us know. &middot; Built by ShotPath</p>
   </footer>
 
 </div>
-
-<div class="menu-overlay" id="menuOverlay" hidden></div>
-<aside class="account-menu" id="accountMenu" aria-hidden="true">
-  <div class="account-menu-head">
-    <span>Select Account</span>
-    <button type="button" class="menu-close" id="menuClose" aria-label="Close menu">&times;</button>
-  </div>
-  <div id="accountMenuBody"></div>
-</aside>
-
-<script>
-(function(){
-  "use strict";
-
-  var CONTRACTS = {
-    25000:  { maxMini:2,  maxMicro:20,  fundedMini:1, fundedMicro:10 },
-    50000:  { maxMini:4,  maxMicro:40,  fundedMini:2, fundedMicro:20 },
-    100000: { maxMini:6,  maxMicro:60,  fundedMini:3, fundedMicro:30 },
-    150000: { maxMini:10, maxMicro:100, fundedMini:4, fundedMicro:40 }
-  };
-
-  // Pricing confirmed straight off Lucid's own checkout screen (list -> limited-time -> coupon price),
-  // keyed by plan -> size -> "on"/"off" (the Daily Loss Limit choice). Anything not filled in here
-  // is shown as unverified in the UI rather than guessed from conflicting third-party numbers.
-  var EVAL_PRICING = {
-    flex: {
-      25000: { on: { list:89, current:65.30, coupon:50.30, resetFee:50 }, off: { list:89, coupon:65.30, resetFee:65 } }
-    },
-    pro: {
-      25000:  { on: { list:123, current:90.60,  coupon:70.60,  resetFee:70  }, off: { list:123, coupon:90.60,  resetFee:90  } },
-      50000:  { on: { list:192, current:140.40, coupon:115.40, resetFee:115 }, off: { list:192, coupon:140.40, resetFee:140 } },
-      100000: { on: { list:307, current:225.40, coupon:180.40, resetFee:180 }, off: { list:307, coupon:225.40, resetFee:225 } },
-      150000: { on: { list:410, current:300.50, coupon:245.50, resetFee:245 }, off: { list:440, coupon:300.50, resetFee:300 } }
-    }
-  };
-  var PAYOUT_MIN = 500;
-  var PAYOUTS_BEFORE_GRADUATION = 6;
-  var PAYOUT_MAX = {
-    25000:  { max:1000 },
-    50000:  { max:2000 },
-    100000: { max:2500 },
-    150000: { max:3000 }
-  };
-
-  var PLANS = {
-    flex: {
-      name: "LucidFlex",
-      tagline: "Daily Loss Limit is optional (OFF or $600) on the 25K. The trailing Max Loss Limit only updates at the close.",
-      verified: true,
-      sizes: {
-        25000:  { target:1250, mll:1000, dailyMin:100 },
-        50000:  { target:3000, mll:2000, dailyMin:150 },
-        100000: { target:6000, mll:3000, dailyMin:200 },
-        150000: { target:9000, mll:4500, dailyMin:250 }
-      },
-      consistencyEval: 50
-    },
-    pro: {
-      name: "LucidPro",
-      tagline: "Daily Loss Limit is optional at every size &mdash; OFF or $600, toggled below. Choosing it on lowers your eval price.",
-      verified: false,
-      sizes: {
-        25000:  { target:1250, mll:1000, dailyMin:100 },
-        50000:  { target:3000, mll:2000, dailyMin:150 },
-        100000: { target:6000, mll:3000, dailyMin:200 },
-        150000: { target:9000, mll:4500, dailyMin:250 }
-      },
-      consistencyEval: 40
-    },
-    daily: {
-      name: "LucidDaily",
-      tagline: "Choose Intraday or End-of-Day drawdown tracking, toggled below. Intraday is tighter; EOD gives you room to recover by the close.",
-      verified: false,
-      sizes: {
-        25000:  { target:1250, mll:1000, dailyMin:100 },
-        50000:  { target:3000, mll:2000, dailyMin:150 },
-        100000: { target:6000, mll:3000, dailyMin:200 },
-        150000: { target:9000, mll:4500, dailyMin:250 }
-      },
-      consistencyEval: 40
-    },
-    direct: {
-      name: "LucidDirect",
-      tagline: "Skips the evaluation entirely &mdash; pay more upfront, trade funded from day one.",
-      verified: false,
-      sizes: {
-        25000:  { target:1500, mll:1000, dailyMin:100 },
-        50000:  { target:3000, mll:2000, dailyMin:150 },
-        100000: { target:6000, mll:3000, dailyMin:200 },
-        150000: { target:9000, mll:5000, dailyMin:250 }
-      },
-      consistencyEval: 20
-    }
-  };
-  var PLAN_ORDER = ["flex","pro","daily","direct"];
-  var SIZE_ORDER = [25000,50000,100000,150000];
-
-  var state = { plan: "flex", size: 25000, dllOn: {}, drawdownChoice: {} };
-  var STORAGE_KEY = "lucidCockpit.v2";
-
-  function comboKey(){ return state.plan + "_" + state.size; }
-  function dllAvailable(){ return (state.plan === "flex" && state.size === 25000) || state.plan === "pro"; }
-  function isDllOn(){ return !!state.dllOn[comboKey()]; }
-  function setDllOn(on){ state.dllOn[comboKey()] = on; }
-  function dllActive(){ return dllAvailable() && isDllOn(); }
-
-  function drawdownAvailable(){ return state.plan === "daily"; }
-  function isIntraday(){ return state.drawdownChoice[comboKey()] === "intraday"; }
-  function setDrawdown(type){ state.drawdownChoice[comboKey()] = type; }
-
-  function saveState(){
-    try{
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        plan: state.plan,
-        size: state.size,
-        dllOn: state.dllOn,
-        drawdownChoice: state.drawdownChoice,
-        pnl: document.getElementById("pnlInput").value,
-        days: document.getElementById("daysInput").value,
-        bestDay: document.getElementById("bestDayInput").value
-      }));
-    } catch(e){}
-  }
-
-  function loadState(){
-    try{
-      var raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
-      var saved = JSON.parse(raw);
-      if (saved.plan && PLANS[saved.plan]) state.plan = saved.plan;
-      if (saved.size && PLANS[state.plan].sizes[saved.size]) state.size = saved.size;
-      if (saved.dllOn && typeof saved.dllOn === "object") state.dllOn = saved.dllOn;
-      if (saved.drawdownChoice && typeof saved.drawdownChoice === "object") state.drawdownChoice = saved.drawdownChoice;
-      if (saved.pnl !== undefined) document.getElementById("pnlInput").value = saved.pnl;
-      if (saved.days !== undefined) document.getElementById("daysInput").value = saved.days;
-      if (saved.bestDay !== undefined) document.getElementById("bestDayInput").value = saved.bestDay;
-    } catch(e){}
-  }
-
-  var fmt = new Intl.NumberFormat("en-US", { style:"currency", currency:"USD", maximumFractionDigits:0 });
-  function money(n){ return fmt.format(Math.round(n)); }
-  var fmtCents = new Intl.NumberFormat("en-US", { style:"currency", currency:"USD", minimumFractionDigits:2, maximumFractionDigits:2 });
-  function moneyCents(n){ return fmtCents.format(n); }
-
-  var statList = document.getElementById("statList");
-  var snapshotTitle = document.getElementById("snapshotTitle");
-  var snapshotSub = document.getElementById("snapshotSub");
-  var readoutList = document.getElementById("readoutList");
-  var coachText = document.getElementById("coachText");
-  var paceStatus = document.getElementById("paceStatus");
-
-  function current(){
-    var plan = PLANS[state.plan];
-    return { plan:plan, size:plan.sizes[state.size] };
-  }
-
-  function row(label, valueHtml, cls, sub){
-    return '<div class="readout"><span class="rlabel">' + label + (sub ? '<span class="rsub">' + sub + '</span>' : '') + '</span>' + valueHtml + '</div>';
-  }
-  function plainValue(text, cls){
-    return '<span class="rvalue' + (cls ? " " + cls : "") + '">' + text + '</span>';
-  }
-
-  function renderStats(){
-    var c = current();
-    var d = c.size;
-    var contracts = CONTRACTS[state.size];
-
-    snapshotTitle.textContent = (state.size/1000) + "K " + c.plan.name.replace("Lucid","").toUpperCase() + " EVAL";
-    snapshotSub.textContent = c.plan.name + " · $" + (state.size/1000) + "K account";
-
-    var dllOnNow = isDllOn();
-    var dllValueHtml;
-    if (dllAvailable()){
-      dllValueHtml =
-        '<div class="rcontrol">' +
-          '<button type="button" class="opt-pill' + (!dllOnNow ? ' active' : '') + '" data-dll="off">OFF</button>' +
-          '<button type="button" class="opt-pill' + (dllOnNow ? ' active' : '') + '" data-dll="on">$600</button>' +
-        '</div>';
-    } else if (state.plan === "flex" || state.plan === "pro"){
-      dllValueHtml = plainValue("Optional", "");
-    } else {
-      dllValueHtml = plainValue("Fixed", "");
-    }
-
-    var drawdownHtml, drawdownSub;
-    if (drawdownAvailable()){
-      var intraday = isIntraday();
-      drawdownHtml =
-        '<div class="rcontrol">' +
-          '<button type="button" class="opt-pill' + (!intraday ? ' active' : '') + '" data-drawdown="eod">EOD</button>' +
-          '<button type="button" class="opt-pill' + (intraday ? ' active' : '') + '" data-drawdown="intraday">Intraday</button>' +
-        '</div>';
-      drawdownSub = intraday
-        ? "Trailing max loss tracks in real time during the session — tighter, no end-of-day grace"
-        : "Trailing max loss only updates at the close (4:45 PM ET)";
-    } else {
-      drawdownHtml = c.plan.verified ? plainValue("EOD", "") : plainValue("&mdash;", "");
-      drawdownSub = c.plan.verified ? "Trailing max loss updates only at the close (4:45 PM ET)" : "Confirm on your dashboard";
-    }
-
-    var maxSizeSub = state.plan === "flex"
-      ? "Funded starts at " + contracts.fundedMini + " mini / " + contracts.fundedMicro + " micro and scales up as profit builds"
-      : "Confirm on your dashboard";
-
-    statList.innerHTML =
-      row("Profit Target", plainValue(money(d.target), "pos"), "", Math.round((d.target/state.size)*1000)/10 + "% of account size") +
-      row("Daily Loss Limit", dllValueHtml, "", dllAvailable() ? "Trip it and today's trading is done" : (state.plan === "flex" ? "Available on the 25K &mdash; confirm this size on your dashboard" : "Confirm on your dashboard")) +
-      row("Max Loss Limit", plainValue(money(d.mll), ""), "", c.plan.verified ? "Trailing, end-of-day only" : "Confirm on your dashboard") +
-      row("Drawdown Type", drawdownHtml, "", drawdownSub) +
-      row("Consistency", plainValue(c.plan.consistencyEval + "%", ""), "", "Evaluation only — largest day ≤ " + c.plan.consistencyEval + "% of total profit") +
-      row("Max Size", plainValue(contracts.maxMini + " Mini or " + contracts.maxMicro + " Micro", ""), "", maxSizeSub) +
-      row("Qualifying Days", plainValue("5 &times; " + money(d.dailyMin), ""), "", "Needed funded, before your first payout request");
-  }
-
-  function renderCoPilot(){
-    var c = current();
-    var d = c.size;
-    var pnl = parseFloat(document.getElementById("pnlInput").value) || 0;
-    var days = Math.max(1, parseInt(document.getElementById("daysInput").value, 10) || 1);
-    var bestDay = parseFloat(document.getElementById("bestDayInput").value) || 0;
-
-    var effMll = d.mll;
-    var dllOn = dllActive();
-    var remaining = Math.max(0, d.target - pnl);
-    var perDay = remaining / days;
-    var perDayPctOfSize = (perDay / state.size) * 100;
-
-    var maxRiskPerTrade = Math.min(state.size * 0.01, effMll * 0.10, dllOn ? 600 * 0.15 : Infinity);
-    var maxDailyLossCap = dllOn ? 600 * 0.8 : effMll * 0.40;
-    var projectedFinal = remaining > 0 ? Math.max(d.target, pnl) : pnl;
-    var consistencyCeiling = Math.max(projectedFinal, 1) * (c.plan.consistencyEval / 100);
-    var consistencyBreach = pnl > 0 && bestDay > consistencyCeiling;
-
-    var paceLevel, paceWord;
-    if (perDayPctOfSize <= 1.2){ paceLevel = "good"; paceWord = "ON PACE"; }
-    else if (perDayPctOfSize <= 2.5){ paceLevel = "amber"; paceWord = "AGGRESSIVE"; }
-    else { paceLevel = "red"; paceWord = "OVER-REACHING"; }
-
-    paceStatus.textContent = remaining === 0 ? "TARGET CLEARED" : paceWord;
-    paceStatus.style.color = paceLevel === "red" ? "var(--red)" : "var(--phosphor-soft)";
-
-    function coRow(label, value, cls){
-      return '<div class="readout"><span class="rlabel">' + label + '</span><span class="rvalue' + (cls ? " " + cls : "") + '">' + value + '</span></div>';
-    }
-
-    readoutList.innerHTML =
-      coRow("Remaining to target", money(remaining)) +
-      coRow("Required pace / day", money(perDay) + " &nbsp;(" + perDayPctOfSize.toFixed(2) + "% of size)", paceLevel === "red" ? "red" : "") +
-      coRow("Max risk per trade", money(maxRiskPerTrade), "") +
-      (dllOn ? coRow("Daily Loss Limit (firm)", money(600), "red") : "") +
-      coRow(dllOn ? "Recommended stop-out" : "Self-imposed daily stop", money(maxDailyLossCap), "") +
-      coRow("Consistency ceiling (at target)", money(consistencyCeiling), consistencyBreach ? "red" : "");
-
-    var lines = [];
-    if (remaining === 0){
-      lines.push('Target already <b>cleared</b> at your current P&amp;L. Stop pushing size &mdash; from here, protecting the pass matters more than adding profit.');
-    } else {
-      lines.push('You need <b>' + money(remaining) + '</b> more across <b>' + days + '</b> session' + (days === 1 ? '' : 's') + ' &mdash; about <b>' + money(perDay) + '/day</b>, roughly ' + perDayPctOfSize.toFixed(1) + '% of your ' + money(state.size) + ' account.');
-      if (paceLevel === "red"){
-        lines.push('That pace is <span class="flag-red">too hot</span> for a ' + money(effMll) + ' Max Loss Limit. Add a trading day or two rather than sizing up to force it.');
-      } else if (paceLevel === "amber"){
-        lines.push('That’s <b>an aggressive pace</b> &mdash; doable, but leaves little room for a losing session before it snowballs.');
-      } else {
-        lines.push('That’s a <b>reasonable pace</b> relative to your Max Loss Limit &mdash; no need to force trades.');
-      }
-    }
-    lines.push('Keep risk at or under <b>' + money(maxRiskPerTrade) + '</b> per trade' + (dllOn ? ' &mdash; sized so a bad run doesn’t threaten your $600 Daily Loss Limit.' : ' (1% of size, capped at 10% of your Max Loss Limit).'));
-    if (dllOn){
-      lines.push('You’re running a <b>$600 Daily Loss Limit</b> &mdash; trip it and today’s session is over. Pull the plug yourself at <b>' + money(maxDailyLossCap) + '</b> down (80% of the limit) so a slippage spike doesn’t blow it for you.');
-    } else {
-      lines.push(c.plan.name + (dllAvailable() ? ' has your Daily Loss Limit set to OFF' : ' sets no firm daily loss limit here') + ', so stop yourself at <b>' + money(maxDailyLossCap) + '</b> down for the day &mdash; the firm won’t, so you have to.');
-    }
-    if (consistencyBreach){
-      lines.push('<span class="flag-red">Consistency flag:</span> your best day (' + money(bestDay) + ') is above the ' + c.plan.consistencyEval + '% ceiling projected at target (' + money(consistencyCeiling) + '). Bank a couple more solid days before you’d be eligible to pass.');
-    } else if (pnl > 0){
-      lines.push('Consistency check passes &mdash; your best day stays under <b>' + money(consistencyCeiling) + '</b>, the ' + c.plan.consistencyEval + '% ceiling once you hit target.');
-    }
-
-    coachText.innerHTML = lines.join(' ');
-  }
-
-  function renderCosts(){
-    var c = current();
-    var priceSet = EVAL_PRICING[state.plan] && EVAL_PRICING[state.plan][state.size];
-    var variant = dllAvailable() ? (isDllOn() ? "on" : "off") : "on";
-    var pricing = priceSet && priceSet[variant];
-    var payout = PAYOUT_MAX[state.size];
-
-    document.getElementById("costSub").textContent = c.plan.name + " · $" + (state.size/1000) + "K account" + (dllAvailable() ? " · DLL " + (variant === "on" ? "$600" : "OFF") : "");
-
-    if (pricing){
-      var savingsLine = pricing.current !== undefined
-        ? moneyCents(pricing.current) + " limited time, then an extra " + moneyCents(pricing.current - pricing.coupon) + " off with a coupon at checkout"
-        : "With a coupon at checkout";
-      document.getElementById("feeBox").innerHTML =
-        '<div class="fee-box">' +
-          '<span class="fee-label">One-Time Eval Fee</span>' +
-          '<div class="fee-price-row">' +
-            '<span class="fee-strike mono">' + moneyCents(pricing.list) + '</span>' +
-            '<span class="fee-amount mono">' + moneyCents(pricing.coupon) + '</span>' +
-          '</div>' +
-          '<span class="fee-savings mono">' + savingsLine + '</span>' +
-          '<span class="fee-note">Prices reflect Lucid’s checkout at the time this was written and change with their current promos — treat this as a snapshot, not a guarantee.</span>' +
-        '</div>';
-    } else {
-      document.getElementById("feeBox").innerHTML =
-        '<div class="fee-box">' +
-          '<span class="fee-label">One-Time Eval Fee</span>' +
-          '<span class="fee-amount mono">&mdash;</span>' +
-          '<span class="fee-note">Pricing for this plan, size' + (dllAvailable() ? " and Daily Loss Limit choice" : "") + ' isn’t verified here — check lucidtrading.com at checkout.</span>' +
-        '</div>';
-    }
-
-    document.getElementById("costList").innerHTML =
-      row("Activation Fee", plainValue("Free", ""), "", "No charge moving from evaluation to funded") +
-      row("Reset Fee", plainValue(pricing && pricing.resetFee ? money(pricing.resetFee) : "&mdash;", ""), "", pricing && pricing.resetFee ? "If you breach a rule and restart the evaluation" : "Confirm at checkout") +
-      row("Minimum Payout", plainValue(money(PAYOUT_MIN), ""), "", "Per payout request, every plan and size") +
-      row("Maximum Payout", plainValue(c.plan.verified ? money(payout.max) : "&mdash;", ""), "", c.plan.verified ? "50% of realized profit, capped — up to " + PAYOUTS_BEFORE_GRADUATION + " payouts before graduating to LucidLive" : "Confirm on your dashboard");
-  }
-
-  function renderAccountMenu(){
-    var body = document.getElementById("accountMenuBody");
-    var html = "";
-    PLAN_ORDER.forEach(function(planKey){
-      var plan = PLANS[planKey];
-      var isCurrentPlan = planKey === state.plan;
-      html += '<div class="menu-section">' +
-        '<div class="menu-section-title">' + plan.name + (isCurrentPlan ? ' <span class="menu-current">CURRENT</span>' : '') + '</div>' +
-        '<div class="menu-tagline">' + plan.name + ' &mdash; ' + plan.tagline + '</div>' +
-        '<div class="menu-verify">' + (plan.verified ? "Figures verified against Lucid rule trackers." : "Less-certain figures — verify on your dashboard.") + '</div>' +
-        '<div class="menu-sizes">';
-      SIZE_ORDER.forEach(function(size){
-        var active = isCurrentPlan && size === state.size;
-        html += '<button type="button" class="menu-size-btn' + (active ? ' active' : '') + '" data-plan="' + planKey + '" data-size="' + size + '">$' + (size/1000) + 'K</button>';
-      });
-      html += '</div></div>';
-    });
-    body.innerHTML = html;
-  }
-
-  function renderAll(){
-    renderStats();
-    renderCoPilot();
-    renderCosts();
-    renderAccountMenu();
-  }
-
-  statList.addEventListener("click", function(e){
-    if (e.target.dataset.dll !== undefined){
-      setDllOn(e.target.dataset.dll === "on");
-      renderStats();
-      renderCoPilot();
-      renderCosts();
-      saveState();
-    }
-    if (e.target.dataset.drawdown !== undefined){
-      setDrawdown(e.target.dataset.drawdown);
-      renderStats();
-      saveState();
-    }
-  });
-  ["pnlInput","daysInput","bestDayInput"].forEach(function(id){
-    document.getElementById(id).addEventListener("input", function(){
-      renderCoPilot();
-      saveState();
-    });
-  });
-
-  // Account menu open/close
-  var menuBtn = document.getElementById("menuBtn");
-  var menuClose = document.getElementById("menuClose");
-  var menuOverlay = document.getElementById("menuOverlay");
-  var accountMenu = document.getElementById("accountMenu");
-
-  function openMenu(){
-    accountMenu.classList.add("open");
-    accountMenu.setAttribute("aria-hidden", "false");
-    menuOverlay.hidden = false;
-    requestAnimationFrame(function(){ menuOverlay.classList.add("show"); });
-    menuBtn.setAttribute("aria-expanded", "true");
-  }
-  function closeMenu(){
-    accountMenu.classList.remove("open");
-    accountMenu.setAttribute("aria-hidden", "true");
-    menuOverlay.classList.remove("show");
-    menuBtn.setAttribute("aria-expanded", "false");
-    setTimeout(function(){ if (!menuOverlay.classList.contains("show")) menuOverlay.hidden = true; }, 200);
-  }
-  menuBtn.addEventListener("click", openMenu);
-  menuClose.addEventListener("click", closeMenu);
-  menuOverlay.addEventListener("click", closeMenu);
-  document.addEventListener("keydown", function(e){
-    if (e.key === "Escape") closeMenu();
-  });
-  document.getElementById("accountMenuBody").addEventListener("click", function(e){
-    if (e.target.classList.contains("menu-size-btn")){
-      state.plan = e.target.dataset.plan;
-      state.size = parseInt(e.target.dataset.size, 10);
-      renderAll();
-      saveState();
-      closeMenu();
-    }
-  });
-  document.getElementById("switchAccountBtn").addEventListener("click", openMenu);
-
-  loadState();
-  renderAll();
-
-  // NY market status: live "OPEN" badge from 9:30 AM to 4:15 PM ET on weekdays
-  // (stocks close at 4:00, but futures keep trading another 15 minutes),
-  // otherwise a countdown to the next 9:30 AM ET open.
-  function pad(n){ return String(n).padStart(2,"0"); }
-  var WEEKDAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-  var MARKET_OPEN_SEC = 9 * 3600 + 30 * 60;
-  var MARKET_CLOSE_SEC = 16 * 3600 + 15 * 60;
-
-  var marketStatusEl = document.getElementById("marketStatus");
-  var marketLabelEl = document.getElementById("marketLabel");
-  var marketOpenInEl = document.getElementById("marketOpenIn");
-
-  function tick(){
-    var nyParts = new Intl.DateTimeFormat("en-US", {
-      timeZone:"America/New_York", hour12:false, weekday:"short",
-      hour:"2-digit", minute:"2-digit", second:"2-digit"
-    }).formatToParts(new Date());
-    var h=0, m=0, s=0, weekday="Sun";
-    nyParts.forEach(function(p){
-      if (p.type === "hour") h = parseInt(p.value,10) % 24;
-      if (p.type === "minute") m = parseInt(p.value,10);
-      if (p.type === "second") s = parseInt(p.value,10);
-      if (p.type === "weekday") weekday = p.value;
-    });
-    var weekdayIdx = WEEKDAYS.indexOf(weekday);
-    var nowSec = h * 3600 + m * 60 + s;
-    var isWeekday = weekdayIdx >= 1 && weekdayIdx <= 5;
-    var isOpen = isWeekday && nowSec >= MARKET_OPEN_SEC && nowSec < MARKET_CLOSE_SEC;
-
-    if (isOpen){
-      marketStatusEl.classList.add("open");
-      marketStatusEl.classList.remove("closed");
-      marketLabelEl.textContent = "NY Closes";
-      var closeDiff = MARKET_CLOSE_SEC - nowSec;
-      var ch = Math.floor(closeDiff / 3600);
-      var cm = Math.floor((closeDiff % 3600) / 60);
-      var cs = closeDiff % 60;
-      marketOpenInEl.textContent = pad(ch) + ":" + pad(cm) + ":" + pad(cs);
-      return;
-    }
-
-    marketStatusEl.classList.remove("open");
-    marketStatusEl.classList.add("closed");
-    marketLabelEl.textContent = "NY Opens";
-
-    var daysToAdd;
-    if (isWeekday && nowSec < MARKET_OPEN_SEC){
-      daysToAdd = 0;
-    } else {
-      daysToAdd = 1;
-      var nextIdx = (weekdayIdx + 1) % 7;
-      while (nextIdx === 0 || nextIdx === 6){
-        daysToAdd++;
-        nextIdx = (nextIdx + 1) % 7;
-      }
-    }
-
-    var diff = daysToAdd * 86400 - nowSec + MARKET_OPEN_SEC;
-    var label;
-    if (diff >= 86400){
-      var days = Math.floor(diff / 86400);
-      var hrs = Math.floor((diff % 86400) / 3600);
-      var mins = Math.floor((diff % 3600) / 60);
-      label = days + "d " + pad(hrs) + "h " + pad(mins) + "m";
-    } else {
-      var hh = Math.floor(diff / 3600);
-      var mm = Math.floor((diff % 3600) / 60);
-      var ss = diff % 60;
-      label = pad(hh) + ":" + pad(mm) + ":" + pad(ss);
-    }
-    marketOpenInEl.textContent = label;
-  }
-  tick();
-  setInterval(tick, 1000);
-})();
-</script>
 </body>
 </html>
