@@ -151,6 +151,14 @@
   .opt-pill:hover{ border-color:var(--hairline-bright); color:var(--ice); }
   .opt-pill.active{ background:var(--mint); border-color:var(--mint); color:var(--mint-text); }
 
+  .fee-box{
+    background:rgba(126,232,172,0.07); border:1px solid var(--hairline-bright); border-radius:14px;
+    padding:16px 18px; display:flex; flex-direction:column; gap:4px;
+  }
+  .fee-box .fee-label{ font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); }
+  .fee-box .fee-amount{ font-size:30px; font-weight:700; color:var(--phosphor-soft); }
+  .fee-box .fee-note{ font-size:11.5px; color:var(--muted-dim); line-height:1.5; max-width:52ch; }
+
   /* ---------- Console (Risk Co-Pilot) ---------- */
   .console{
     background:var(--panel); border:1px solid var(--hairline); border-radius:20px;
@@ -287,6 +295,17 @@
     <div class="readout-list" id="statList"></div>
   </div>
 
+  <div class="snapshot-card">
+    <div class="snapshot-head">
+      <div>
+        <div class="snapshot-title">Cost &amp; Payouts</div>
+        <div class="snapshot-sub" id="costSub">What this account costs, and what you can pull out</div>
+      </div>
+    </div>
+    <div id="feeBox"></div>
+    <div class="readout-list" id="costList" style="margin-top:16px;"></div>
+  </div>
+
   <div class="console">
     <div class="console-head">
       <h2>Risk Co-Pilot</h2>
@@ -357,7 +376,7 @@
   </div>
 
   <footer>
-    <p>Figures reflect LucidFlex / LucidPro / LucidDaily / LucidDirect rules as publicly documented in 2026 (Lucid Trading support center and independent prop-firm rule trackers). On the 25K Flex, the Max Loss Limit is a fixed $1,000; the Daily Loss Limit is a separate, optional setting &mdash; OFF by default, or a firm-enforced $600 if you opted into it &mdash; toggled above. The Max Loss Limit field is editable in case your dashboard shows a different number. Pro, Daily and Direct figures beyond target and Max Loss Limit are less firmly sourced than Flex, and the Daily Loss Limit toggle is confirmed only for the 25K Flex &mdash; always check your live Lucid dashboard before sizing a trade. This page is a planning aid, not trading or financial advice, and doesn't place trades or connect to your broker.</p>
+    <p>Figures reflect LucidFlex / LucidPro / LucidDaily / LucidDirect rules as publicly documented in 2026 (Lucid Trading support center and independent prop-firm rule trackers). On the 25K Flex, the Max Loss Limit is a fixed $1,000; the Daily Loss Limit is a separate, optional setting &mdash; OFF by default, or a firm-enforced $600 if you opted into it &mdash; toggled above. Pro, Daily and Direct figures beyond target and Max Loss Limit are less firmly sourced than Flex, and the Daily Loss Limit toggle is confirmed only for the 25K Flex &mdash; always check your live Lucid dashboard before sizing a trade. The one-time eval fee and reset fee are shown only for the 25K Flex, taken from Lucid's own checkout screen &mdash; third-party sources disagree on pricing for every other size and plan, so those show as unverified rather than a guessed number; eval prices also change with frequent limited-time promos, so treat the figure as a baseline, not what you'll pay today. The maximum payout table is sourced from independent payout-rules trackers, not Lucid directly, and is shown only where the rest of that plan's figures are already marked verified. This page is a planning aid, not trading or financial advice, and doesn't place trades or connect to your broker.</p>
   </footer>
 
 </div>
@@ -380,6 +399,22 @@
     50000:  { maxMini:4,  maxMicro:40,  fundedMini:2, fundedMicro:20 },
     100000: { maxMini:6,  maxMicro:60,  fundedMini:3, fundedMicro:30 },
     150000: { maxMini:10, maxMicro:100, fundedMini:4, fundedMicro:40 }
+  };
+
+  // Only the 25K Flex eval fee and reset fee are confirmed (Lucid's own checkout screen).
+  // Other plan/size combos are left unset rather than guessing at conflicting third-party numbers.
+  var EVAL_PRICING = {
+    flex: {
+      25000: { fee:89, resetFee:50 }
+    }
+  };
+  var PAYOUT_MIN = 500;
+  var PAYOUTS_BEFORE_GRADUATION = 6;
+  var PAYOUT_MAX = {
+    25000:  { max:1000 },
+    50000:  { max:2000 },
+    100000: { max:2500 },
+    150000: { max:3000 }
   };
 
   var PLANS = {
@@ -594,6 +629,33 @@
     coachText.innerHTML = lines.join(' ');
   }
 
+  function renderCosts(){
+    var c = current();
+    var pricing = EVAL_PRICING[state.plan] && EVAL_PRICING[state.plan][state.size];
+    var payout = PAYOUT_MAX[state.size];
+
+    document.getElementById("costSub").textContent = c.plan.name + " · $" + (state.size/1000) + "K account";
+
+    document.getElementById("feeBox").innerHTML = pricing ?
+      '<div class="fee-box">' +
+        '<span class="fee-label">One-Time Eval Fee</span>' +
+        '<span class="fee-amount mono">' + money(pricing.fee) + '</span>' +
+        '<span class="fee-note">List price — Lucid runs limited-time discounts at checkout, so you may pay less on the day. DLL set to $600 (the cheaper option) at this price.</span>' +
+      '</div>'
+      :
+      '<div class="fee-box">' +
+        '<span class="fee-label">One-Time Eval Fee</span>' +
+        '<span class="fee-amount mono">&mdash;</span>' +
+        '<span class="fee-note">Pricing for this plan and size isn’t verified here — check lucidtrading.com at checkout.</span>' +
+      '</div>';
+
+    document.getElementById("costList").innerHTML =
+      row("Activation Fee", plainValue("Free", ""), "", "No charge moving from evaluation to funded") +
+      row("Reset Fee", plainValue(pricing && pricing.resetFee ? money(pricing.resetFee) : "&mdash;", ""), "", pricing && pricing.resetFee ? "If you breach a rule and restart the evaluation" : "Confirm at checkout") +
+      row("Minimum Payout", plainValue(money(PAYOUT_MIN), ""), "", "Per payout request, every plan and size") +
+      row("Maximum Payout", plainValue(c.plan.verified ? money(payout.max) : "&mdash;", ""), "", c.plan.verified ? "50% of realized profit, capped — up to " + PAYOUTS_BEFORE_GRADUATION + " payouts before graduating to LucidLive" : "Confirm on your dashboard");
+  }
+
   function renderAccountMenu(){
     var body = document.getElementById("accountMenuBody");
     var html = "";
@@ -617,6 +679,7 @@
   function renderAll(){
     renderStats();
     renderCoPilot();
+    renderCosts();
     renderAccountMenu();
   }
 
