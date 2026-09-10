@@ -82,7 +82,7 @@
   }
   .brand-text{ display:flex; flex-direction:column; line-height:1.15; }
   .brand-name{ font-family:var(--font-display); font-weight:700; font-size:16.5px; letter-spacing:0.02em; color:var(--ice); }
-  .brand-sub{ font-size:11px; font-style:italic; color:var(--muted); }
+  .brand-sub{ font-size:10.5px; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted-dim); }
 
   .hero{ max-width:620px; margin:0 auto; text-align:center; padding:56px 0 46px; }
   .hero .eyebrow{
@@ -91,6 +91,7 @@
   }
   .hero .eyebrow::before{ content:"//"; color:var(--muted-dim); }
   .hero h1{ font-size:clamp(30px,5.2vw,46px); font-weight:700; line-height:1.08; color:var(--ice); letter-spacing:-0.01em; }
+  .hero .tagline{ margin:10px 0 0; font-style:italic; font-size:14.5px; color:var(--phosphor-soft); }
   .hero p{ margin:16px auto 0; max-width:52ch; color:var(--muted); font-size:15.5px; line-height:1.65; }
 
   .firm-row{
@@ -153,7 +154,7 @@
       <span class="brand-mark" aria-hidden="true"></span>
       <span class="brand-text">
         <span class="brand-name">EZPayouts</span>
-        <span class="brand-sub">Make getting a payout EZ</span>
+        <span class="brand-sub">by ShotPath</span>
       </span>
     </span>
   </header>
@@ -161,6 +162,7 @@
   <div class="hero">
     <div class="eyebrow">Prop Firm Payout Guides</div>
     <h1>Welcome to EZPayouts</h1>
+    <p class="tagline">Make getting a payout EZ.</p>
     <p>Cockpits for passing your evaluation, getting funded, and collecting your first payout &mdash; built firm by firm. Pick one below to open its guide.</p>
   </div>
 
