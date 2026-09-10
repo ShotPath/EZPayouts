@@ -675,16 +675,15 @@
     document.getElementById("costSub").textContent = c.plan.name + " · $" + (state.size/1000) + "K account" + (dllAvailable() ? " · DLL " + (variant === "on" ? "$600" : "OFF") : "");
 
     if (pricing){
-      var headline = pricing.current !== undefined ? pricing.current : pricing.coupon;
       var savingsLine = pricing.current !== undefined
-        ? "LIMITED TIME — an extra " + moneyCents(pricing.current - pricing.coupon) + " off with a coupon at checkout → " + moneyCents(pricing.coupon)
-        : moneyCents(pricing.coupon) + " with a coupon at checkout";
+        ? moneyCents(pricing.current) + " limited time, then an extra " + moneyCents(pricing.current - pricing.coupon) + " off with a coupon at checkout"
+        : "With a coupon at checkout";
       document.getElementById("feeBox").innerHTML =
         '<div class="fee-box">' +
           '<span class="fee-label">One-Time Eval Fee</span>' +
           '<div class="fee-price-row">' +
             '<span class="fee-strike mono">' + moneyCents(pricing.list) + '</span>' +
-            '<span class="fee-amount mono">' + moneyCents(headline) + '</span>' +
+            '<span class="fee-amount mono">' + moneyCents(pricing.coupon) + '</span>' +
           '</div>' +
           '<span class="fee-savings mono">' + savingsLine + '</span>' +
           '<span class="fee-note">Prices reflect Lucid’s checkout at the time this was written and change with their current promos — treat this as a snapshot, not a guarantee.</span>' +
