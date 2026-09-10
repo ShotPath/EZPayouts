@@ -386,15 +386,15 @@
     </div>
     <p class="hint" style="margin:-6px 0 16px; font-size:13px; line-height:1.6;">No login, no password &mdash; export a CSV from Tradovate and drop it in below. The file is read entirely in your browser; nothing gets uploaded anywhere.</p>
     <ol class="csv-steps">
-      <li>Open your Tradovate profile: <a href="https://trader.tradovate.com/#profile" target="_blank" rel="noopener">trader.tradovate.com/#profile</a> (opens in a new tab)</li>
-      <li>If that link doesn't take you straight there: log into Tradovate &rarr; click your name/profile icon &rarr; <b>Settings</b> &rarr; <b>Profile</b></li>
-      <li>Scroll down to the cash balance / transaction history section</li>
-      <li>Change the start date to the day you first opened the account, so it captures everything</li>
-      <li>Click <b>Download</b> to save the CSV</li>
+      <li>Log into Tradovate: <a href="https://trader.tradovate.com/" target="_blank" rel="noopener">trader.tradovate.com</a> (opens in a new tab)</li>
+      <li>Click your <b>account name</b> at the top, then the small <b>gear icon</b> next to it &mdash; this opens <b>Account Reports</b> (some versions show this as a <b>Reports</b> item in the main menu instead)</li>
+      <li>Click the <b>Cash History</b> tab &mdash; not Client Statements or Performance, those are different reports</li>
+      <li>Set the date range back to the day you first opened the account, so it captures everything</li>
+      <li>Click <b>Download Report</b> to save the CSV</li>
       <li>Come back here and upload that file below</li>
     </ol>
     <div class="field">
-      <label for="csvFile">Cash balance CSV</label>
+      <label for="csvFile">Cash History CSV</label>
       <input id="csvFile" type="file" accept=".csv,text/csv" />
       <span class="hint" id="csvMessage">Auto-fills Net P&amp;L and Best Day below once uploaded.</span>
     </div>
