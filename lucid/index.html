@@ -894,6 +894,7 @@
       readoutList.innerHTML =
         coRow("Qualifying days banked", qualDays + " of 5") +
         coRow("Daily minimum to qualify", money(d.dailyMin)) +
+        coRow("Max Loss Limit", money(effMll), "") +
         coRow("Max risk per trade", money(maxRiskPerTrade), "") +
         (dllOn ? coRow("Daily Loss Limit (firm)", money(600), "red") : "") +
         coRow(dllOn ? "Recommended stop-out" : "Self-imposed daily stop", money(maxDailyLossCap), "");
@@ -937,6 +938,7 @@
     readoutList.innerHTML =
       coRow("Remaining to target", money(remaining)) +
       coRow("Required pace / day", money(perDay) + " &nbsp;(" + perDayPctOfSize.toFixed(2) + "% of size)", paceLevel === "red" ? "red" : "") +
+      coRow("Max Loss Limit", money(effMll), "") +
       coRow("Max risk per trade", money(maxRiskPerTrade), "") +
       (dllOn ? coRow("Daily Loss Limit (firm)", money(600), "red") : "") +
       coRow(dllOn ? "Recommended stop-out" : "Self-imposed daily stop", money(maxDailyLossCap), "") +
