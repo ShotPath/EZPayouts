@@ -1067,10 +1067,13 @@
       if (summary.balance != null){
         var pnl = summary.balance - state.size;
         document.getElementById("pnlInput").value = Math.round(pnl);
-        renderCoPilot();
-        saveState();
       }
-      tvSetMessage("Pulled live from Tradovate — balance " + money(summary.balance) + ", " + summary.daysTraded + " day(s) with fills so far. Best-day and days-remaining still need your own numbers for now.");
+      if (summary.bestDay != null){
+        document.getElementById("bestDayInput").value = Math.round(summary.bestDay);
+      }
+      renderCoPilot();
+      saveState();
+      tvSetMessage("Pulled live from Tradovate — balance " + money(summary.balance) + ", best day " + money(summary.bestDay) + ", " + summary.daysTraded + " day(s) traded. Days-remaining is still yours to set.");
     } catch (err) {
       tvSetConnected(false);
       tvSetMessage(err.message, true);

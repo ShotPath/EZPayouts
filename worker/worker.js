@@ -7,13 +7,11 @@
 // the resulting token (never your password) in Workers KV keyed by a random
 // session id, and hands the browser an httpOnly cookie pointing at that session.
 //
-// KNOWN UNKNOWNS — verify these against a real login before trusting the numbers:
-//   - Tradovate may require "device approval" the first time a new device (this
-//     Worker) logs in to your account. If /api/login fails with a device-approval
-//     style error, check the Tradovate desktop/mobile app for an approval prompt.
-//   - The exact field name for account cash balance (assumed "cashBalance" below)
-//     and how to compute real per-fill dollar P&L are marked NOTE below — Tradovate's
-//     response shape needs to be inspected from a real call and this adjusted.
+// Endpoint shapes below are verified against Tradovate's own OpenAPI spec
+// (not guessed): /auth/accesstokenrequest, /account/list,
+// /cashBalance/getcashbalancesnapshot, /cashBalanceLog/ldeps. Still untested
+// against an actual live login, so the first real connect may surface something
+// to fix — see worker/README.md.
 
 function corsHeaders(origin, allowedOrigin) {
   const allow = origin === allowedOrigin ? origin : allowedOrigin;
@@ -32,7 +30,7 @@ function getCookie(request, name) {
 }
 
 function setSessionCookie(sessionId) {
-  return `ezp_session=${sessionId}; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=3300`;
+  return `ezp_session=${sessionId}; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=5100`;
 }
 
 function clearSessionCookie() {
@@ -53,7 +51,9 @@ async function tradovateAuth(env, { username, password, environment }) {
       password: password,
       appId: "EZPayouts",
       appVersion: "1.0",
-      cid: Number(env.TRADOVATE_CID),
+      // cid is a string per Tradovate's own schema (AccessTokenRequest) — do not
+      // coerce to a number, that's a documented API footgun.
+      cid: env.TRADOVATE_CID,
       sec: env.TRADOVATE_SEC,
       deviceId: crypto.randomUUID(),
     }),
@@ -61,14 +61,8 @@ async function tradovateAuth(env, { username, password, environment }) {
 
   const data = await res.json().catch(() => ({}));
 
-  if (!res.ok || !data.accessToken) {
-    // NOTE: "p-ticket" style responses typically mean Tradovate wants this new
-    // device approved from inside the Tradovate app first — surface that plainly
-    // instead of a generic failure so it's actionable.
-    const message = data["p-ticket"]
-      ? "Tradovate needs this login approved as a new device — open the Tradovate app, approve it, then try connecting again."
-      : data.errorText || "Tradovate rejected that username/password.";
-    throw new Error(message);
+  if (!res.ok || data.errorText || !data.accessToken) {
+    throw new Error(data.errorText || "Tradovate rejected that username/password.");
   }
 
   return { base, ...data };
@@ -84,13 +78,28 @@ async function tradovateGet(base, token, path) {
   return res.json();
 }
 
-function dayKey(ms, tz = "America/New_York") {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: tz,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date(ms));
+async function tradovatePost(base, token, path, body) {
+  const res = await fetch(`${base}${path}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    throw new Error(`Tradovate request to ${path} failed (${res.status}).`);
+  }
+  return res.json();
+}
+
+// Tradovate's CashBalanceLog entries carry a tradeDate {year, month, day} —
+// Tradovate's own trading-day boundary, so no timezone math needed here.
+function tradeDateKey(tradeDate) {
+  if (!tradeDate) return null;
+  var m = String(tradeDate.month).padStart(2, "0");
+  var d = String(tradeDate.day).padStart(2, "0");
+  return tradeDate.year + "-" + m + "-" + d;
 }
 
 async function handleLogin(request, env) {
@@ -116,7 +125,7 @@ async function handleLogin(request, env) {
         userId: auth.userId,
         name: auth.name,
       }),
-      { expirationTtl: 3300 } // just under Tradovate's ~80 minute access token life
+      { expirationTtl: 5100 } // just under Tradovate's documented 90 minute access token life
     );
 
     return new Response(JSON.stringify({ ok: true, name: auth.name || null }), {
@@ -158,42 +167,55 @@ async function handleSummary(request, env) {
       session.accessToken,
       "/v1/account/list"
     );
-    const cashBalances = await tradovateGet(
-      session.base,
-      session.accessToken,
-      "/v1/cashBalance/list"
-    );
-    const fills = await tradovateGet(
-      session.base,
-      session.accessToken,
-      "/v1/fill/list"
-    );
 
     // NOTE: using the first account only for now. If you trade more than one
     // account on this login, this needs an account picker — ping me once you
     // see how /v1/account/list actually comes back and we'll add it.
     const account = accounts?.[0] || null;
-    const balanceRow = cashBalances?.find((b) => b.accountId === account?.id);
+    if (!account) {
+      return new Response(
+        JSON.stringify({ error: "No Tradovate account found on this login." }),
+        { status: 404, headers: { "Content-Type": "application/json" } }
+      );
+    }
 
-    // NOTE: grouping fills by NY trading day so "days traded" and per-day counts
-    // are real. Turning this into real per-day DOLLAR P&L (not just fill counts)
-    // needs each fill's realized P&L or a matched buy/sell pair per contract —
-    // that requires seeing a real /v1/fill/list response to confirm field names,
-    // so treat dailyFillCounts below as a placeholder until we do that pass.
+    const snapshot = await tradovatePost(
+      session.base,
+      session.accessToken,
+      "/v1/cashBalance/getcashbalancesnapshot",
+      { accountId: account.id }
+    );
+    if (snapshot.errorText) throw new Error(snapshot.errorText);
+
+    const logs = await tradovateGet(
+      session.base,
+      session.accessToken,
+      "/v1/cashBalanceLog/ldeps?masterids=" + account.id
+    );
+
+    // Real per-day dollar P&L, straight from Tradovate's own cash ledger deltas
+    // (trades, commissions, fees — everything that actually moved the balance)
+    // grouped by Tradovate's own tradeDate, not fills we'd have to price ourselves.
     const byDay = {};
-    for (const f of fills || []) {
-      const key = dayKey(new Date(f.timestamp).getTime());
-      byDay[key] = (byDay[key] || 0) + 1;
+    for (const entry of logs || []) {
+      const key = tradeDateKey(entry.tradeDate);
+      if (!key) continue;
+      byDay[key] = (byDay[key] || 0) + (entry.delta || 0);
     }
     const days = Object.keys(byDay).sort();
+    let bestDay = 0;
+    for (const key of days) {
+      if (byDay[key] > bestDay) bestDay = byDay[key];
+    }
 
     return new Response(
       JSON.stringify({
         ok: true,
-        accountName: account?.name || null,
-        balance: balanceRow?.cashBalance ?? null, // NOTE: verify this field name
+        accountName: account.name || null,
+        balance: snapshot.netLiq ?? null,
         daysTraded: days.length,
-        dailyFillCounts: byDay,
+        bestDay: bestDay,
+        dailyPnl: byDay,
       }),
       { status: 200, headers: { "Content-Type": "application/json" } }
     );

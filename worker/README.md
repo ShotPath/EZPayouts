@@ -8,13 +8,12 @@ Tradovate directly.
 ## What you need first
 
 1. **A free Cloudflare account** — cloudflare.com/sign-up (no credit card).
-2. **Tradovate API credentials (cid/sec)** — check your Tradovate account for
-   an "API Access" section (Settings → API Access, or similar — the exact
-   location may have moved; search Tradovate's own help docs at
-   api.tradovate.com if you can't find it). This generates a client id (`cid`)
-   and secret (`sec`) that identify EZPayouts as an application talking to
-   Tradovate's API. This is separate from your Tradovate login — you'll enter
-   your username/password separately, per login, in the cockpit itself.
+2. **Tradovate API access** — per Tradovate's own API docs, this needs a LIVE
+   account with more than $1,000 in equity, a subscription to "API Access,"
+   and an API Key generated from your account. That generates a client id
+   (`cid`) and secret (`sec`) that identify EZPayouts as an application
+   talking to Tradovate's API — separate from your Tradovate login, which
+   you enter per-connection in the cockpit itself, never stored here.
    If Tradovate's process asks for an app name, use "EZPayouts" to match
    what the Worker sends.
 
@@ -52,16 +51,17 @@ placeholder).
 ## After deploying
 
 Redeploy the site (push to the repo as usual) with that URL filled in, then
-try connecting from the cockpit. If the first login fails:
+try connecting from the cockpit. If the first login fails, the error message
+comes straight from Tradovate's API (their `errorText` field) — screenshot it
+and we'll adjust the Worker.
 
-- **"needs approved as a new device"** — open the Tradovate app, look for a
-  device-approval prompt, approve it, then try again from the cockpit.
-- **Anything else** — the error message comes straight from Tradovate's API;
-  screenshot it and we'll adjust the Worker. The account-summary math
-  (`/api/summary` in `worker.js`) is a first pass built from Tradovate's
-  documented shape without having tested against a live response, so the
-  balance/day numbers may need a field-name fix once we see what a real
-  account actually returns.
+The `/api/summary` logic (balance, days traded, best day) is built against
+Tradovate's own published OpenAPI spec — `/account/list`,
+`/cashBalance/getcashbalancesnapshot` for current balance (`netLiq`), and
+`/cashBalanceLog/ldeps` for real per-day dollar P&L (summing each entry's
+`delta`, grouped by Tradovate's own `tradeDate`) — so the field names are
+verified, not guessed. It's still never been run against a live account
+end-to-end, so treat the first real connection as a test run.
 
 ## What this does and doesn't store
 
@@ -69,8 +69,8 @@ try connecting from the cockpit. If the first login fails:
   own login endpoint and discarded immediately after.
 - The **access token** Tradovate issues back is stored server-side in
   Workers KV, keyed by a random session id, and expires automatically in
-  ~55 minutes (matching Tradovate's own token lifetime). Your browser only
-  holds that random session id, in an httpOnly cookie it can't read or leak
-  via JavaScript.
+  ~85 minutes (just under Tradovate's documented 90-minute token lifetime).
+  Your browser only holds that random session id, in an httpOnly cookie it
+  can't read or leak via JavaScript.
 - Closing the "Disconnect" option in the cockpit (or the session simply
   expiring) deletes that stored token.
