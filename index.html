@@ -117,35 +117,20 @@
   .hero h1 span{ color:var(--phosphor); }
   .hero p{ margin:14px 0 0; max-width:62ch; color:var(--muted); font-size:15.5px; line-height:1.6; }
 
-  /* ---------- Selector ---------- */
-  .selector{ display:flex; flex-direction:column; gap:12px; margin:26px 0 24px; }
-  .selector-row{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-  .selector-label{ font-family:var(--font-mono); font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted-dim); width:100%; margin-bottom:2px; }
-  .tab, .chip{
-    font-family:var(--font-display); font-weight:600; font-size:14px;
-    background:var(--panel); border:1px solid var(--hairline); color:var(--muted);
-    padding:9px 18px; border-radius:999px; cursor:pointer; letter-spacing:0.02em;
-    transition:border-color .15s, color .15s, background .15s;
-  }
-  .tab:hover, .chip:hover{ border-color:var(--hairline-bright); color:var(--ice); }
-  .tab[aria-selected="true"], .chip[aria-selected="true"]{
-    background:var(--mint); border-color:var(--mint); color:var(--mint-text); font-weight:700;
-  }
-  .tab .flag{
-    font-family:var(--font-mono); font-size:9px; letter-spacing:0.06em;
-    background:var(--mint-text); color:var(--mint); padding:2px 6px; border-radius:4px;
-    margin-left:7px; vertical-align:2px;
-  }
-  .plan-tagline{ font-size:13.5px; color:var(--muted); font-family:var(--font-mono); }
-  .verify-note{ font-size:12px; color:var(--muted-dim); font-family:var(--font-mono); }
-
   /* ---------- Snapshot card ---------- */
   .snapshot-card{
     background:var(--panel); border:1px solid var(--hairline); border-radius:20px;
     padding:24px clamp(16px,3vw,30px) 26px; margin-bottom:26px;
   }
+  .snapshot-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:18px; }
   .snapshot-title{ font-size:20px; color:var(--ice); margin-bottom:2px; }
-  .snapshot-sub{ font-family:var(--font-mono); font-size:12px; color:var(--muted); margin-bottom:18px; }
+  .snapshot-sub{ font-family:var(--font-mono); font-size:12px; color:var(--muted); }
+  .switch-btn{
+    font-family:var(--font-mono); font-size:12px; font-weight:600; padding:8px 16px;
+    border-radius:999px; background:var(--panel-raised); border:1px solid var(--hairline-bright);
+    color:var(--phosphor-soft); cursor:pointer; white-space:nowrap; transition:background .15s, color .15s;
+  }
+  .switch-btn:hover{ background:var(--mint); border-color:var(--mint); color:var(--mint-text); }
 
   .readout-list{ display:flex; flex-direction:column; gap:14px; }
   .readout{
@@ -167,15 +152,6 @@
   }
   .opt-pill:hover{ border-color:var(--hairline-bright); color:var(--ice); }
   .opt-pill.active{ background:var(--mint); border-color:var(--mint); color:var(--mint-text); }
-
-  .inline-edit{ display:flex; align-items:baseline; gap:1px; }
-  .inline-edit .prefix{ font-family:var(--font-mono); font-size:16px; color:var(--ice); }
-  .inline-edit input{
-    width:80px; background:transparent; border:none; border-bottom:1px dashed var(--hairline);
-    text-align:right; font-family:var(--font-mono); font-size:17px; font-weight:600; color:var(--ice);
-    padding:0 0 1px; outline:none;
-  }
-  .inline-edit input:hover, .inline-edit input:focus{ border-bottom-color:var(--mint); }
 
   /* ---------- Console (Risk Co-Pilot) ---------- */
   .console{
@@ -266,6 +242,8 @@
     font-family:var(--font-mono); font-size:9px; letter-spacing:0.08em; background:var(--mint);
     color:var(--mint-text); padding:2px 7px; border-radius:4px; font-weight:700;
   }
+  .menu-tagline{ font-size:12px; color:var(--muted); line-height:1.5; margin-bottom:6px; font-family:var(--font-mono); }
+  .menu-verify{ font-size:11px; color:var(--muted-dim); margin-bottom:12px; font-family:var(--font-mono); }
   .menu-sizes{ display:flex; gap:8px; flex-wrap:wrap; }
   .menu-size-btn{
     font-family:var(--font-mono); font-size:13px; font-weight:600; padding:8px 14px;
@@ -301,30 +279,14 @@
     <p>A cockpit for your Lucid Trading accounts &mdash; live rules, a risk co-pilot that tells you the minimum pace you need and the max you should risk, and the exact path from evaluation to your first payout.</p>
   </div>
 
-  <div class="selector">
-    <div class="selector-row">
-      <span class="selector-label">Plan</span>
-      <button class="tab" data-plan="flex" aria-selected="true">LucidFlex <span class="flag">YOURS</span></button>
-      <button class="tab" data-plan="pro" aria-selected="false">LucidPro</button>
-      <button class="tab" data-plan="daily" aria-selected="false">LucidDaily</button>
-      <button class="tab" data-plan="direct" aria-selected="false">LucidDirect</button>
-    </div>
-    <div class="selector-row">
-      <span class="selector-label">Account Size</span>
-      <button class="chip" data-size="25000" aria-selected="true">$25K</button>
-      <button class="chip" data-size="50000" aria-selected="false">$50K</button>
-      <button class="chip" data-size="100000" aria-selected="false">$100K</button>
-      <button class="chip" data-size="150000" aria-selected="false">$150K</button>
-    </div>
-    <div class="selector-row" style="justify-content:space-between;">
-      <span class="plan-tagline" id="planTagline"></span>
-      <span class="verify-note" id="verifyNote"></span>
-    </div>
-  </div>
-
   <div class="snapshot-card">
-    <div class="snapshot-title" id="snapshotTitle">25K FLEX EVAL</div>
-    <div class="snapshot-sub" id="snapshotSub">Live rule sheet for this plan and size</div>
+    <div class="snapshot-head">
+      <div>
+        <div class="snapshot-title" id="snapshotTitle">25K FLEX EVAL</div>
+        <div class="snapshot-sub" id="snapshotSub">Live rule sheet for this plan and size</div>
+      </div>
+      <button type="button" class="switch-btn" id="switchAccountBtn">Switch Account</button>
+    </div>
     <div class="readout-list" id="statList"></div>
   </div>
 
@@ -476,17 +438,8 @@
   var PLAN_ORDER = ["flex","pro","daily","direct"];
   var SIZE_ORDER = [25000,50000,100000,150000];
 
-  var state = { plan: "flex", size: 25000, mllOverrides: {}, dll600On: false };
+  var state = { plan: "flex", size: 25000, dll600On: false };
 
-  function mllKey(){ return state.plan + "_" + state.size; }
-  function getMll(){
-    var k = mllKey();
-    return (k in state.mllOverrides) ? state.mllOverrides[k] : current().size.mll;
-  }
-  function setMll(value){
-    var v = Math.max(1, Math.round(parseFloat(value) || current().size.mll));
-    state.mllOverrides[mllKey()] = v;
-  }
   function dllAvailable(){ return state.plan === "flex" && state.size === 25000; }
   function dllActive(){ return dllAvailable() && state.dll600On; }
 
@@ -496,8 +449,6 @@
   var statList = document.getElementById("statList");
   var snapshotTitle = document.getElementById("snapshotTitle");
   var snapshotSub = document.getElementById("snapshotSub");
-  var planTagline = document.getElementById("planTagline");
-  var verifyNote = document.getElementById("verifyNote");
   var readoutList = document.getElementById("readoutList");
   var coachText = document.getElementById("coachText");
   var paceStatus = document.getElementById("paceStatus");
@@ -517,7 +468,6 @@
   function renderStats(){
     var c = current();
     var d = c.size;
-    var effMll = getMll();
     var contracts = CONTRACTS[state.size];
 
     snapshotTitle.textContent = (state.size/1000) + "K " + c.plan.name.replace("Lucid","").toUpperCase() + " EVAL";
@@ -536,9 +486,6 @@
       dllValueHtml = plainValue("Fixed", "");
     }
 
-    var mllValueHtml =
-      '<div class="rcontrol"><div class="inline-edit"><span class="prefix mono">$</span><input class="mono" id="mllInput" type="number" step="1" min="1" value="' + effMll + '" aria-label="Max Loss Limit" /></div></div>';
-
     var drawdownHtml = c.plan.verified ? plainValue("EOD", "") : plainValue("&mdash;", "");
     var drawdownSub = c.plan.verified ? "Trailing max loss updates only at the close (4:45 PM ET)" : "Confirm on your dashboard";
 
@@ -549,26 +496,11 @@
     statList.innerHTML =
       row("Profit Target", plainValue(money(d.target), "pos"), "", Math.round((d.target/state.size)*1000)/10 + "% of account size") +
       row("Daily Loss Limit", dllValueHtml, "", dllAvailable() ? "Trip it and today's trading is done" : (state.plan === "flex" ? "Available on the 25K &mdash; confirm this size on your dashboard" : "Confirm on your dashboard")) +
-      row("Max Loss Limit", mllValueHtml, "", "Trailing, end-of-day only — edit if your dashboard differs") +
+      row("Max Loss Limit", plainValue(money(d.mll), ""), "", c.plan.verified ? "Trailing, end-of-day only" : "Confirm on your dashboard") +
       row("Drawdown Type", drawdownHtml, "", drawdownSub) +
       row("Consistency", plainValue(c.plan.consistencyEval + "%", ""), "", "Evaluation only — largest day ≤ " + c.plan.consistencyEval + "% of total profit") +
       row("Max Size", plainValue(contracts.maxMini + " Mini or " + contracts.maxMicro + " Micro", ""), "", maxSizeSub) +
       row("Qualifying Days", plainValue("5 &times; " + money(d.dailyMin), ""), "", "Needed funded, before your first payout request");
-  }
-
-  function renderMeta(){
-    var c = current();
-    planTagline.innerHTML = c.plan.name + " &mdash; " + c.plan.tagline;
-    verifyNote.textContent = c.plan.verified ? "Figures verified against Lucid rule trackers." : "Less-certain figures — verify on your dashboard.";
-  }
-
-  function renderTabs(){
-    document.querySelectorAll(".tab").forEach(function(btn){
-      btn.setAttribute("aria-selected", btn.dataset.plan === state.plan ? "true" : "false");
-    });
-    document.querySelectorAll(".chip").forEach(function(btn){
-      btn.setAttribute("aria-selected", String(btn.dataset.size) === String(state.size) ? "true" : "false");
-    });
   }
 
   function renderCoPilot(){
@@ -578,7 +510,7 @@
     var days = Math.max(1, parseInt(document.getElementById("daysInput").value, 10) || 1);
     var bestDay = parseFloat(document.getElementById("bestDayInput").value) || 0;
 
-    var effMll = getMll();
+    var effMll = d.mll;
     var dllOn = dllActive();
     var remaining = Math.max(0, d.target - pnl);
     var perDay = remaining / days;
@@ -643,7 +575,11 @@
     PLAN_ORDER.forEach(function(planKey){
       var plan = PLANS[planKey];
       var isCurrentPlan = planKey === state.plan;
-      html += '<div class="menu-section"><div class="menu-section-title">' + plan.name + (isCurrentPlan ? ' <span class="menu-current">CURRENT</span>' : '') + '</div><div class="menu-sizes">';
+      html += '<div class="menu-section">' +
+        '<div class="menu-section-title">' + plan.name + (isCurrentPlan ? ' <span class="menu-current">CURRENT</span>' : '') + '</div>' +
+        '<div class="menu-tagline">' + plan.name + ' &mdash; ' + plan.tagline + '</div>' +
+        '<div class="menu-verify">' + (plan.verified ? "Figures verified against Lucid rule trackers." : "Less-certain figures — verify on your dashboard.") + '</div>' +
+        '<div class="menu-sizes">';
       SIZE_ORDER.forEach(function(size){
         var active = isCurrentPlan && size === state.size;
         html += '<button type="button" class="menu-size-btn' + (active ? ' active' : '') + '" data-plan="' + planKey + '" data-size="' + size + '">$' + (size/1000) + 'K</button>';
@@ -655,31 +591,10 @@
 
   function renderAll(){
     renderStats();
-    renderMeta();
-    renderTabs();
     renderCoPilot();
     renderAccountMenu();
   }
 
-  document.querySelectorAll(".tab").forEach(function(btn){
-    btn.addEventListener("click", function(){
-      state.plan = btn.dataset.plan;
-      renderAll();
-    });
-  });
-  document.querySelectorAll(".chip").forEach(function(btn){
-    btn.addEventListener("click", function(){
-      state.size = parseInt(btn.dataset.size, 10);
-      renderAll();
-    });
-  });
-
-  statList.addEventListener("input", function(e){
-    if (e.target.id === "mllInput"){
-      setMll(e.target.value);
-      renderCoPilot();
-    }
-  });
   statList.addEventListener("click", function(e){
     if (e.target.dataset.dll !== undefined){
       state.dll600On = e.target.dataset.dll === "on";
@@ -725,6 +640,7 @@
       closeMenu();
     }
   });
+  document.getElementById("switchAccountBtn").addEventListener("click", openMenu);
 
   renderAll();
 
