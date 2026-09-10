@@ -388,15 +388,15 @@
     <ol class="csv-steps">
       <li>Log into Tradovate: <a href="https://trader.tradovate.com/" target="_blank" rel="noopener">trader.tradovate.com</a> (opens in a new tab)</li>
       <li>Click your <b>account name</b> at the top, then the small <b>gear icon</b> next to it &mdash; this opens <b>Account Reports</b> (some versions show this as a <b>Reports</b> item in the main menu instead)</li>
-      <li>Click the <b>Cash History</b> tab &mdash; not Client Statements or Performance, those are different reports</li>
+      <li>Click the <b>Account Balance History</b> tab &mdash; not Client Statements or Performance, those are different reports (Cash History also works if that's what you've got)</li>
       <li>Set the date range back to the day you first opened the account, so it captures everything</li>
       <li>Click <b>Download Report</b> to save the CSV</li>
       <li>Come back here and upload that file below</li>
     </ol>
     <div class="field">
-      <label for="csvFile">Cash History CSV</label>
+      <label for="csvFile">Account Balance History CSV</label>
       <input id="csvFile" type="file" accept=".csv,text/csv" />
-      <span class="hint" id="csvMessage">Auto-fills Net P&amp;L and Best Day below once uploaded.</span>
+      <span class="hint" id="csvMessage">Auto-fills Net P&amp;L and Best Day below once uploaded. Cash History files are also accepted.</span>
     </div>
   </div>
 
@@ -477,7 +477,7 @@
   </div>
 
   <footer>
-    <p>Figures reflect LucidFlex / LucidPro / LucidDaily / LucidDirect rules as publicly documented in 2026 (Lucid Trading support center and independent prop-firm rule trackers). On the 25K Flex, the Max Loss Limit is a fixed $1,000; the Daily Loss Limit is a separate, optional setting &mdash; OFF by default, or a firm-enforced $600 if you opted into it. LucidPro offers the same OFF/$600 Daily Loss Limit choice at every account size, and LucidDaily lets you choose Intraday or End-of-Day drawdown tracking &mdash; both toggled above. Eval and reset pricing is populated for the 25K Flex and all four LucidPro sizes, taken directly from Lucid's own checkout screen at the time this was written. Every price changes with Lucid's current promos, so treat these as a snapshot, not what you'll pay today. Everything else &mdash; Daily, Direct, and any plan/size combo not listed above &mdash; is unverified here rather than guessed; always check your live Lucid dashboard or checkout before sizing a trade or paying for an account. The maximum payout table is sourced from independent payout-rules trackers, not Lucid directly, and is shown only where the rest of that plan's figures are already marked verified. This page is a planning aid, not trading or financial advice, and never places trades or requires a login. The optional CSV import runs entirely in your browser &mdash; the file is never uploaded anywhere &mdash; and its column detection is a first pass not yet tested against a real Tradovate export; double-check the imported totals against your actual dashboard, especially the first time.</p>
+    <p>Figures reflect LucidFlex / LucidPro / LucidDaily / LucidDirect rules as publicly documented in 2026 (Lucid Trading support center and independent prop-firm rule trackers). On the 25K Flex, the Max Loss Limit is a fixed $1,000; the Daily Loss Limit is a separate, optional setting &mdash; OFF by default, or a firm-enforced $600 if you opted into it. LucidPro offers the same OFF/$600 Daily Loss Limit choice at every account size, and LucidDaily lets you choose Intraday or End-of-Day drawdown tracking &mdash; both toggled above. Eval and reset pricing is populated for the 25K Flex and all four LucidPro sizes, taken directly from Lucid's own checkout screen at the time this was written. Every price changes with Lucid's current promos, so treat these as a snapshot, not what you'll pay today. Everything else &mdash; Daily, Direct, and any plan/size combo not listed above &mdash; is unverified here rather than guessed; always check your live Lucid dashboard or checkout before sizing a trade or paying for an account. The maximum payout table is sourced from independent payout-rules trackers, not Lucid directly, and is shown only where the rest of that plan's figures are already marked verified. This page is a planning aid, not trading or financial advice, and never places trades or requires a login. The optional CSV import runs entirely in your browser &mdash; the file is never uploaded anywhere &mdash; and its column detection has been checked against real Account Balance History and Cash History exports. Still worth a glance against your actual dashboard the first time you use it.</p>
   </footer>
 
 </div>
@@ -1067,6 +1067,21 @@
     return neg ? -n : n;
   }
 
+  // Two real Tradovate export formats are supported, auto-detected by header:
+  //   Account Balance History — one row per day with Trade Date + Total
+  //   Realized PNL already computed by Tradovate. Preferred: simplest, most
+  //   reliable, no filtering needed.
+  //   Cash History — one row per transaction (trades, commissions, the
+  //   initial deposit) with Date + Delta. Needs summing per day and
+  //   excluding the deposit row. Its "Amount" column is the running BALANCE
+  //   after the transaction, not the transaction size — Delta is the one to use.
+  function detectCsvFormat(headers){
+    var lower = headers.map(function(h){ return h.trim().toLowerCase(); });
+    if (lower.some(function(h){ return h.indexOf("realized pnl") !== -1; })) return "balance";
+    if (lower.indexOf("delta") !== -1 || lower.indexOf("cash change type") !== -1) return "cash";
+    return "unknown";
+  }
+
   function handleCsvFile(file){
     var reader = new FileReader();
     reader.onload = function(e){
@@ -1077,44 +1092,66 @@
           return;
         }
         var headers = rows[0];
-        var dateIdx = findColumn(headers, ["trade date", "date"]);
-        var amountIdx = findColumn(headers, ["amount", "delta", "net amount", "cash amount"]);
-        var typeIdx = findColumn(headers, ["type", "cash change type", "description", "category"]);
-
-        if (dateIdx === -1 || amountIdx === -1){
-          csvSetMessage("Couldn't find a date and amount column in that file. Headers found: " + headers.join(", ") + " — send that list back and the import can be fixed.", true);
-          return;
-        }
-
-        var excludeWords = ["deposit", "funding", "transfer", "initial"];
+        var format = detectCsvFormat(headers);
         var byDay = {};
-        for (var r = 1; r < rows.length; r++){
-          var row = rows[r];
-          if (!row || row.length <= amountIdx) continue;
-          var dateStr = row[dateIdx];
-          var amt = parseAmount(row[amountIdx]);
-          if (!dateStr || isNaN(amt)) continue;
-          if (typeIdx !== -1){
-            var typeVal = (row[typeIdx] || "").toLowerCase();
-            var excluded = false;
-            for (var w = 0; w < excludeWords.length; w++){
-              if (typeVal.indexOf(excludeWords[w]) !== -1){ excluded = true; break; }
-            }
-            if (excluded) continue;
+
+        if (format === "balance"){
+          var dateIdx = findColumn(headers, ["trade date"]);
+          var pnlIdx = findColumn(headers, ["total realized pnl", "realized pnl"]);
+          if (dateIdx === -1 || pnlIdx === -1){
+            csvSetMessage("This looks like Account Balance History, but couldn't find its Trade Date / Total Realized PNL columns. Headers found: " + headers.join(", ") + " — send that list back and the import can be fixed.", true);
+            return;
           }
-          var dayKey = dateStr.trim().slice(0, 10);
-          byDay[dayKey] = (byDay[dayKey] || 0) + amt;
+          for (var r1 = 1; r1 < rows.length; r1++){
+            var row1 = rows[r1];
+            if (!row1 || row1.length <= pnlIdx) continue;
+            var dateStr1 = row1[dateIdx];
+            var pnl = parseAmount(row1[pnlIdx]);
+            if (!dateStr1 || isNaN(pnl)) continue;
+            var dayKey1 = dateStr1.trim().slice(0, 10);
+            byDay[dayKey1] = (byDay[dayKey1] || 0) + pnl;
+          }
+        } else if (format === "cash"){
+          var dateIdx2 = findColumn(headers, ["date"]);
+          var deltaIdx = findColumn(headers, ["delta"]);
+          var typeIdx = findColumn(headers, ["cash change type", "type"]);
+          if (dateIdx2 === -1 || deltaIdx === -1){
+            csvSetMessage("This looks like Cash History, but couldn't find its Date / Delta columns. Headers found: " + headers.join(", ") + " — send that list back and the import can be fixed.", true);
+            return;
+          }
+          var excludeWords = ["fund transaction", "deposit", "funding", "transfer", "initial"];
+          for (var r2 = 1; r2 < rows.length; r2++){
+            var row2 = rows[r2];
+            if (!row2 || row2.length <= deltaIdx) continue;
+            var dateStr2 = row2[dateIdx2];
+            var delta = parseAmount(row2[deltaIdx]);
+            if (!dateStr2 || isNaN(delta)) continue;
+            if (typeIdx !== -1){
+              var typeVal = (row2[typeIdx] || "").toLowerCase();
+              var excluded = false;
+              for (var w = 0; w < excludeWords.length; w++){
+                if (typeVal.indexOf(excludeWords[w]) !== -1){ excluded = true; break; }
+              }
+              if (excluded) continue;
+            }
+            var dayKey2 = dateStr2.trim().slice(0, 10);
+            byDay[dayKey2] = (byDay[dayKey2] || 0) + delta;
+          }
+        } else {
+          csvSetMessage("Didn't recognize that file as Account Balance History or Cash History. Headers found: " + headers.join(", ") + " — send that list back and the import can be fixed.", true);
+          return;
         }
 
         var days = Object.keys(byDay);
         if (!days.length){
-          csvSetMessage("Found the file, but no usable trade rows in it. Double-check the date range covers your trading activity.", true);
+          csvSetMessage("Found the file, but no usable rows in it. Double-check the date range covers your trading activity.", true);
           return;
         }
 
-        var total = 0, best = -Infinity;
+        var total = 0, best = -Infinity, tradedDays = 0;
         days.forEach(function(d){
           total += byDay[d];
+          if (byDay[d] !== 0) tradedDays++;
           if (byDay[d] > best) best = byDay[d];
         });
 
@@ -1122,7 +1159,7 @@
         document.getElementById("bestDayInput").value = Math.round(best);
         renderCoPilot();
         saveState();
-        csvSetMessage("Imported " + (rows.length - 1) + " row(s) across " + days.length + " day(s). Total P&L " + money(total) + ", best day " + money(best) + ". Double-check this against your dashboard, especially on a first import.");
+        csvSetMessage("Imported " + tradedDays + " trading day(s) from " + (format === "balance" ? "Account Balance History" : "Cash History") + ". Total P&L " + money(total) + ", best day " + money(best) + ". Double-check this against your dashboard, especially on a first import.");
       } catch (err) {
         csvSetMessage("Couldn't parse that file: " + err.message, true);
       }
