@@ -164,7 +164,7 @@
   .readout .rsub{ display:block; font-size:11.5px; color:var(--muted-dim); margin-top:2px; }
   .readout .rvalue{ font-family:var(--font-mono); font-size:17px; font-weight:600; color:var(--phosphor-soft); white-space:nowrap; }
   .readout .rvalue.red{ color:var(--red); }
-  .readout .rcontrol{ display:flex; align-items:center; gap:8px; }
+  .rcontrol{ display:flex; align-items:center; gap:8px; }
 
   .opt-pill{
     font-family:var(--font-mono); font-size:12px; font-weight:600; padding:6px 14px;
@@ -403,6 +403,10 @@
   <div class="console">
     <div class="console-head">
       <h2>Risk Co-Pilot</h2>
+      <div class="rcontrol" id="phaseToggle">
+        <button type="button" class="opt-pill active" data-phase="eval">Evaluation</button>
+        <button type="button" class="opt-pill" data-phase="funded">Funded</button>
+      </div>
     </div>
     <div class="status-banner" id="statusBanner">
       <div class="status-badge" id="statusBadge">
@@ -415,16 +419,21 @@
     <div class="console-grid">
       <div>
         <div class="field">
-          <label for="pnlInput">Net P&amp;L so far ($)</label>
+          <label for="pnlInput" id="pnlLabel">Net P&amp;L so far ($)</label>
           <input id="pnlInput" type="number" step="1" value="1221" />
           <span class="hint">Pull your real number from the Lucid dashboard.</span>
         </div>
-        <div class="field">
+        <div class="field" id="daysField">
           <label for="daysInput">Trading days you want left</label>
           <input id="daysInput" type="number" step="1" min="1" value="1" />
           <span class="hint">How many more sessions you're planning to trade before the target.</span>
         </div>
-        <div class="field">
+        <div class="field" id="qualDaysField" hidden>
+          <label for="qualDaysInput">Qualifying days banked</label>
+          <input id="qualDaysInput" type="number" step="1" min="0" max="5" value="0" />
+          <span class="hint">Days that cleared your size's daily minimum, out of the 5 needed for a payout.</span>
+        </div>
+        <div class="field" id="bestDayField">
           <label for="bestDayInput">Best single day so far ($)</label>
           <input id="bestDayInput" type="number" step="1" value="617" />
           <span class="hint">Needed to check the 50% consistency rule during evaluation.</span>
@@ -580,7 +589,7 @@
   var PLAN_ORDER = ["flex","pro","daily","direct"];
   var SIZE_ORDER = [25000,50000,100000,150000];
 
-  var state = { plan: "flex", size: 25000, dllOn: {}, drawdownChoice: {} };
+  var state = { plan: "flex", size: 25000, dllOn: {}, drawdownChoice: {}, phase: "eval" };
   var STORAGE_KEY = "lucidCockpit.v2";
 
   function comboKey(){ return state.plan + "_" + state.size; }
@@ -600,9 +609,11 @@
         size: state.size,
         dllOn: state.dllOn,
         drawdownChoice: state.drawdownChoice,
+        phase: state.phase,
         pnl: document.getElementById("pnlInput").value,
         days: document.getElementById("daysInput").value,
-        bestDay: document.getElementById("bestDayInput").value
+        bestDay: document.getElementById("bestDayInput").value,
+        qualDays: document.getElementById("qualDaysInput").value
       }));
     } catch(e){}
   }
@@ -616,9 +627,11 @@
       if (saved.size && PLANS[state.plan].sizes[saved.size]) state.size = saved.size;
       if (saved.dllOn && typeof saved.dllOn === "object") state.dllOn = saved.dllOn;
       if (saved.drawdownChoice && typeof saved.drawdownChoice === "object") state.drawdownChoice = saved.drawdownChoice;
+      if (saved.phase === "eval" || saved.phase === "funded") state.phase = saved.phase;
       if (saved.pnl !== undefined) document.getElementById("pnlInput").value = saved.pnl;
       if (saved.days !== undefined) document.getElementById("daysInput").value = saved.days;
       if (saved.bestDay !== undefined) document.getElementById("bestDayInput").value = saved.bestDay;
+      if (saved.qualDays !== undefined) document.getElementById("qualDaysInput").value = saved.qualDays;
     } catch(e){}
   }
 
@@ -638,18 +651,15 @@
   var celebrateBtn = document.getElementById("celebrateBtn");
   var lastStatusKey = null;
 
-  function renderAccountStatus(pnl, effMll, remaining, consistencyBreach, d, c){
+  function isCelebrationKey(k){ return k === "passed" || k === "payout-ready"; }
+
+  function renderAccountStatus(phase, pnl, effMll, opts){
+    opts = opts || {};
     var key, label, cls, rec;
     var lossUsed = pnl < 0 ? Math.abs(pnl) : 0;
     var lossPct = effMll > 0 ? lossUsed / effMll : 0;
-    var progressPct = d.target > 0 ? pnl / d.target : 0;
 
-    if (remaining <= 0){
-      key = "passed";
-      label = "Passed — Target Cleared";
-      cls = "status-passed";
-      rec = "Congratulations — you cleared the evaluation! Keep the same size and discipline into the funded stage: the consistency rule drops away, but the Max Loss Limit still applies. Bank 5 qualifying profitable days with the cycle net positive, then submit for your first payout.";
-    } else if (pnl < 0 && lossPct >= 0.6){
+    if (pnl < 0 && lossPct >= 0.6){
       key = "near-blown";
       label = "Near Blown";
       cls = "status-urgent";
@@ -659,39 +669,75 @@
       label = "Vulnerable";
       cls = "status-bad";
       rec = "Cut your size and slow down. Take the next clean, well-sized setup instead of forcing a trade to claw back losses fast.";
-    } else if (consistencyBreach){
-      key = "vulnerable";
-      label = "Vulnerable";
-      cls = "status-bad";
-      rec = "Your best day is too large a share of your total profit for the consistency rule. Bank a couple more solid, smaller days before you'd be eligible to pass — don't chase one big day to fix it.";
-    } else if (progressPct < 0.08){
-      key = "breakeven";
-      label = "Just Starting / Breakeven";
-      cls = "";
-      rec = "No rebuilding needed — you're at the starting line. There's no minimum number of trading days, so wait for a clean setup instead of forcing size to get moving.";
-    } else if (progressPct >= 0.85){
-      key = "close-passing";
-      label = "Close to Passing";
-      cls = "status-close";
-      rec = "You're " + money(remaining) + " away from target. Don't force it — keep the same size that got you here, and let one more clean trade finish the job.";
-    } else if (progressPct >= 0.5){
-      key = "perfect";
-      label = "Perfect Standing";
-      cls = "status-good";
-      rec = "You're in great shape — " + Math.round(progressPct * 100) + "% to target with room under your Max Loss Limit. Protect it: trade smaller than you need to rather than pushing for a faster finish.";
+    } else if (phase === "funded"){
+      var qualDays = opts.qualDays || 0;
+      var d = opts.d;
+      if (qualDays >= 5 && pnl > 0){
+        key = "payout-ready";
+        label = "Payout Ready!";
+        cls = "status-passed";
+        rec = "Congratulations — 5 qualifying days banked and your cycle is net positive. Submit for your payout from the Lucid dashboard whenever you're ready. 90/10 split, $500 minimum.";
+      } else if (qualDays >= 3){
+        key = "close-payout";
+        label = "Close to Payout";
+        cls = "status-close";
+        rec = qualDays + " of 5 qualifying days banked. Keep the same size and process — a couple more clean days and you're eligible to request a payout.";
+      } else if (qualDays >= 1 || pnl > 0){
+        key = "building";
+        label = "Building Toward Payout";
+        cls = "status-good";
+        rec = "Solid progress — " + qualDays + " of 5 qualifying days banked. Stay consistent; there's no rush and no minimum trading-day requirement.";
+      } else {
+        key = "starting";
+        label = "Just Getting Started";
+        cls = "";
+        rec = "No qualifying days banked yet — each one needs to clear your size's daily minimum (" + money(d.dailyMin) + "). Trade your normal size and let the days add up.";
+      }
     } else {
-      key = "on-pace";
-      label = "On Pace";
-      cls = "status-good";
-      rec = "Steady progress — keep the size and process that got you here. Don't get greedy chasing a faster finish; let the target come to you.";
+      var remaining = opts.remaining;
+      var consistencyBreach = opts.consistencyBreach;
+      var target = opts.d.target;
+      var progressPct = target > 0 ? pnl / target : 0;
+
+      if (remaining <= 0){
+        key = "passed";
+        label = "Passed — Target Cleared";
+        cls = "status-passed";
+        rec = "Congratulations — you cleared the evaluation! Keep the same size and discipline into the funded stage: the consistency rule drops away, but the Max Loss Limit still applies. Bank 5 qualifying profitable days with the cycle net positive, then submit for your first payout.";
+      } else if (consistencyBreach){
+        key = "vulnerable";
+        label = "Vulnerable";
+        cls = "status-bad";
+        rec = "Your best day is too large a share of your total profit for the consistency rule. Bank a couple more solid, smaller days before you'd be eligible to pass — don't chase one big day to fix it.";
+      } else if (progressPct < 0.08){
+        key = "breakeven";
+        label = "Just Starting / Breakeven";
+        cls = "";
+        rec = "No rebuilding needed — you're at the starting line. There's no minimum number of trading days, so wait for a clean setup instead of forcing size to get moving.";
+      } else if (progressPct >= 0.85){
+        key = "close-passing";
+        label = "Close to Passing";
+        cls = "status-close";
+        rec = "You're " + money(remaining) + " away from target. Don't force it — keep the same size that got you here, and let one more clean trade finish the job.";
+      } else if (progressPct >= 0.5){
+        key = "perfect";
+        label = "Perfect Standing";
+        cls = "status-good";
+        rec = "You're in great shape — " + Math.round(progressPct * 100) + "% to target with room under your Max Loss Limit. Protect it: trade smaller than you need to rather than pushing for a faster finish.";
+      } else {
+        key = "on-pace";
+        label = "On Pace";
+        cls = "status-good";
+        rec = "Steady progress — keep the size and process that got you here. Don't get greedy chasing a faster finish; let the target come to you.";
+      }
     }
 
     statusBanner.className = "status-banner" + (cls ? " " + cls : "");
     statusLabelEl.textContent = label;
     statusRecEl.textContent = rec;
-    celebrateBtn.hidden = key !== "passed";
+    celebrateBtn.hidden = !isCelebrationKey(key);
 
-    if (key === "passed" && lastStatusKey !== "passed"){
+    if (isCelebrationKey(key) && lastStatusKey !== key){
       fireConfetti();
     }
     lastStatusKey = key;
@@ -820,18 +866,63 @@
   function renderCoPilot(){
     var c = current();
     var d = c.size;
+    var phase = state.phase;
+
+    document.querySelectorAll("#phaseToggle .opt-pill").forEach(function(btn){
+      btn.classList.toggle("active", btn.dataset.phase === phase);
+    });
+    document.getElementById("pnlLabel").textContent = phase === "funded" ? "Net P&L this cycle ($)" : "Net P&L so far ($)";
+    document.getElementById("daysField").hidden = phase === "funded";
+    document.getElementById("qualDaysField").hidden = phase !== "funded";
+    document.getElementById("bestDayField").hidden = phase === "funded";
+
     var pnl = parseFloat(document.getElementById("pnlInput").value) || 0;
+    var effMll = d.mll;
+    var dllOn = dllActive();
+    var maxRiskPerTrade = Math.min(state.size * 0.01, effMll * 0.10, dllOn ? 600 * 0.15 : Infinity);
+    var maxDailyLossCap = dllOn ? 600 * 0.8 : effMll * 0.40;
+
+    function coRow(label, value, cls){
+      return '<div class="readout"><span class="rlabel">' + label + '</span><span class="rvalue' + (cls ? " " + cls : "") + '">' + value + '</span></div>';
+    }
+
+    if (phase === "funded"){
+      var qualDays = Math.max(0, Math.min(5, parseInt(document.getElementById("qualDaysInput").value, 10) || 0));
+
+      renderAccountStatus("funded", pnl, effMll, { qualDays: qualDays, d: d });
+
+      readoutList.innerHTML =
+        coRow("Qualifying days banked", qualDays + " of 5") +
+        coRow("Daily minimum to qualify", money(d.dailyMin)) +
+        coRow("Max risk per trade", money(maxRiskPerTrade), "") +
+        (dllOn ? coRow("Daily Loss Limit (firm)", money(600), "red") : "") +
+        coRow(dllOn ? "Recommended stop-out" : "Self-imposed daily stop", money(maxDailyLossCap), "");
+
+      var flines = [];
+      if (qualDays >= 5 && pnl > 0){
+        flines.push('All <b>5 qualifying days</b> are banked and the cycle is net positive &mdash; you can submit for a payout now. 90/10 split, $500 minimum.');
+      } else {
+        flines.push('You’ve banked <b>' + qualDays + ' of 5</b> qualifying days needed for a payout &mdash; each one has to clear <b>' + money(d.dailyMin) + '</b> in profit.' + (qualDays < 5 ? ' ' + (5 - qualDays) + ' to go.' : ''));
+      }
+      flines.push('Keep risk at or under <b>' + money(maxRiskPerTrade) + '</b> per trade' + (dllOn ? ' &mdash; sized so a bad run doesn’t threaten your $600 Daily Loss Limit.' : ' (1% of size, capped at 10% of your Max Loss Limit).'));
+      if (dllOn){
+        flines.push('You’re running a <b>$600 Daily Loss Limit</b> &mdash; trip it and today’s session is over. Pull the plug yourself at <b>' + money(maxDailyLossCap) + '</b> down (80% of the limit) so a slippage spike doesn’t blow it for you.');
+      } else {
+        flines.push(c.plan.name + (dllAvailable() ? ' has your Daily Loss Limit set to OFF' : ' sets no firm daily loss limit here') + ', so stop yourself at <b>' + money(maxDailyLossCap) + '</b> down for the day &mdash; the firm won’t, so you have to.');
+      }
+      flines.push('No consistency rule once funded &mdash; only the trailing Max Loss Limit matters now.');
+
+      coachText.innerHTML = flines.join(' ');
+      return;
+    }
+
     var days = Math.max(1, parseInt(document.getElementById("daysInput").value, 10) || 1);
     var bestDay = parseFloat(document.getElementById("bestDayInput").value) || 0;
 
-    var effMll = d.mll;
-    var dllOn = dllActive();
     var remaining = Math.max(0, d.target - pnl);
     var perDay = remaining / days;
     var perDayPctOfSize = (perDay / state.size) * 100;
 
-    var maxRiskPerTrade = Math.min(state.size * 0.01, effMll * 0.10, dllOn ? 600 * 0.15 : Infinity);
-    var maxDailyLossCap = dllOn ? 600 * 0.8 : effMll * 0.40;
     var projectedFinal = remaining > 0 ? Math.max(d.target, pnl) : pnl;
     var consistencyCeiling = Math.max(projectedFinal, 1) * (c.plan.consistencyEval / 100);
     var consistencyBreach = pnl > 0 && bestDay > consistencyCeiling;
@@ -841,11 +932,7 @@
     else if (perDayPctOfSize <= 2.5){ paceLevel = "amber"; }
     else { paceLevel = "red"; }
 
-    renderAccountStatus(pnl, effMll, remaining, consistencyBreach, d, c);
-
-    function coRow(label, value, cls){
-      return '<div class="readout"><span class="rlabel">' + label + '</span><span class="rvalue' + (cls ? " " + cls : "") + '">' + value + '</span></div>';
-    }
+    renderAccountStatus("eval", pnl, effMll, { remaining: remaining, consistencyBreach: consistencyBreach, d: d });
 
     readoutList.innerHTML =
       coRow("Remaining to target", money(remaining)) +
@@ -963,7 +1050,14 @@
       saveState();
     }
   });
-  ["pnlInput","daysInput","bestDayInput"].forEach(function(id){
+  document.getElementById("phaseToggle").addEventListener("click", function(e){
+    if (e.target.dataset.phase !== undefined){
+      state.phase = e.target.dataset.phase;
+      renderCoPilot();
+      saveState();
+    }
+  });
+  ["pnlInput","daysInput","bestDayInput","qualDaysInput"].forEach(function(id){
     document.getElementById(id).addEventListener("input", function(){
       renderCoPilot();
       saveState();
