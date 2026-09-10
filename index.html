@@ -21,7 +21,6 @@
     --mint:#7ee8ac;
     --mint-text:#062b17;
     --navy:#2b3550;
-    --amber:#f0b429;
     --red:#ef5a5a;
     --ice:#dcefe2;
     --muted:#7c9584;
@@ -141,7 +140,6 @@
   .readout .rlabel{ font-size:13.5px; color:var(--muted); }
   .readout .rsub{ display:block; font-size:11.5px; color:var(--muted-dim); margin-top:2px; }
   .readout .rvalue{ font-family:var(--font-mono); font-size:17px; font-weight:600; color:var(--phosphor-soft); white-space:nowrap; }
-  .readout .rvalue.amber{ color:var(--amber); }
   .readout .rvalue.red{ color:var(--red); }
   .readout .rcontrol{ display:flex; align-items:center; gap:8px; }
 
@@ -185,7 +183,6 @@
   .coach .coach-label .cursor{ display:inline-block; width:7px; height:13px; background:var(--phosphor); animation:blink 1.1s step-end infinite; }
   @keyframes blink{ 50%{ opacity:0; } }
   .coach b{ color:var(--phosphor-soft); font-weight:600; }
-  .coach .flag-amber{ color:var(--amber); font-weight:600; }
   .coach .flag-red{ color:var(--red); font-weight:600; }
 
   /* ---------- Mission plan ---------- */
@@ -527,7 +524,7 @@
     else { paceLevel = "red"; paceWord = "OVER-REACHING"; }
 
     paceStatus.textContent = remaining === 0 ? "TARGET CLEARED" : paceWord;
-    paceStatus.style.color = remaining === 0 ? "var(--phosphor-soft)" : (paceLevel === "good" ? "var(--phosphor-soft)" : paceLevel === "amber" ? "var(--amber)" : "var(--red)");
+    paceStatus.style.color = paceLevel === "red" ? "var(--red)" : "var(--phosphor-soft)";
 
     function coRow(label, value, cls){
       return '<div class="readout"><span class="rlabel">' + label + '</span><span class="rvalue' + (cls ? " " + cls : "") + '">' + value + '</span></div>';
@@ -535,10 +532,10 @@
 
     readoutList.innerHTML =
       coRow("Remaining to target", money(remaining)) +
-      coRow("Required pace / day", money(perDay) + " &nbsp;(" + perDayPctOfSize.toFixed(2) + "% of size)", paceLevel === "good" ? "" : paceLevel) +
+      coRow("Required pace / day", money(perDay) + " &nbsp;(" + perDayPctOfSize.toFixed(2) + "% of size)", paceLevel === "red" ? "red" : "") +
       coRow("Max risk per trade", money(maxRiskPerTrade), "") +
       (dllOn ? coRow("Daily Loss Limit (firm)", money(600), "red") : "") +
-      coRow(dllOn ? "Recommended stop-out" : "Self-imposed daily stop", money(maxDailyLossCap), "amber") +
+      coRow(dllOn ? "Recommended stop-out" : "Self-imposed daily stop", money(maxDailyLossCap), "") +
       coRow("Consistency ceiling (today)", money(consistencyCeiling), consistencyBreach ? "red" : "");
 
     var lines = [];
@@ -549,7 +546,7 @@
       if (paceLevel === "red"){
         lines.push('That pace is <span class="flag-red">too hot</span> for a ' + money(effMll) + ' Max Loss Limit. Add a trading day or two rather than sizing up to force it.');
       } else if (paceLevel === "amber"){
-        lines.push('That’s <span class="flag-amber">an aggressive pace</span> &mdash; doable, but leaves little room for a losing session before it snowballs.');
+        lines.push('That’s <b>an aggressive pace</b> &mdash; doable, but leaves little room for a losing session before it snowballs.');
       } else {
         lines.push('That’s a <b>reasonable pace</b> relative to your Max Loss Limit &mdash; no need to force trades.');
       }
