@@ -83,17 +83,20 @@
     gap:12px; padding-bottom:16px; margin-bottom:22px;
     border-bottom:1px solid var(--hairline);
   }
-  .brand{ display:flex; align-items:center; gap:11px; }
+  .brand{ display:flex; align-items:center; gap:8px; min-width:0; }
   .brand-mark{
-    width:34px; height:34px; border-radius:50%; flex:none;
+    width:26px; height:26px; border-radius:50%; flex:none;
     background:radial-gradient(circle at 34% 30%, #e8f5ec 0%, #4b8f6a 34%, #0e1c14 72%, #050806 100%);
     box-shadow:0 0 0 1px var(--hairline-bright), 0 0 14px rgba(62,224,140,0.25);
   }
-  .brand-text{ display:flex; flex-direction:column; line-height:1.15; }
-  .brand-name{ font-family:var(--font-display); font-weight:700; font-size:16.5px; letter-spacing:0.02em; color:var(--ice); }
-  .brand-sub{ font-size:10.5px; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted-dim); }
+  .brand-text{ display:flex; flex-direction:column; line-height:1.15; min-width:0; }
+  .brand-name{
+    font-family:var(--font-display); font-weight:700; font-size:13px; letter-spacing:0.02em; color:var(--ice);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .brand-sub{ font-size:9px; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted-dim); }
 
-  .topbar-right{ display:flex; align-items:center; gap:14px; }
+  .topbar-right{ display:flex; align-items:center; gap:10px; flex:none; }
 
   .market-status{
     display:inline-flex; align-items:center; gap:7px; white-space:nowrap;
