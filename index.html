@@ -319,7 +319,7 @@
       <h3>Evaluation</h3>
       <ul>
         <li>Clear the <b>profit target</b> for your size without your balance touching the trailing <b>Max Loss Limit</b>.</li>
-        <li>LucidFlex has <b>no daily loss limit</b> &mdash; but the Co-Pilot above gives you one anyway.</li>
+        <li>The <b>Daily Loss Limit is optional</b> &mdash; OFF, or a firm $600 cap if you opted in. Either way, the Co-Pilot above sets a stop for you.</li>
         <li><b>Consistency rule:</b> no single day can exceed 50% of your total profit when you hit target. Spread wins across at least 2&ndash;3 sessions.</li>
         <li>Positions auto-flatten at <b>4:45 PM ET</b>. Holding past it doesn't fail you, but plan your exits before then.</li>
         <li>No minimum trading days &mdash; pass as fast as the math allows, just don't let one hot day carry the whole account.</li>
@@ -330,7 +330,7 @@
       <h3>Funded</h3>
       <ul>
         <li>The <b>consistency rule drops away</b>. Only the trailing Max Loss Limit matters now.</li>
-        <li>Still no firm daily loss limit &mdash; this is where real discipline replaces the guardrail.</li>
+        <li>Same Daily Loss Limit setting carries over from evaluation &mdash; if you're running OFF, this is where real discipline replaces the guardrail.</li>
         <li>Positions still flatten by <b>4:45 PM ET</b> every session.</li>
         <li>Bank <b>5 qualifying profitable days</b> (each clearing your size's daily minimum) with the cycle net positive.</li>
       </ul>
@@ -348,7 +348,7 @@
   </div>
 
   <footer>
-    <p>Figures reflect LucidFlex / LucidPro / LucidDaily / LucidDirect rules as publicly documented in 2026 (Lucid Trading support center and independent prop-firm rule trackers). The Max Loss Limit depends on which pricing option you chose at checkout &mdash; the 25K Flex ships with a cheaper $600 option alongside the $1,000 one &mdash; so that field is editable above; type your real number from the dashboard if it differs. Pro, Daily and Direct numbers beyond target and Max Loss Limit are less firmly sourced than Flex &mdash; always confirm against your live Lucid dashboard before sizing a trade. This page is a planning aid, not trading or financial advice, and doesn't place trades or connect to your broker.</p>
+    <p>Figures reflect LucidFlex / LucidPro / LucidDaily / LucidDirect rules as publicly documented in 2026 (Lucid Trading support center and independent prop-firm rule trackers). On the 25K Flex, the Max Loss Limit is a fixed $1,000; the Daily Loss Limit is a separate, optional setting &mdash; OFF by default, or a firm-enforced $600 if you opted into it &mdash; toggled above. Both fields are editable in case your dashboard shows different numbers. Pro, Daily and Direct figures beyond target and Max Loss Limit are less firmly sourced than Flex &mdash; always confirm against your live Lucid dashboard before sizing a trade. This page is a planning aid, not trading or financial advice, and doesn't place trades or connect to your broker.</p>
   </footer>
 
 </div>
@@ -360,13 +360,13 @@
   var PLANS = {
     flex: {
       name: "LucidFlex",
-      tagline: "No daily loss limit. The trailing Max Loss Limit only updates at the close.",
+      tagline: "Daily Loss Limit is optional (OFF or $600). The trailing Max Loss Limit only updates at the close.",
       verified: true,
       sizes: {
-        25000:  { target:1250, mll:600, dailyMin:100, mllOptions:[600,1000] },
-        50000:  { target:3000, mll:2000, dailyMin:150 },
-        100000: { target:6000, mll:3000, dailyMin:200 },
-        150000: { target:9000, mll:4500, dailyMin:250 }
+        25000:  { target:1250, mll:1000, dailyMin:100, dllDefault:600 },
+        50000:  { target:3000, mll:2000, dailyMin:150, dllDefault:null },
+        100000: { target:6000, mll:3000, dailyMin:200, dllDefault:null },
+        150000: { target:9000, mll:4500, dailyMin:250, dllDefault:null }
       },
       consistencyEval: 50
     },
@@ -408,7 +408,7 @@
     }
   };
 
-  var state = { plan: "flex", size: 25000, mllOverrides: {} };
+  var state = { plan: "flex", size: 25000, mllOverrides: {}, dllState: {} };
 
   function mllKey(){ return state.plan + "_" + state.size; }
   function getMll(){
@@ -418,6 +418,20 @@
   function setMll(value){
     var v = Math.max(1, Math.round(parseFloat(value) || current().size.mll));
     state.mllOverrides[mllKey()] = v;
+  }
+
+  function getDll(){
+    var k = state.size;
+    if (!(k in state.dllState)){
+      var d = current().size.dllDefault;
+      state.dllState[k] = { on:false, amount:d };
+    }
+    return state.dllState[k];
+  }
+  function setDllOn(on){ getDll().on = on; }
+  function setDllAmount(value){
+    var v = Math.max(1, Math.round(parseFloat(value) || 0));
+    getDll().amount = v || null;
   }
 
   var fmt = new Intl.NumberFormat("en-US", { style:"currency", currency:"USD", maximumFractionDigits:0 });
@@ -442,12 +456,31 @@
     var d = c.size;
     var effMll = getMll();
     var mllPct = mllPercent(effMll);
-    var optionsHtml = "";
-    if (d.mllOptions){
-      optionsHtml = '<div class="mll-options">' + d.mllOptions.map(function(opt){
-        return '<button type="button" class="mll-opt' + (opt === effMll ? ' active' : '') + '" data-mll="' + opt + '">' + money(opt) + '</button>';
-      }).join('') + '</div>';
+
+    var dllHtml;
+    if (state.plan === "flex"){
+      var dll = getDll();
+      dllHtml =
+        '<div class="stat">' +
+          '<span class="label">Daily Loss Limit</span>' +
+          '<div class="mll-options">' +
+            '<button type="button" class="mll-opt' + (!dll.on ? ' active' : '') + '" data-dll="off">OFF</button>' +
+            '<button type="button" class="mll-opt' + (dll.on ? ' active' : '') + '" data-dll="on">' + (dll.amount ? money(dll.amount) : "Set $") + '</button>' +
+          '</div>' +
+          (dll.on ?
+            '<div class="mll-edit" style="margin-top:6px;"><span class="mll-prefix mono">$</span><input class="mll-input mono" id="dllInput" type="number" step="1" min="1" value="' + (dll.amount || '') + '" placeholder="600" aria-label="Daily Loss Limit amount" /></div>'
+            : '') +
+          '<span class="sub">' + (dll.on ? "Firm-enforced &mdash; trip it and today’s trading is done." : "LucidFlex lets you run with no firm cap &mdash; toggle on if your plan has one.") + '</span>' +
+        '</div>';
+    } else {
+      dllHtml =
+        '<div class="stat">' +
+          '<span class="label">Daily Loss Limit</span>' +
+          '<span class="value mono">Fixed</span>' +
+          '<span class="sub">Confirm the exact amount on your dashboard</span>' +
+        '</div>';
     }
+
     statGrid.innerHTML =
       '<div class="stat">' +
         '<span class="label">Profit Target</span>' +
@@ -457,15 +490,10 @@
       '<div class="stat">' +
         '<span class="label">Max Loss Limit</span>' +
         '<div class="mll-edit"><span class="mll-prefix mono">$</span><input class="mll-input mono" id="mllInput" type="number" step="1" min="1" value="' + effMll + '" aria-label="Max Loss Limit override" /></div>' +
-        optionsHtml +
-        '<span class="sub">Trailing, end-of-day only &mdash; <span id="mllPctText">' + mllPct + '</span>% of size. Varies by the option chosen at checkout &mdash; edit to match your dashboard.</span>' +
+        '<span class="sub">Trailing, end-of-day only &mdash; <span id="mllPctText">' + mllPct + '</span>% of size. Edit if your dashboard shows a different number.</span>' +
         '<div class="gauge"><i id="mllGaugeBar" style="width:' + mllPct + '%"></i></div>' +
       '</div>' +
-      '<div class="stat">' +
-        '<span class="label">Daily Loss Limit</span>' +
-        '<span class="value mono">None</span>' +
-        '<span class="sub">' + (state.plan === "flex" ? "Flex’s signature rule — self-impose your own below" : "Confirm current rule on your dashboard") + '</span>' +
-      '</div>' +
+      dllHtml +
       '<div class="stat">' +
         '<span class="label">Consistency Rule</span>' +
         '<span class="value mono">' + c.plan.consistencyEval + '%</span>' +
@@ -501,12 +529,14 @@
     var bestDay = parseFloat(document.getElementById("bestDayInput").value) || 0;
 
     var effMll = getMll();
+    var dll = state.plan === "flex" ? getDll() : null;
+    var dllActive = !!(dll && dll.on && dll.amount);
     var remaining = Math.max(0, d.target - pnl);
     var perDay = remaining / days;
     var perDayPctOfSize = (perDay / state.size) * 100;
 
-    var maxRiskPerTrade = Math.min(state.size * 0.01, effMll * 0.10);
-    var maxDailyLossCap = effMll * 0.40;
+    var maxRiskPerTrade = Math.min(state.size * 0.01, effMll * 0.10, dllActive ? dll.amount * 0.15 : Infinity);
+    var maxDailyLossCap = dllActive ? dll.amount * 0.8 : effMll * 0.40;
     var consistencyCeiling = Math.max(pnl, 1) * (c.plan.consistencyEval / 100);
     var consistencyBreach = pnl > 0 && bestDay > consistencyCeiling;
 
@@ -526,7 +556,8 @@
       row("Remaining to target", money(remaining)) +
       row("Required pace / day", money(perDay) + " &nbsp;(" + perDayPctOfSize.toFixed(2) + "% of size)", paceLevel === "good" ? "" : paceLevel) +
       row("Max risk per trade", money(maxRiskPerTrade), "") +
-      row("Self-imposed daily stop", money(maxDailyLossCap), "amber") +
+      (dllActive ? row("Daily Loss Limit (firm)", money(dll.amount), "red") : "") +
+      row(dllActive ? "Recommended stop-out" : "Self-imposed daily stop", money(maxDailyLossCap), "amber") +
       row("Consistency ceiling (today)", money(consistencyCeiling), consistencyBreach ? "red" : "");
 
     var lines = [];
@@ -542,8 +573,12 @@
         lines.push('That’s a <b>reasonable pace</b> relative to your Max Loss Limit &mdash; no need to force trades.');
       }
     }
-    lines.push('Keep risk at or under <b>' + money(maxRiskPerTrade) + '</b> per trade (1% of size, capped at 10% of your Max Loss Limit).');
-    lines.push('Even though ' + c.plan.name + ' sets no daily loss limit, stop yourself at <b>' + money(maxDailyLossCap) + '</b> down for the day &mdash; the firm won’t, so you have to.');
+    lines.push('Keep risk at or under <b>' + money(maxRiskPerTrade) + '</b> per trade' + (dllActive ? ' &mdash; sized so a bad run doesn’t threaten your ' + money(dll.amount) + ' Daily Loss Limit.' : ' (1% of size, capped at 10% of your Max Loss Limit).'));
+    if (dllActive){
+      lines.push('You’re running a <b>' + money(dll.amount) + ' Daily Loss Limit</b> &mdash; trip it and today’s session is over. Pull the plug yourself at <b>' + money(maxDailyLossCap) + '</b> down (80% of the limit) so a slippage spike doesn’t blow it for you.');
+    } else {
+      lines.push(c.plan.name + ' sets no firm daily loss limit here, so stop yourself at <b>' + money(maxDailyLossCap) + '</b> down for the day &mdash; the firm won’t, so you have to.');
+    }
     if (consistencyBreach){
       lines.push('<span class="flag-red">Consistency flag:</span> your best day (' + money(bestDay) + ') is above the ' + c.plan.consistencyEval + '% ceiling for your current profit. Bank a couple more solid days before you’d be eligible to pass.');
     } else if (pnl > 0){
@@ -583,10 +618,21 @@
       if (gaugeBar) gaugeBar.style.width = pct + "%";
       renderCoPilot();
     }
+    if (e.target.id === "dllInput"){
+      setDllAmount(e.target.value);
+      var onChip = statGrid.querySelector('.mll-opt[data-dll="on"]');
+      if (onChip) onChip.textContent = getDll().amount ? money(getDll().amount) : "Set $";
+      renderCoPilot();
+    }
   });
   statGrid.addEventListener("click", function(e){
-    if (e.target.classList.contains("mll-opt")){
+    if (e.target.dataset.mll !== undefined){
       setMll(e.target.dataset.mll);
+      renderStats();
+      renderCoPilot();
+    }
+    if (e.target.dataset.dll !== undefined){
+      setDllOn(e.target.dataset.dll === "on");
       renderStats();
       renderCoPilot();
     }
