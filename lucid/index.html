@@ -243,6 +243,7 @@
   .status-banner.status-close .status-label{ color:var(--mint); }
 
   .field{ display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
+  .field[hidden]{ display:none; }
   .field label{ font-family:var(--font-mono); font-size:11.5px; letter-spacing:0.06em; color:var(--muted); text-transform:uppercase; }
   .field input, .field select{
     background:var(--void); border:1px solid var(--hairline); border-radius:10px;
@@ -496,7 +497,7 @@
         <ul>
           <li>Clear the <b>profit target</b> for your size without your balance touching the trailing <b>Max Loss Limit</b>.</li>
           <li>The <b>Daily Loss Limit is optional</b> on the 25K Flex &mdash; OFF, or a firm $600 cap if you opted in. Either way, the Co-Pilot above sets a stop for you.</li>
-          <li><b>Consistency rule:</b> no single day can exceed 50% of your total profit when you hit target. Spread wins across at least 2&ndash;3 sessions.</li>
+          <li><b>Consistency rule (plan-dependent):</b> LucidFlex and LucidDaily cap it at 50% of total profit when you hit target &mdash; spread wins across at least 2&ndash;3 sessions. LucidPro and LucidDirect have no consistency rule during evaluation at all. Check the Account Snapshot above for your plan's exact figure.</li>
           <li>Positions auto-flatten at <b>4:45 PM ET</b>. Holding past it doesn't fail you, but plan your exits before then.</li>
           <li>No minimum trading days &mdash; pass as fast as the math allows, just don't let one hot day carry the whole account.</li>
         </ul>
@@ -512,7 +513,7 @@
       </div>
       <div class="card-body" id="phaseCard2Body">
         <ul>
-          <li>The <b>consistency rule drops away</b>. Only the trailing Max Loss Limit matters now.</li>
+          <li><b>Consistency, plan-dependent:</b> LucidFlex and LucidDaily drop the rule entirely once funded &mdash; only the trailing Max Loss Limit matters. LucidPro (40%) and LucidDirect (20%) carry a fresh cap into every payout cycle instead; miss it and the payout is held, not the account.</li>
           <li>Same Daily Loss Limit setting carries over from evaluation &mdash; if you're running OFF, this is where real discipline replaces the guardrail.</li>
           <li>Positions still flatten by <b>4:45 PM ET</b> every session.</li>
           <li>Bank <b>5 qualifying profitable days</b> (each clearing your size's daily minimum) with the cycle net positive.</li>
@@ -600,7 +601,10 @@
         100000: { target:6000, mll:3000, dailyMin:200 },
         150000: { target:9000, mll:4500, dailyMin:250 }
       },
-      consistencyEval: 50
+      // Consistency rule confirmed against Lucid's own support center + independent
+      // rule trackers (Sep 2026): LucidFlex caps the eval at 50% and drops the
+      // rule entirely once funded.
+      consistency: { eval: 50, funded: null }
     },
     pro: {
       name: "LucidPro",
@@ -612,7 +616,11 @@
         100000: { target:6000, mll:3000, dailyMin:200 },
         150000: { target:9000, mll:4500, dailyMin:250 }
       },
-      consistencyEval: 40
+      // LucidPro flips the rule around: no consistency requirement during the
+      // eval (pass in as few days as the math allows), but funded payout cycles
+      // cap the largest day at 40% of that cycle's profit (35% if the account
+      // was bought or last reset before Nov 28, 2025).
+      consistency: { eval: null, funded: 40 }
     },
     daily: {
       name: "LucidDaily",
@@ -624,7 +632,8 @@
         100000: { target:6000, mll:3000, dailyMin:200 },
         150000: { target:9000, mll:4500, dailyMin:250 }
       },
-      consistencyEval: 40
+      // Same 50%-eval / none-funded shape as LucidFlex.
+      consistency: { eval: 50, funded: null }
     },
     direct: {
       name: "LucidDirect",
@@ -636,7 +645,9 @@
         100000: { target:6000, mll:3000, dailyMin:200 },
         150000: { target:9000, mll:5000, dailyMin:250 }
       },
-      consistencyEval: 20
+      // No evaluation to speak of &mdash; funded from day one &mdash; and that funded
+      // stage carries a 20% consistency rule.
+      consistency: { eval: null, funded: 20 }
     }
   };
   var PLAN_ORDER = ["flex","pro","daily","direct"];
@@ -728,7 +739,13 @@
     } else if (phase === "funded"){
       var qualDays = opts.qualDays || 0;
       var d = opts.d;
-      if (qualDays >= 5 && pnl > 0){
+      var fundedConsistencyBreach = opts.fundedConsistencyBreach;
+      if (qualDays >= 5 && pnl > 0 && fundedConsistencyBreach){
+        key = "payout-hold";
+        label = "Payout On Hold — Consistency";
+        cls = "status-bad";
+        rec = "Everything else is ready — 5 qualifying days banked and the cycle is net positive — but your largest day is above the " + opts.fundedConsistencyPct + "% cap for this cycle. Lucid holds the payout until more trading days dilute that ratio, not your account. Keep your normal size; don't force a big day to fix it.";
+      } else if (qualDays >= 5 && pnl > 0){
         key = "payout-ready";
         label = "Payout Ready!";
         cls = "status-passed";
@@ -759,7 +776,7 @@
         key = "passed";
         label = "Passed — Target Cleared";
         cls = "status-passed";
-        rec = "Congratulations — you cleared the evaluation! Keep the same size and discipline into the funded stage: the consistency rule drops away, but the Max Loss Limit still applies. Bank 5 qualifying profitable days with the cycle net positive, then submit for your first payout.";
+        rec = "Congratulations — you cleared the evaluation! Keep the same size and discipline into the funded stage: " + (opts.fundedConsistencyPct ? "a fresh " + opts.fundedConsistencyPct + "% consistency rule kicks in on your payout cycles" : "the consistency rule stays off") + ", and the Max Loss Limit still applies. Bank 5 qualifying profitable days with the cycle net positive, then submit for your first payout.";
       } else if (consistencyBreach){
         key = "vulnerable";
         label = "Vulnerable";
@@ -926,12 +943,28 @@
       ? "Funded starts at " + contracts.fundedMini + " mini / " + contracts.fundedMicro + " micro and scales up as profit builds"
       : "Confirm on your dashboard";
 
+    var cEval = c.plan.consistency.eval;
+    var cFunded = c.plan.consistency.funded;
+    var consistencyValueHtml, consistencySub;
+    if (cEval){
+      consistencyValueHtml = plainValue(cEval + "%", "");
+      consistencySub = "Evaluation only — largest day ≤ " + cEval + "% of total profit, dropped once funded";
+    } else if (cFunded){
+      consistencyValueHtml = plainValue(cFunded + "%", "");
+      consistencySub = state.plan === "direct"
+        ? "From day one — largest day ≤ " + cFunded + "% of profit per payout cycle (no separate evaluation)"
+        : "Funded payout cycles only — largest day ≤ " + cFunded + "% of profit each cycle" + (state.plan === "pro" ? " (35% if bought/reset before Nov 28, 2025)" : "") + " — no consistency rule during evaluation";
+    } else {
+      consistencyValueHtml = plainValue("None", "");
+      consistencySub = "No consistency rule at any stage";
+    }
+
     statList.innerHTML =
       row("Profit Target", plainValue(money(d.target), "pos"), "", Math.round((d.target/state.size)*1000)/10 + "% of account size") +
       row("Daily Loss Limit", dllValueHtml, "", dllAvailable() ? "Trip it and today's trading is done" : (state.plan === "flex" ? "Available on the 25K &mdash; confirm this size on your dashboard" : "Confirm on your dashboard")) +
       row("Max Loss Limit", plainValue(money(d.mll), ""), "", c.plan.verified ? "Trailing, end-of-day only" : "Confirm on your dashboard") +
       row("Drawdown Type", drawdownHtml, "", drawdownSub) +
-      row("Consistency", plainValue(c.plan.consistencyEval + "%", ""), "", "Evaluation only — largest day ≤ " + c.plan.consistencyEval + "% of total profit") +
+      row("Consistency", consistencyValueHtml, "", consistencySub) +
       row("Max Size", plainValue(contracts.maxMini + " Mini or " + contracts.maxMicro + " Micro", ""), "", maxSizeSub) +
       row("Qualifying Days", plainValue("5 &times; " + money(d.dailyMin), ""), "", "Needed funded, before your first payout request");
   }
@@ -947,13 +980,22 @@
     document.getElementById("pnlLabel").textContent = phase === "funded" ? "Net P&L this cycle ($)" : "Net P&L so far ($)";
     document.getElementById("daysField").hidden = phase === "funded";
     document.getElementById("qualDaysField").hidden = phase !== "funded";
-    document.getElementById("bestDayField").hidden = phase === "funded";
+
+    var evalConsistencyPct = c.plan.consistency.eval;
+    var fundedConsistencyPct = c.plan.consistency.funded;
+    var thisPhaseConsistencyPct = phase === "funded" ? fundedConsistencyPct : evalConsistencyPct;
+    var bestDayField = document.getElementById("bestDayField");
+    bestDayField.hidden = !thisPhaseConsistencyPct;
+    document.querySelector("#bestDayField .hint").textContent = thisPhaseConsistencyPct
+      ? "Needed to check the " + thisPhaseConsistencyPct + "% consistency rule" + (phase === "funded" ? " for this payout cycle." : " during evaluation.")
+      : "";
 
     var pnl = parseFloat(document.getElementById("pnlInput").value) || 0;
     var effMll = d.mll;
     var dllOn = dllActive();
     var maxRiskPerTrade = Math.min(state.size * 0.01, effMll * 0.10, dllOn ? 600 * 0.15 : Infinity);
     var maxDailyLossCap = dllOn ? 600 * 0.8 : effMll * 0.40;
+    var bestDay = thisPhaseConsistencyPct ? (parseFloat(document.getElementById("bestDayInput").value) || 0) : 0;
 
     function coRow(label, value, cls){
       return '<div class="readout"><span class="rlabel">' + label + '</span><span class="rvalue' + (cls ? " " + cls : "") + '">' + value + '</span></div>';
@@ -962,7 +1004,10 @@
     if (phase === "funded"){
       var qualDays = Math.max(0, Math.min(5, parseInt(document.getElementById("qualDaysInput").value, 10) || 0));
 
-      renderAccountStatus("funded", pnl, effMll, { qualDays: qualDays, d: d });
+      var fundedConsistencyCeiling = fundedConsistencyPct ? Math.max(pnl, 1) * (fundedConsistencyPct / 100) : 0;
+      var fundedConsistencyBreach = !!fundedConsistencyPct && pnl > 0 && bestDay > fundedConsistencyCeiling;
+
+      renderAccountStatus("funded", pnl, effMll, { qualDays: qualDays, d: d, fundedConsistencyBreach: fundedConsistencyBreach, fundedConsistencyPct: fundedConsistencyPct });
 
       readoutList.innerHTML =
         coRow("Qualifying days banked", qualDays + " of 5") +
@@ -970,7 +1015,8 @@
         coRow("Max Loss Limit", money(effMll), "") +
         coRow("Max risk per trade", money(maxRiskPerTrade), "") +
         (dllOn ? coRow("Daily Loss Limit (firm)", money(600), "red") : "") +
-        coRow(dllOn ? "Recommended stop-out" : "Self-imposed daily stop", money(maxDailyLossCap), "");
+        coRow(dllOn ? "Recommended stop-out" : "Self-imposed daily stop", money(maxDailyLossCap), "") +
+        (fundedConsistencyPct ? coRow("Consistency ceiling (this cycle)", money(fundedConsistencyCeiling), fundedConsistencyBreach ? "red" : "") : "");
 
       var flines = [];
       if (qualDays >= 5 && pnl > 0){
@@ -984,29 +1030,36 @@
       } else {
         flines.push(c.plan.name + (dllAvailable() ? ' has your Daily Loss Limit set to OFF' : ' sets no firm daily loss limit here') + ', so stop yourself at <b>' + money(maxDailyLossCap) + '</b> down for the day &mdash; the firm won’t, so you have to.');
       }
-      flines.push('No consistency rule once funded &mdash; only the trailing Max Loss Limit matters now.');
+      if (fundedConsistencyPct){
+        if (fundedConsistencyBreach){
+          flines.push('<span class="flag-red">Consistency flag:</span> your best day (' + money(bestDay) + ') is above the ' + fundedConsistencyPct + '% cap for this cycle (' + money(fundedConsistencyCeiling) + '). ' + c.plan.name + ' holds the payout, not the account, until more days dilute that ratio &mdash; keep trading your normal size.');
+        } else if (pnl > 0){
+          flines.push('Consistency check passes for this cycle &mdash; your best day stays under <b>' + money(fundedConsistencyCeiling) + '</b>, the ' + fundedConsistencyPct + '% cap.');
+        }
+      } else {
+        flines.push('No consistency rule once funded &mdash; only the trailing Max Loss Limit matters now.');
+      }
 
       coachText.innerHTML = flines.join(' ');
       return;
     }
 
     var days = Math.max(1, parseInt(document.getElementById("daysInput").value, 10) || 1);
-    var bestDay = parseFloat(document.getElementById("bestDayInput").value) || 0;
 
     var remaining = Math.max(0, d.target - pnl);
     var perDay = remaining / days;
     var perDayPctOfSize = (perDay / state.size) * 100;
 
     var projectedFinal = remaining > 0 ? Math.max(d.target, pnl) : pnl;
-    var consistencyCeiling = Math.max(projectedFinal, 1) * (c.plan.consistencyEval / 100);
-    var consistencyBreach = pnl > 0 && bestDay > consistencyCeiling;
+    var consistencyCeiling = evalConsistencyPct ? Math.max(projectedFinal, 1) * (evalConsistencyPct / 100) : 0;
+    var consistencyBreach = !!evalConsistencyPct && pnl > 0 && bestDay > consistencyCeiling;
 
     var paceLevel;
     if (perDayPctOfSize <= 1.2){ paceLevel = "good"; }
     else if (perDayPctOfSize <= 2.5){ paceLevel = "amber"; }
     else { paceLevel = "red"; }
 
-    renderAccountStatus("eval", pnl, effMll, { remaining: remaining, consistencyBreach: consistencyBreach, d: d });
+    renderAccountStatus("eval", pnl, effMll, { remaining: remaining, consistencyBreach: consistencyBreach, d: d, fundedConsistencyPct: fundedConsistencyPct });
 
     readoutList.innerHTML =
       coRow("Remaining to target", money(remaining)) +
@@ -1015,7 +1068,7 @@
       coRow("Max risk per trade", money(maxRiskPerTrade), "") +
       (dllOn ? coRow("Daily Loss Limit (firm)", money(600), "red") : "") +
       coRow(dllOn ? "Recommended stop-out" : "Self-imposed daily stop", money(maxDailyLossCap), "") +
-      coRow("Consistency ceiling (at target)", money(consistencyCeiling), consistencyBreach ? "red" : "");
+      (evalConsistencyPct ? coRow("Consistency ceiling (at target)", money(consistencyCeiling), consistencyBreach ? "red" : "") : "");
 
     var lines = [];
     if (remaining === 0){
@@ -1036,10 +1089,14 @@
     } else {
       lines.push(c.plan.name + (dllAvailable() ? ' has your Daily Loss Limit set to OFF' : ' sets no firm daily loss limit here') + ', so stop yourself at <b>' + money(maxDailyLossCap) + '</b> down for the day &mdash; the firm won’t, so you have to.');
     }
-    if (consistencyBreach){
-      lines.push('<span class="flag-red">Consistency flag:</span> your best day (' + money(bestDay) + ') is above the ' + c.plan.consistencyEval + '% ceiling projected at target (' + money(consistencyCeiling) + '). Bank a couple more solid days before you’d be eligible to pass.');
-    } else if (pnl > 0){
-      lines.push('Consistency check passes &mdash; your best day stays under <b>' + money(consistencyCeiling) + '</b>, the ' + c.plan.consistencyEval + '% ceiling once you hit target.');
+    if (evalConsistencyPct){
+      if (consistencyBreach){
+        lines.push('<span class="flag-red">Consistency flag:</span> your best day (' + money(bestDay) + ') is above the ' + evalConsistencyPct + '% ceiling projected at target (' + money(consistencyCeiling) + '). Bank a couple more solid days before you’d be eligible to pass.');
+      } else if (pnl > 0){
+        lines.push('Consistency check passes &mdash; your best day stays under <b>' + money(consistencyCeiling) + '</b>, the ' + evalConsistencyPct + '% ceiling once you hit target.');
+      }
+    } else {
+      lines.push(c.plan.name + ' has no consistency rule during evaluation &mdash; pass as fast as the math allows.');
     }
 
     coachText.innerHTML = lines.join(' ');
