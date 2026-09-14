@@ -1030,15 +1030,19 @@
     var winRate = winRatePct / 100;
     var avgR = Math.max(0, parseFloat(document.getElementById("avgRInput").value) || 0);
 
-    // Risk per trade is pure half-Kelly (f* = winRate - lossRate/avgR, at half
-    // strength to tame variance) against live balance — not capped by the
-    // account's DLL/MLL percentages, so it actually moves with balance, win
-    // rate, and R the way it's supposed to. Since an overconfident win-rate
-    // guess can then imply risking more than the firm's real hard limits,
-    // that's flagged explicitly instead of silently clamped away.
+    // Risk per trade is half-Kelly (f* = winRate - lossRate/avgR, at half
+    // strength to tame variance) against live balance, then capped at 10% of
+    // whatever cushion is actually left before the trailing Max Loss Limit
+    // gets breached (effMll minus today's drawdown already used) — not the
+    // static nominal MLL, so it shrinks as the account gets closer to blown
+    // and can never suggest risking more than the account has left to give.
     var currentBalance = Math.max(0, state.size + pnl);
     var kellyFraction = avgR > 0 ? Math.max(0, winRate - (1 - winRate) / avgR) : 0;
-    var maxRiskPerTrade = kellyFraction * 0.5 * currentBalance;
+    var kellyRisk = kellyFraction * 0.5 * currentBalance;
+    var lossUsed = pnl < 0 ? Math.abs(pnl) : 0;
+    var cushionRemaining = Math.max(0, effMll - lossUsed);
+    var cushionCap = cushionRemaining * 0.10;
+    var maxRiskPerTrade = Math.min(kellyRisk, cushionCap);
     var riskExceedsDll = dllOn && maxRiskPerTrade > 600;
     var riskExceedsMll = maxRiskPerTrade > effMll;
 
@@ -1100,7 +1104,7 @@
       } else if (riskExceedsDll){
         flines.push('<span class="flag-red">Edge outruns your Daily Loss Limit:</span> your win rate and R multiple imply risking <b>' + money(maxRiskPerTrade) + '</b> per trade &mdash; more than the entire $600 Daily Loss Limit. One trade could end your day; scale down manually no matter what the math says.');
       } else {
-        flines.push('Keep risk at or under <b>' + money(maxRiskPerTrade) + '</b> per trade &mdash; sized off your ' + winRatePct.toFixed(0) + '% win rate and ' + avgR.toFixed(1) + 'R edge (half-Kelly) against your current balance.');
+          flines.push('Keep risk at or under <b>' + money(maxRiskPerTrade) + '</b> per trade &mdash; sized off your ' + winRatePct.toFixed(0) + '% win rate and ' + avgR.toFixed(1) + 'R edge (half-Kelly), capped at 10% of the ' + money(cushionRemaining) + ' you have left before the Max Loss Limit.');
       }
       if (dllOn){
         if (dailyExceedsDll){
@@ -1192,7 +1196,7 @@
     } else if (riskExceedsDll){
       lines.push('<span class="flag-red">Edge outruns your Daily Loss Limit:</span> your win rate and R multiple imply risking <b>' + money(maxRiskPerTrade) + '</b> per trade &mdash; more than the entire $600 Daily Loss Limit. One trade could end your day; scale down manually no matter what the math says.');
     } else {
-      lines.push('Keep risk at or under <b>' + money(maxRiskPerTrade) + '</b> per trade &mdash; sized off your ' + winRatePct.toFixed(0) + '% win rate and ' + avgR.toFixed(1) + 'R edge (half-Kelly) against your current balance.');
+      lines.push('Keep risk at or under <b>' + money(maxRiskPerTrade) + '</b> per trade &mdash; sized off your ' + winRatePct.toFixed(0) + '% win rate and ' + avgR.toFixed(1) + 'R edge (half-Kelly), capped at 10% of the ' + money(cushionRemaining) + ' you have left before the Max Loss Limit.');
     }
     if (dllOn){
       if (dailyExceedsDll){
