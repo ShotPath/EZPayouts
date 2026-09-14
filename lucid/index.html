@@ -1024,13 +1024,26 @@
     var pnl = parseFloat(document.getElementById("pnlInput").value) || 0;
     var effMll = d.mll;
     var dllOn = dllActive();
-    var maxRiskPerTrade = Math.min(state.size * 0.01, effMll * 0.10, dllOn ? 600 * 0.15 : Infinity);
-    var maxDailyLossCap = dllOn ? 600 * 0.8 : effMll * 0.40;
     var bestDay = thisPhaseConsistencyPct ? (parseFloat(document.getElementById("bestDayInput").value) || 0) : 0;
 
     var winRatePct = Math.max(0, Math.min(100, parseFloat(document.getElementById("winRateInput").value) || 0));
     var winRate = winRatePct / 100;
     var avgR = Math.max(0, parseFloat(document.getElementById("avgRInput").value) || 0);
+
+    // Risk per trade is sized off the trader's own edge (half-Kelly: f* = winRate -
+    // lossRate/avgR, at half strength to tame variance) against their live balance,
+    // then hard-capped by the account's structural limits (1% of size, 10% of the
+    // Max Loss Limit, 15% of the Daily Loss Limit if one's running) so a rosy
+    // win-rate guess can never recommend more than the firm actually allows.
+    var currentBalance = Math.max(0, state.size + pnl);
+    var kellyFraction = avgR > 0 ? Math.max(0, winRate - (1 - winRate) / avgR) : 0;
+    var structuralRiskCap = Math.min(state.size * 0.01, effMll * 0.10, dllOn ? 600 * 0.15 : Infinity);
+    var maxRiskPerTrade = Math.min(kellyFraction * 0.5 * currentBalance, structuralRiskCap);
+
+    var structuralDailyCap = dllOn ? 600 * 0.8 : effMll * 0.40;
+    var maxDailyLossCap = Math.min(structuralDailyCap, maxRiskPerTrade * 3);
+    var dailyStopTradeCount = maxRiskPerTrade > 0 ? Math.max(1, Math.round(maxDailyLossCap / maxRiskPerTrade)) : null;
+
     var expectancyR = winRate * avgR - (1 - winRate);
     var expectancyDollar = expectancyR * maxRiskPerTrade;
 
@@ -1041,7 +1054,7 @@
     if (thisPhaseConsistencyPct && pnl > 0){
       var pctFrac = thisPhaseConsistencyPct / 100;
       safeDayTarget = (pctFrac * pnl) / (1 - pctFrac);
-      if (avgR > 0){
+      if (avgR > 0 && maxRiskPerTrade > 0){
         rawSuggestedRisk = safeDayTarget / avgR;
         suggestedRisk = Math.min(rawSuggestedRisk, maxRiskPerTrade);
       }
@@ -1062,10 +1075,9 @@
       readoutList.innerHTML =
         coRow("Qualifying days banked", qualDays + " of 5") +
         coRow("Daily minimum to qualify", money(d.dailyMin)) +
-        coRow("Max Loss Limit", money(effMll), "") +
-        coRow("Max risk per trade", money(maxRiskPerTrade), "") +
+        coRow("Max risk per trade", maxRiskPerTrade > 0 ? money(maxRiskPerTrade) : "No edge yet", maxRiskPerTrade > 0 ? "" : "red") +
         (dllOn ? coRow("Daily Loss Limit (firm)", money(600), "red") : "") +
-        coRow(dllOn ? "Recommended stop-out" : "Self-imposed daily stop", money(maxDailyLossCap), "") +
+        coRow(dllOn ? "Recommended stop-out" : "Self-imposed daily stop", maxDailyLossCap > 0 ? money(maxDailyLossCap) : "No edge yet", maxDailyLossCap > 0 ? "" : "red") +
         (fundedConsistencyPct ? coRow("Consistency ceiling (this cycle)", money(fundedConsistencyCeiling), fundedConsistencyBreach ? "red" : "") : "") +
         (safeDayTarget !== null ? coRow("Safe next-day target (consistency)", money(safeDayTarget), "") : "") +
         (suggestedRisk !== null ? coRow("Suggested risk to hit it", money(suggestedRisk), "") : "") +
@@ -1078,11 +1090,15 @@
       } else {
         flines.push('You’ve banked <b>' + qualDays + ' of 5</b> qualifying days needed for a payout &mdash; each one has to clear <b>' + money(d.dailyMin) + '</b> in profit.' + (qualDays < 5 ? ' ' + (5 - qualDays) + ' to go.' : ''));
       }
-      flines.push('Keep risk at or under <b>' + money(maxRiskPerTrade) + '</b> per trade' + (dllOn ? ' &mdash; sized so a bad run doesn’t threaten your $600 Daily Loss Limit.' : ' (1% of size, capped at 10% of your Max Loss Limit).'));
-      if (dllOn){
-        flines.push('You’re running a <b>$600 Daily Loss Limit</b> &mdash; trip it and today’s session is over. Pull the plug yourself at <b>' + money(maxDailyLossCap) + '</b> down (80% of the limit) so a slippage spike doesn’t blow it for you.');
+      if (maxRiskPerTrade > 0){
+        flines.push('Keep risk at or under <b>' + money(maxRiskPerTrade) + '</b> per trade &mdash; sized off your ' + winRatePct.toFixed(0) + '% win rate and ' + avgR.toFixed(1) + 'R edge (half-Kelly) against your current balance, capped by your prop-firm limits.');
       } else {
-        flines.push(c.plan.name + (dllAvailable() ? ' has your Daily Loss Limit set to OFF' : ' sets no firm daily loss limit here') + ', so stop yourself at <b>' + money(maxDailyLossCap) + '</b> down for the day &mdash; the firm won’t, so you have to.');
+        flines.push('<span class="flag-red">No sizeable edge yet:</span> at a ' + winRatePct.toFixed(0) + '% win rate and ' + avgR.toFixed(1) + 'R average, the math doesn’t support a recommended risk size &mdash; until your win rate or R improves, trade minimum size or paper trade.');
+      }
+      if (dllOn){
+        flines.push('You’re running a <b>$600 Daily Loss Limit</b> &mdash; trip it and today’s session is over. Pull the plug yourself at <b>' + money(maxDailyLossCap) + '</b> down' + (dailyStopTradeCount ? ' (about ' + dailyStopTradeCount + ' losing trade' + (dailyStopTradeCount === 1 ? '' : 's') + ' at your current sizing)' : '') + ' so a slippage spike doesn’t blow it for you.');
+      } else {
+        flines.push(c.plan.name + (dllAvailable() ? ' has your Daily Loss Limit set to OFF' : ' sets no firm daily loss limit here') + ', so stop yourself at <b>' + money(maxDailyLossCap) + '</b> down for the day' + (dailyStopTradeCount ? ' (about ' + dailyStopTradeCount + ' losing trade' + (dailyStopTradeCount === 1 ? '' : 's') + ' at your current sizing)' : '') + ' &mdash; the firm won’t, so you have to.');
       }
       if (fundedConsistencyPct){
         if (fundedConsistencyBreach){
@@ -1134,10 +1150,9 @@
     readoutList.innerHTML =
       coRow("Remaining to target", money(remaining)) +
       coRow("Required pace / day", money(perDay) + " &nbsp;(" + perDayPctOfSize.toFixed(2) + "% of size)", paceLevel === "red" ? "red" : "") +
-      coRow("Max Loss Limit", money(effMll), "") +
-      coRow("Max risk per trade", money(maxRiskPerTrade), "") +
+      coRow("Max risk per trade", maxRiskPerTrade > 0 ? money(maxRiskPerTrade) : "No edge yet", maxRiskPerTrade > 0 ? "" : "red") +
       (dllOn ? coRow("Daily Loss Limit (firm)", money(600), "red") : "") +
-      coRow(dllOn ? "Recommended stop-out" : "Self-imposed daily stop", money(maxDailyLossCap), "") +
+      coRow(dllOn ? "Recommended stop-out" : "Self-imposed daily stop", maxDailyLossCap > 0 ? money(maxDailyLossCap) : "No edge yet", maxDailyLossCap > 0 ? "" : "red") +
       (evalConsistencyPct ? coRow("Consistency ceiling (at target)", money(consistencyCeiling), consistencyBreach ? "red" : "") : "") +
       (safeDayTarget !== null ? coRow("Safe next-day target (consistency)", money(safeDayTarget), "") : "") +
       (suggestedRisk !== null ? coRow("Suggested risk to hit it", money(suggestedRisk), "") : "") +
@@ -1157,11 +1172,15 @@
         lines.push('That’s a <b>reasonable pace</b> relative to your Max Loss Limit &mdash; no need to force trades.');
       }
     }
-    lines.push('Keep risk at or under <b>' + money(maxRiskPerTrade) + '</b> per trade' + (dllOn ? ' &mdash; sized so a bad run doesn’t threaten your $600 Daily Loss Limit.' : ' (1% of size, capped at 10% of your Max Loss Limit).'));
-    if (dllOn){
-      lines.push('You’re running a <b>$600 Daily Loss Limit</b> &mdash; trip it and today’s session is over. Pull the plug yourself at <b>' + money(maxDailyLossCap) + '</b> down (80% of the limit) so a slippage spike doesn’t blow it for you.');
+    if (maxRiskPerTrade > 0){
+      lines.push('Keep risk at or under <b>' + money(maxRiskPerTrade) + '</b> per trade &mdash; sized off your ' + winRatePct.toFixed(0) + '% win rate and ' + avgR.toFixed(1) + 'R edge (half-Kelly) against your current balance, capped by your prop-firm limits.');
     } else {
-      lines.push(c.plan.name + (dllAvailable() ? ' has your Daily Loss Limit set to OFF' : ' sets no firm daily loss limit here') + ', so stop yourself at <b>' + money(maxDailyLossCap) + '</b> down for the day &mdash; the firm won’t, so you have to.');
+      lines.push('<span class="flag-red">No sizeable edge yet:</span> at a ' + winRatePct.toFixed(0) + '% win rate and ' + avgR.toFixed(1) + 'R average, the math doesn’t support a recommended risk size &mdash; until your win rate or R improves, trade minimum size or paper trade.');
+    }
+    if (dllOn){
+      lines.push('You’re running a <b>$600 Daily Loss Limit</b> &mdash; trip it and today’s session is over. Pull the plug yourself at <b>' + money(maxDailyLossCap) + '</b> down' + (dailyStopTradeCount ? ' (about ' + dailyStopTradeCount + ' losing trade' + (dailyStopTradeCount === 1 ? '' : 's') + ' at your current sizing)' : '') + ' so a slippage spike doesn’t blow it for you.');
+    } else {
+      lines.push(c.plan.name + (dllAvailable() ? ' has your Daily Loss Limit set to OFF' : ' sets no firm daily loss limit here') + ', so stop yourself at <b>' + money(maxDailyLossCap) + '</b> down for the day' + (dailyStopTradeCount ? ' (about ' + dailyStopTradeCount + ' losing trade' + (dailyStopTradeCount === 1 ? '' : 's') + ' at your current sizing)' : '') + ' &mdash; the firm won’t, so you have to.');
     }
     if (evalConsistencyPct){
       if (consistencyBreach){
