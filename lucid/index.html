@@ -262,6 +262,13 @@
   }
   .field input[type="file"]::file-selector-button:hover{ background:var(--mint); color:var(--mint-text); border-color:var(--mint); }
 
+  .csv-chart-wrap{
+    margin-top:20px; padding:14px 16px 8px; border-radius:14px;
+    background:var(--void); border:1px solid var(--hairline-bright);
+  }
+  .csv-chart-title{ font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); margin-bottom:8px; }
+  .csv-chart-wrap svg{ display:block; }
+
   .csv-steps{ margin:0 0 18px; padding-left:20px; display:flex; flex-direction:column; gap:8px; }
   .csv-steps li{ font-size:13.5px; color:var(--muted); line-height:1.55; }
   .csv-steps li::marker{ color:var(--phosphor-dim); font-family:var(--font-mono); }
@@ -426,6 +433,13 @@
         <label for="csvFile">Account Balance History CSV</label>
         <input id="csvFile" type="file" accept=".csv,text/csv" />
         <span class="hint" id="csvMessage">Auto-fills Net P&amp;L and Best Day below once uploaded. Cash History files are also accepted.</span>
+      </div>
+      <div id="csvResults" hidden>
+        <div class="csv-chart-wrap">
+          <div class="csv-chart-title">Cumulative P&amp;L</div>
+          <div id="csvChart"></div>
+        </div>
+        <div class="readout-list" id="csvConsistencyList" style="margin-top:16px;"></div>
       </div>
     </div>
   </div>
@@ -1020,6 +1034,19 @@
     var expectancyR = winRate * avgR - (1 - winRate);
     var expectancyDollar = expectancyR * maxRiskPerTrade;
 
+    // Safe next single-day target that keeps the current phase's consistency ratio
+    // intact: if D is the next day's profit and P is profit banked so far, the
+    // rule requires D <= pct * (P + D), which solves to D <= (pct * P) / (1 - pct).
+    var safeDayTarget = null, rawSuggestedRisk = null, suggestedRisk = null;
+    if (thisPhaseConsistencyPct && pnl > 0){
+      var pctFrac = thisPhaseConsistencyPct / 100;
+      safeDayTarget = (pctFrac * pnl) / (1 - pctFrac);
+      if (avgR > 0){
+        rawSuggestedRisk = safeDayTarget / avgR;
+        suggestedRisk = Math.min(rawSuggestedRisk, maxRiskPerTrade);
+      }
+    }
+
     function coRow(label, value, cls){
       return '<div class="readout"><span class="rlabel">' + label + '</span><span class="rvalue' + (cls ? " " + cls : "") + '">' + value + '</span></div>';
     }
@@ -1040,6 +1067,8 @@
         (dllOn ? coRow("Daily Loss Limit (firm)", money(600), "red") : "") +
         coRow(dllOn ? "Recommended stop-out" : "Self-imposed daily stop", money(maxDailyLossCap), "") +
         (fundedConsistencyPct ? coRow("Consistency ceiling (this cycle)", money(fundedConsistencyCeiling), fundedConsistencyBreach ? "red" : "") : "") +
+        (safeDayTarget !== null ? coRow("Safe next-day target (consistency)", money(safeDayTarget), "") : "") +
+        (suggestedRisk !== null ? coRow("Suggested risk to hit it", money(suggestedRisk), "") : "") +
         coRow("Trade expectancy", expectancyR.toFixed(2) + "R &nbsp;(" + money(expectancyDollar) + "/trade)", expectancyR < 0 ? "red" : "") +
         (expectancyDollar > 0 ? coRow("Est. trades per qualifying day", Math.ceil(d.dailyMin / expectancyDollar) + " trades") : "");
 
@@ -1063,6 +1092,17 @@
         }
       } else {
         flines.push('No consistency rule once funded &mdash; only the trailing Max Loss Limit matters now.');
+      }
+      if (safeDayTarget !== null){
+        if (rawSuggestedRisk !== null && rawSuggestedRisk > maxRiskPerTrade){
+          flines.push('To stay inside the ' + fundedConsistencyPct + '% cap, keep any single day at or under <b>' + money(safeDayTarget) + '</b> for now &mdash; hitting that in one trade would take about ' + money(rawSuggestedRisk) + ' of risk at your ' + avgR.toFixed(1) + 'R average, more than your ' + money(maxRiskPerTrade) + ' cap, so plan on a couple of trades instead of one oversized one.');
+        } else if (suggestedRisk !== null){
+          flines.push('To stay inside the ' + fundedConsistencyPct + '% cap, keep any single day at or under <b>' + money(safeDayTarget) + '</b> for now &mdash; at your ' + avgR.toFixed(1) + 'R average, size risk near <b>' + money(suggestedRisk) + '</b> per trade to land there.');
+        } else {
+          flines.push('To stay inside the ' + fundedConsistencyPct + '% cap, keep any single day at or under <b>' + money(safeDayTarget) + '</b> for now.');
+        }
+      } else if (fundedConsistencyPct){
+        flines.push('Once this cycle is net positive, this section will suggest a safe single-day target and the risk size to hit it.');
       }
       if (expectancyR < 0){
         flines.push('<span class="flag-red">Negative expectancy:</span> at a ' + winRatePct.toFixed(0) + '% win rate and ' + avgR.toFixed(1) + 'R average, you’re expected to lose ' + money(Math.abs(expectancyDollar)) + ' per trade &mdash; fix the edge before pushing size, funded or not.');
@@ -1099,6 +1139,8 @@
       (dllOn ? coRow("Daily Loss Limit (firm)", money(600), "red") : "") +
       coRow(dllOn ? "Recommended stop-out" : "Self-imposed daily stop", money(maxDailyLossCap), "") +
       (evalConsistencyPct ? coRow("Consistency ceiling (at target)", money(consistencyCeiling), consistencyBreach ? "red" : "") : "") +
+      (safeDayTarget !== null ? coRow("Safe next-day target (consistency)", money(safeDayTarget), "") : "") +
+      (suggestedRisk !== null ? coRow("Suggested risk to hit it", money(suggestedRisk), "") : "") +
       coRow("Trade expectancy", expectancyR.toFixed(2) + "R &nbsp;(" + money(expectancyDollar) + "/trade)", expectancyR < 0 ? "red" : "") +
       (expectancyDollar > 0 ? coRow("Est. trades to target", Math.ceil(remaining / expectancyDollar) + " trades") : "");
 
@@ -1129,6 +1171,17 @@
       }
     } else {
       lines.push(c.plan.name + ' has no consistency rule during evaluation &mdash; pass as fast as the math allows.');
+    }
+    if (safeDayTarget !== null){
+      if (rawSuggestedRisk !== null && rawSuggestedRisk > maxRiskPerTrade){
+        lines.push('To stay inside the ' + evalConsistencyPct + '% cap, keep any single day at or under <b>' + money(safeDayTarget) + '</b> for now &mdash; hitting that in one trade would take about ' + money(rawSuggestedRisk) + ' of risk at your ' + avgR.toFixed(1) + 'R average, more than your ' + money(maxRiskPerTrade) + ' cap, so plan on a couple of trades instead of one oversized one.');
+      } else if (suggestedRisk !== null){
+        lines.push('To stay inside the ' + evalConsistencyPct + '% cap, keep any single day at or under <b>' + money(safeDayTarget) + '</b> for now &mdash; at your ' + avgR.toFixed(1) + 'R average, size risk near <b>' + money(suggestedRisk) + '</b> per trade to land there.');
+      } else {
+        lines.push('To stay inside the ' + evalConsistencyPct + '% cap, keep any single day at or under <b>' + money(safeDayTarget) + '</b> for now.');
+      }
+    } else if (evalConsistencyPct){
+      lines.push('Once you’re net positive, this section will suggest a safe single-day target and the risk size to hit it.');
     }
     if (expectancyR < 0){
       lines.push('<span class="flag-red">Negative expectancy:</span> at a ' + winRatePct.toFixed(0) + '% win rate and ' + avgR.toFixed(1) + 'R average, you’re expected to lose ' + money(Math.abs(expectancyDollar)) + ' per trade on average. No amount of pace or sizing fixes a losing edge &mdash; improve your win rate or R multiple before pushing size.');
@@ -1198,11 +1251,64 @@
     body.innerHTML = html;
   }
 
+  var lastCsvResult = null;
+
+  function buildPnlChartSvg(series){
+    var w = 600, h = 160, padX = 8, padY = 14;
+    var minV = Math.min.apply(null, series.concat([0]));
+    var maxV = Math.max.apply(null, series.concat([0]));
+    var range = (maxV - minV) || 1;
+    function xAt(i){ return padX + (i / (series.length - 1)) * (w - padX * 2); }
+    function yAt(v){ return h - padY - ((v - minV) / range) * (h - padY * 2); }
+    var zeroY = yAt(0);
+    var pts = series.map(function(v, i){ return xAt(i).toFixed(1) + "," + yAt(v).toFixed(1); }).join(" ");
+    var areaPts = pts + " " + xAt(series.length - 1).toFixed(1) + "," + zeroY.toFixed(1) + " " + xAt(0).toFixed(1) + "," + zeroY.toFixed(1);
+    var last = series[series.length - 1];
+    var lineColor = last >= 0 ? "#3ee08c" : "#ef5a5a";
+    return '<svg viewBox="0 0 ' + w + ' ' + h + '" width="100%" height="160" preserveAspectRatio="none" role="img" aria-label="Cumulative P&amp;L chart">' +
+      '<defs><linearGradient id="pnlFill" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0%" stop-color="' + lineColor + '" stop-opacity="0.28"/>' +
+        '<stop offset="100%" stop-color="' + lineColor + '" stop-opacity="0"/>' +
+      '</linearGradient></defs>' +
+      '<line x1="' + padX + '" y1="' + zeroY.toFixed(1) + '" x2="' + (w - padX) + '" y2="' + zeroY.toFixed(1) + '" stroke="#23332a" stroke-width="1" stroke-dasharray="3,3"/>' +
+      '<polygon points="' + areaPts + '" fill="url(#pnlFill)" stroke="none"/>' +
+      '<polyline points="' + pts + '" fill="none" stroke="' + lineColor + '" stroke-width="2"/>' +
+    '</svg>';
+  }
+
+  function renderCsvChart(days, byDay){
+    var sorted = days.slice().sort();
+    var series = [0];
+    var cum = 0;
+    sorted.forEach(function(day){ cum += byDay[day]; series.push(cum); });
+    document.getElementById("csvChart").innerHTML = buildPnlChartSvg(series);
+  }
+
+  function renderCsvConsistency(){
+    if (!lastCsvResult) return;
+    var best = lastCsvResult.best, total = lastCsvResult.total;
+    var list = document.getElementById("csvConsistencyList");
+    if (total <= 0 || best <= 0){
+      list.innerHTML = row("Current Consistency", plainValue("N/A", ""), "", "Needs a net positive total with at least one profitable day");
+      return;
+    }
+    var pct = (best / total) * 100;
+    var c = current();
+    var limitPct = state.phase === "funded" ? c.plan.consistency.funded : c.plan.consistency.eval;
+    var overLimit = !!limitPct && pct > limitPct;
+    var phaseWord = state.phase === "funded" ? "funded" : "evaluation";
+    var sub = limitPct
+      ? "Largest day " + money(best) + " of " + money(total) + " total &mdash; " + phaseWord + " cap is " + limitPct + "%"
+      : "Largest day " + money(best) + " of " + money(total) + " total &mdash; " + c.plan.name + " has no consistency rule during " + phaseWord;
+    list.innerHTML = row("Current Consistency", plainValue(pct.toFixed(1) + "%", overLimit ? "red" : ""), "", sub);
+  }
+
   function renderAll(){
     renderStats();
     renderCoPilot();
     renderCosts();
     renderAccountMenu();
+    renderCsvConsistency();
   }
 
   statList.addEventListener("click", function(e){
@@ -1223,6 +1329,7 @@
     if (e.target.dataset.phase !== undefined){
       state.phase = e.target.dataset.phase;
       renderCoPilot();
+      renderCsvConsistency();
       saveState();
     }
   });
@@ -1420,6 +1527,10 @@
 
         document.getElementById("pnlInput").value = Math.round(total);
         document.getElementById("bestDayInput").value = Math.round(best);
+        lastCsvResult = { best: best, total: total };
+        renderCsvChart(days, byDay);
+        renderCsvConsistency();
+        document.getElementById("csvResults").hidden = false;
         renderCoPilot();
         saveState();
         csvSetMessage("Imported " + tradedDays + " trading day(s) from " + (format === "balance" ? "Account Balance History" : "Cash History") + ". Total P&L " + money(total) + ", best day " + money(best) + ". Double-check this against your dashboard, especially on a first import.");
