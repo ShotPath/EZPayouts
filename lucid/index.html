@@ -244,6 +244,8 @@
 
   .field{ display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
   .field[hidden]{ display:none; }
+  .field-row{ display:flex; gap:12px; }
+  .field-row .field{ flex:1; margin-bottom:6px; }
   .field label{ font-family:var(--font-mono); font-size:11.5px; letter-spacing:0.06em; color:var(--muted); text-transform:uppercase; }
   .field input, .field select{
     background:var(--void); border:1px solid var(--hairline); border-radius:10px;
@@ -470,6 +472,17 @@
             <input id="bestDayInput" type="number" step="1" value="617" />
             <span class="hint">Needed to check the 50% consistency rule during evaluation.</span>
           </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="winRateInput">Expected win rate (%)</label>
+              <input id="winRateInput" type="number" step="1" min="0" max="100" value="50" />
+            </div>
+            <div class="field">
+              <label for="avgRInput">Average R multiple</label>
+              <input id="avgRInput" type="number" step="0.1" min="0" value="2" />
+            </div>
+          </div>
+          <span class="hint" style="display:block; margin:0 0 16px;">R = reward &divide; risk on a trade &mdash; risking 30pts to make 60pts is 2R. Feeds the expectancy read below.</span>
         </div>
         <div class="readout-list" id="readoutList"></div>
       </div>
@@ -679,7 +692,9 @@
         pnl: document.getElementById("pnlInput").value,
         days: document.getElementById("daysInput").value,
         bestDay: document.getElementById("bestDayInput").value,
-        qualDays: document.getElementById("qualDaysInput").value
+        qualDays: document.getElementById("qualDaysInput").value,
+        winRate: document.getElementById("winRateInput").value,
+        avgR: document.getElementById("avgRInput").value
       }));
     } catch(e){}
   }
@@ -699,6 +714,8 @@
       if (saved.days !== undefined) document.getElementById("daysInput").value = saved.days;
       if (saved.bestDay !== undefined) document.getElementById("bestDayInput").value = saved.bestDay;
       if (saved.qualDays !== undefined) document.getElementById("qualDaysInput").value = saved.qualDays;
+      if (saved.winRate !== undefined) document.getElementById("winRateInput").value = saved.winRate;
+      if (saved.avgR !== undefined) document.getElementById("avgRInput").value = saved.avgR;
     } catch(e){}
   }
 
@@ -997,6 +1014,12 @@
     var maxDailyLossCap = dllOn ? 600 * 0.8 : effMll * 0.40;
     var bestDay = thisPhaseConsistencyPct ? (parseFloat(document.getElementById("bestDayInput").value) || 0) : 0;
 
+    var winRatePct = Math.max(0, Math.min(100, parseFloat(document.getElementById("winRateInput").value) || 0));
+    var winRate = winRatePct / 100;
+    var avgR = Math.max(0, parseFloat(document.getElementById("avgRInput").value) || 0);
+    var expectancyR = winRate * avgR - (1 - winRate);
+    var expectancyDollar = expectancyR * maxRiskPerTrade;
+
     function coRow(label, value, cls){
       return '<div class="readout"><span class="rlabel">' + label + '</span><span class="rvalue' + (cls ? " " + cls : "") + '">' + value + '</span></div>';
     }
@@ -1016,7 +1039,9 @@
         coRow("Max risk per trade", money(maxRiskPerTrade), "") +
         (dllOn ? coRow("Daily Loss Limit (firm)", money(600), "red") : "") +
         coRow(dllOn ? "Recommended stop-out" : "Self-imposed daily stop", money(maxDailyLossCap), "") +
-        (fundedConsistencyPct ? coRow("Consistency ceiling (this cycle)", money(fundedConsistencyCeiling), fundedConsistencyBreach ? "red" : "") : "");
+        (fundedConsistencyPct ? coRow("Consistency ceiling (this cycle)", money(fundedConsistencyCeiling), fundedConsistencyBreach ? "red" : "") : "") +
+        coRow("Trade expectancy", expectancyR.toFixed(2) + "R &nbsp;(" + money(expectancyDollar) + "/trade)", expectancyR < 0 ? "red" : "") +
+        (expectancyDollar > 0 ? coRow("Est. trades per qualifying day", Math.ceil(d.dailyMin / expectancyDollar) + " trades") : "");
 
       var flines = [];
       if (qualDays >= 5 && pnl > 0){
@@ -1038,6 +1063,11 @@
         }
       } else {
         flines.push('No consistency rule once funded &mdash; only the trailing Max Loss Limit matters now.');
+      }
+      if (expectancyR < 0){
+        flines.push('<span class="flag-red">Negative expectancy:</span> at a ' + winRatePct.toFixed(0) + '% win rate and ' + avgR.toFixed(1) + 'R average, you’re expected to lose ' + money(Math.abs(expectancyDollar)) + ' per trade &mdash; fix the edge before pushing size, funded or not.');
+      } else {
+        flines.push('At a ' + winRatePct.toFixed(0) + '% win rate and ' + avgR.toFixed(1) + 'R average, your expectancy is <b>+' + expectancyR.toFixed(2) + 'R</b> per trade (about <b>' + money(expectancyDollar) + '</b>).');
       }
 
       coachText.innerHTML = flines.join(' ');
@@ -1068,7 +1098,9 @@
       coRow("Max risk per trade", money(maxRiskPerTrade), "") +
       (dllOn ? coRow("Daily Loss Limit (firm)", money(600), "red") : "") +
       coRow(dllOn ? "Recommended stop-out" : "Self-imposed daily stop", money(maxDailyLossCap), "") +
-      (evalConsistencyPct ? coRow("Consistency ceiling (at target)", money(consistencyCeiling), consistencyBreach ? "red" : "") : "");
+      (evalConsistencyPct ? coRow("Consistency ceiling (at target)", money(consistencyCeiling), consistencyBreach ? "red" : "") : "") +
+      coRow("Trade expectancy", expectancyR.toFixed(2) + "R &nbsp;(" + money(expectancyDollar) + "/trade)", expectancyR < 0 ? "red" : "") +
+      (expectancyDollar > 0 ? coRow("Est. trades to target", Math.ceil(remaining / expectancyDollar) + " trades") : "");
 
     var lines = [];
     if (remaining === 0){
@@ -1097,6 +1129,11 @@
       }
     } else {
       lines.push(c.plan.name + ' has no consistency rule during evaluation &mdash; pass as fast as the math allows.');
+    }
+    if (expectancyR < 0){
+      lines.push('<span class="flag-red">Negative expectancy:</span> at a ' + winRatePct.toFixed(0) + '% win rate and ' + avgR.toFixed(1) + 'R average, you’re expected to lose ' + money(Math.abs(expectancyDollar)) + ' per trade on average. No amount of pace or sizing fixes a losing edge &mdash; improve your win rate or R multiple before pushing size.');
+    } else if (remaining > 0){
+      lines.push('At a ' + winRatePct.toFixed(0) + '% win rate and ' + avgR.toFixed(1) + 'R average, your expectancy is <b>+' + expectancyR.toFixed(2) + 'R</b> per trade (about <b>' + money(expectancyDollar) + '</b>) &mdash; roughly <b>' + (expectancyDollar > 0 ? Math.ceil(remaining / expectancyDollar) : '&mdash;') + ' trades</b> at that edge to reach target.');
     }
 
     coachText.innerHTML = lines.join(' ');
@@ -1189,7 +1226,7 @@
       saveState();
     }
   });
-  ["pnlInput","daysInput","bestDayInput","qualDaysInput"].forEach(function(id){
+  ["pnlInput","daysInput","bestDayInput","qualDaysInput","winRateInput","avgRInput"].forEach(function(id){
     document.getElementById(id).addEventListener("input", function(){
       renderCoPilot();
       saveState();
