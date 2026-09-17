@@ -1,15 +1,155 @@
 [
   {
+    "id": "https://www.investing.com/news/economy-news/calls-to-slow-down-ai-development-serve-the-interests-of-us-ai-leaders-says-french-finance-minister-4904096",
+    "title": "Calls to slow AI benefit US sector leaders, says French finance minister",
+    "timestamp": "2026-09-17T04:24:52.000Z",
+    "major": false,
+    "summary": ""
+  },
+  {
+    "id": "https://www.investing.com/news/commodities-news/trump-hopes-iran-war-nearing-end-as-houthisaudi-fighting-escalates-4904794",
+    "title": "Trump hopes Iran war nearing end as Houthi-Saudi fighting escalates",
+    "timestamp": "2026-09-17T04:24:32.000Z",
+    "major": true,
+    "summary": ""
+  },
+  {
+    "id": "https://www.investing.com/news/insider-trading-news/boston-omaha-director-keating-sells-137m-in-class-a-stock-93CH-4904793",
+    "title": "Boston Omaha director Keating sells $1.37m in Class A stock",
+    "timestamp": "2026-09-17T04:15:53.000Z",
+    "major": false,
+    "summary": ""
+  },
+  {
+    "id": "https://www.investing.com/news/insider-trading-news/landmark-bancorp-director-jim-lewis-sells-13168-lark-shares-93CH-4904792",
+    "title": "Landmark Bancorp director Jim Lewis sells $13,168 LARK shares",
+    "timestamp": "2026-09-17T04:15:50.000Z",
+    "major": false,
+    "summary": ""
+  },
+  {
+    "id": "https://www.investing.com/news/stock-market-news/gift-nifty-50-consolidates-bearishly-near-23595-resistance-live-93CH-4900761",
+    "title": "Gift Nifty 50 bear flag 80% done, drop risk rising: Live levels",
+    "timestamp": "2026-09-17T04:02:16.000Z",
+    "major": false,
+    "summary": ""
+  },
+  {
+    "id": "https://www.investing.com/news/stock-market-news/asian-stocks-edge-higher-as-fed-hike-eases-bond-fears-china-shares-lag-4904790",
+    "title": "Asian stocks edge higher as Fed hike eases bond fears, China shares lag",
+    "timestamp": "2026-09-17T03:54:38.000Z",
+    "major": true,
+    "summary": ""
+  },
+  {
+    "id": "https://www.investing.com/news/insider-trading-news/gigacloud-technology-director-chen-zhiwu-sells-158010-in-shares-93CH-4904789",
+    "title": "GigaCloud technology director Chen Zhiwu sells $158,010 in shares",
+    "timestamp": "2026-09-17T03:46:00.000Z",
+    "major": false,
+    "summary": ""
+  },
+  {
+    "id": "https://www.investing.com/news/insider-trading-news/gcm-grosvenor-cfo-pamela-bentley-sells-629k-in-shares-93CH-4904788",
+    "title": "GCM Grosvenor CFO Pamela Bentley sells $629k in shares",
+    "timestamp": "2026-09-17T03:45:59.000Z",
+    "major": false,
+    "summary": ""
+  },
+  {
     "title": "CPI print beats forecasts — ES whips 25 handles in under a minute",
     "timestamp": "2026-09-17T03:45:00Z",
     "major": true,
     "summary": "A hotter-than-expected inflation read sent index futures sharply lower before ripping back, stopping out breakouts on both sides."
   },
   {
+    "id": "https://www.investing.com/news/stock-market-news/chinas-huawei-sets-2027-launch-for-new-ai-chips-as-it-targets-nvidia-4904787",
+    "title": "China’s Huawei sets 2027 launch for new AI chips as it targets Nvidia",
+    "timestamp": "2026-09-17T03:36:48.000Z",
+    "major": false,
+    "summary": ""
+  },
+  {
+    "id": "https://www.investing.com/news/economy-news/goldman-sachs-now-sees-fed-hiking-again-in-october-4904743",
+    "title": "Goldman Sachs sees October Fed hike after hawkish signal",
+    "timestamp": "2026-09-17T03:36:32.000Z",
+    "major": true,
+    "summary": ""
+  },
+  {
     "title": "Overnight liquidity thin ahead of the cash open — spreads wider than usual",
     "timestamp": "2026-09-17T00:10:00Z",
     "major": false,
     "summary": "Low overnight volume left order books thin; expect choppier fills until the regular session gets going."
+  },
+  {
+    "id": "https://www.marketwatch.com/story/intels-stock-rises-as-investors-hope-memory-chips-can-mark-the-next-step-in-its-turnaround-a276608f?mod=mw_rss_topstories",
+    "title": "Intel’s stock rises as investors hope memory chips can mark the next step in its turnaround",
+    "timestamp": "2026-09-16T23:51:00.000Z",
+    "major": false,
+    "summary": "A report says Intel is in early talks with SK Hynix, which is considering some sort of partnership that would enable it to make memory chips in the U.S."
+  },
+  {
+    "id": "https://www.marketwatch.com/story/warshs-fed-rolls-out-first-interest-rate-hike-in-3-years-with-one-more-increase-expected-cde3060d?mod=mw_rss_topstories",
+    "title": "As Fed rolls out its first interest-rate hike in 3 years, market braces for more increases",
+    "timestamp": "2026-09-16T22:25:00.000Z",
+    "major": true,
+    "summary": "The Fed’s policy-making committee was unanimous in its decision to hike, but forward guidance was split."
+  },
+  {
+    "id": "https://www.marketwatch.com/story/my-rental-property-is-paid-off-but-i-need-cash-is-this-a-bad-time-to-take-out-a-50-000-heloc-d094bbc5?mod=mw_rss_topstories",
+    "title": "My rental property is paid off, but I need cash. Is this a bad time to take out a $50,000 HELOC?",
+    "timestamp": "2026-09-16T22:16:00.000Z",
+    "major": false,
+    "summary": "The Federal Reserve announced a quarter-percentage-point interest-rate hike Wednesday, to a range of 3.75%-4.0%."
+  },
+  {
+    "id": "https://www.marketwatch.com/story/there-might-be-a-silver-lining-my-friends-wife-died-at-60-after-a-high-earning-career-can-he-claim-her-social-security-eb95210a?mod=mw_rss_topstories",
+    "title": "&#x2018;There might be a silver lining’: My friend’s wife died at 60 after a high-earning career. Can he claim her Social Security?",
+    "timestamp": "2026-09-16T22:15:00.000Z",
+    "major": false,
+    "summary": "&#x201c;They had been married for over 30 years when she passed.&#x201d;"
+  },
+  {
+    "id": "https://www.marketwatch.com/story/generacs-stock-soars-more-than-30-after-amazon-deal-cements-its-status-as-ai-power-player-a842b0dc?mod=mw_rss_topstories",
+    "title": "Generac’s stock soars more than 30% after Amazon deal cements company’s status as an AI power player",
+    "timestamp": "2026-09-16T21:56:00.000Z",
+    "major": true,
+    "summary": "First deliveries of Generac’s backup power generators are worth $2.4 billion."
+  },
+  {
+    "id": "https://www.marketwatch.com/story/fed-rate-hike-fails-to-calm-troubled-markets-as-dow-falls-600-points-expect-more-sharp-swings-in-stocks-and-bonds-5ffb55fe?mod=mw_rss_topstories",
+    "title": "Fed rate hike fails to calm troubled markets as Dow falls 600 points. Expect more sharp swings in stocks and bonds.",
+    "timestamp": "2026-09-16T21:40:00.000Z",
+    "major": true,
+    "summary": "Fed Chair Kevin Warsh has sent investors a message: When it comes to tamping down inflation, he means business."
+  },
+  {
+    "id": "https://www.marketwatch.com/story/why-optical-stocks-lumentum-and-coherent-were-the-days-biggest-gainers-051af440?mod=mw_rss_topstories",
+    "title": "Why optical stocks Lumentum and Coherent were the day’s biggest S&P 500 gainers",
+    "timestamp": "2026-09-16T20:52:00.000Z",
+    "major": false,
+    "summary": "Investors are looking further down the AI data-center supply chain for signs of demand amid concerns of a spending slowdown, one expert says."
+  },
+  {
+    "id": "https://www.marketwatch.com/story/heres-a-sneaky-way-to-play-the-feds-rate-increase-6deb072f?mod=mw_rss_topstories",
+    "title": "Here’s a sneaky way to play the Fed’s rate increase",
+    "timestamp": "2026-09-16T20:38:00.000Z",
+    "major": false,
+    "summary": "But watch out for the pitfalls."
+  },
+  {
+    "id": "https://www.marketwatch.com/story/i-am-drowning-in-debt-i-have-125-000-in-credit-card-debt-will-9-000-in-disability-income-affect-my-bankruptcy-f897c131?mod=mw_rss_topstories",
+    "title": "I have $125,000 in credit-card debt. Will $17,000 a month in income, including disability, affect my bankruptcy?",
+    "timestamp": "2026-09-16T19:15:00.000Z",
+    "major": true,
+    "summary": "&#x201c;I racked up this debt to cover my living expenses for two years without an income stream.&#x201d;"
+  },
+  {
+    "id": "https://www.marketwatch.com/story/google-is-playing-a-different-ai-game-than-everyone-else-and-wall-street-may-be-missing-the-point-e91077a3?mod=mw_rss_topstories",
+    "title": "Google is playing a different AI game than everyone else, and Wall Street may be missing the point",
+    "timestamp": "2026-09-16T18:57:00.000Z",
+    "major": false,
+    "summary": "Investors have been fixated on the relative performance of Alphabet’s AI models when they should instead be cheering the company’s cloud potential, an analyst says."
   },
   {
     "title": "FOMC statement triggers a sharp two-sided reaction across index futures",
