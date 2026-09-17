@@ -184,6 +184,7 @@
 
   var feedEl = document.getElementById("newsFeed");
   var items = [];
+  var MAX_ITEMS = 25;
 
   function render(){
     if (!items.length){
@@ -192,7 +193,7 @@
     }
     var sorted = items.slice().sort(function(a, b){
       return new Date(b.timestamp) - new Date(a.timestamp);
-    });
+    }).slice(0, MAX_ITEMS);
     feedEl.innerHTML = sorted.map(function(item){
       var isMajor = !!item.major;
       return '' +
