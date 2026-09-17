@@ -19,7 +19,24 @@ const MAX_ITEMS = 25;
 const FEEDS = [
   "https://www.investing.com/rss/news.rss",
   "https://feeds.content.dowjones.io/public/rss/mw_topstories",
+  // Official Federal Reserve press releases and speeches — free, public,
+  // and the most authoritative source available for anything the Fed (or
+  // the sitting Chair specifically) actually says. Verified live.
+  "https://www.federalreserve.gov/feeds/press_all.xml",
+  "https://www.federalreserve.gov/feeds/speeches.xml",
 ];
+
+// Update this if the Fed Chair changes — Fed speech titles/links are
+// prefixed by the speaker's last name (e.g. "Warsh, In Our Time" at
+// .../speech/warsh20260828a.htm), so anything from this person is always
+// flagged major regardless of keyword content, per explicit request.
+const FED_CHAIR_LASTNAME = "Warsh";
+
+function isFedChairItem(item) {
+  var titleStartsWithChair = new RegExp("^" + FED_CHAIR_LASTNAME + "\\s*,", "i").test(item.title || "");
+  var linkHasChairSlug = new RegExp("/speech/" + FED_CHAIR_LASTNAME.toLowerCase(), "i").test(item.link || "");
+  return titleStartsWithChair || linkHasChairSlug;
+}
 
 const MAJOR_KEYWORDS = [
   "fomc",
@@ -113,7 +130,7 @@ function parseRss(xml) {
   var blocks = xml.match(/<item\b[\s\S]*?<\/item>/gi) || [];
   blocks.forEach(function (block) {
     var title = cleanText(extractTag(block, "title"));
-    var pubDate = extractTag(block, "pubDate").trim();
+    var pubDate = cleanText(extractTag(block, "pubDate"));
     var link = cleanText(extractTag(block, "link"));
     var description = cleanText(extractTag(block, "description"));
     if (!title || !pubDate) return;
@@ -160,7 +177,7 @@ async function main() {
       id: item.link || item.title + "-" + item.timestamp,
       title: item.title,
       timestamp: item.timestamp,
-      major: isMajorTitle(item.title),
+      major: isMajorTitle(item.title) || isFedChairItem(item),
       summary: item.summary,
     };
   });
