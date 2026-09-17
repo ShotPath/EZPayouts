@@ -20,6 +20,7 @@
     --phosphor:#3ee08c;
     --phosphor-soft:#8fe6b6;
     --phosphor-dim:#1c5c3d;
+    --phosphor-glow:rgba(62,224,140,0.35);
     --mint:#7ee8ac;
     --mint-text:#062b17;
     --red:#ef5a5a;
@@ -77,13 +78,103 @@
 
   h1,h2{ font-family:var(--font-display); text-wrap:balance; margin:0; }
   a{ color:var(--phosphor-soft); }
+  .mono{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
 
-  .topbar{ display:flex; align-items:center; padding-bottom:16px; margin-bottom:8px; border-bottom:1px solid var(--hairline); }
-  .brand{ display:flex; align-items:center; gap:11px; text-decoration:none; }
-  .brand-mark{ width:34px; height:34px; flex:none; object-fit:contain; }
-  .brand-text{ display:flex; flex-direction:column; line-height:1.15; }
-  .brand-name{ font-family:var(--font-display); font-weight:700; font-size:16.5px; letter-spacing:0.02em; color:var(--ice); }
-  .brand-sub{ font-size:10.5px; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted-dim); }
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px;
+    padding:10px 20px 10px 14px; margin-bottom:32px;
+    background:var(--panel-raised); border:1px solid var(--hairline);
+    border-radius:999px;
+  }
+  .brand{ display:flex; align-items:center; text-decoration:none; flex:none; }
+  .brand-mark{ width:36px; height:36px; flex:none; object-fit:contain; }
+
+  .topbar-right{ display:flex; align-items:center; gap:clamp(14px,2.4vw,28px); flex-wrap:wrap; }
+
+  .nav-links{ display:flex; align-items:center; gap:clamp(14px,2.4vw,26px); }
+  .nav-links a{
+    font-family:var(--font-display); font-weight:600; font-size:13.5px;
+    color:var(--muted); text-decoration:none; letter-spacing:0.01em;
+    transition:color .15s;
+  }
+  .nav-links a:hover{ color:var(--ice); }
+  .nav-links a.active{ color:var(--ice); }
+
+  .clock-menu-stack{ display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
+
+  .market-status{
+    display:inline-flex; align-items:center; gap:4px; white-space:nowrap;
+    padding:2px 7px 2px 6px; border-radius:999px;
+    background:var(--panel); border:1px solid var(--hairline);
+  }
+  .market-status .dot{ width:5px; height:5px; border-radius:50%; flex:none; animation:pulse-dot 2.2s ease-in-out infinite; }
+  @keyframes pulse-dot{ 0%,100%{ opacity:1; } 50%{ opacity:0.35; } }
+  .market-status .label{ font-weight:700; letter-spacing:0.02em; font-size:8px; }
+  .market-status strong{ font-size:9.5px; }
+  .market-status.open{ background:rgba(62,224,140,0.12); border-color:var(--phosphor-dim); }
+  .market-status.open .dot{ background:var(--phosphor); box-shadow:0 0 8px 2px var(--phosphor-glow); }
+  .market-status.open .label{ color:var(--phosphor-soft); }
+  .market-status.closed{ background:rgba(239,90,90,0.10); border-color:var(--red); }
+  .market-status.closed .dot{ background:var(--red); box-shadow:0 0 8px 2px var(--red-glow); }
+  .market-status.closed .label{ color:var(--red); }
+  .market-status.open strong{ color:var(--phosphor-soft); font-weight:600; }
+  .market-status.closed strong{ color:var(--red); font-weight:600; }
+
+  .menu-btn{
+    width:38px; height:38px; border-radius:50%; flex:none;
+    background:var(--panel); border:1px solid var(--hairline); cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition:border-color .15s, background .15s;
+  }
+  .menu-btn:hover{ border-color:var(--hairline-bright); background:var(--panel-hi); }
+  .menu-lines{ width:16px; display:flex; flex-direction:column; gap:3.5px; }
+  .menu-lines span{ display:block; height:2px; border-radius:1px; background:var(--ice); }
+
+  .menu-overlay{
+    position:fixed; inset:0; background:rgba(4,7,5,0.6); backdrop-filter:blur(2px);
+    opacity:0; pointer-events:none; transition:opacity .2s; z-index:40;
+  }
+  .menu-overlay.show{ opacity:1; pointer-events:auto; }
+  .account-menu{
+    position:fixed; top:0; right:0; bottom:0; width:min(340px,88vw);
+    background:var(--panel-raised); border-left:1px solid var(--hairline);
+    transform:translateX(100%); transition:transform .25s ease; z-index:41;
+    display:flex; flex-direction:column; padding:20px 18px; overflow-y:auto;
+  }
+  .account-menu.open{ transform:translateX(0); }
+  .account-menu-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; padding-bottom:14px; border-bottom:1px solid var(--hairline); }
+  .account-menu-head span{ font-family:var(--font-display); font-weight:700; font-size:16px; color:var(--ice); }
+  .menu-close{
+    width:32px; height:32px; border-radius:50%; border:1px solid var(--hairline); background:transparent;
+    color:var(--ice); font-size:18px; line-height:1; cursor:pointer;
+  }
+  .menu-close:hover{ border-color:var(--hairline-bright); }
+  .menu-section{ padding:16px 0; border-bottom:1px solid var(--hairline); }
+  .menu-section:last-child{ border-bottom:none; }
+  .menu-section-title{
+    display:flex; align-items:center; gap:8px; font-family:var(--font-display); font-weight:600;
+    font-size:14.5px; color:var(--ice); margin-bottom:10px;
+  }
+  .menu-current{
+    font-family:var(--font-mono); font-size:9px; letter-spacing:0.08em; background:var(--mint);
+    color:var(--mint-text); padding:2px 7px; border-radius:4px; font-weight:700;
+  }
+  .menu-tagline{ font-size:12px; color:var(--muted); line-height:1.5; margin-bottom:6px; font-family:var(--font-mono); }
+  .menu-verify{ font-size:11px; color:var(--muted-dim); margin-bottom:12px; font-family:var(--font-mono); }
+  .menu-sizes{ display:flex; gap:8px; flex-wrap:wrap; }
+  .menu-size-btn{
+    font-family:var(--font-mono); font-size:13px; font-weight:600; padding:8px 14px;
+    border-radius:999px; background:var(--panel); border:1px solid var(--hairline); color:var(--muted);
+    cursor:pointer; transition:border-color .15s, background .15s, color .15s;
+  }
+  .menu-size-btn:hover{ border-color:var(--hairline-bright); color:var(--ice); }
+  .menu-size-btn.active{ background:var(--mint); border-color:var(--mint); color:var(--mint-text); }
+
+  @media (max-width:480px){
+    .topbar{ border-radius:22px; flex-wrap:wrap; padding:14px 18px; }
+    .topbar-right{ width:100%; justify-content:space-between; gap:10px; }
+    .nav-links{ gap:10px; }
+  }
 
   .hero{ max-width:640px; margin:0 auto; text-align:center; padding:56px 0 40px; }
   .hero .eyebrow{
@@ -165,13 +256,28 @@
 <div class="wrap">
 
   <header class="topbar">
-    <a class="brand" href="../" aria-label="Back to EZPayouts">
+    <a class="brand" href="../" aria-label="EZPayouts home">
       <img class="brand-mark" src="../ezpayouts-icon-only.png" alt="" aria-hidden="true" />
-      <span class="brand-text">
-        <span class="brand-name">Compare</span>
-        <span class="brand-sub">by ShotPath</span>
-      </span>
     </a>
+    <div class="topbar-right">
+      <nav class="nav-links" aria-label="Primary">
+        <a href="../lucid/">Guide</a>
+        <a href="./" class="active">Compare</a>
+        <a href="../news/">News</a>
+        <a href="../#disclaimer">Disclaimer</a>
+        <a href="../#about">About</a>
+      </nav>
+      <div class="clock-menu-stack">
+        <span class="market-status" id="marketStatus">
+          <span class="dot" aria-hidden="true"></span>
+          <span class="label mono" id="marketLabel">NY OPEN IN</span>
+          <strong class="mono" id="marketOpenIn">--:--:--</strong>
+        </span>
+        <button type="button" class="menu-btn" id="menuBtn" aria-haspopup="true" aria-expanded="false" aria-controls="accountMenu" aria-label="Select account">
+          <span class="menu-lines" aria-hidden="true"><span></span><span></span><span></span></span>
+        </button>
+      </div>
+    </div>
   </header>
 
   <div class="hero">
@@ -211,6 +317,15 @@
   </footer>
 
 </div>
+
+<div class="menu-overlay" id="menuOverlay" hidden></div>
+<aside class="account-menu" id="accountMenu" aria-hidden="true">
+  <div class="account-menu-head">
+    <span>Select Account</span>
+    <button type="button" class="menu-close" id="menuClose" aria-label="Close menu">&times;</button>
+  </div>
+  <div id="accountMenuBody"></div>
+</aside>
 
 <script>
 (function(){
@@ -468,6 +583,156 @@
     select.addEventListener("change", render);
   });
   render();
+})();
+
+(function(){
+  "use strict";
+
+  // Same account picker as the Lucid guide (../lucid/index.html) — see that
+  // file for the pricing/rules data this summarizes. Picking a size here
+  // navigates to the guide with ?plan=&size= so it opens pre-selected.
+  var LUCID_PATH = "../lucid/";
+  var STORAGE_KEY = "lucidCockpit.v2";
+
+  var MENU_PLANS = {
+    flex:   { name:"LucidFlex",   verified:true,  tagline:"Daily Loss Limit is optional (OFF or $600) on the 25K. The trailing Max Loss Limit only updates at the close." },
+    pro:    { name:"LucidPro",    verified:false, tagline:"Daily Loss Limit is optional at every size — OFF or $600. Choosing it on lowers your eval price." },
+    daily:  { name:"LucidDaily",  verified:false, tagline:"Choose Intraday or End-of-Day drawdown tracking on the guide page. Intraday is tighter; EOD gives you room to recover by the close." },
+    direct: { name:"LucidDirect", verified:false, tagline:"Skips the evaluation entirely — pay more upfront, trade funded from day one." }
+  };
+  var MENU_PLAN_ORDER = ["flex","pro","daily","direct"];
+  var MENU_SIZE_ORDER = [25000,50000,100000,150000];
+
+  function currentAccount(){
+    try {
+      var raw = JSON.parse(localStorage.getItem(STORAGE_KEY));
+      if (raw && MENU_PLANS[raw.plan] && MENU_SIZE_ORDER.indexOf(raw.size) !== -1) return raw;
+    } catch (e) {}
+    return null;
+  }
+
+  function renderAccountMenu(){
+    var current = currentAccount();
+    var body = document.getElementById("accountMenuBody");
+    var html = "";
+    MENU_PLAN_ORDER.forEach(function(planKey){
+      var plan = MENU_PLANS[planKey];
+      var isCurrentPlan = !!current && current.plan === planKey;
+      html += '<div class="menu-section">' +
+        '<div class="menu-section-title">' + plan.name + (isCurrentPlan ? ' <span class="menu-current">CURRENT</span>' : '') + '</div>' +
+        '<div class="menu-tagline">' + plan.tagline + '</div>' +
+        '<div class="menu-verify">' + (plan.verified ? "Figures verified against Lucid rule trackers." : "Less-certain figures — verify on your dashboard.") + '</div>' +
+        '<div class="menu-sizes">';
+      MENU_SIZE_ORDER.forEach(function(size){
+        var active = isCurrentPlan && current.size === size;
+        html += '<button type="button" class="menu-size-btn' + (active ? ' active' : '') + '" data-plan="' + planKey + '" data-size="' + size + '">$' + (size/1000) + 'K</button>';
+      });
+      html += '</div></div>';
+    });
+    body.innerHTML = html;
+  }
+  renderAccountMenu();
+
+  var menuBtn = document.getElementById("menuBtn");
+  var menuClose = document.getElementById("menuClose");
+  var menuOverlay = document.getElementById("menuOverlay");
+  var accountMenu = document.getElementById("accountMenu");
+
+  function openMenu(){
+    accountMenu.classList.add("open");
+    accountMenu.setAttribute("aria-hidden", "false");
+    menuOverlay.hidden = false;
+    requestAnimationFrame(function(){ menuOverlay.classList.add("show"); });
+    menuBtn.setAttribute("aria-expanded", "true");
+  }
+  function closeMenu(){
+    accountMenu.classList.remove("open");
+    accountMenu.setAttribute("aria-hidden", "true");
+    menuOverlay.classList.remove("show");
+    menuBtn.setAttribute("aria-expanded", "false");
+    setTimeout(function(){ if (!menuOverlay.classList.contains("show")) menuOverlay.hidden = true; }, 200);
+  }
+  menuBtn.addEventListener("click", openMenu);
+  menuClose.addEventListener("click", closeMenu);
+  menuOverlay.addEventListener("click", closeMenu);
+  document.addEventListener("keydown", function(e){ if (e.key === "Escape") closeMenu(); });
+  document.getElementById("accountMenuBody").addEventListener("click", function(e){
+    if (e.target.classList.contains("menu-size-btn")){
+      window.location.href = LUCID_PATH + "?plan=" + e.target.dataset.plan + "&size=" + e.target.dataset.size;
+    }
+  });
+
+  // Market clock (New York session), identical to the one on the Lucid guide.
+  function pad(n){ return String(n).padStart(2,"0"); }
+  var WEEKDAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  var MARKET_OPEN_SEC = 9 * 3600 + 30 * 60;
+  var MARKET_CLOSE_SEC = 16 * 3600 + 15 * 60;
+  var marketStatusEl = document.getElementById("marketStatus");
+  var marketLabelEl = document.getElementById("marketLabel");
+  var marketOpenInEl = document.getElementById("marketOpenIn");
+
+  function tick(){
+    var nyParts = new Intl.DateTimeFormat("en-US", {
+      timeZone:"America/New_York", hour12:false, weekday:"short",
+      hour:"2-digit", minute:"2-digit", second:"2-digit"
+    }).formatToParts(new Date());
+    var h=0, m=0, s=0, weekday="Sun";
+    nyParts.forEach(function(p){
+      if (p.type === "hour") h = parseInt(p.value,10) % 24;
+      if (p.type === "minute") m = parseInt(p.value,10);
+      if (p.type === "second") s = parseInt(p.value,10);
+      if (p.type === "weekday") weekday = p.value;
+    });
+    var weekdayIdx = WEEKDAYS.indexOf(weekday);
+    var nowSec = h * 3600 + m * 60 + s;
+    var isWeekday = weekdayIdx >= 1 && weekdayIdx <= 5;
+    var isOpen = isWeekday && nowSec >= MARKET_OPEN_SEC && nowSec < MARKET_CLOSE_SEC;
+
+    if (isOpen){
+      marketStatusEl.classList.add("open");
+      marketStatusEl.classList.remove("closed");
+      marketLabelEl.textContent = "NY Closes";
+      var closeDiff = MARKET_CLOSE_SEC - nowSec;
+      var ch = Math.floor(closeDiff / 3600);
+      var cm = Math.floor((closeDiff % 3600) / 60);
+      var cs = closeDiff % 60;
+      marketOpenInEl.textContent = pad(ch) + ":" + pad(cm) + ":" + pad(cs);
+      return;
+    }
+
+    marketStatusEl.classList.remove("open");
+    marketStatusEl.classList.add("closed");
+    marketLabelEl.textContent = "NY Opens";
+
+    var daysToAdd;
+    if (isWeekday && nowSec < MARKET_OPEN_SEC){
+      daysToAdd = 0;
+    } else {
+      daysToAdd = 1;
+      var nextIdx = (weekdayIdx + 1) % 7;
+      while (nextIdx === 0 || nextIdx === 6){
+        daysToAdd++;
+        nextIdx = (nextIdx + 1) % 7;
+      }
+    }
+
+    var diff = daysToAdd * 86400 - nowSec + MARKET_OPEN_SEC;
+    var label;
+    if (diff >= 86400){
+      var days = Math.floor(diff / 86400);
+      var hrs = Math.floor((diff % 86400) / 3600);
+      var mins = Math.floor((diff % 3600) / 60);
+      label = days + "d " + pad(hrs) + "h " + pad(mins) + "m";
+    } else {
+      var hh = Math.floor(diff / 3600);
+      var mm = Math.floor((diff % 3600) / 60);
+      var ss = diff % 60;
+      label = pad(hh) + ":" + pad(mm) + ":" + pad(ss);
+    }
+    marketOpenInEl.textContent = label;
+  }
+  tick();
+  setInterval(tick, 1000);
 })();
 </script>
 </body>

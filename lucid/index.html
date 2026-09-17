@@ -82,19 +82,25 @@
   /* ---------- Top bar ---------- */
   .topbar{
     display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap;
-    gap:12px; padding-bottom:16px; margin-bottom:22px;
-    border-bottom:1px solid var(--hairline);
+    gap:14px; padding:10px 20px 10px 14px; margin-bottom:32px;
+    background:var(--panel-raised); border:1px solid var(--hairline);
+    border-radius:999px;
   }
-  .brand{ display:flex; align-items:center; gap:11px; min-width:0; text-decoration:none; }
-  .brand-mark{ width:34px; height:34px; flex:none; object-fit:contain; }
-  .brand-text{ display:flex; flex-direction:column; line-height:1.15; min-width:0; }
-  .brand-name{
-    font-family:var(--font-display); font-weight:700; font-size:16.5px; letter-spacing:0.02em; color:var(--ice);
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  }
-  .brand-sub{ font-size:10.5px; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted-dim); }
+  .brand{ display:flex; align-items:center; text-decoration:none; flex:none; }
+  .brand-mark{ width:36px; height:36px; flex:none; object-fit:contain; }
 
-  .topbar-right{ display:flex; align-items:center; gap:8px; flex:none; }
+  .topbar-right{ display:flex; align-items:center; gap:clamp(14px,2.4vw,28px); flex-wrap:wrap; }
+
+  .nav-links{ display:flex; align-items:center; gap:clamp(14px,2.4vw,26px); }
+  .nav-links a{
+    font-family:var(--font-display); font-weight:600; font-size:13.5px;
+    color:var(--muted); text-decoration:none; letter-spacing:0.01em;
+    transition:color .15s;
+  }
+  .nav-links a:hover{ color:var(--ice); }
+  .nav-links a.active{ color:var(--ice); }
+
+  .clock-menu-stack{ display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
 
   .market-status{
     display:inline-flex; align-items:center; gap:4px; white-space:nowrap;
@@ -122,7 +128,7 @@
     display:flex; align-items:center; justify-content:center;
     transition:border-color .15s, background .15s;
   }
-  .menu-btn:hover{ border-color:var(--hairline-bright); background:var(--panel-raised); }
+  .menu-btn:hover{ border-color:var(--hairline-bright); background:var(--panel-hi); }
   .menu-lines{ width:16px; display:flex; flex-direction:column; gap:3.5px; }
   .menu-lines span{ display:block; height:2px; border-radius:1px; background:var(--ice); }
 
@@ -357,22 +363,27 @@
 <div class="wrap">
 
   <header class="topbar">
-    <a class="brand" href="../" aria-label="Back to EZPayouts">
+    <a class="brand" href="../" aria-label="EZPayouts home">
       <img class="brand-mark" src="../ezpayouts-icon-only.png" alt="" aria-hidden="true" />
-      <div class="brand-text">
-        <span class="brand-name">Lucid Payout Guide</span>
-        <span class="brand-sub">by ShotPath</span>
-      </div>
     </a>
     <div class="topbar-right">
-      <span class="market-status" id="marketStatus">
-        <span class="dot" aria-hidden="true"></span>
-        <span class="label mono" id="marketLabel">NY OPEN IN</span>
-        <strong class="mono" id="marketOpenIn">--:--:--</strong>
-      </span>
-      <button type="button" class="menu-btn" id="menuBtn" aria-haspopup="true" aria-expanded="false" aria-controls="accountMenu" aria-label="Select account">
-        <span class="menu-lines" aria-hidden="true"><span></span><span></span><span></span></span>
-      </button>
+      <nav class="nav-links" aria-label="Primary">
+        <a href="./" class="active">Guide</a>
+        <a href="../compare/">Compare</a>
+        <a href="../news/">News</a>
+        <a href="../#disclaimer">Disclaimer</a>
+        <a href="../#about">About</a>
+      </nav>
+      <div class="clock-menu-stack">
+        <span class="market-status" id="marketStatus">
+          <span class="dot" aria-hidden="true"></span>
+          <span class="label mono" id="marketLabel">NY OPEN IN</span>
+          <strong class="mono" id="marketOpenIn">--:--:--</strong>
+        </span>
+        <button type="button" class="menu-btn" id="menuBtn" aria-haspopup="true" aria-expanded="false" aria-controls="accountMenu" aria-label="Select account">
+          <span class="menu-lines" aria-hidden="true"><span></span><span></span><span></span></span>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -1593,7 +1604,19 @@
     if (file) handleCsvFile(file);
   });
 
+  function applyUrlParams(){
+    var params = new URLSearchParams(window.location.search);
+    var plan = params.get("plan");
+    var size = parseInt(params.get("size"), 10);
+    if (plan && PLANS[plan] && PLANS[plan].sizes[size]){
+      state.plan = plan;
+      state.size = size;
+      saveState();
+    }
+  }
+
   loadState();
+  applyUrlParams();
   renderAll();
   CARD_IDS.forEach(function(id){ setCardCollapsed(id, !!state.collapsed[id]); });
 
