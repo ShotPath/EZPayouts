@@ -30,7 +30,7 @@
   }
 
   *{box-sizing:border-box;}
-  html{color-scheme:dark;}
+  html{color-scheme:dark; scroll-behavior:smooth;}
   body{
     margin:0;
     min-height:100vh;
@@ -66,6 +66,7 @@
     100%{ background-position:0 120px; }
   }
   @media (prefers-reduced-motion: reduce){
+    html{ scroll-behavior:auto; }
     body::before{ animation:none; }
     *{ animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; }
   }
@@ -75,13 +76,28 @@
   h1,h2{ font-family:var(--font-display); text-wrap:balance; margin:0; }
   a{ color:var(--phosphor-soft); }
 
-  .topbar{ display:flex; align-items:center; padding-bottom:16px; margin-bottom:8px; border-bottom:1px solid var(--hairline); }
-  .brand{ display:flex; align-items:center; gap:11px; text-decoration:none; }
-  .brand-mark{ width:34px; height:34px; flex:none; object-fit:contain; }
-  .brand-text{ display:flex; flex-direction:column; line-height:1.15; }
-  .brand-name{ font-family:var(--font-display); font-weight:700; font-size:16.5px; letter-spacing:0.02em; color:var(--ice); }
-  .brand-sub{ font-size:10.5px; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted-dim); }
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    padding:10px 22px 10px 14px; margin-bottom:40px;
+    background:var(--panel-raised); border:1px solid var(--hairline);
+    border-radius:999px;
+  }
+  .brand{ display:flex; align-items:center; text-decoration:none; }
+  .brand-mark{ width:36px; height:36px; flex:none; object-fit:contain; }
   .icon-inline{ height:1.05em; width:auto; vertical-align:-0.15em; }
+
+  .nav-links{ display:flex; align-items:center; gap:clamp(16px,3vw,30px); }
+  .nav-links a{
+    font-family:var(--font-display); font-weight:600; font-size:13.5px;
+    color:var(--muted); text-decoration:none; letter-spacing:0.01em;
+    transition:color .15s;
+  }
+  .nav-links a:hover{ color:var(--ice); }
+
+  @media (max-width:480px){
+    .topbar{ border-radius:22px; flex-wrap:wrap; padding:14px 18px; }
+    .nav-links{ width:100%; justify-content:space-between; gap:10px; }
+  }
 
   .hero{ max-width:620px; margin:0 auto; text-align:center; padding:56px 0 46px; }
   .hero .eyebrow{
@@ -143,6 +159,7 @@
   }
   .section-head .eyebrow::before{ content:"//"; color:var(--muted-dim); }
   .section-head h2{ font-size:21px; color:var(--ice); }
+  .section-body{ margin:0; max-width:62ch; color:var(--muted); font-size:14.5px; line-height:1.7; }
 
   .news-card{
     display:flex; align-items:center; gap:20px; text-align:left;
@@ -187,13 +204,15 @@
 <div class="wrap">
 
   <header class="topbar">
-    <span class="brand">
+    <a class="brand" href="./" aria-label="EZPayouts home">
       <img class="brand-mark" src="ezpayouts-icon-only.png" alt="" aria-hidden="true" />
-      <span class="brand-text">
-        <span class="brand-name">EZPayouts</span>
-        <span class="brand-sub">by ShotPath</span>
-      </span>
-    </span>
+    </a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="lucid/">Guide</a>
+      <a href="news/">News</a>
+      <a href="#disclaimer">Disclaimer</a>
+      <a href="#about">About</a>
+    </nav>
   </header>
 
   <div class="hero">
@@ -254,9 +273,20 @@
     </div>
   </a>
 
+  <div class="section-head" id="about">
+    <div class="eyebrow">About</div>
+    <h2>What EZPayouts is</h2>
+  </div>
+  <p class="section-body">EZPayouts is a free, independent toolkit for prop-firm traders &mdash; payout guides, risk calculators, and automatically updated market news, built and maintained by ShotPath. No login, no paywall, and no affiliation with the prop firms it covers.</p>
+
+  <div class="section-head" id="disclaimer">
+    <div class="eyebrow">Disclaimer</div>
+    <h2>Not financial advice</h2>
+  </div>
+  <p class="section-body">EZPayouts is an independent, unofficial resource for prop-firm traders. Everything here &mdash; guides, calculators, and news &mdash; is an educational planning aid, not financial, trading, or investment advice. Always verify figures against your firm's official rules before trading live.</p>
+
   <footer>
     <p>More firm guides are on the way. Have one you want next? Let us know. &middot; Built by ShotPath</p>
-    <p style="margin-top:8px;">EZPayouts is an independent, unofficial resource for prop-firm traders. Everything here is an educational planning aid, not financial, trading, or investment advice &mdash; always verify figures against your firm's official rules before trading live.</p>
   </footer>
 
 </div>
