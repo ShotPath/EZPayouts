@@ -103,46 +103,11 @@
     "summary": "Low overnight volume left order books thin; expect choppier fills until the regular session gets going."
   },
   {
-    "id": "https://www.marketwatch.com/story/intels-stock-rises-as-investors-hope-memory-chips-can-mark-the-next-step-in-its-turnaround-a276608f?mod=mw_rss_topstories",
-    "title": "Intel’s stock rises as investors hope memory chips can mark the next step in its turnaround",
-    "timestamp": "2026-09-16T23:51:00.000Z",
-    "major": false,
-    "summary": "A report says Intel is in early talks with SK Hynix, which is considering some sort of partnership that would enable it to make memory chips in the U.S."
-  },
-  {
     "id": "https://www.marketwatch.com/bulletins/redirect/go?g=549e172b-f4d8-41fd-ab58-768cbafd2938&mod=mw_rss_bulletins",
     "title": "Most workers would take a pay cut for job security right now",
     "timestamp": "2026-09-16T23:21:41.000Z",
     "major": false,
     "summary": ""
-  },
-  {
-    "id": "https://www.marketwatch.com/story/warshs-fed-rolls-out-first-interest-rate-hike-in-3-years-with-one-more-increase-expected-cde3060d?mod=mw_rss_topstories",
-    "title": "As Fed rolls out its first interest-rate hike in 3 years, market braces for more increases",
-    "timestamp": "2026-09-16T22:25:00.000Z",
-    "major": true,
-    "summary": "The Fed’s policy-making committee was unanimous in its decision to hike, but forward guidance was split."
-  },
-  {
-    "id": "https://www.marketwatch.com/story/my-rental-property-is-paid-off-but-i-need-cash-is-this-a-bad-time-to-take-out-a-50-000-heloc-d094bbc5?mod=mw_rss_topstories",
-    "title": "My rental property is paid off, but I need cash. Is this a bad time to take out a $50,000 HELOC?",
-    "timestamp": "2026-09-16T22:16:00.000Z",
-    "major": false,
-    "summary": "The Federal Reserve announced a quarter-percentage-point interest-rate hike Wednesday, to a range of 3.75%-4.0%."
-  },
-  {
-    "id": "https://www.marketwatch.com/story/there-might-be-a-silver-lining-my-friends-wife-died-at-60-after-a-high-earning-career-can-he-claim-her-social-security-eb95210a?mod=mw_rss_topstories",
-    "title": "&#x2018;There might be a silver lining’: My friend’s wife died at 60 after a high-earning career. Can he claim her Social Security?",
-    "timestamp": "2026-09-16T22:15:00.000Z",
-    "major": false,
-    "summary": "&#x201c;They had been married for over 30 years when she passed.&#x201d;"
-  },
-  {
-    "id": "https://www.marketwatch.com/story/generacs-stock-soars-more-than-30-after-amazon-deal-cements-its-status-as-ai-power-player-a842b0dc?mod=mw_rss_topstories",
-    "title": "Generac’s stock soars more than 30% after Amazon deal cements company’s status as an AI power player",
-    "timestamp": "2026-09-16T21:56:00.000Z",
-    "major": false,
-    "summary": "First deliveries of Generac’s backup power generators are worth $2.4 billion."
   },
   {
     "id": "https://www.marketwatch.com/bulletins/redirect/go?g=1db88495-11c0-47a6-965e-059002dac96c&mod=mw_rss_bulletins",
@@ -152,24 +117,10 @@
     "summary": ""
   },
   {
-    "id": "https://www.marketwatch.com/story/fed-rate-hike-fails-to-calm-troubled-markets-as-dow-falls-600-points-expect-more-sharp-swings-in-stocks-and-bonds-5ffb55fe?mod=mw_rss_topstories",
-    "title": "Fed rate hike fails to calm troubled markets as Dow falls 600 points. Expect more sharp swings in stocks and bonds.",
-    "timestamp": "2026-09-16T21:40:00.000Z",
-    "major": true,
-    "summary": "Fed Chair Kevin Warsh has sent investors a message: When it comes to tamping down inflation, he means business."
-  },
-  {
     "id": "https://www.marketwatch.com/bulletins/redirect/go?g=f9b059d4-f17d-4adf-9ca2-b15125612ba1&mod=mw_rss_bulletins",
     "title": "Store brands like Kirkland are winning the war for consumers' wallets",
     "timestamp": "2026-09-16T21:20:45.000Z",
     "major": true,
     "summary": ""
-  },
-  {
-    "id": "https://www.marketwatch.com/story/why-optical-stocks-lumentum-and-coherent-were-the-days-biggest-gainers-051af440?mod=mw_rss_topstories",
-    "title": "Why optical stocks Lumentum and Coherent were the day’s biggest S&P 500 gainers",
-    "timestamp": "2026-09-16T20:52:00.000Z",
-    "major": false,
-    "summary": "Investors are looking further down the AI data-center supply chain for signs of demand amid concerns of a spending slowdown, one expert says."
   }
 ]
