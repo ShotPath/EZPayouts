@@ -122,5 +122,54 @@
     "timestamp": "2026-09-16T21:20:45.000Z",
     "major": true,
     "summary": ""
+  },
+  {
+    "id": "https://www.marketwatch.com/bulletins/redirect/go?g=554dc063-0e3d-4e06-9001-228923dfd4f2&mod=mw_rss_bulletins",
+    "title": "Dow closes over 600 points down as stocks swing lower after Fed raises rates",
+    "timestamp": "2026-09-16T20:05:50.000Z",
+    "major": false,
+    "summary": ""
+  },
+  {
+    "id": "https://www.marketwatch.com/bulletins/redirect/go?g=99e58e95-4352-479e-bf04-78d07392edb7&mod=mw_rss_bulletins",
+    "title": "As Fed rolls out first rate hike in 3 years, officials are divided on next move",
+    "timestamp": "2026-09-16T19:47:55.000Z",
+    "major": true,
+    "summary": ""
+  },
+  {
+    "id": "https://www.marketwatch.com/bulletins/redirect/go?g=97a89220-89b7-4f46-b02b-31994ed39105&mod=mw_rss_bulletins",
+    "title": "Dow down sharply in final hour, as stocks swing lower after Fed raises rates",
+    "timestamp": "2026-09-16T19:06:21.000Z",
+    "major": false,
+    "summary": ""
+  },
+  {
+    "id": "https://www.marketwatch.com/bulletins/redirect/go?g=7e5beb21-1d40-407c-9bc8-984d86ef91b2&mod=mw_rss_bulletins",
+    "title": "Warsh speaks after the Fed hikes interest rates by a quarter point — follow live",
+    "timestamp": "2026-09-16T18:34:16.000Z",
+    "major": false,
+    "summary": ""
+  },
+  {
+    "id": "https://www.marketwatch.com/bulletins/redirect/go?g=fab8296e-daf9-4dd8-b140-6a3a111a4066&mod=mw_rss_bulletins",
+    "title": "Fed hikes rates by quarter point, sees only one more move higher through 2027",
+    "timestamp": "2026-09-16T18:03:24.000Z",
+    "major": false,
+    "summary": ""
+  },
+  {
+    "id": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260916a.htm",
+    "title": "Federal Reserve issues FOMC statement",
+    "timestamp": "2026-09-16T18:00:00.000Z",
+    "major": true,
+    "summary": "Federal Reserve issues FOMC statement"
+  },
+  {
+    "id": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260916b.htm",
+    "title": "Federal Reserve Board and Federal Open Market Committee release economic projections from the September 15-16 FOMC meeting",
+    "timestamp": "2026-09-16T18:00:00.000Z",
+    "major": true,
+    "summary": "Federal Reserve Board and Federal Open Market Committee release economic projections from the September 15-16 FOMC meeting"
   }
 ]
