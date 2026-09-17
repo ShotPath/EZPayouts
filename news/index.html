@@ -77,7 +77,19 @@
   h1,h2{ font-family:var(--font-display); text-wrap:balance; margin:0; }
   a{ color:var(--phosphor-soft); }
 
-  .topbar{ display:flex; align-items:center; padding-bottom:16px; margin-bottom:8px; border-bottom:1px solid var(--hairline); }
+  .topbar{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px 12px; padding-bottom:16px; margin-bottom:8px; border-bottom:1px solid var(--hairline); }
+
+  .notify-btn{
+    font-family:var(--font-mono); font-size:11.5px; letter-spacing:0.03em; white-space:nowrap;
+    display:inline-flex; align-items:center; gap:6px;
+    padding:7px 12px; border-radius:999px; border:1px solid var(--hairline-bright);
+    background:var(--panel-raised); color:var(--phosphor-soft); cursor:pointer;
+    transition:background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .notify-btn:hover{ border-color:var(--phosphor-dim); }
+  .notify-btn.is-on{ background:rgba(62,224,140,0.12); border-color:var(--phosphor); color:var(--phosphor); }
+  .notify-btn.is-off{ opacity:0.55; cursor:default; }
+  .notify-btn.is-off:hover{ border-color:var(--hairline-bright); }
   .brand{ display:flex; align-items:center; gap:11px; text-decoration:none; }
   .brand-mark{ width:34px; height:34px; flex:none; object-fit:contain; }
   .brand-text{ display:flex; flex-direction:column; line-height:1.15; }
@@ -136,6 +148,7 @@
         <span class="brand-sub">by ShotPath</span>
       </span>
     </a>
+    <button class="notify-btn" id="notifyBtn" type="button">🔔 Notify me</button>
   </header>
 
   <div class="hero">
@@ -150,6 +163,7 @@
 
   <footer>
     <p><a href="../">&larr; Back to EZPayouts</a> &middot; Built by ShotPath</p>
+    <p style="margin-top:8px;">Headlines are pulled automatically from public RSS feeds for informational purposes only &mdash; not trading or financial advice. Always verify before acting on any single headline.</p>
   </footer>
 
 </div>
@@ -183,9 +197,58 @@
   }
 
   var feedEl = document.getElementById("newsFeed");
+  var notifyBtn = document.getElementById("notifyBtn");
   var items = [];
+  var seenIds = null;
   var MAX_ITEMS = 25;
   var FEED_URL = "https://ezpayouts-news.ezpayouts.workers.dev";
+
+  function supportsNotifications(){
+    return "Notification" in window;
+  }
+
+  function updateNotifyButton(){
+    if (!notifyBtn) return;
+    if (!supportsNotifications()){
+      notifyBtn.style.display = "none";
+      return;
+    }
+    var perm = Notification.permission;
+    notifyBtn.classList.remove("is-on", "is-off");
+    if (perm === "granted"){
+      notifyBtn.textContent = "🔔 Notifications on";
+      notifyBtn.classList.add("is-on");
+    } else if (perm === "denied"){
+      notifyBtn.textContent = "🔕 Blocked";
+      notifyBtn.classList.add("is-off");
+      notifyBtn.title = "Notifications are blocked in your browser settings for this site.";
+    } else {
+      notifyBtn.textContent = "🔔 Notify me";
+    }
+  }
+
+  if (notifyBtn){
+    notifyBtn.addEventListener("click", function(){
+      if (!supportsNotifications() || Notification.permission !== "default") return;
+      Notification.requestPermission().then(updateNotifyButton);
+    });
+    updateNotifyButton();
+  }
+
+  function notifyMajor(item){
+    if (!supportsNotifications() || Notification.permission !== "granted") return;
+    try {
+      var n = new Notification(item.title, {
+        body: item.summary || "Major market news just dropped.",
+        icon: "../ezpayouts-icon-only.png",
+        tag: item.id
+      });
+      n.onclick = function(){ window.focus(); n.close(); };
+    } catch (err) {
+      // Notification constructor throws on some mobile browsers even when
+      // "Notification" in window is true (e.g. iOS Safari) — ignore.
+    }
+  }
 
   function render(){
     if (!items.length){
@@ -214,7 +277,19 @@
     fetch(FEED_URL)
       .then(function(res){ return res.json(); })
       .then(function(data){
-        items = Array.isArray(data) ? data : [];
+        var fresh = Array.isArray(data) ? data : [];
+        if (seenIds){
+          fresh.forEach(function(item){
+            if (item.major && !seenIds.has(item.id)) notifyMajor(item);
+          });
+        } else {
+          // First load: remember what's already here without notifying,
+          // so opening the page doesn't fire a burst of notifications for
+          // major items that have been sitting in the feed for a while.
+          seenIds = new Set();
+        }
+        fresh.forEach(function(item){ seenIds.add(item.id); });
+        items = fresh;
         render();
       })
       .catch(function(){
