@@ -61,13 +61,29 @@ const MAJOR_KEYWORDS = [
   "sanctions",
   "ceasefire",
   "shutdown",
+  "oil",
+  "crude",
+  "opec",
+  "brent",
+  "wti",
+  "barrel",
+  "pipeline",
+  "refinery",
+  "strait of hormuz",
 ];
 
+function escapeRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// Word-boundary matching, not plain substring: a plain indexOf() match on
+// "war" also fires inside "forward guidance", "warehouse", "toward" etc,
+// and "oil" inside "boil"/"spoil"/"turmoil" — false positives that would
+// have mislabeled a lot of ordinary headlines as major.
+var MAJOR_REGEX = new RegExp("\\b(" + MAJOR_KEYWORDS.map(escapeRegex).join("|") + ")\\b", "i");
+
 function isMajorTitle(title) {
-  var t = (title || "").toLowerCase();
-  return MAJOR_KEYWORDS.some(function (kw) {
-    return t.indexOf(kw) !== -1;
-  });
+  return MAJOR_REGEX.test(title || "");
 }
 
 function extractTag(block, tag) {
