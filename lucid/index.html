@@ -144,8 +144,9 @@
 
   /* ---------- Snapshot card ---------- */
   .snapshot-card{
-    background:var(--panel); border:1px solid var(--hairline); border-radius:20px;
+    background:var(--panel); border:1px solid var(--hairline-bright); border-radius:20px;
     padding:24px clamp(16px,3vw,30px) 26px; margin-bottom:26px;
+    box-shadow:0 16px 36px -20px var(--phosphor-glow);
   }
   .snapshot-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:18px; }
   .snapshot-title{ font-size:20px; color:var(--ice); margin-bottom:2px; }
@@ -204,8 +205,9 @@
 
   /* ---------- Console (Risk Co-Pilot) ---------- */
   .console{
-    background:var(--panel); border:1px solid var(--hairline); border-radius:20px;
+    background:var(--panel); border:1px solid var(--hairline-bright); border-radius:20px;
     padding:22px clamp(16px,3vw,28px); margin-bottom:26px;
+    box-shadow:0 16px 36px -20px var(--phosphor-glow);
   }
   .console-head{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:18px; }
   .console-head h2{ font-size:19px; color:var(--ice); }
@@ -298,8 +300,9 @@
   .phases{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
   @media (max-width:860px){ .phases{ grid-template-columns:1fr; } }
   .phase{
-    background:var(--panel); border:1px solid var(--hairline); border-radius:20px;
+    background:var(--panel); border:1px solid var(--hairline-bright); border-radius:20px;
     padding:20px 20px 22px; display:flex; flex-direction:column; gap:12px;
+    box-shadow:0 16px 36px -20px var(--phosphor-glow);
   }
   .phase-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
   .phase-head-text{ display:flex; flex-direction:column; gap:4px; }

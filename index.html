@@ -213,6 +213,7 @@
     border-color:var(--phosphor-dim);
     background:linear-gradient(180deg, rgba(62,224,140,0.10), var(--panel));
     cursor:pointer;
+    box-shadow:0 16px 36px -20px var(--phosphor-glow);
   }
   .firm-card.active .firm-mark{
     background:var(--panel-hi);
@@ -241,7 +242,8 @@
   .news-card{
     display:flex; align-items:center; gap:20px; text-align:left;
     padding:22px 24px; border-radius:20px;
-    background:var(--panel); border:1px solid var(--hairline);
+    background:var(--panel); border:1px solid var(--hairline-bright);
+    box-shadow:0 16px 36px -20px var(--phosphor-glow);
     text-decoration:none; transition:transform .18s ease, border-color .18s, box-shadow .18s;
   }
   .news-card:hover{
