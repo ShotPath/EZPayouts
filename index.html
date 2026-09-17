@@ -4,6 +4,8 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>EZPayouts</title>
+<link rel="icon" type="image/png" href="ezpayouts-icon-only.png">
+<link rel="apple-touch-icon" href="ezpayouts-icon-only.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
 <style>
@@ -75,11 +77,7 @@
 
   .topbar{ display:flex; align-items:center; padding-bottom:16px; margin-bottom:8px; border-bottom:1px solid var(--hairline); }
   .brand{ display:flex; align-items:center; gap:11px; text-decoration:none; }
-  .brand-mark{
-    width:34px; height:34px; border-radius:50%; flex:none;
-    background:radial-gradient(circle at 34% 30%, #e8f5ec 0%, #4b8f6a 34%, #0e1c14 72%, #050806 100%);
-    box-shadow:0 0 0 1px var(--hairline-bright), 0 0 14px rgba(62,224,140,0.25);
-  }
+  .brand-mark{ width:34px; height:34px; flex:none; object-fit:contain; }
   .brand-text{ display:flex; flex-direction:column; line-height:1.15; }
   .brand-name{ font-family:var(--font-display); font-weight:700; font-size:16.5px; letter-spacing:0.02em; color:var(--ice); }
   .brand-sub{ font-size:10.5px; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted-dim); }
@@ -189,7 +187,7 @@
 
   <header class="topbar">
     <span class="brand">
-      <span class="brand-mark" aria-hidden="true"></span>
+      <img class="brand-mark" src="ezpayouts-icon-only.png" alt="" aria-hidden="true" />
       <span class="brand-text">
         <span class="brand-name">EZPayouts</span>
         <span class="brand-sub">by ShotPath</span>
