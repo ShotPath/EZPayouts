@@ -69,30 +69,57 @@ function toNumberOrNull(v) {
   return isNaN(n) ? null : n;
 }
 
+// FMP retired /api/v3/economic_calendar for non-legacy accounts (cutoff Aug 31,
+// 2025) in favor of a new /stable/ route, but their docs site blocks
+// automated fetches so the exact route name couldn't be confirmed ahead of
+// time. Try the candidates in order and use whichever first returns a real
+// array; whichever one wins gets logged so the list can be trimmed later.
+var CANDIDATE_PATHS = [
+  "stable/economics-calendar",
+  "stable/economic-calendar",
+  "stable/economic_calendar",
+  "api/v3/economic_calendar",
+];
+
+async function fetchCalendar(from, to) {
+  var lastError = null;
+  for (var i = 0; i < CANDIDATE_PATHS.length; i++) {
+    var routePath = CANDIDATE_PATHS[i];
+    var url =
+      "https://financialmodelingprep.com/" +
+      routePath +
+      "?from=" +
+      fmtDate(from) +
+      "&to=" +
+      fmtDate(to) +
+      "&apikey=" +
+      API_KEY;
+    var res = await fetch(url);
+    var bodyText = await res.text();
+    if (res.ok) {
+      var parsed;
+      try {
+        parsed = JSON.parse(bodyText);
+      } catch (e) {
+        parsed = null;
+      }
+      if (Array.isArray(parsed)) {
+        console.log("Using economic calendar route: " + routePath);
+        return parsed;
+      }
+      lastError = "Route " + routePath + " returned OK but not an array: " + bodyText.slice(0, 300);
+    } else {
+      lastError = "Route " + routePath + " failed (" + res.status + "): " + bodyText.slice(0, 300);
+    }
+    console.log(lastError);
+  }
+  throw new Error("No working economic calendar route found. Last error: " + lastError);
+}
+
 async function main() {
   var to = new Date();
   var from = new Date(to.getTime() - 4 * 24 * 60 * 60 * 1000); // look back 4 days
-  var url =
-    "https://financialmodelingprep.com/api/v3/economic_calendar?from=" +
-    fmtDate(from) +
-    "&to=" +
-    fmtDate(to) +
-    "&apikey=" +
-    API_KEY;
-
-  var res = await fetch(url);
-  if (!res.ok) {
-    console.error("FMP request failed:", res.status, await res.text());
-    process.exit(1);
-  }
-  var events = await res.json();
-  if (!Array.isArray(events)) {
-    console.error(
-      "Unexpected FMP response shape (expected an array):",
-      JSON.stringify(events).slice(0, 800)
-    );
-    process.exit(1);
-  }
+  var events = await fetchCalendar(from, to);
 
   // First-run visibility: log a couple of raw events so field names can be
   // double-checked against what this script assumes below.
