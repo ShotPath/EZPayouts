@@ -185,6 +185,7 @@
   var feedEl = document.getElementById("newsFeed");
   var items = [];
   var MAX_ITEMS = 25;
+  var FEED_URL = "https://ezpayouts-news.ezpayouts.workers.dev";
 
   function render(){
     if (!items.length){
@@ -209,16 +210,22 @@
     }).join("");
   }
 
-  fetch("data.json")
-    .then(function(res){ return res.json(); })
-    .then(function(data){
-      items = Array.isArray(data) ? data : [];
-      render();
-      setInterval(render, 60000);
-    })
-    .catch(function(){
-      feedEl.innerHTML = '<p class="news-empty">Couldn’t load the news feed right now.</p>';
-    });
+  function load(){
+    fetch(FEED_URL)
+      .then(function(res){ return res.json(); })
+      .then(function(data){
+        items = Array.isArray(data) ? data : [];
+        render();
+      })
+      .catch(function(){
+        if (!items.length){
+          feedEl.innerHTML = '<p class="news-empty">Couldn’t load the news feed right now.</p>';
+        }
+      });
+  }
+
+  load();
+  setInterval(load, 15000);
 })();
 </script>
 </body>

@@ -1,18 +1,12 @@
-// Cloudflare Worker: fetches the same RSS feeds as
-// .github/scripts/update-news.js, but live on every request instead of on
-// a 30-minute cron, so the News page can poll this endpoint and get
-// current headlines within seconds of loading instead of waiting on the
-// next scheduled GitHub Actions run.
+// Cloudflare Worker backing the News page (news/index.html polls this URL
+// directly every 15s). Fetches and parses a handful of RSS feeds live on
+// every request instead of relying on a scheduled batch job, so headlines
+// show up within seconds instead of after a fixed refresh interval.
 //
 // No persistent storage (KV/D1) on purpose: each request just re-fetches
 // and re-parses the feeds fresh. The four sources together always return
 // enough recent items (~50-60 combined) to fill the 25-item cap, so there's
 // nothing to "remember" between requests.
-//
-// Parsing/keyword logic is intentionally kept in lockstep with
-// .github/scripts/update-news.js (same functions, ported to run without
-// Node's fs/path since Workers have no filesystem). If one changes, check
-// whether the other needs the same fix.
 
 const MAX_ITEMS = 25;
 
