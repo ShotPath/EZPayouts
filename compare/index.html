@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Compare Prop Firm Accounts</title>
+<meta name="description" content="Compare prop-firm accounts side by side — cost, drawdown rules, consistency requirements, and payouts." />
+<link rel="icon" type="image/png" href="../ezpayouts-icon-only.png">
+<link rel="apple-touch-icon" href="../ezpayouts-icon-only.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
+<style>
+  :root{
+    --void:#07090a;
+    --panel:#0c1310;
+    --panel-raised:#121b16;
+    --panel-hi:#182319;
+    --hairline:#23332a;
+    --hairline-bright:#345a44;
+    --phosphor:#3ee08c;
+    --phosphor-soft:#8fe6b6;
+    --phosphor-dim:#1c5c3d;
+    --mint:#7ee8ac;
+    --mint-text:#062b17;
+    --red:#ef5a5a;
+    --ice:#dcefe2;
+    --muted:#7c9584;
+    --muted-dim:#4d6055;
+    --font-display:'Chakra Petch', 'Segoe UI', sans-serif;
+    --font-body:'IBM Plex Sans', 'Segoe UI', sans-serif;
+    --font-mono:'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+  }
+
+  *{box-sizing:border-box;}
+  html{color-scheme:dark; scroll-behavior:smooth;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(ellipse 120% 60% at 50% -10%, rgba(62,224,140,0.10), transparent 60%),
+      radial-gradient(ellipse 80% 50% at 100% 100%, rgba(62,224,140,0.06), transparent 60%),
+      var(--void);
+    color:var(--ice);
+    font-family:var(--font-body);
+    padding:0 clamp(16px,4vw,48px);
+    padding-block:clamp(18px,3.4vw,32px) 60px;
+    position:relative;
+    overflow-x:hidden;
+  }
+  body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    background:repeating-linear-gradient(
+      to bottom,
+      rgba(62,224,140,0.035) 0px,
+      rgba(62,224,140,0.035) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    mix-blend-mode:overlay;
+    z-index:0;
+    animation:scan 9s linear infinite;
+  }
+  @keyframes scan{
+    0%{ background-position:0 0; }
+    100%{ background-position:0 120px; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    html{ scroll-behavior:auto; }
+    body::before{ animation:none; }
+    *{ animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; }
+  }
+
+  .wrap{ max-width:980px; margin:0 auto; position:relative; z-index:1; }
+
+  h1,h2{ font-family:var(--font-display); text-wrap:balance; margin:0; }
+  a{ color:var(--phosphor-soft); }
+
+  .topbar{ display:flex; align-items:center; padding-bottom:16px; margin-bottom:8px; border-bottom:1px solid var(--hairline); }
+  .brand{ display:flex; align-items:center; gap:11px; text-decoration:none; }
+  .brand-mark{ width:34px; height:34px; flex:none; object-fit:contain; }
+  .brand-text{ display:flex; flex-direction:column; line-height:1.15; }
+  .brand-name{ font-family:var(--font-display); font-weight:700; font-size:16.5px; letter-spacing:0.02em; color:var(--ice); }
+  .brand-sub{ font-size:10.5px; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted-dim); }
+
+  .hero{ max-width:640px; margin:0 auto; text-align:center; padding:56px 0 40px; }
+  .hero .eyebrow{
+    font-family:var(--font-mono); font-size:12px; letter-spacing:0.22em; text-transform:uppercase;
+    color:var(--phosphor); margin-bottom:14px; display:flex; align-items:center; justify-content:center; gap:10px;
+  }
+  .hero .eyebrow::before{ content:"//"; color:var(--muted-dim); }
+  .hero h1{ font-size:clamp(28px,5vw,40px); font-weight:700; line-height:1.1; color:var(--ice); letter-spacing:-0.01em; }
+  .hero p{ margin:16px auto 0; max-width:56ch; color:var(--muted); font-size:15.5px; line-height:1.65; }
+
+  .picker{
+    display:grid; grid-template-columns:repeat(3, 1fr); gap:14px;
+    margin-bottom:28px;
+  }
+  .picker-slot{ display:flex; flex-direction:column; gap:8px; }
+  .picker-label{
+    font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted-dim);
+  }
+  .picker-slot select{
+    appearance:none; -webkit-appearance:none;
+    width:100%; font-family:var(--font-display); font-weight:600; font-size:14px;
+    color:var(--ice); background:var(--panel); border:1px solid var(--hairline-bright);
+    border-radius:12px; padding:12px 36px 12px 14px;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8'><path d='M1 1l5 5 5-5' stroke='%237c9584' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat:no-repeat; background-position:right 14px center;
+    cursor:pointer;
+  }
+  .picker-slot select:focus-visible{ outline:2px solid var(--phosphor); outline-offset:2px; }
+
+  .table-scroll{ overflow-x:auto; border-radius:20px; border:1px solid var(--hairline); }
+  table.compare{
+    width:100%; border-collapse:collapse; min-width:640px;
+    background:var(--panel);
+  }
+  table.compare th, table.compare td{
+    padding:13px 16px; text-align:left; border-bottom:1px solid var(--hairline);
+    font-size:13.5px; vertical-align:top;
+  }
+  table.compare thead th{
+    font-family:var(--font-display); font-weight:700; font-size:15px; color:var(--ice);
+    background:var(--panel-raised); position:sticky; top:0;
+  }
+  table.compare thead th .th-badge{
+    display:block; margin-top:4px; font-family:var(--font-mono); font-weight:400; font-size:9.5px;
+    letter-spacing:0.08em; text-transform:uppercase; color:var(--muted-dim);
+  }
+  table.compare tbody th{
+    font-family:var(--font-mono); font-weight:600; font-size:11.5px; letter-spacing:0.03em;
+    color:var(--muted); white-space:nowrap; background:var(--panel);
+  }
+  table.compare td{ color:var(--ice); }
+  table.compare td .sub{ display:block; margin-top:3px; color:var(--muted); font-size:11.5px; line-height:1.5; }
+  table.compare td .tag{
+    display:inline-block; margin-left:6px; font-family:var(--font-mono); font-size:9px; letter-spacing:0.06em;
+    text-transform:uppercase; padding:1px 7px; border-radius:999px; background:var(--panel-hi); color:var(--muted);
+  }
+  table.compare tbody tr:last-child th, table.compare tbody tr:last-child td{ border-bottom:none; }
+  table.compare td.best{ background:rgba(62,224,140,0.07); box-shadow:inset 3px 0 0 var(--phosphor); }
+
+  .legend{ margin-top:14px; font-size:12px; color:var(--muted-dim); display:flex; align-items:center; gap:8px; }
+  .legend .dot{ width:8px; height:8px; border-radius:2px; background:var(--phosphor); flex:none; }
+
+  .coming-note{
+    margin-top:34px; padding:16px 20px; border-radius:16px; background:var(--panel); border:1px solid var(--hairline);
+    font-size:13.5px; color:var(--muted); line-height:1.6;
+  }
+  .coming-note b{ color:var(--ice); }
+
+  footer{ margin-top:52px; text-align:center; }
+  footer p{ font-size:12px; color:var(--muted-dim); line-height:1.7; margin:0; }
+  footer a{ color:var(--muted); }
+
+  @media (max-width:720px){
+    .picker{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="topbar">
+    <a class="brand" href="../" aria-label="Back to EZPayouts">
+      <img class="brand-mark" src="../ezpayouts-icon-only.png" alt="" aria-hidden="true" />
+      <span class="brand-text">
+        <span class="brand-name">Compare</span>
+        <span class="brand-sub">by ShotPath</span>
+      </span>
+    </a>
+  </header>
+
+  <div class="hero">
+    <div class="eyebrow">Side by Side</div>
+    <h1>Compare prop firm accounts</h1>
+    <p>Pick any three accounts &mdash; same firm, different sizes, or (soon) different firms entirely &mdash; and see cost and rules laid out side by side.</p>
+  </div>
+
+  <div class="picker">
+    <div class="picker-slot">
+      <span class="picker-label">Account 1</span>
+      <select id="slot0" aria-label="Account 1"></select>
+    </div>
+    <div class="picker-slot">
+      <span class="picker-label">Account 2</span>
+      <select id="slot1" aria-label="Account 2"></select>
+    </div>
+    <div class="picker-slot">
+      <span class="picker-label">Account 3</span>
+      <select id="slot2" aria-label="Account 3"></select>
+    </div>
+  </div>
+
+  <div class="table-scroll">
+    <table class="compare" id="compareTable"></table>
+  </div>
+
+  <div class="legend"><span class="dot" aria-hidden="true"></span> Highlighted = cheapest fee, or largest loss-limit cushion, in that row.</div>
+
+  <div class="coming-note">
+    <b>Only Lucid Trading has verified numbers here so far.</b> Apex Trader Funding, FundedNext, TopStep, and Take Profit Trader are shown in the picker but greyed out &mdash; we're not guessing at their rules or pricing until they're independently confirmed the same way Lucid's are.
+  </div>
+
+  <footer>
+    <p><a href="../">&larr; Back to EZPayouts</a> &middot; Built by ShotPath</p>
+    <p style="margin-top:8px;">Figures shown are a snapshot, not a live quote &mdash; prices and promos change. This is a planning aid, not financial or trading advice. Always confirm against the firm's own checkout and dashboard before paying for or trading an account.</p>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // Mirrors lucid/index.html's PLANS + EVAL_PRICING + PAYOUT_MAX exactly —
+  // same source, same verified/unverified gating. If those numbers change
+  // there, update here too.
+  var PLANS = {
+    flex: {
+      name: "LucidFlex",
+      verified: true,
+      sizes: {
+        25000:  { target:1250, mll:1000, dailyMin:100 },
+        50000:  { target:3000, mll:2000, dailyMin:150 },
+        100000: { target:6000, mll:3000, dailyMin:200 },
+        150000: { target:9000, mll:4500, dailyMin:250 }
+      },
+      consistency: { eval: 50, funded: null },
+      drawdown: "eod"
+    },
+    pro: {
+      name: "LucidPro",
+      verified: false,
+      sizes: {
+        25000:  { target:1250, mll:1000, dailyMin:100 },
+        50000:  { target:3000, mll:2000, dailyMin:150 },
+        100000: { target:6000, mll:3000, dailyMin:200 },
+        150000: { target:9000, mll:4500, dailyMin:250 }
+      },
+      consistency: { eval: null, funded: 40 },
+      drawdown: "unconfirmed"
+    },
+    daily: {
+      name: "LucidDaily",
+      verified: false,
+      sizes: {
+        25000:  { target:1250, mll:1000, dailyMin:100 },
+        50000:  { target:3000, mll:2000, dailyMin:150 },
+        100000: { target:6000, mll:3000, dailyMin:200 },
+        150000: { target:9000, mll:4500, dailyMin:250 }
+      },
+      consistency: { eval: 50, funded: null },
+      drawdown: "choice"
+    },
+    direct: {
+      name: "LucidDirect",
+      verified: false,
+      sizes: {
+        25000:  { target:1500, mll:1000, dailyMin:100 },
+        50000:  { target:3000, mll:2000, dailyMin:150 },
+        100000: { target:6000, mll:3000, dailyMin:200 },
+        150000: { target:9000, mll:5000, dailyMin:250 }
+      },
+      consistency: { eval: null, funded: 20 },
+      drawdown: "unconfirmed"
+    }
+  };
+  var PLAN_ORDER = ["flex","pro","daily","direct"];
+  var SIZE_ORDER = [25000,50000,100000,150000];
+
+  var EVAL_PRICING = {
+    flex: {
+      25000: { on: { list:89, coupon:50.30, resetFee:50 }, off: { list:89, coupon:65.30, resetFee:65 } }
+    },
+    pro: {
+      25000:  { on: { list:123, coupon:70.60,  resetFee:70  }, off: { list:123, coupon:90.60,  resetFee:90  } },
+      50000:  { on: { list:192, coupon:115.40, resetFee:115 }, off: { list:192, coupon:140.40, resetFee:140 } },
+      100000: { on: { list:307, coupon:180.40, resetFee:180 }, off: { list:307, coupon:225.40, resetFee:225 } },
+      150000: { on: { list:410, coupon:245.50, resetFee:245 }, off: { list:440, coupon:300.50, resetFee:300 } }
+    }
+  };
+  var PAYOUT_MIN = 500;
+  var PAYOUT_MAX = { 25000:1000, 50000:2000, 100000:2500, 150000:3000 };
+
+  var fmt = new Intl.NumberFormat("en-US", { style:"currency", currency:"USD", maximumFractionDigits:0 });
+  function money(n){ return fmt.format(Math.round(n)); }
+  var fmtCents = new Intl.NumberFormat("en-US", { style:"currency", currency:"USD", minimumFractionDigits:2, maximumFractionDigits:2 });
+  function moneyCents(n){ return fmtCents.format(n); }
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c];
+    });
+  }
+
+  function dllAvailable(plan, size){ return (plan === "flex" && size === 25000) || plan === "pro"; }
+  function accountKey(plan, size){ return plan + "_" + size; }
+  function parseKey(key){ var parts = key.split("_"); return { plan: parts[0], size: Number(parts[1]) }; }
+  function accountLabel(plan, size){ return PLANS[plan].name + " · $" + (size/1000) + "K"; }
+
+  // Firms with no independently verified rules yet — shown in the picker,
+  // disabled, rather than left out silently or filled in with guesses.
+  var COMING_SOON_FIRMS = ["Apex Trader Funding", "FundedNext", "TopStep", "Take Profit Trader"];
+
+  function buildOptions(select, selectedKey){
+    var html = "";
+    PLAN_ORDER.forEach(function(plan){
+      html += '<optgroup label="' + escapeHtml(PLANS[plan].name) + '">';
+      SIZE_ORDER.forEach(function(size){
+        var key = accountKey(plan, size);
+        html += '<option value="' + key + '"' + (key === selectedKey ? " selected" : "") + '>' +
+          '$' + (size/1000) + 'K' + (PLANS[plan].verified ? "" : " (less-certain figures)") +
+        '</option>';
+      });
+      html += '</optgroup>';
+    });
+    COMING_SOON_FIRMS.forEach(function(firm){
+      html += '<optgroup label="' + escapeHtml(firm) + ' — Coming Soon" disabled>' +
+        '<option disabled>Not verified yet</option>' +
+      '</optgroup>';
+    });
+    select.innerHTML = html;
+  }
+
+  function feeCell(plan, size, field){
+    var priceSet = EVAL_PRICING[plan] && EVAL_PRICING[plan][size];
+    if (!priceSet){
+      return { value: null, html: "&mdash;<span class=\"sub\">Not verified &mdash; check checkout</span>" };
+    }
+    if (dllAvailable(plan, size)){
+      var offVal = priceSet.off[field];
+      var onVal = priceSet.on[field];
+      return {
+        value: Math.min(offVal, onVal),
+        html: moneyCents(offVal) + '<span class="tag">DLL off</span><br>' + moneyCents(onVal) + '<span class="tag">DLL on ($600)</span>'
+      };
+    }
+    return { value: priceSet.off[field], html: moneyCents(priceSet.off[field]) };
+  }
+
+  function consistencyText(plan){
+    var c = PLANS[plan].consistency;
+    if (c.eval){
+      return c.eval + "% cap<span class=\"sub\">Evaluation only — dropped once funded</span>";
+    }
+    if (c.funded){
+      return c.funded + "% cap<span class=\"sub\">Funded payout cycles — none during evaluation</span>";
+    }
+    return "None<span class=\"sub\">No consistency rule at any stage</span>";
+  }
+
+  function drawdownText(plan){
+    var d = PLANS[plan].drawdown;
+    if (d === "eod") return "EOD<span class=\"sub\">Trailing max loss updates only at the close</span>";
+    if (d === "choice") return "Your choice<span class=\"sub\">Intraday (tighter) or End-of-Day</span>";
+    return "&mdash;<span class=\"sub\">Confirm on your dashboard</span>";
+  }
+
+  function render(){
+    var keys = [0,1,2].map(function(i){ return document.getElementById("slot" + i).value; });
+    var accounts = keys.map(parseKey);
+
+    var rows = [];
+
+    rows.push({
+      label: "Account Size",
+      cells: accounts.map(function(a){ return { html: "$" + (a.size/1000) + "K" }; })
+    });
+
+    rows.push({
+      label: "Profit Target",
+      cells: accounts.map(function(a){ return { html: money(PLANS[a.plan].sizes[a.size].target) }; })
+    });
+
+    rows.push({
+      label: "Max Loss Limit",
+      highlight: "max",
+      cells: accounts.map(function(a){
+        var mll = PLANS[a.plan].sizes[a.size].mll;
+        return { value: mll, html: money(mll) + '<span class="sub">' + (PLANS[a.plan].verified ? "Trailing, end-of-day only" : "Confirm on your dashboard") + '</span>' };
+      })
+    });
+
+    rows.push({
+      label: "Daily Loss Limit",
+      cells: accounts.map(function(a){
+        return { html: dllAvailable(a.plan, a.size) ? "Optional — $600" : "Not offered on this plan" };
+      })
+    });
+
+    rows.push({
+      label: "Qualifying Day Min.",
+      cells: accounts.map(function(a){ return { html: money(PLANS[a.plan].sizes[a.size].dailyMin) + "<span class=\"sub\">5 needed before first payout</span>" }; })
+    });
+
+    rows.push({
+      label: "Consistency Rule",
+      cells: accounts.map(function(a){ return { html: consistencyText(a.plan) }; })
+    });
+
+    rows.push({
+      label: "Drawdown Tracking",
+      cells: accounts.map(function(a){ return { html: drawdownText(a.plan) }; })
+    });
+
+    rows.push({
+      label: "One-Time Eval Fee",
+      highlight: "min",
+      cells: accounts.map(function(a){ return feeCell(a.plan, a.size, "coupon"); })
+    });
+
+    rows.push({
+      label: "Reset Fee",
+      cells: accounts.map(function(a){ return feeCell(a.plan, a.size, "resetFee"); })
+    });
+
+    rows.push({
+      label: "Minimum Payout",
+      cells: accounts.map(function(){ return { html: money(PAYOUT_MIN) }; })
+    });
+
+    rows.push({
+      label: "Maximum Payout",
+      cells: accounts.map(function(a){
+        return PLANS[a.plan].verified
+          ? { html: money(PAYOUT_MAX[a.size]) + '<span class="sub">50% of realized profit, capped</span>' }
+          : { html: "&mdash;<span class=\"sub\">Confirm on your dashboard</span>" };
+      })
+    });
+
+    rows.push({
+      label: "Profit Split",
+      cells: accounts.map(function(){ return { html: "90 / 10<span class=\"sub\">In your favor</span>" }; })
+    });
+
+    // Work out which cell(s) to highlight per row, where a row opts in.
+    rows.forEach(function(row){
+      if (!row.highlight) return;
+      var values = row.cells.map(function(c){ return typeof c.value === "number" ? c.value : null; });
+      var real = values.filter(function(v){ return v !== null; });
+      if (!real.length) return;
+      var target = row.highlight === "max" ? Math.max.apply(null, real) : Math.min.apply(null, real);
+      row.cells.forEach(function(c){ if (c.value === target) c.best = true; });
+    });
+
+    var thead = "<thead><tr><th></th>" + accounts.map(function(a){
+      return "<th>" + escapeHtml(accountLabel(a.plan, a.size)) +
+        (PLANS[a.plan].verified ? "" : '<span class="th-badge">Less-certain figures</span>') +
+        "</th>";
+    }).join("") + "</tr></thead>";
+
+    var tbody = "<tbody>" + rows.map(function(row){
+      return "<tr><th>" + escapeHtml(row.label) + "</th>" +
+        row.cells.map(function(c){ return '<td' + (c.best ? ' class="best"' : '') + '>' + c.html + '</td>'; }).join("") +
+      "</tr>";
+    }).join("") + "</tbody>";
+
+    document.getElementById("compareTable").innerHTML = thead + tbody;
+  }
+
+  var defaults = ["flex_25000", "pro_25000", "pro_100000"];
+  [0,1,2].forEach(function(i){
+    var select = document.getElementById("slot" + i);
+    buildOptions(select, defaults[i]);
+    select.addEventListener("change", render);
+  });
+  render();
+})();
+</script>
+</body>
+</html>
