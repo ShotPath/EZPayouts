@@ -133,7 +133,7 @@ async function fetchFeed(url) {
   try {
     var res = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; EZPayoutsNewsBot/1.0)" },
-      cf: { cacheTtl: 15, cacheEverything: true },
+      cf: { cacheTtl: 10, cacheEverything: true },
     });
     if (!res.ok) return [];
     var xml = await res.text();
@@ -189,7 +189,7 @@ export default {
       headers: Object.assign(
         {
           "Content-Type": "application/json",
-          "Cache-Control": "public, max-age=15",
+          "Cache-Control": "public, max-age=10",
         },
         CORS_HEADERS
       ),
