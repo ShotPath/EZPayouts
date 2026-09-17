@@ -15,10 +15,14 @@ const MAX_ITEMS = 25;
 
 // Both verified live and free (no key) before this script was written.
 // WSJ's markets RSS was tried too but its feed turned out to be frozen
-// (stale content over a year old) so it was dropped.
+// (stale content over a year old) so it was dropped. MarketWatch's
+// "Top Stories" feed was also tried and dropped: it mixes in general
+// lifestyle/advice-column content (HELOC questions, Social Security
+// columns) that isn't actually market-moving. "Breaking News Bulletins"
+// is live and stays tighter to real market/Fed/economic headlines.
 const FEEDS = [
   "https://www.investing.com/rss/news.rss",
-  "https://feeds.content.dowjones.io/public/rss/mw_topstories",
+  "https://feeds.content.dowjones.io/public/rss/mw_bulletins",
   // Official Federal Reserve press releases and speeches — free, public,
   // and the most authoritative source available for anything the Fed (or
   // the sitting Chair specifically) actually says. Verified live.
@@ -112,15 +116,19 @@ function cleanText(s) {
   if (!s) return "";
   var cdata = s.match(/^\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*$/);
   if (cdata) s = cdata[1];
+  // Numeric character references (hex and decimal) cover curly quotes,
+  // em dashes, etc. — decoded generically instead of a fixed whitelist,
+  // since feeds use whichever code point they like (e.g. &#x2018;/&#x201c;
+  // showed up undecoded in MarketWatch titles before this).
+  s = s
+    .replace(/&#x([0-9a-fA-F]+);/g, function (_, hex) { return String.fromCodePoint(parseInt(hex, 16)); })
+    .replace(/&#(\d+);/g, function (_, dec) { return String.fromCodePoint(parseInt(dec, 10)); });
   s = s
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
-    .replace(/&#0?39;/g, "'")
-    .replace(/&apos;/g, "'")
-    .replace(/&#x2019;/g, "’")
-    .replace(/&#8217;/g, "’");
+    .replace(/&apos;/g, "'");
   s = s.replace(/<[^>]+>/g, "");
   return s.replace(/\s+/g, " ").trim();
 }
