@@ -1,0 +1,7 @@
+name = "ezpayouts-news"
+main = "news-worker.js"
+compatibility_date = "2025-01-01"
+
+# No routes/custom domain configured yet — deploys to the default
+# ezpayouts-news.<your-subdomain>.workers.dev URL. Add a [[routes]] block
+# here later if this should live under ezpayouts.xyz instead.
