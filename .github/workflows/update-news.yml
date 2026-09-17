@@ -20,9 +20,7 @@ jobs:
         with:
           node-version: 20
 
-      - name: Fetch economic calendar and update news/data.json
-        env:
-          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+      - name: Fetch RSS feeds and update news/data.json
         run: node .github/scripts/update-news.js
 
       - name: Commit and push if changed
