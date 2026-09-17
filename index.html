@@ -215,10 +215,11 @@
     cursor:pointer;
   }
   .firm-card.active .firm-mark{
-    background:radial-gradient(circle at 34% 30%, #e8f5ec 0%, #4b8f6a 34%, #0e1c14 72%, #050806 100%);
+    background:var(--panel-hi);
     box-shadow:0 0 0 1px var(--hairline-bright), 0 0 16px rgba(62,224,140,0.3);
-    border:none;
+    border:none; overflow:hidden;
   }
+  .firm-card.active .firm-mark img{ width:100%; height:100%; object-fit:cover; }
   .firm-card.active .firm-name{ color:var(--ice); font-size:14.5px; }
   .firm-card.active .firm-status{ background:var(--mint); color:var(--mint-text); font-weight:700; border-color:var(--mint); }
   .firm-card.active:hover{
@@ -323,7 +324,7 @@
       <span class="firm-status">Coming Soon</span>
     </div>
     <a class="firm-card active" href="lucid/">
-      <span class="firm-mark" aria-hidden="true"></span>
+      <span class="firm-mark" aria-hidden="true"><img src="lucid-orb.png" alt="" /></span>
       <span class="firm-name">Lucid Trading</span>
       <span class="firm-status">Live</span>
     </a>
@@ -333,8 +334,8 @@
       <span class="firm-status">Coming Soon</span>
     </div>
     <div class="firm-card disabled" aria-disabled="true">
-      <span class="firm-mark" aria-hidden="true">TP</span>
-      <span class="firm-name">Take Profit Trader</span>
+      <span class="firm-mark" aria-hidden="true">TF</span>
+      <span class="firm-name">Tradeify</span>
       <span class="firm-status">Coming Soon</span>
     </div>
   </div>
