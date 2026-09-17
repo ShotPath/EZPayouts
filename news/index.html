@@ -79,8 +79,12 @@
   .brand{ display:flex; align-items:center; gap:11px; text-decoration:none; }
   .brand-mark{ width:34px; height:34px; flex:none; object-fit:contain; }
   .brand-text{ display:flex; flex-direction:column; line-height:1.15; }
-  .brand-name{ font-family:var(--font-display); font-weight:700; font-size:16.5px; letter-spacing:0.02em; color:var(--ice); }
+  .brand-name-row{ display:flex; align-items:center; gap:7px; }
+  .brand-wordmark{ height:18px; width:auto; display:block; }
+  .brand-name-suffix{ font-family:var(--font-display); font-weight:700; font-size:16.5px; letter-spacing:0.02em; color:var(--ice); }
   .brand-sub{ font-size:10.5px; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted-dim); }
+  .footer-back{ display:inline-flex; align-items:center; gap:4px; }
+  .wordmark-tiny{ height:11px; width:auto; }
 
   .hero{ max-width:560px; margin:0 auto; text-align:center; padding:64px 0 46px; }
   .hero .eyebrow{
@@ -111,7 +115,10 @@
     <a class="brand" href="../" aria-label="Back to EZPayouts">
       <img class="brand-mark" src="../ezpayouts-icon-only.png" alt="" aria-hidden="true" />
       <span class="brand-text">
-        <span class="brand-name">EZPayouts News</span>
+        <span class="brand-name-row">
+          <img class="brand-wordmark" src="../ezpayouts-wordmark-only.png" alt="EZPayouts" />
+          <span class="brand-name-suffix">News</span>
+        </span>
         <span class="brand-sub">by ShotPath</span>
       </span>
     </a>
@@ -125,7 +132,7 @@
   </div>
 
   <footer>
-    <p><a href="../">&larr; Back to EZPayouts</a> &middot; Built by ShotPath</p>
+    <p><a class="footer-back" href="../">&larr; Back to <img class="wordmark-tiny" src="../ezpayouts-wordmark-only.png" alt="EZPayouts" /></a> &middot; Built by ShotPath</p>
   </footer>
 
 </div>
