@@ -21,6 +21,8 @@
     --phosphor-dim:#1c5c3d;
     --mint:#7ee8ac;
     --mint-text:#062b17;
+    --red:#ef5a5a;
+    --red-glow:rgba(239,90,90,0.35);
     --ice:#dcefe2;
     --muted:#7c9584;
     --muted-dim:#4d6055;
@@ -91,13 +93,32 @@
   .hero h1{ font-size:clamp(28px,5vw,40px); font-weight:700; line-height:1.1; color:var(--ice); letter-spacing:-0.01em; }
   .hero p{ margin:16px auto 0; color:var(--muted); font-size:15.5px; line-height:1.65; }
 
-  .badge{
-    display:inline-flex; align-items:center; gap:8px; margin-top:22px;
-    padding:7px 16px; border-radius:999px; background:var(--panel); border:1px solid var(--hairline-bright);
-    font-family:var(--font-mono); font-size:12px; color:var(--muted);
-  }
-  .badge .dot{ width:6px; height:6px; border-radius:50%; background:var(--phosphor); box-shadow:0 0 8px 2px rgba(62,224,140,0.35); animation:pulse 2.2s ease-in-out infinite; }
   @keyframes pulse{ 0%,100%{ opacity:1; } 50%{ opacity:0.35; } }
+
+  .news-feed{ display:flex; flex-direction:column; gap:14px; margin-top:8px; }
+  .news-item{
+    background:var(--panel); border:1px solid var(--hairline); border-radius:16px;
+    padding:16px 20px; text-align:left;
+  }
+  .news-item-head{ display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .news-item-dot{
+    width:7px; height:7px; border-radius:50%; flex:none;
+    background:var(--phosphor); box-shadow:0 0 8px 2px rgba(62,224,140,0.35);
+  }
+  .news-item-time{ font-family:var(--font-mono); font-size:11.5px; letter-spacing:0.03em; color:var(--muted); }
+  .news-item-badge{
+    font-family:var(--font-mono); font-size:9px; letter-spacing:0.1em; text-transform:uppercase; font-weight:700;
+    padding:2px 8px; border-radius:999px; background:var(--red); color:#2b0808;
+  }
+  .news-item-title{ font-family:var(--font-display); font-weight:600; font-size:16px; color:var(--ice); line-height:1.4; margin:0; }
+  .news-item-summary{ margin:8px 0 0; font-size:13.5px; color:var(--muted); line-height:1.6; }
+  .news-empty{ color:var(--muted); font-size:14px; text-align:center; padding:24px 0; }
+
+  .news-item.major{ border-color:var(--red); background:rgba(239,90,90,0.08); }
+  .news-item.major .news-item-dot{
+    background:var(--red); box-shadow:0 0 10px 3px var(--red-glow); animation:pulse 1.4s ease-in-out infinite;
+  }
+  .news-item.major .news-item-time{ color:var(--red); }
 
   footer{ margin-top:52px; text-align:center; }
   footer p{ font-size:12px; color:var(--muted-dim); line-height:1.7; margin:0; }
@@ -119,9 +140,12 @@
 
   <div class="hero">
     <div class="eyebrow">Market News</div>
-    <h1>The feed is warming up.</h1>
-    <p>We're building an automatically updated feed of the market-moving headlines behind those wicks that stop you out &mdash; the news, not just the noise. Check back soon.</p>
-    <div class="badge"><span class="dot" aria-hidden="true"></span> Coming soon</div>
+    <h1>What just happened?</h1>
+    <p>Market-moving headlines, posted as they happen &mdash; so the next wild wick doesn't catch you off guard. Anything marked <b style="color:var(--red);">Major</b> is worth a second look before your next trade.</p>
+  </div>
+
+  <div class="news-feed" id="newsFeed">
+    <p class="news-empty">Loading headlines&hellip;</p>
   </div>
 
   <footer>
@@ -129,5 +153,72 @@
   </footer>
 
 </div>
+
+<script>
+(function(){
+  "use strict";
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c];
+    });
+  }
+
+  function timeAgo(iso){
+    var then = new Date(iso).getTime();
+    var diff = Math.max(0, Date.now() - then);
+    var sec = Math.floor(diff / 1000);
+    if (sec < 60) return "just now";
+    var min = Math.floor(sec / 60);
+    if (min < 60) return min + "m ago";
+    var hr = Math.floor(min / 60);
+    if (hr < 24) return hr + "h ago";
+    var day = Math.floor(hr / 24);
+    if (day < 7) return day + "d ago";
+    var week = Math.floor(day / 7);
+    if (week < 5) return week + "w ago";
+    var month = Math.floor(day / 30);
+    if (month < 12) return month + "mo ago";
+    return Math.floor(day / 365) + "y ago";
+  }
+
+  var feedEl = document.getElementById("newsFeed");
+  var items = [];
+
+  function render(){
+    if (!items.length){
+      feedEl.innerHTML = '<p class="news-empty">No headlines yet &mdash; check back soon.</p>';
+      return;
+    }
+    var sorted = items.slice().sort(function(a, b){
+      return new Date(b.timestamp) - new Date(a.timestamp);
+    });
+    feedEl.innerHTML = sorted.map(function(item){
+      var isMajor = !!item.major;
+      return '' +
+        '<article class="news-item' + (isMajor ? " major" : "") + '">' +
+          '<div class="news-item-head">' +
+            '<span class="news-item-dot" aria-hidden="true"></span>' +
+            '<span class="news-item-time">' + timeAgo(item.timestamp) + '</span>' +
+            (isMajor ? '<span class="news-item-badge">Major</span>' : '') +
+          '</div>' +
+          '<h3 class="news-item-title">' + escapeHtml(item.title) + '</h3>' +
+          (item.summary ? '<p class="news-item-summary">' + escapeHtml(item.summary) + '</p>' : '') +
+        '</article>';
+    }).join("");
+  }
+
+  fetch("data.json")
+    .then(function(res){ return res.json(); })
+    .then(function(data){
+      items = Array.isArray(data) ? data : [];
+      render();
+      setInterval(render, 60000);
+    })
+    .catch(function(){
+      feedEl.innerHTML = '<p class="news-empty">Couldn’t load the news feed right now.</p>';
+    });
+})();
+</script>
 </body>
 </html>

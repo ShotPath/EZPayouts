@@ -1,0 +1,32 @@
+[
+  {
+    "title": "CPI print beats forecasts — ES whips 25 handles in under a minute",
+    "timestamp": "2026-09-17T03:45:00Z",
+    "major": true,
+    "summary": "A hotter-than-expected inflation read sent index futures sharply lower before ripping back, stopping out breakouts on both sides."
+  },
+  {
+    "title": "Overnight liquidity thin ahead of the cash open — spreads wider than usual",
+    "timestamp": "2026-09-17T00:10:00Z",
+    "major": false,
+    "summary": "Low overnight volume left order books thin; expect choppier fills until the regular session gets going."
+  },
+  {
+    "title": "FOMC statement triggers a sharp two-sided reaction across index futures",
+    "timestamp": "2026-09-16T05:00:00Z",
+    "major": true,
+    "summary": "Futures spiked on the headline, then reversed hard within minutes as the market repriced the outlook for the next meeting."
+  },
+  {
+    "title": "Weekly jobless claims roughly in line with estimates",
+    "timestamp": "2026-09-15T04:00:00Z",
+    "major": false,
+    "summary": "Muted reaction across the majors — no meaningful follow-through in either direction."
+  },
+  {
+    "title": "Bond auction tails hard, yields spike — futures give back the week's gains",
+    "timestamp": "2026-09-12T04:00:00Z",
+    "major": false,
+    "summary": "Weak demand at the auction pushed yields higher into the close, dragging equity index futures with it."
+  }
+]
