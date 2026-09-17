@@ -110,6 +110,13 @@
     "summary": "A report says Intel is in early talks with SK Hynix, which is considering some sort of partnership that would enable it to make memory chips in the U.S."
   },
   {
+    "id": "https://www.marketwatch.com/bulletins/redirect/go?g=549e172b-f4d8-41fd-ab58-768cbafd2938&mod=mw_rss_bulletins",
+    "title": "Most workers would take a pay cut for job security right now",
+    "timestamp": "2026-09-16T23:21:41.000Z",
+    "major": false,
+    "summary": ""
+  },
+  {
     "id": "https://www.marketwatch.com/story/warshs-fed-rolls-out-first-interest-rate-hike-in-3-years-with-one-more-increase-expected-cde3060d?mod=mw_rss_topstories",
     "title": "As Fed rolls out its first interest-rate hike in 3 years, market braces for more increases",
     "timestamp": "2026-09-16T22:25:00.000Z",
@@ -138,6 +145,13 @@
     "summary": "First deliveries of Generac’s backup power generators are worth $2.4 billion."
   },
   {
+    "id": "https://www.marketwatch.com/bulletins/redirect/go?g=1db88495-11c0-47a6-965e-059002dac96c&mod=mw_rss_bulletins",
+    "title": "Fed rate hike fails to calm markets. Expect more sharp swings in stocks, bonds.",
+    "timestamp": "2026-09-16T21:43:33.000Z",
+    "major": true,
+    "summary": ""
+  },
+  {
     "id": "https://www.marketwatch.com/story/fed-rate-hike-fails-to-calm-troubled-markets-as-dow-falls-600-points-expect-more-sharp-swings-in-stocks-and-bonds-5ffb55fe?mod=mw_rss_topstories",
     "title": "Fed rate hike fails to calm troubled markets as Dow falls 600 points. Expect more sharp swings in stocks and bonds.",
     "timestamp": "2026-09-16T21:40:00.000Z",
@@ -145,31 +159,17 @@
     "summary": "Fed Chair Kevin Warsh has sent investors a message: When it comes to tamping down inflation, he means business."
   },
   {
+    "id": "https://www.marketwatch.com/bulletins/redirect/go?g=f9b059d4-f17d-4adf-9ca2-b15125612ba1&mod=mw_rss_bulletins",
+    "title": "Store brands like Kirkland are winning the war for consumers' wallets",
+    "timestamp": "2026-09-16T21:20:45.000Z",
+    "major": true,
+    "summary": ""
+  },
+  {
     "id": "https://www.marketwatch.com/story/why-optical-stocks-lumentum-and-coherent-were-the-days-biggest-gainers-051af440?mod=mw_rss_topstories",
     "title": "Why optical stocks Lumentum and Coherent were the day’s biggest S&P 500 gainers",
     "timestamp": "2026-09-16T20:52:00.000Z",
     "major": false,
     "summary": "Investors are looking further down the AI data-center supply chain for signs of demand amid concerns of a spending slowdown, one expert says."
-  },
-  {
-    "id": "https://www.marketwatch.com/story/heres-a-sneaky-way-to-play-the-feds-rate-increase-6deb072f?mod=mw_rss_topstories",
-    "title": "Here’s a sneaky way to play the Fed’s rate increase",
-    "timestamp": "2026-09-16T20:38:00.000Z",
-    "major": false,
-    "summary": "But watch out for the pitfalls."
-  },
-  {
-    "id": "https://www.marketwatch.com/story/i-am-drowning-in-debt-i-have-125-000-in-credit-card-debt-will-9-000-in-disability-income-affect-my-bankruptcy-f897c131?mod=mw_rss_topstories",
-    "title": "I have $125,000 in credit-card debt. Will $17,000 a month in income, including disability, affect my bankruptcy?",
-    "timestamp": "2026-09-16T19:15:00.000Z",
-    "major": true,
-    "summary": "&#x201c;I racked up this debt to cover my living expenses for two years without an income stream.&#x201d;"
-  },
-  {
-    "id": "https://www.marketwatch.com/story/google-is-playing-a-different-ai-game-than-everyone-else-and-wall-street-may-be-missing-the-point-e91077a3?mod=mw_rss_topstories",
-    "title": "Google is playing a different AI game than everyone else, and Wall Street may be missing the point",
-    "timestamp": "2026-09-16T18:57:00.000Z",
-    "major": false,
-    "summary": "Investors have been fixated on the relative performance of Alphabet’s AI models when they should instead be cheering the company’s cloud potential, an analyst says."
   }
 ]
