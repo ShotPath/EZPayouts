@@ -81,7 +81,7 @@
   .mono{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
 
   .topbar{
-    display:flex; align-items:center; justify-content:space-between; gap:14px;
+    display:flex; align-items:center; gap:14px;
     max-width:1080px; margin:0 auto 32px; padding:10px 20px 10px 14px;
     background:var(--panel-raised); border:1px solid var(--hairline);
     border-radius:999px;
@@ -89,18 +89,16 @@
   .brand{ display:flex; align-items:center; text-decoration:none; flex:none; }
   .brand-mark{ width:36px; height:36px; flex:none; object-fit:contain; }
 
-  .topbar-right{ display:flex; align-items:center; gap:clamp(14px,2.4vw,28px); flex-wrap:wrap; }
-
-  .nav-links{ display:flex; align-items:center; gap:clamp(14px,2.4vw,26px); }
+  .nav-links{ display:flex; align-items:center; justify-content:center; flex:1; min-width:0; gap:clamp(14px,2.4vw,26px); }
   .nav-links a{
     font-family:var(--font-display); font-weight:600; font-size:13.5px;
     color:var(--muted); text-decoration:none; letter-spacing:0.01em;
-    transition:color .15s;
+    white-space:nowrap; transition:color .15s;
   }
   .nav-links a:hover{ color:var(--ice); }
   .nav-links a.active{ color:var(--ice); }
 
-  .clock-menu-stack{ display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
+  .topbar-actions{ display:flex; align-items:center; gap:10px; flex:none; }
 
   .market-status{
     display:inline-flex; align-items:center; gap:4px; white-space:nowrap;
@@ -170,10 +168,10 @@
   .menu-size-btn:hover{ border-color:var(--hairline-bright); color:var(--ice); }
   .menu-size-btn.active{ background:var(--mint); border-color:var(--mint); color:var(--mint-text); }
 
-  @media (max-width:480px){
-    .topbar{ border-radius:22px; flex-wrap:wrap; padding:14px 18px; }
-    .topbar-right{ width:100%; justify-content:space-between; gap:10px; }
-    .nav-links{ gap:10px; }
+  @media (max-width:680px){
+    .topbar{ border-radius:22px; flex-wrap:wrap; justify-content:center; padding:14px 18px; }
+    .nav-links{ flex:1 1 100%; order:2; gap:10px; flex-wrap:wrap; row-gap:6px; }
+    .topbar-actions{ order:3; }
   }
 
   .hero{ max-width:640px; margin:0 auto; text-align:center; padding:56px 0 40px; }
@@ -257,24 +255,22 @@
   <a class="brand" href="../" aria-label="EZPayouts home">
     <img class="brand-mark" src="../ezpayouts-icon-only.png" alt="" aria-hidden="true" />
   </a>
-  <div class="topbar-right">
-    <nav class="nav-links" aria-label="Primary">
-      <a href="../lucid/">Guide</a>
-      <a href="./" class="active">Compare</a>
-      <a href="../news/">News</a>
-      <a href="../#disclaimer">Disclaimer</a>
-      <a href="../#about">About</a>
-    </nav>
-    <div class="clock-menu-stack">
-      <span class="market-status" id="marketStatus">
-        <span class="dot" aria-hidden="true"></span>
-        <span class="label mono" id="marketLabel">NY OPEN IN</span>
-        <strong class="mono" id="marketOpenIn">--:--:--</strong>
-      </span>
-      <button type="button" class="menu-btn" id="menuBtn" aria-haspopup="true" aria-expanded="false" aria-controls="accountMenu" aria-label="Select account">
-        <span class="menu-lines" aria-hidden="true"><span></span><span></span><span></span></span>
-      </button>
-    </div>
+  <nav class="nav-links" aria-label="Primary">
+    <a href="../lucid/">Guide</a>
+    <a href="./" class="active">Compare</a>
+    <a href="../news/">News</a>
+    <a href="../#disclaimer">Disclaimer</a>
+    <a href="../#about">About</a>
+  </nav>
+  <div class="topbar-actions">
+    <span class="market-status" id="marketStatus">
+      <span class="dot" aria-hidden="true"></span>
+      <span class="label mono" id="marketLabel">NY OPEN IN</span>
+      <strong class="mono" id="marketOpenIn">--:--:--</strong>
+    </span>
+    <button type="button" class="menu-btn" id="menuBtn" aria-haspopup="true" aria-expanded="false" aria-controls="accountMenu" aria-label="Select account">
+      <span class="menu-lines" aria-hidden="true"><span></span><span></span><span></span></span>
+    </button>
   </div>
 </header>
 <div class="wrap">
