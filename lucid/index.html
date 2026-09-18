@@ -148,6 +148,13 @@
     padding:24px clamp(16px,3vw,30px) 26px; margin-bottom:26px;
     box-shadow:0 16px 36px -20px var(--phosphor-glow);
   }
+  .top-cards-row{
+    display:grid; grid-template-columns:1fr 1fr; gap:26px; align-items:start; margin-bottom:26px;
+  }
+  .top-cards-row .snapshot-card, .top-cards-row .console{ margin-bottom:0; min-width:0; }
+  @media (max-width:860px){
+    .top-cards-row{ grid-template-columns:1fr; }
+  }
   .snapshot-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:18px; }
   .snapshot-title{ font-size:20px; color:var(--ice); margin-bottom:2px; }
   .snapshot-sub{ font-family:var(--font-mono); font-size:12px; color:var(--muted); }
@@ -476,51 +483,53 @@
     <p>A cockpit for your Lucid Trading accounts &mdash; live rules, a risk co-pilot that tells you the minimum pace you need and the max you should risk, and the exact path from evaluation to your first payout.</p>
   </div>
 
-  <div class="snapshot-card pricing-card" id="snapshotCard">
-    <div class="snapshot-head">
-      <div>
-        <div class="snapshot-title" id="snapshotTitle">25K FLEX EVAL</div>
-        <div class="snapshot-sub" id="snapshotSub">Live rule sheet for this plan and size</div>
-      </div>
-      <div class="rcontrol">
-        <button type="button" class="switch-btn" id="switchAccountBtn">Switch Account</button>
-        <button type="button" class="collapse-btn" data-card="snapshotCard" aria-expanded="true" aria-label="Collapse Account Snapshot"><span class="chev" aria-hidden="true"></span></button>
-      </div>
-    </div>
-    <div class="card-body" id="snapshotCardBody">
-      <div class="readout-list" id="statList"></div>
-      <div class="pricing-flags" id="pricingFlags"></div>
-      <div id="feeBox"></div>
-      <div class="pricing-actions" id="pricingActions"></div>
-    </div>
-  </div>
-
-  <div class="console" id="importCard">
-    <div class="console-head">
-      <h2>Import Trade History</h2>
-      <button type="button" class="collapse-btn" data-card="importCard" aria-expanded="true" aria-label="Collapse Import Trade History"><span class="chev" aria-hidden="true"></span></button>
-    </div>
-    <div class="card-body" id="importCardBody">
-      <p class="hint" style="margin:-6px 0 16px; font-size:13px; line-height:1.6;">No login, no password &mdash; export a CSV from Tradovate and drop it in below. The file is read entirely in your browser; nothing gets uploaded anywhere.</p>
-      <ol class="csv-steps">
-        <li>Log into Tradovate: <a href="https://trader.tradovate.com/" target="_blank" rel="noopener">trader.tradovate.com</a> (opens in a new tab)</li>
-        <li>Click your <b>account name</b> at the top, then the small <b>gear icon</b> next to it &mdash; this opens <b>Account Reports</b> (some versions show this as a <b>Reports</b> item in the main menu instead)</li>
-        <li>Click the <b>Account Balance History</b> tab &mdash; not Client Statements or Performance, those are different reports (Cash History also works if that's what you've got)</li>
-        <li>Set the date range back to the day you first opened the account, so it captures everything</li>
-        <li>Click <b>Download Report</b> to save the CSV</li>
-        <li>Come back here and upload that file below</li>
-      </ol>
-      <div class="field">
-        <label for="csvFile">Account Balance History CSV</label>
-        <input id="csvFile" type="file" accept=".csv,text/csv" />
-        <span class="hint" id="csvMessage">Auto-fills Net P&amp;L and Best Day below once uploaded. Cash History files are also accepted.</span>
-      </div>
-      <div id="csvResults" hidden>
-        <div class="csv-chart-wrap">
-          <div class="csv-chart-title">Cumulative P&amp;L</div>
-          <div id="csvChart"></div>
+  <div class="top-cards-row">
+    <div class="snapshot-card pricing-card" id="snapshotCard">
+      <div class="snapshot-head">
+        <div>
+          <div class="snapshot-title" id="snapshotTitle">25K FLEX EVAL</div>
+          <div class="snapshot-sub" id="snapshotSub">Live rule sheet for this plan and size</div>
         </div>
-        <div class="readout-list" id="csvConsistencyList" style="margin-top:16px;"></div>
+        <div class="rcontrol">
+          <button type="button" class="switch-btn" id="switchAccountBtn">Switch Account</button>
+          <button type="button" class="collapse-btn" data-card="snapshotCard" aria-expanded="true" aria-label="Collapse Account Snapshot"><span class="chev" aria-hidden="true"></span></button>
+        </div>
+      </div>
+      <div class="card-body" id="snapshotCardBody">
+        <div class="readout-list" id="statList"></div>
+        <div class="pricing-flags" id="pricingFlags"></div>
+        <div id="feeBox"></div>
+        <div class="pricing-actions" id="pricingActions"></div>
+      </div>
+    </div>
+
+    <div class="console" id="importCard">
+      <div class="console-head">
+        <h2>Import Trade History</h2>
+        <button type="button" class="collapse-btn" data-card="importCard" aria-expanded="true" aria-label="Collapse Import Trade History"><span class="chev" aria-hidden="true"></span></button>
+      </div>
+      <div class="card-body" id="importCardBody">
+        <p class="hint" style="margin:-6px 0 16px; font-size:13px; line-height:1.6;">No login, no password &mdash; export a CSV from Tradovate and drop it in below. The file is read entirely in your browser; nothing gets uploaded anywhere.</p>
+        <ol class="csv-steps">
+          <li>Log into Tradovate: <a href="https://trader.tradovate.com/" target="_blank" rel="noopener">trader.tradovate.com</a> (opens in a new tab)</li>
+          <li>Click your <b>account name</b> at the top, then the small <b>gear icon</b> next to it &mdash; this opens <b>Account Reports</b> (some versions show this as a <b>Reports</b> item in the main menu instead)</li>
+          <li>Click the <b>Account Balance History</b> tab &mdash; not Client Statements or Performance, those are different reports (Cash History also works if that's what you've got)</li>
+          <li>Set the date range back to the day you first opened the account, so it captures everything</li>
+          <li>Click <b>Download Report</b> to save the CSV</li>
+          <li>Come back here and upload that file below</li>
+        </ol>
+        <div class="field">
+          <label for="csvFile">Account Balance History CSV</label>
+          <input id="csvFile" type="file" accept=".csv,text/csv" />
+          <span class="hint" id="csvMessage">Auto-fills Net P&amp;L and Best Day below once uploaded. Cash History files are also accepted.</span>
+        </div>
+        <div id="csvResults" hidden>
+          <div class="csv-chart-wrap">
+            <div class="csv-chart-title">Cumulative P&amp;L</div>
+            <div id="csvChart"></div>
+          </div>
+          <div class="readout-list" id="csvConsistencyList" style="margin-top:16px;"></div>
+        </div>
       </div>
     </div>
   </div>
