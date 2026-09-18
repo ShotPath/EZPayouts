@@ -200,17 +200,25 @@
   .opt-pill:hover{ border-color:var(--hairline-bright); color:var(--ice); }
   .opt-pill.active{ background:var(--mint); border-color:var(--mint); color:var(--mint-text); }
 
+  .seg-track{ position:relative; }
+  .seg-thumb{
+    position:absolute; top:0; bottom:0; left:0; width:0; z-index:0; pointer-events:none;
+    background:var(--mint); transition:transform .22s cubic-bezier(.4,0,.2,1), width .22s cubic-bezier(.4,0,.2,1);
+  }
+  .seg-track button{ position:relative; z-index:1; }
+
   .dll-toggle{
     display:inline-flex; align-items:stretch; margin-left:auto;
     border-radius:9px; overflow:hidden; border:1px solid var(--hairline-bright); background:var(--panel-raised);
   }
+  .dll-toggle .seg-thumb{ border-radius:inherit; }
   .dll-toggle button{
     font-family:var(--font-mono); font-size:12px; font-weight:700; padding:7px 14px;
     background:transparent; border:none; color:var(--muted); cursor:pointer;
-    transition:background .15s, color .15s; white-space:nowrap;
+    transition:color .15s; white-space:nowrap;
   }
   .dll-toggle button:hover{ color:var(--ice); }
-  .dll-toggle button.active{ background:var(--mint); color:var(--mint-text); }
+  .dll-toggle button.active{ color:var(--mint-text); }
   .dll-toggle button.active:hover{ color:var(--mint-text); }
 
   .fee-box{
@@ -410,13 +418,14 @@
     display:flex; border-radius:12px; overflow:hidden; border:1px solid var(--hairline-bright);
     background:var(--panel-raised); box-shadow:0 16px 36px -20px var(--phosphor-glow);
   }
+  .plan-tabs .seg-thumb{ border-radius:inherit; }
   .plan-tabs button{
     flex:1; font-family:var(--font-display); font-weight:700; font-size:14px;
     padding:14px 12px; background:transparent; border:none; color:var(--muted);
-    cursor:pointer; transition:background .15s, color .15s; white-space:nowrap;
+    cursor:pointer; transition:color .15s; white-space:nowrap;
   }
   .plan-tabs button:hover{ color:var(--ice); }
-  .plan-tabs button.active{ background:var(--mint); color:var(--mint-text); }
+  .plan-tabs button.active{ color:var(--mint-text); }
   .size-select-wrap{
     display:flex; align-items:center; gap:12px; margin-top:14px; flex-wrap:wrap;
   }
@@ -470,7 +479,8 @@
   </div>
 
   <div class="account-selector">
-    <div class="plan-tabs" id="planTabs">
+    <div class="plan-tabs seg-track" id="planTabs">
+      <span class="seg-thumb" aria-hidden="true"></span>
       <button type="button" data-plan="pro">LucidPro</button>
       <button type="button" data-plan="flex">LucidFlex</button>
       <button type="button" data-plan="daily">LucidDaily</button>
@@ -1025,12 +1035,56 @@
     return '<span class="rvalue' + (cls ? " " + cls : "") + '">' + text + '</span>';
   }
 
+  // Sliding-thumb segmented control helpers. layoutSegThumb positions the
+  // thumb behind the active button; flipSegThumb additionally animates it
+  // there from a previously-captured position, for tracks whose DOM gets
+  // rebuilt (innerHTML) on every render rather than persisting.
+  function layoutSegThumb(track, skipTransition){
+    if (!track) return;
+    var thumb = track.querySelector(".seg-thumb");
+    var active = track.querySelector("button.active");
+    if (!thumb || !active) return;
+    if (skipTransition) thumb.style.transition = "none";
+    thumb.style.width = active.offsetWidth + "px";
+    thumb.style.transform = "translateX(" + active.offsetLeft + "px)";
+    if (skipTransition){
+      thumb.offsetHeight;
+      thumb.style.transition = "";
+    }
+  }
+  function flipSegThumb(track, prevRect){
+    if (!track) return;
+    var thumb = track.querySelector(".seg-thumb");
+    var active = track.querySelector("button.active");
+    if (!thumb || !active) return;
+    thumb.style.transition = "none";
+    var offsetLeft = active.offsetLeft;
+    thumb.style.width = active.offsetWidth + "px";
+    thumb.style.transform = "translateX(" + offsetLeft + "px)";
+    if (prevRect){
+      var newRect = thumb.getBoundingClientRect();
+      var dx = prevRect.left - newRect.left;
+      var scale = newRect.width ? (prevRect.width / newRect.width) : 1;
+      thumb.style.transformOrigin = "left center";
+      thumb.style.transform = "translateX(" + (offsetLeft + dx) + "px) scaleX(" + scale + ")";
+      thumb.offsetHeight; // force reflow before re-enabling the transition
+      thumb.style.transition = "";
+      thumb.style.transform = "translateX(" + offsetLeft + "px)";
+    } else {
+      thumb.offsetHeight;
+      thumb.style.transition = "";
+    }
+  }
+
   function renderSnapshotCard(){
     var c = current();
     var d = c.size;
     var contracts = CONTRACTS[state.size];
     var view = state.snapshotView;
     var sizeLabel = (state.size/1000) + "K " + c.plan.name.replace("Lucid","").toUpperCase();
+
+    var prevDllThumb = document.querySelector("#statList .dll-toggle .seg-thumb");
+    var prevDllRect = prevDllThumb ? prevDllThumb.getBoundingClientRect() : null;
 
     snapshotTitle.textContent = sizeLabel + (view === "funded" ? " FUNDED" : " EVAL");
     snapshotSub.textContent = c.plan.name + " · $" + (state.size/1000) + "K account";
@@ -1041,7 +1095,8 @@
     var dllValueHtml;
     if (dllAvailable()){
       dllValueHtml =
-        '<div class="dll-toggle">' +
+        '<div class="dll-toggle seg-track">' +
+          '<span class="seg-thumb" aria-hidden="true"></span>' +
           '<button type="button" class="' + (dllOnNow ? 'active' : '') + '" data-dll="on">' + onLabel + '</button>' +
           '<button type="button" class="' + (!dllOnNow ? 'active' : '') + '" data-dll="off">' + offLabel + '</button>' +
         '</div>';
@@ -1095,6 +1150,7 @@
         row("Days to Payout", plainValue("5", ""), "", money(d.dailyMin) + " per day &times; 5 days") +
         row("Max Size", plainValue(contracts.fundedMini + " Mini OR " + contracts.fundedMicro + " Micros", ""), "", "Starting funded size — scales up as profit builds") +
         row("Scaling Plan", scalingValueHtml, "", "Hover or tap the i for the profit-tier breakdown");
+      flipSegThumb(document.querySelector("#statList .dll-toggle"), prevDllRect);
 
       document.getElementById("pricingFlags").innerHTML = "";
       document.getElementById("feeBox").innerHTML = "";
@@ -1124,6 +1180,7 @@
       row("Daily Loss Limit", dllValueHtml, "", dllAvailable() ? "Trip it and today's trading is done" : (state.plan === "flex" ? "Available on the 25K/50K &mdash; confirm this size on your dashboard" : "Confirm on your dashboard")) +
       row("Consistency", consistencyValueHtml, "", consistencySub) +
       row("Max Size", plainValue(contracts.maxMini + " Mini OR " + contracts.maxMicro + " Micros", ""), "", "Funded starts at " + contracts.fundedMini + " mini / " + contracts.fundedMicro + " micro and scales up as profit builds");
+    flipSegThumb(document.querySelector("#statList .dll-toggle"), prevDllRect);
 
     var noConsistencyFunded = !cFunded;
     document.getElementById("pricingFlags").innerHTML =
@@ -1405,10 +1462,13 @@
     coachText.innerHTML = lines.join(' ');
   }
 
+  var planTabsRenderedOnce = false;
   function renderAccountSelector(){
     document.querySelectorAll("#planTabs button").forEach(function(btn){
       btn.classList.toggle("active", btn.dataset.plan === state.plan);
     });
+    layoutSegThumb(document.getElementById("planTabs"), !planTabsRenderedOnce);
+    planTabsRenderedOnce = true;
     var select = document.getElementById("sizeSelect");
     select.innerHTML = SIZE_ORDER.map(function(size){
       return '<option value="' + size + '"' + (size === state.size ? ' selected' : '') + '>$' + (size/1000) + 'K account</option>';
@@ -1539,6 +1599,18 @@
     state.snapshotView = "eval";
     renderAll();
     saveState();
+  });
+
+  // Seg-thumb widths/positions are computed in px at render time, so a
+  // viewport resize (which reflows the buttons but doesn't re-render) needs
+  // to re-snap them without animating.
+  var resizeSegTimer = null;
+  window.addEventListener("resize", function(){
+    clearTimeout(resizeSegTimer);
+    resizeSegTimer = setTimeout(function(){
+      layoutSegThumb(document.getElementById("planTabs"), true);
+      layoutSegThumb(document.querySelector("#statList .dll-toggle"), true);
+    }, 100);
   });
 
   // CSV import — everything happens locally in the browser, nothing is ever
