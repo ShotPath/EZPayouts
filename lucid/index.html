@@ -387,7 +387,7 @@
   .section-head .eyebrow{ font-family:var(--font-mono); font-size:12px; letter-spacing:0.22em; text-transform:uppercase; color:var(--phosphor); margin-bottom:8px; }
   .section-head h2{ font-size:24px; color:var(--ice); }
 
-  .phases{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  .phases{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; align-items:start; }
   @media (max-width:860px){ .phases{ grid-template-columns:1fr; } }
   .phase{
     background:var(--panel); border:1px solid var(--hairline-bright); border-radius:20px;
@@ -431,11 +431,15 @@
     font-family:var(--font-mono); font-size:11.5px; letter-spacing:0.06em; text-transform:uppercase; color:var(--muted);
   }
   .size-select-wrap select{
-    background:var(--void); border:1px solid var(--hairline-bright); border-radius:10px;
-    padding:9px 12px; color:var(--ice); font-family:var(--font-mono); font-size:14.5px; font-weight:600;
+    appearance:none; -webkit-appearance:none;
+    background-color:var(--void); border:1px solid var(--hairline-bright); border-radius:10px;
+    padding:9px 34px 9px 12px; color:var(--ice); font-family:var(--font-mono); font-size:14.5px; font-weight:600;
     outline:none; cursor:pointer; transition:border-color .15s;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8'><path d='M1 1l5 5 5-5' stroke='%237c9584' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat:no-repeat; background-position:right 12px center;
   }
   .size-select-wrap select:focus{ border-color:var(--mint); box-shadow:0 0 0 3px rgba(126,232,172,0.14); }
+  .size-select-wrap select option{ background:var(--panel-raised); color:var(--ice); }
   @media (max-width:480px){
     .plan-tabs button{ font-size:11.5px; padding:12px 4px; }
   }
