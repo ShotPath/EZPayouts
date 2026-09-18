@@ -141,6 +141,7 @@
   .top-cards-row{
     display:grid; grid-template-columns:1fr 1fr; gap:26px; align-items:stretch; margin-bottom:26px;
   }
+  .top-cards-row[hidden]{ display:none; }
   .top-cards-row .snapshot-card, .top-cards-row .console{ margin-bottom:0; min-width:0; display:flex; flex-direction:column; }
   .top-cards-row .card-body{ flex:1; display:flex; flex-direction:column; }
   .top-cards-row .card-body[hidden]{ display:none; }
@@ -562,6 +563,7 @@
     </div>
   </div>
 
+  <div id="guideExtras">
   <div class="console" id="copilotCard">
     <div class="console-head">
       <h2>Risk Co-Pilot</h2>
@@ -682,6 +684,7 @@
         </ul>
       </div>
     </div>
+  </div>
   </div>
 
   <footer>
@@ -1037,6 +1040,28 @@
     btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
     if (card) card.classList.toggle("row-collapsed", collapsed);
     state.collapsed[cardId] = collapsed;
+    if (cardId === "snapshotCard" || cardId === "importCard") syncImportCardHeight();
+  }
+
+  // Import Trade History's box height tracks the pricing card's height
+  // whenever the pricing card is expanded, so the two line up. But if the
+  // pricing card is then collapsed, Import Trade History shouldn't shrink
+  // along with it — it stays pinned at the last height it matched, until
+  // it's collapsed itself (or the pricing card re-expands to a new height).
+  var lastSnapshotHeight = null;
+  function syncImportCardHeight(){
+    var snapshotCard = document.getElementById("snapshotCard");
+    var importCard = document.getElementById("importCard");
+    if (!snapshotCard || !importCard || document.getElementById("topCardsRow").hidden) return;
+    if (!state.collapsed.snapshotCard){
+      importCard.style.minHeight = "";
+      lastSnapshotHeight = snapshotCard.offsetHeight;
+    }
+    if (state.collapsed.importCard){
+      importCard.style.minHeight = "";
+    } else if (lastSnapshotHeight){
+      importCard.style.minHeight = lastSnapshotHeight + "px";
+    }
   }
 
   document.addEventListener("click", function(e){
@@ -1499,6 +1524,7 @@
 
     var disclaimerText = PLAN_DISCLAIMERS[state.plan];
     document.getElementById("topCardsRow").hidden = !!disclaimerText;
+    document.getElementById("guideExtras").hidden = !!disclaimerText;
     document.getElementById("planDisclaimer").hidden = !disclaimerText;
     if (disclaimerText) document.getElementById("planDisclaimerText").textContent = disclaimerText;
   }
@@ -1560,6 +1586,7 @@
     renderCoPilot();
     renderAccountSelector();
     renderCsvConsistency();
+    syncImportCardHeight();
   }
 
   document.getElementById("snapshotCardBody").addEventListener("click", function(e){
