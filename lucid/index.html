@@ -202,6 +202,62 @@
   .fee-box .fee-amount{ font-size:30px; font-weight:700; color:var(--phosphor-soft); }
   .fee-box .fee-savings{ font-size:12px; color:var(--phosphor-soft); }
   .fee-box .fee-note{ font-size:11.5px; color:var(--muted-dim); line-height:1.5; max-width:52ch; }
+  .fee-box-sub{
+    display:flex; justify-content:space-between; align-items:center; gap:12px;
+    margin-top:12px; padding-top:12px; border-top:1px dashed var(--hairline-bright);
+    font-size:13px; color:var(--muted);
+  }
+  .fee-box-sub b{ color:var(--ice); font-family:var(--font-mono); font-size:14px; }
+
+  /* ---------- Pricing card (Snapshot, eval/funded flip) ---------- */
+  .pricing-card .snapshot-head{ padding-bottom:16px; border-bottom:1px solid var(--hairline); margin-bottom:18px; }
+  .pricing-card .snapshot-title{ font-weight:700; font-size:21px; }
+  .pricing-card .snapshot-sub{ display:none; }
+
+  .pricing-flags{ display:flex; flex-direction:column; gap:12px; margin:20px 0; }
+  .pricing-flag-row{ display:flex; justify-content:space-between; align-items:center; gap:12px; font-size:13.5px; color:var(--muted); }
+  .fee-flag{
+    display:inline-flex; align-items:center; justify-content:center; min-width:32px; padding:4px 12px;
+    border-radius:8px; border:1px solid var(--phosphor-dim); background:rgba(62,224,140,0.12);
+    color:var(--phosphor-soft); font-family:var(--font-mono); font-weight:700; font-size:12px;
+  }
+  .fee-flag.off{ border-color:var(--hairline-bright); background:transparent; color:var(--muted-dim); }
+
+  .pricing-actions{ display:flex; flex-direction:column; gap:10px; margin-top:20px; }
+  .pricing-btn{
+    display:block; width:100%; text-align:center; box-sizing:border-box;
+    font-family:var(--font-display); font-weight:700; font-size:14.5px;
+    padding:13px 16px; border-radius:12px; background:var(--panel-raised); border:1px solid var(--hairline-bright);
+    color:var(--ice); cursor:pointer; transition:border-color .15s, background .15s, box-shadow .15s;
+    text-decoration:none;
+  }
+  .pricing-btn:hover{ border-color:var(--phosphor-dim); box-shadow:0 0 16px -4px var(--phosphor-glow); }
+  .pricing-btn-accent{ color:var(--phosphor-soft); }
+  .pricing-btn-accent:hover{ background:var(--mint); color:var(--mint-text); border-color:var(--mint); }
+
+  .scaling-wrap{ position:relative; display:inline-flex; align-items:center; }
+  .info-dot{
+    display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; border-radius:50%;
+    background:var(--panel-hi); border:1px solid var(--hairline-bright); color:var(--muted); font-size:10px; font-style:italic;
+    font-family:var(--font-mono); cursor:help; flex:none; padding:0; line-height:1;
+  }
+  .info-dot:hover{ border-color:var(--phosphor-dim); color:var(--phosphor-soft); }
+  .scaling-tooltip{
+    position:absolute; top:calc(100% + 10px); right:0; z-index:20; width:230px;
+    background:var(--panel-raised); border:1px solid var(--hairline-bright); border-radius:12px;
+    padding:14px 16px; box-shadow:0 16px 36px -16px rgba(0,0,0,0.6), 0 0 20px -6px var(--phosphor-glow);
+    opacity:0; visibility:hidden; transform:translateY(-4px); transition:opacity .15s, transform .15s, visibility .15s;
+    text-align:left;
+  }
+  .scaling-wrap:hover .scaling-tooltip, .scaling-wrap:focus-within .scaling-tooltip, .scaling-wrap.show .scaling-tooltip{
+    opacity:1; visibility:visible; transform:translateY(0);
+  }
+  .scaling-title{ font-family:var(--font-mono); font-weight:700; font-size:10.5px; letter-spacing:0.06em; text-transform:uppercase; color:var(--ice); margin-bottom:10px; }
+  .scaling-table{ width:100%; border-collapse:collapse; }
+  .scaling-table th{ font-family:var(--font-mono); font-size:9px; letter-spacing:0.05em; text-transform:uppercase; color:var(--muted-dim); text-align:left; padding-bottom:6px; font-weight:600; }
+  .scaling-table th:last-child, .scaling-table td:last-child{ text-align:right; }
+  .scaling-table td{ font-size:11.5px; color:var(--muted); padding:4px 0; }
+  .scaling-table td:first-child{ color:var(--ice); font-family:var(--font-mono); }
 
   /* ---------- Console (Risk Co-Pilot) ---------- */
   .console{
@@ -400,7 +456,7 @@
     <p>A cockpit for your Lucid Trading accounts &mdash; live rules, a risk co-pilot that tells you the minimum pace you need and the max you should risk, and the exact path from evaluation to your first payout.</p>
   </div>
 
-  <div class="snapshot-card" id="snapshotCard">
+  <div class="snapshot-card pricing-card" id="snapshotCard">
     <div class="snapshot-head">
       <div>
         <div class="snapshot-title" id="snapshotTitle">25K FLEX EVAL</div>
@@ -413,20 +469,9 @@
     </div>
     <div class="card-body" id="snapshotCardBody">
       <div class="readout-list" id="statList"></div>
-    </div>
-  </div>
-
-  <div class="snapshot-card" id="costCard">
-    <div class="snapshot-head">
-      <div>
-        <div class="snapshot-title">Cost &amp; Payouts</div>
-        <div class="snapshot-sub" id="costSub">What this account costs, and what you can pull out</div>
-      </div>
-      <button type="button" class="collapse-btn" data-card="costCard" aria-expanded="true" aria-label="Collapse Cost &amp; Payouts"><span class="chev" aria-hidden="true"></span></button>
-    </div>
-    <div class="card-body" id="costCardBody">
+      <div class="pricing-flags" id="pricingFlags"></div>
       <div id="feeBox"></div>
-      <div class="readout-list" id="costList" style="margin-top:16px;"></div>
+      <div class="pricing-actions" id="pricingActions"></div>
     </div>
   </div>
 
@@ -624,14 +669,6 @@
       150000: { on: { list:410, current:300.50, coupon:245.50, resetFee:245 }, off: { list:440, coupon:300.50, resetFee:300 } }
     }
   };
-  var PAYOUT_MIN = 500;
-  var PAYOUTS_BEFORE_GRADUATION = 6;
-  var PAYOUT_MAX = {
-    25000:  { max:1000 },
-    50000:  { max:2000 },
-    100000: { max:2500 },
-    150000: { max:3000 }
-  };
 
   var PLANS = {
     flex: {
@@ -696,9 +733,9 @@
   var PLAN_ORDER = ["flex","pro","daily","direct"];
   var SIZE_ORDER = [25000,50000,100000,150000];
 
-  var state = { plan: "flex", size: 25000, dllOn: {}, drawdownChoice: {}, phase: "eval", collapsed: {} };
-  var STORAGE_KEY = "lucidCockpit.v2";
-  var CARD_IDS = ["snapshotCard","costCard","importCard","copilotCard","phaseCard1","phaseCard2","phaseCard3"];
+  var state = { plan: "flex", size: 25000, dllOn: {}, drawdownChoice: {}, phase: "eval", snapshotView: "eval", collapsed: {} };
+  var STORAGE_KEY = "lucidCockpit.v3";
+  var CARD_IDS = ["snapshotCard","importCard","copilotCard","phaseCard1","phaseCard2","phaseCard3"];
 
   function comboKey(){ return state.plan + "_" + state.size; }
   function dllAvailable(){ return (state.plan === "flex" && state.size === 25000) || state.plan === "pro"; }
@@ -718,6 +755,7 @@
         dllOn: state.dllOn,
         drawdownChoice: state.drawdownChoice,
         phase: state.phase,
+        snapshotView: state.snapshotView,
         collapsed: state.collapsed,
         pnl: document.getElementById("pnlInput").value,
         days: document.getElementById("daysInput").value,
@@ -739,6 +777,7 @@
       if (saved.dllOn && typeof saved.dllOn === "object") state.dllOn = saved.dllOn;
       if (saved.drawdownChoice && typeof saved.drawdownChoice === "object") state.drawdownChoice = saved.drawdownChoice;
       if (saved.phase === "eval" || saved.phase === "funded") state.phase = saved.phase;
+      if (saved.snapshotView === "eval" || saved.snapshotView === "funded") state.snapshotView = saved.snapshotView;
       if (saved.collapsed && typeof saved.collapsed === "object") state.collapsed = saved.collapsed;
       if (saved.pnl !== undefined) document.getElementById("pnlInput").value = saved.pnl;
       if (saved.days !== undefined) document.getElementById("daysInput").value = saved.days;
@@ -948,21 +987,24 @@
     return '<span class="rvalue' + (cls ? " " + cls : "") + '">' + text + '</span>';
   }
 
-  function renderStats(){
+  function renderSnapshotCard(){
     var c = current();
     var d = c.size;
     var contracts = CONTRACTS[state.size];
+    var view = state.snapshotView;
+    var sizeLabel = (state.size/1000) + "K " + c.plan.name.replace("Lucid","").toUpperCase();
 
-    snapshotTitle.textContent = (state.size/1000) + "K " + c.plan.name.replace("Lucid","").toUpperCase() + " EVAL";
+    snapshotTitle.textContent = sizeLabel + (view === "funded" ? " FUNDED" : " EVAL");
     snapshotSub.textContent = c.plan.name + " · $" + (state.size/1000) + "K account";
 
     var dllOnNow = isDllOn();
+    var offLabel = view === "funded" ? "NONE" : "OFF";
     var dllValueHtml;
     if (dllAvailable()){
       dllValueHtml =
         '<div class="rcontrol">' +
-          '<button type="button" class="opt-pill' + (!dllOnNow ? ' active' : '') + '" data-dll="off">OFF</button>' +
-          '<button type="button" class="opt-pill' + (dllOnNow ? ' active' : '') + '" data-dll="on">$600</button>' +
+          '<button type="button" class="opt-pill' + (dllOnNow ? ' active' : '') + '" data-dll="on">ON</button>' +
+          '<button type="button" class="opt-pill' + (!dllOnNow ? ' active' : '') + '" data-dll="off">' + offLabel + '</button>' +
         '</div>';
     } else if (state.plan === "flex" || state.plan === "pro"){
       dllValueHtml = plainValue("Optional", "");
@@ -986,21 +1028,45 @@
       drawdownSub = c.plan.verified ? "Trailing max loss updates only at the close (4:45 PM ET)" : "Confirm on your dashboard";
     }
 
-    var maxSizeSub = state.plan === "flex"
-      ? "Funded starts at " + contracts.fundedMini + " mini / " + contracts.fundedMicro + " micro and scales up as profit builds"
-      : "Confirm on your dashboard";
-
     var cEval = c.plan.consistency.eval;
     var cFunded = c.plan.consistency.funded;
+
+    if (view === "funded"){
+      var scalingTooltip =
+        '<div class="scaling-tooltip">' +
+          '<div class="scaling-title">' + (state.size/1000) + 'K Scaling Plan</div>' +
+          '<table class="scaling-table"><thead><tr><th>Profit</th><th>Max Sizes</th></tr></thead><tbody>' +
+            '<tr><td>$0&ndash;999</td><td>' + contracts.fundedMini + ' Mini OR ' + contracts.fundedMicro + ' Micros</td></tr>' +
+            '<tr><td>$1,000+</td><td>' + contracts.maxMini + ' Mini OR ' + contracts.maxMicro + ' Micros</td></tr>' +
+          '</tbody></table>' +
+        '</div>';
+      var scalingValueHtml =
+        '<span class="rvalue">Yes <span class="scaling-wrap"><button type="button" class="info-dot" aria-label="Scaling plan details">i</button>' + scalingTooltip + '</span></span>';
+
+      statList.innerHTML =
+        row("Max Loss Limit", plainValue(money(d.mll), ""), "", c.plan.verified ? "Trailing, end-of-day only" : "Confirm on your dashboard") +
+        row("Drawdown Type", drawdownHtml, "", drawdownSub) +
+        row("Daily Loss Limit", dllValueHtml, "", dllAvailable() ? "Same setting carries over from evaluation" : "Confirm on your dashboard") +
+        row("Days to Payout", plainValue("5", ""), "", "Qualifying profitable days needed before your first payout request") +
+        row("Max Size", plainValue(contracts.fundedMini + " Mini OR " + contracts.fundedMicro + " Micros", ""), "", "Starting funded size — scales up as profit builds") +
+        row("Scaling Plan", scalingValueHtml, "", "Hover or tap the i for the profit-tier breakdown");
+
+      document.getElementById("pricingFlags").innerHTML = "";
+      document.getElementById("feeBox").innerHTML = "";
+      document.getElementById("pricingActions").innerHTML =
+        '<button type="button" class="pricing-btn" id="backToPricingBtn">Back to Pricing</button>';
+      return;
+    }
+
     var consistencyValueHtml, consistencySub;
     if (cEval){
       consistencyValueHtml = plainValue(cEval + "%", "");
       consistencySub = "Evaluation only — largest day ≤ " + cEval + "% of total profit, dropped once funded";
     } else if (cFunded){
-      consistencyValueHtml = plainValue(cFunded + "%", "");
+      consistencyValueHtml = plainValue("None", "");
       consistencySub = state.plan === "direct"
         ? "From day one — largest day ≤ " + cFunded + "% of profit per payout cycle (no separate evaluation)"
-        : "Funded payout cycles only — largest day ≤ " + cFunded + "% of profit each cycle" + (state.plan === "pro" ? " (35% if bought/reset before Nov 28, 2025)" : "") + " — no consistency rule during evaluation";
+        : "No consistency rule during evaluation" + (state.plan === "pro" ? " — 40% cap once funded (35% if bought/reset before Nov 28, 2025)" : "");
     } else {
       consistencyValueHtml = plainValue("None", "");
       consistencySub = "No consistency rule at any stage";
@@ -1008,12 +1074,47 @@
 
     statList.innerHTML =
       row("Profit Target", plainValue(money(d.target), "pos"), "", Math.round((d.target/state.size)*1000)/10 + "% of account size") +
-      row("Daily Loss Limit", dllValueHtml, "", dllAvailable() ? "Trip it and today's trading is done" : (state.plan === "flex" ? "Available on the 25K &mdash; confirm this size on your dashboard" : "Confirm on your dashboard")) +
       row("Max Loss Limit", plainValue(money(d.mll), ""), "", c.plan.verified ? "Trailing, end-of-day only" : "Confirm on your dashboard") +
       row("Drawdown Type", drawdownHtml, "", drawdownSub) +
+      row("Daily Loss Limit", dllValueHtml, "", dllAvailable() ? "Trip it and today's trading is done" : (state.plan === "flex" ? "Available on the 25K &mdash; confirm this size on your dashboard" : "Confirm on your dashboard")) +
       row("Consistency", consistencyValueHtml, "", consistencySub) +
-      row("Max Size", plainValue(contracts.maxMini + " Mini or " + contracts.maxMicro + " Micro", ""), "", maxSizeSub) +
-      row("Qualifying Days", plainValue("5 &times; " + money(d.dailyMin), ""), "", "Needed funded, before your first payout request");
+      row("Max Size", plainValue(contracts.maxMini + " Mini OR " + contracts.maxMicro + " Micros", ""), "", "Funded starts at " + contracts.fundedMini + " mini / " + contracts.fundedMicro + " micro and scales up as profit builds");
+
+    var noConsistencyFunded = !cFunded;
+    document.getElementById("pricingFlags").innerHTML =
+      '<div class="pricing-flag-row"><span>Account Activation Fee:</span><span class="fee-flag">FREE</span></div>' +
+      '<div class="pricing-flag-row"><span>No Consistency in Funded:</span><span class="fee-flag' + (noConsistencyFunded ? '' : ' off') + '">' + (noConsistencyFunded ? '&check;' : '&mdash;') + '</span></div>';
+
+    var priceSet = EVAL_PRICING[state.plan] && EVAL_PRICING[state.plan][state.size];
+    var variant = dllAvailable() ? (dllOnNow ? "on" : "off") : "on";
+    var pricing = priceSet && priceSet[variant];
+
+    if (pricing){
+      var savingsLine = pricing.current !== undefined
+        ? moneyCents(pricing.current) + " limited time, then an extra " + moneyCents(pricing.current - pricing.coupon) + " off with a coupon at checkout"
+        : "With a coupon at checkout";
+      document.getElementById("feeBox").innerHTML =
+        '<div class="fee-box">' +
+          '<span class="fee-label">One-Time Payment</span>' +
+          '<div class="fee-price-row">' +
+            '<span class="fee-strike mono">' + moneyCents(pricing.list) + '</span>' +
+            '<span class="fee-amount mono">' + moneyCents(pricing.coupon) + '</span>' +
+          '</div>' +
+          '<span class="fee-savings mono">' + savingsLine + '</span>' +
+          '<div class="fee-box-sub"><span>Reset Fee</span><b>' + (pricing.resetFee ? money(pricing.resetFee) : "&mdash;") + '</b></div>' +
+        '</div>';
+    } else {
+      document.getElementById("feeBox").innerHTML =
+        '<div class="fee-box">' +
+          '<span class="fee-label">One-Time Payment</span>' +
+          '<span class="fee-amount mono">&mdash;</span>' +
+          '<span class="fee-note">Pricing for this plan, size' + (dllAvailable() ? " and Daily Loss Limit choice" : "") + ' isn’t verified here — check lucidtrading.com at checkout.</span>' +
+        '</div>';
+    }
+
+    document.getElementById("pricingActions").innerHTML =
+      '<button type="button" class="pricing-btn" id="fundedRulesBtn">Funded Rules</button>' +
+      '<a class="pricing-btn pricing-btn-accent" id="selectPlatformBtn" href="https://lucidtrading.com" target="_blank" rel="noopener">Select Platform</a>';
   }
 
   function renderCoPilot(){
@@ -1256,45 +1357,6 @@
     coachText.innerHTML = lines.join(' ');
   }
 
-  function renderCosts(){
-    var c = current();
-    var priceSet = EVAL_PRICING[state.plan] && EVAL_PRICING[state.plan][state.size];
-    var variant = dllAvailable() ? (isDllOn() ? "on" : "off") : "on";
-    var pricing = priceSet && priceSet[variant];
-    var payout = PAYOUT_MAX[state.size];
-
-    document.getElementById("costSub").textContent = c.plan.name + " · $" + (state.size/1000) + "K account" + (dllAvailable() ? " · DLL " + (variant === "on" ? "$600" : "OFF") : "");
-
-    if (pricing){
-      var savingsLine = pricing.current !== undefined
-        ? moneyCents(pricing.current) + " limited time, then an extra " + moneyCents(pricing.current - pricing.coupon) + " off with a coupon at checkout"
-        : "With a coupon at checkout";
-      document.getElementById("feeBox").innerHTML =
-        '<div class="fee-box">' +
-          '<span class="fee-label">One-Time Eval Fee</span>' +
-          '<div class="fee-price-row">' +
-            '<span class="fee-strike mono">' + moneyCents(pricing.list) + '</span>' +
-            '<span class="fee-amount mono">' + moneyCents(pricing.coupon) + '</span>' +
-          '</div>' +
-          '<span class="fee-savings mono">' + savingsLine + '</span>' +
-          '<span class="fee-note">Prices reflect Lucid’s checkout at the time this was written and change with their current promos — treat this as a snapshot, not a guarantee.</span>' +
-        '</div>';
-    } else {
-      document.getElementById("feeBox").innerHTML =
-        '<div class="fee-box">' +
-          '<span class="fee-label">One-Time Eval Fee</span>' +
-          '<span class="fee-amount mono">&mdash;</span>' +
-          '<span class="fee-note">Pricing for this plan, size' + (dllAvailable() ? " and Daily Loss Limit choice" : "") + ' isn’t verified here — check lucidtrading.com at checkout.</span>' +
-        '</div>';
-    }
-
-    document.getElementById("costList").innerHTML =
-      row("Activation Fee", plainValue("Free", ""), "", "No charge moving from evaluation to funded") +
-      row("Reset Fee", plainValue(pricing && pricing.resetFee ? money(pricing.resetFee) : "&mdash;", ""), "", pricing && pricing.resetFee ? "If you breach a rule and restart the evaluation" : "Confirm at checkout") +
-      row("Minimum Payout", plainValue(money(PAYOUT_MIN), ""), "", "Per payout request, every plan and size") +
-      row("Maximum Payout", plainValue(c.plan.verified ? money(payout.max) : "&mdash;", ""), "", c.plan.verified ? "50% of realized profit, capped — up to " + PAYOUTS_BEFORE_GRADUATION + " payouts before graduating to LucidLive" : "Confirm on your dashboard");
-  }
-
   function renderAccountMenu(){
     var body = document.getElementById("accountMenuBody");
     var html = "";
@@ -1368,26 +1430,47 @@
   }
 
   function renderAll(){
-    renderStats();
+    renderSnapshotCard();
     renderCoPilot();
-    renderCosts();
     renderAccountMenu();
     renderCsvConsistency();
   }
 
-  statList.addEventListener("click", function(e){
+  document.getElementById("snapshotCardBody").addEventListener("click", function(e){
     if (e.target.dataset.dll !== undefined){
       setDllOn(e.target.dataset.dll === "on");
-      renderStats();
+      renderSnapshotCard();
       renderCoPilot();
-      renderCosts();
       saveState();
+      return;
     }
     if (e.target.dataset.drawdown !== undefined){
       setDrawdown(e.target.dataset.drawdown);
-      renderStats();
+      renderSnapshotCard();
       saveState();
+      return;
     }
+    if (e.target.id === "fundedRulesBtn"){
+      state.snapshotView = "funded";
+      renderSnapshotCard();
+      saveState();
+      return;
+    }
+    if (e.target.id === "backToPricingBtn"){
+      state.snapshotView = "eval";
+      renderSnapshotCard();
+      saveState();
+      return;
+    }
+    if (e.target.classList.contains("info-dot")){
+      e.target.closest(".scaling-wrap").classList.toggle("show");
+      return;
+    }
+  });
+  document.addEventListener("click", function(e){
+    document.querySelectorAll(".scaling-wrap.show").forEach(function(w){
+      if (!w.contains(e.target)) w.classList.remove("show");
+    });
   });
   document.getElementById("phaseToggle").addEventListener("click", function(e){
     if (e.target.dataset.phase !== undefined){
@@ -1434,6 +1517,7 @@
     if (e.target.classList.contains("menu-size-btn")){
       state.plan = e.target.dataset.plan;
       state.size = parseInt(e.target.dataset.size, 10);
+      state.snapshotView = "eval";
       renderAll();
       saveState();
       closeMenu();
