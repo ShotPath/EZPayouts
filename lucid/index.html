@@ -192,6 +192,19 @@
   .opt-pill:hover{ border-color:var(--hairline-bright); color:var(--ice); }
   .opt-pill.active{ background:var(--mint); border-color:var(--mint); color:var(--mint-text); }
 
+  .dll-toggle{
+    display:inline-flex; align-items:stretch; margin-left:auto;
+    border-radius:9px; overflow:hidden; border:1px solid var(--hairline-bright); background:var(--panel-raised);
+  }
+  .dll-toggle button{
+    font-family:var(--font-mono); font-size:12px; font-weight:700; padding:7px 14px;
+    background:transparent; border:none; color:var(--muted); cursor:pointer;
+    transition:background .15s, color .15s; white-space:nowrap;
+  }
+  .dll-toggle button:hover{ color:var(--ice); }
+  .dll-toggle button.active{ background:var(--mint); color:var(--mint-text); }
+  .dll-toggle button.active:hover{ color:var(--mint-text); }
+
   .fee-box{
     background:rgba(126,232,172,0.07); border:1px solid var(--hairline-bright); border-radius:14px;
     padding:16px 18px; display:flex; flex-direction:column; gap:4px;
@@ -999,12 +1012,13 @@
 
     var dllOnNow = isDllOn();
     var offLabel = view === "funded" ? "NONE" : "OFF";
+    var onLabel = dllOnNow ? "$600" : "ON";
     var dllValueHtml;
     if (dllAvailable()){
       dllValueHtml =
-        '<div class="rcontrol">' +
-          '<button type="button" class="opt-pill' + (dllOnNow ? ' active' : '') + '" data-dll="on">ON</button>' +
-          '<button type="button" class="opt-pill' + (!dllOnNow ? ' active' : '') + '" data-dll="off">' + offLabel + '</button>' +
+        '<div class="dll-toggle">' +
+          '<button type="button" class="' + (dllOnNow ? 'active' : '') + '" data-dll="on">' + onLabel + '</button>' +
+          '<button type="button" class="' + (!dllOnNow ? 'active' : '') + '" data-dll="off">' + offLabel + '</button>' +
         '</div>';
     } else if (state.plan === "flex" || state.plan === "pro"){
       dllValueHtml = plainValue("Optional", "");
