@@ -206,7 +206,11 @@
   .dll-toggle button.active:hover{ color:var(--mint-text); }
 
   .fee-box{
-    background:rgba(126,232,172,0.07); border:1px solid var(--hairline-bright); border-radius:14px;
+    background:
+      radial-gradient(circle at 1px 1px, rgba(62,224,140,0.16) 1px, transparent 0) 0 0/14px 14px,
+      repeating-linear-gradient(135deg, rgba(62,224,140,0.04) 0px, rgba(62,224,140,0.04) 1px, transparent 1px, transparent 9px),
+      rgba(126,232,172,0.07);
+    border:1px solid var(--hairline-bright); border-radius:14px;
     padding:16px 18px; display:flex; flex-direction:column; gap:4px;
   }
   .fee-box .fee-label{ font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); }
