@@ -157,7 +157,10 @@
   .top-cards-row .row-collapsed{ align-self:start; }
   .top-cards-row .console-head{ padding-bottom:16px; border-bottom:1px solid var(--hairline); }
   .top-cards-row .console-head h2{ font-weight:700; font-size:21px; }
-  .top-cards-row .field{ margin-top:20px; }
+  .top-cards-row #importCardBody p.hint{ font-size:15px; }
+  .top-cards-row .csv-steps{ gap:16px; }
+  .top-cards-row .csv-steps li{ font-size:15px; }
+  .top-cards-row .import-bottom{ margin-top:auto; padding-top:20px; }
   @media (max-width:860px){
     .top-cards-row{ grid-template-columns:1fr; }
   }
@@ -276,7 +279,7 @@
   }
   .info-dot:hover{ border-color:var(--phosphor-dim); color:var(--phosphor-soft); }
   .scaling-tooltip{
-    position:absolute; top:calc(100% + 10px); right:0; z-index:20; width:230px;
+    position:absolute; top:calc(100% + 10px); right:0; z-index:20; width:280px;
     background:var(--panel-raised); border:1px solid var(--hairline-bright); border-radius:12px;
     padding:14px 16px; box-shadow:0 16px 36px -16px rgba(0,0,0,0.6), 0 0 20px -6px var(--phosphor-glow);
     opacity:0; visibility:hidden; transform:translateY(-4px); transition:opacity .15s, transform .15s, visibility .15s;
@@ -289,8 +292,8 @@
   .scaling-table{ width:100%; border-collapse:collapse; }
   .scaling-table th{ font-family:var(--font-mono); font-size:9px; letter-spacing:0.05em; text-transform:uppercase; color:var(--muted-dim); text-align:left; padding-bottom:6px; font-weight:600; }
   .scaling-table th:last-child, .scaling-table td:last-child{ text-align:right; }
-  .scaling-table td{ font-size:11.5px; color:var(--muted); padding:4px 0; }
-  .scaling-table td:first-child{ color:var(--ice); font-family:var(--font-mono); }
+  .scaling-table td{ font-size:11.5px; color:var(--muted); padding:4px 0; white-space:nowrap; }
+  .scaling-table td:first-child{ color:var(--ice); font-family:var(--font-mono); padding-right:12px; }
 
   /* ---------- Console (Risk Co-Pilot) ---------- */
   .console{
@@ -524,17 +527,19 @@
           <li>Click <b>Download Report</b> to save the CSV</li>
           <li>Come back here and upload that file below</li>
         </ol>
-        <div class="field">
-          <label for="csvFile">Account Balance History CSV</label>
-          <input id="csvFile" type="file" accept=".csv,text/csv" />
-          <span class="hint" id="csvMessage">Auto-fills Net P&amp;L and Best Day below once uploaded. Cash History files are also accepted.</span>
-        </div>
-        <div id="csvResults" hidden>
-          <div class="csv-chart-wrap">
-            <div class="csv-chart-title">Cumulative P&amp;L</div>
-            <div id="csvChart"></div>
+        <div class="import-bottom">
+          <div class="field">
+            <label for="csvFile">Account Balance History CSV</label>
+            <input id="csvFile" type="file" accept=".csv,text/csv" />
+            <span class="hint" id="csvMessage">Auto-fills Net P&amp;L and Best Day below once uploaded. Cash History files are also accepted.</span>
           </div>
-          <div class="readout-list" id="csvConsistencyList" style="margin-top:16px;"></div>
+          <div id="csvResults" hidden>
+            <div class="csv-chart-wrap">
+              <div class="csv-chart-title">Cumulative P&amp;L</div>
+              <div id="csvChart"></div>
+            </div>
+            <div class="readout-list" id="csvConsistencyList" style="margin-top:16px;"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -688,6 +693,16 @@
     50000:  { maxMini:4,  maxMicro:40,  fundedMini:2, fundedMicro:20 },
     100000: { maxMini:6,  maxMicro:60,  fundedMini:3, fundedMicro:30 },
     150000: { maxMini:10, maxMicro:100, fundedMini:4, fundedMicro:40 }
+  };
+
+  // Explicit profit-tier scaling breakdowns where confirmed; sizes not listed here
+  // fall back to a simple two-tier funded-size -> max-size jump in renderSnapshotCard.
+  var SCALING_TIERS = {
+    50000: [
+      { range: "$0&ndash;999",       mini:2, micro:20 },
+      { range: "$1,000&ndash;1,999", mini:3, micro:30 },
+      { range: "$2,000+",            mini:4, micro:40 }
+    ]
   };
 
   // Pricing confirmed straight off Lucid's own checkout screen (list -> limited-time -> coupon price),
@@ -1077,12 +1092,18 @@
     var cFunded = c.plan.consistency.funded;
 
     if (view === "funded"){
+      var scalingRows = SCALING_TIERS[state.size] || [
+        { range: "$0&ndash;999", mini: contracts.fundedMini, micro: contracts.fundedMicro },
+        { range: "$1,000+", mini: contracts.maxMini, micro: contracts.maxMicro }
+      ];
+      var scalingRowsHtml = scalingRows.map(function(tier){
+        return '<tr><td>' + tier.range + '</td><td>' + tier.mini + ' Mini OR ' + tier.micro + ' Micros</td></tr>';
+      }).join("");
       var scalingTooltip =
         '<div class="scaling-tooltip">' +
           '<div class="scaling-title">' + (state.size/1000) + 'K Scaling Plan</div>' +
           '<table class="scaling-table"><thead><tr><th>Profit</th><th>Max Sizes</th></tr></thead><tbody>' +
-            '<tr><td>$0&ndash;999</td><td>' + contracts.fundedMini + ' Mini OR ' + contracts.fundedMicro + ' Micros</td></tr>' +
-            '<tr><td>$1,000+</td><td>' + contracts.maxMini + ' Mini OR ' + contracts.maxMicro + ' Micros</td></tr>' +
+            scalingRowsHtml +
           '</tbody></table>' +
         '</div>';
       var scalingValueHtml =
