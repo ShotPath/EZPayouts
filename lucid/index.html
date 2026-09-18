@@ -680,7 +680,8 @@
   // is shown as unverified in the UI rather than guessed from conflicting third-party numbers.
   var EVAL_PRICING = {
     flex: {
-      25000: { on: { list:89, current:65.30, coupon:50.30, resetFee:50 }, off: { list:89, coupon:65.30, resetFee:65 } }
+      25000: { on: { list:89, current:65.30, coupon:50.30, resetFee:50 }, off: { list:89, coupon:65.30, resetFee:65 } },
+      50000: { on: { list:146, current:105.20, coupon:90.20, resetFee:90 }, off: { list:146, coupon:105.20, resetFee:105.20 } }
     },
     pro: {
       25000:  { on: { list:123, current:90.60,  coupon:70.60,  resetFee:70  }, off: { list:123, coupon:90.60,  resetFee:90  } },
@@ -1131,7 +1132,7 @@
               '<span class="fee-amount fee-amount-final mono">' + moneyCents(pricing.coupon) + '</span>'
             : "") +
           '<span class="fee-coupon-note mono">W/ Coupon at Checkout</span>' +
-          '<div class="fee-box-sub"><span>Reset Fee</span><b>' + (pricing.resetFee ? money(pricing.resetFee) : "&mdash;") + '</b></div>' +
+          '<div class="fee-box-sub"><span>Reset Fee</span><b>' + (pricing.resetFee ? (pricing.resetFee % 1 === 0 ? money(pricing.resetFee) : moneyCents(pricing.resetFee)) : "&mdash;") + '</b></div>' +
         '</div>';
     } else {
       document.getElementById("feeBox").innerHTML =
