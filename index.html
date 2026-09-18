@@ -118,57 +118,6 @@
   .market-status.open strong{ color:var(--phosphor-soft); font-weight:600; }
   .market-status.closed strong{ color:var(--red); font-weight:600; }
 
-  .menu-btn{
-    width:38px; height:38px; border-radius:50%; flex:none;
-    background:var(--panel); border:1px solid var(--hairline); cursor:pointer;
-    display:flex; align-items:center; justify-content:center;
-    transition:border-color .15s, background .15s;
-  }
-  .menu-btn:hover{ border-color:var(--phosphor-dim); background:var(--panel-hi); box-shadow:0 0 16px -4px var(--phosphor-glow); }
-  .menu-lines{ width:16px; display:flex; flex-direction:column; gap:3.5px; }
-  .menu-lines span{ display:block; height:2px; border-radius:1px; background:var(--ice); }
-
-  .menu-overlay{
-    position:fixed; inset:0; background:rgba(4,7,5,0.6); backdrop-filter:blur(2px);
-    opacity:0; pointer-events:none; transition:opacity .2s; z-index:40;
-  }
-  .menu-overlay.show{ opacity:1; pointer-events:auto; }
-  .account-menu{
-    position:fixed; top:0; right:0; bottom:0; width:min(340px,88vw);
-    background:var(--panel-raised); border-left:1px solid var(--hairline-bright);
-    box-shadow:-24px 0 60px -30px var(--phosphor-glow);
-    transform:translateX(100%); transition:transform .25s ease; z-index:41;
-    display:flex; flex-direction:column; padding:20px 18px; overflow-y:auto;
-  }
-  .account-menu.open{ transform:translateX(0); }
-  .account-menu-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; padding-bottom:14px; border-bottom:1px solid var(--hairline); }
-  .account-menu-head span{ font-family:var(--font-display); font-weight:700; font-size:16px; color:var(--ice); }
-  .menu-close{
-    width:32px; height:32px; border-radius:50%; border:1px solid var(--hairline); background:transparent;
-    color:var(--ice); font-size:18px; line-height:1; cursor:pointer;
-  }
-  .menu-close:hover{ border-color:var(--hairline-bright); }
-  .menu-section{ padding:16px 0; border-bottom:1px solid var(--hairline); }
-  .menu-section:last-child{ border-bottom:none; }
-  .menu-section-title{
-    display:flex; align-items:center; gap:8px; font-family:var(--font-display); font-weight:600;
-    font-size:14.5px; color:var(--ice); margin-bottom:10px;
-  }
-  .menu-current{
-    font-family:var(--font-mono); font-size:9px; letter-spacing:0.08em; background:var(--mint);
-    color:var(--mint-text); padding:2px 7px; border-radius:4px; font-weight:700;
-  }
-  .menu-tagline{ font-size:12px; color:var(--muted); line-height:1.5; margin-bottom:6px; font-family:var(--font-mono); }
-  .menu-verify{ font-size:11px; color:var(--muted-dim); margin-bottom:12px; font-family:var(--font-mono); }
-  .menu-sizes{ display:flex; gap:8px; flex-wrap:wrap; }
-  .menu-size-btn{
-    font-family:var(--font-mono); font-size:13px; font-weight:600; padding:8px 14px;
-    border-radius:999px; background:var(--panel); border:1px solid var(--hairline); color:var(--muted);
-    cursor:pointer; transition:border-color .15s, background .15s, color .15s;
-  }
-  .menu-size-btn:hover{ border-color:var(--phosphor-dim); color:var(--ice); box-shadow:0 0 12px -4px var(--phosphor-glow); }
-  .menu-size-btn.active{ background:var(--mint); border-color:var(--mint); color:var(--mint-text); }
-
   @media (max-width:680px){
     .topbar{ border-radius:22px; flex-wrap:wrap; justify-content:center; padding:14px 18px; }
     .nav-links{ flex:1 1 100%; order:2; gap:10px; flex-wrap:wrap; row-gap:6px; }
@@ -296,9 +245,6 @@
       <span class="label mono" id="marketLabel">NY OPEN IN</span>
       <strong class="mono" id="marketOpenIn">--:--:--</strong>
     </span>
-    <button type="button" class="menu-btn" id="menuBtn" aria-haspopup="true" aria-expanded="false" aria-controls="accountMenu" aria-label="Select account">
-      <span class="menu-lines" aria-hidden="true"><span></span><span></span><span></span></span>
-    </button>
   </div>
 </header>
 <div class="wrap">
@@ -379,92 +325,9 @@
 
 </div>
 
-<div class="menu-overlay" id="menuOverlay" hidden></div>
-<aside class="account-menu" id="accountMenu" aria-hidden="true">
-  <div class="account-menu-head">
-    <span>Select Account</span>
-    <button type="button" class="menu-close" id="menuClose" aria-label="Close menu">&times;</button>
-  </div>
-  <div id="accountMenuBody"></div>
-</aside>
-
 <script>
 (function(){
   "use strict";
-
-  // Same account picker as the Lucid guide (lucid/index.html) — see that
-  // file for the pricing/rules data this summarizes. Picking a size here
-  // navigates to the guide with ?plan=&size= so it opens pre-selected.
-  var LUCID_PATH = "lucid/";
-  var STORAGE_KEY = "lucidCockpit.v2";
-
-  var PLANS = {
-    flex:   { name:"LucidFlex",   verified:true,  tagline:"Daily Loss Limit is optional (OFF or $600) on the 25K. The trailing Max Loss Limit only updates at the close." },
-    pro:    { name:"LucidPro",    verified:false, tagline:"Daily Loss Limit is optional at every size — OFF or $600. Choosing it on lowers your eval price." },
-    daily:  { name:"LucidDaily",  verified:false, tagline:"Choose Intraday or End-of-Day drawdown tracking on the guide page. Intraday is tighter; EOD gives you room to recover by the close." },
-    direct: { name:"LucidDirect", verified:false, tagline:"Skips the evaluation entirely — pay more upfront, trade funded from day one." }
-  };
-  var PLAN_ORDER = ["flex","pro","daily","direct"];
-  var SIZE_ORDER = [25000,50000,100000,150000];
-
-  function currentAccount(){
-    try {
-      var raw = JSON.parse(localStorage.getItem(STORAGE_KEY));
-      if (raw && PLANS[raw.plan] && SIZE_ORDER.indexOf(raw.size) !== -1) return raw;
-    } catch (e) {}
-    return null;
-  }
-
-  function renderAccountMenu(){
-    var current = currentAccount();
-    var body = document.getElementById("accountMenuBody");
-    var html = "";
-    PLAN_ORDER.forEach(function(planKey){
-      var plan = PLANS[planKey];
-      var isCurrentPlan = !!current && current.plan === planKey;
-      html += '<div class="menu-section">' +
-        '<div class="menu-section-title">' + plan.name + (isCurrentPlan ? ' <span class="menu-current">CURRENT</span>' : '') + '</div>' +
-        '<div class="menu-tagline">' + plan.tagline + '</div>' +
-        '<div class="menu-verify">' + (plan.verified ? "Figures verified against Lucid rule trackers." : "Less-certain figures — verify on your dashboard.") + '</div>' +
-        '<div class="menu-sizes">';
-      SIZE_ORDER.forEach(function(size){
-        var active = isCurrentPlan && current.size === size;
-        html += '<button type="button" class="menu-size-btn' + (active ? ' active' : '') + '" data-plan="' + planKey + '" data-size="' + size + '">$' + (size/1000) + 'K</button>';
-      });
-      html += '</div></div>';
-    });
-    body.innerHTML = html;
-  }
-  renderAccountMenu();
-
-  var menuBtn = document.getElementById("menuBtn");
-  var menuClose = document.getElementById("menuClose");
-  var menuOverlay = document.getElementById("menuOverlay");
-  var accountMenu = document.getElementById("accountMenu");
-
-  function openMenu(){
-    accountMenu.classList.add("open");
-    accountMenu.setAttribute("aria-hidden", "false");
-    menuOverlay.hidden = false;
-    requestAnimationFrame(function(){ menuOverlay.classList.add("show"); });
-    menuBtn.setAttribute("aria-expanded", "true");
-  }
-  function closeMenu(){
-    accountMenu.classList.remove("open");
-    accountMenu.setAttribute("aria-hidden", "true");
-    menuOverlay.classList.remove("show");
-    menuBtn.setAttribute("aria-expanded", "false");
-    setTimeout(function(){ if (!menuOverlay.classList.contains("show")) menuOverlay.hidden = true; }, 200);
-  }
-  menuBtn.addEventListener("click", openMenu);
-  menuClose.addEventListener("click", closeMenu);
-  menuOverlay.addEventListener("click", closeMenu);
-  document.addEventListener("keydown", function(e){ if (e.key === "Escape") closeMenu(); });
-  document.getElementById("accountMenuBody").addEventListener("click", function(e){
-    if (e.target.classList.contains("menu-size-btn")){
-      window.location.href = LUCID_PATH + "?plan=" + e.target.dataset.plan + "&size=" + e.target.dataset.size;
-    }
-  });
 
   // Market clock (New York session), identical to the one on the Lucid guide.
   function pad(n){ return String(n).padStart(2,"0"); }
