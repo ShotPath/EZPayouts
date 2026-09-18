@@ -604,7 +604,7 @@
       <div class="card-body" id="phaseCard1Body">
         <ul>
           <li>Clear the <b>profit target</b> for your size without your balance touching the trailing <b>Max Loss Limit</b>.</li>
-          <li>The <b>Daily Loss Limit is optional</b> on the 25K Flex &mdash; OFF, or a firm $600 cap if you opted in. Either way, the Co-Pilot above sets a stop for you.</li>
+          <li>The <b>Daily Loss Limit is optional</b> on the 25K and 50K Flex &mdash; OFF, or a firm cap if you opted in ($600 on the 25K, $1,200 on the 50K). Either way, the Co-Pilot above sets a stop for you.</li>
           <li><b>Consistency rule (plan-dependent):</b> LucidFlex and LucidDaily cap it at 50% of total profit when you hit target &mdash; spread wins across at least 2&ndash;3 sessions. LucidPro and LucidDirect have no consistency rule during evaluation at all. Check the Account Snapshot above for your plan's exact figure.</li>
           <li>Positions auto-flatten at <b>4:45 PM ET</b>. Holding past it doesn't fail you, but plan your exits before then.</li>
           <li>No minimum trading days &mdash; pass as fast as the math allows, just don't let one hot day carry the whole account.</li>
@@ -648,7 +648,7 @@
   </div>
 
   <footer>
-    <p>Figures reflect LucidFlex / LucidPro / LucidDaily / LucidDirect rules as publicly documented in 2026 (Lucid Trading support center and independent prop-firm rule trackers). On the 25K Flex, the Max Loss Limit is a fixed $1,000; the Daily Loss Limit is a separate, optional setting &mdash; OFF by default, or a firm-enforced $600 if you opted into it. LucidPro offers the same OFF/$600 Daily Loss Limit choice at every account size, and LucidDaily lets you choose Intraday or End-of-Day drawdown tracking &mdash; both toggled above. Eval and reset pricing is populated for the 25K Flex and all four LucidPro sizes, taken directly from Lucid's own checkout screen at the time this was written. Every price changes with Lucid's current promos, so treat these as a snapshot, not what you'll pay today. Everything else &mdash; Daily, Direct, and any plan/size combo not listed above &mdash; is unverified here rather than guessed; always check your live Lucid dashboard or checkout before sizing a trade or paying for an account. The maximum payout table is sourced from independent payout-rules trackers, not Lucid directly, and is shown only where the rest of that plan's figures are already marked verified. This page is a planning aid, not trading or financial advice, and never places trades or requires a login. The optional CSV import runs entirely in your browser &mdash; the file is never uploaded anywhere &mdash; and its column detection has been checked against real Account Balance History and Cash History exports. Still worth a glance against your actual dashboard the first time you use it.</p>
+    <p>Figures reflect LucidFlex / LucidPro / LucidDaily / LucidDirect rules as publicly documented in 2026 (Lucid Trading support center and independent prop-firm rule trackers). On the 25K Flex, the Max Loss Limit is a fixed $1,000; the Daily Loss Limit is a separate, optional setting &mdash; OFF by default, or a firm-enforced $600 if you opted into it (the 50K Flex carries the same optional setting at a $1,200 cap, with a $2,000 Max Loss Limit). LucidPro offers the same OFF/$600 Daily Loss Limit choice at every account size, and LucidDaily lets you choose Intraday or End-of-Day drawdown tracking &mdash; both toggled above. Eval and reset pricing is populated for the 25K Flex and all four LucidPro sizes, taken directly from Lucid's own checkout screen at the time this was written. Every price changes with Lucid's current promos, so treat these as a snapshot, not what you'll pay today. Everything else &mdash; Daily, Direct, and any plan/size combo not listed above &mdash; is unverified here rather than guessed; always check your live Lucid dashboard or checkout before sizing a trade or paying for an account. The maximum payout table is sourced from independent payout-rules trackers, not Lucid directly, and is shown only where the rest of that plan's figures are already marked verified. This page is a planning aid, not trading or financial advice, and never places trades or requires a login. The optional CSV import runs entirely in your browser &mdash; the file is never uploaded anywhere &mdash; and its column detection has been checked against real Account Balance History and Cash History exports. Still worth a glance against your actual dashboard the first time you use it.</p>
   </footer>
 
 </div>
@@ -693,7 +693,7 @@
   var PLANS = {
     flex: {
       name: "LucidFlex",
-      tagline: "Daily Loss Limit is optional (OFF or $600) on the 25K. The trailing Max Loss Limit only updates at the close.",
+      tagline: "Daily Loss Limit is optional on the 25K (OFF or $600) and 50K (OFF or $1,200). The trailing Max Loss Limit only updates at the close.",
       verified: true,
       sizes: {
         25000:  { target:1250, mll:1000, dailyMin:100 },
@@ -757,8 +757,14 @@
   var STORAGE_KEY = "lucidCockpit.v3";
   var CARD_IDS = ["snapshotCard","importCard","copilotCard","phaseCard1","phaseCard2","phaseCard3"];
 
+  var DLL_AMOUNTS = {
+    flex: { 25000: 600, 50000: 1200 },
+    pro: { 25000: 600, 50000: 600, 100000: 600, 150000: 600 }
+  };
+
   function comboKey(){ return state.plan + "_" + state.size; }
-  function dllAvailable(){ return (state.plan === "flex" && state.size === 25000) || state.plan === "pro"; }
+  function dllAvailable(){ return (state.plan === "flex" && (state.size === 25000 || state.size === 50000)) || state.plan === "pro"; }
+  function dllAmount(){ var m = DLL_AMOUNTS[state.plan]; return (m && m[state.size]) || 600; }
   function isDllOn(){ return !!state.dllOn[comboKey()]; }
   function setDllOn(on){ state.dllOn[comboKey()] = on; }
   function dllActive(){ return dllAvailable() && isDllOn(); }
@@ -1019,7 +1025,7 @@
 
     var dllOnNow = isDllOn();
     var offLabel = view === "funded" ? "NONE" : "OFF";
-    var onLabel = dllOnNow ? "$600" : "ON";
+    var onLabel = dllOnNow ? money(dllAmount()) : "ON";
     var dllValueHtml;
     if (dllAvailable()){
       dllValueHtml =
@@ -1065,10 +1071,10 @@
         '<span class="rvalue">Yes <span class="scaling-wrap"><button type="button" class="info-dot" aria-label="Scaling plan details">i</button>' + scalingTooltip + '</span></span>';
 
       statList.innerHTML =
-        row("Max Loss Limit", plainValue(money(d.mll), ""), "", c.plan.verified ? "Trailing, end-of-day only" : "Confirm on your dashboard") +
+        row("Max Loss Limit", plainValue(money(d.mll), ""), "", c.plan.verified ? "" : "Confirm on your dashboard") +
         row("Drawdown Type", drawdownHtml, "", drawdownSub) +
         row("Daily Loss Limit", dllValueHtml, "", dllAvailable() ? "Same setting carries over from evaluation" : "Confirm on your dashboard") +
-        row("Days to Payout", plainValue("5", ""), "", "Qualifying profitable days needed before your first payout request") +
+        row("Days to Payout", plainValue("5", ""), "", money(d.dailyMin) + " per day &times; 5 days") +
         row("Max Size", plainValue(contracts.fundedMini + " Mini OR " + contracts.fundedMicro + " Micros", ""), "", "Starting funded size — scales up as profit builds") +
         row("Scaling Plan", scalingValueHtml, "", "Hover or tap the i for the profit-tier breakdown");
 
@@ -1095,9 +1101,9 @@
 
     statList.innerHTML =
       row("Profit Target", plainValue(money(d.target), "pos"), "", Math.round((d.target/state.size)*1000)/10 + "% of account size") +
-      row("Max Loss Limit", plainValue(money(d.mll), ""), "", c.plan.verified ? "Trailing, end-of-day only" : "Confirm on your dashboard") +
+      row("Max Loss Limit", plainValue(money(d.mll), ""), "", c.plan.verified ? "" : "Confirm on your dashboard") +
       row("Drawdown Type", drawdownHtml, "", drawdownSub) +
-      row("Daily Loss Limit", dllValueHtml, "", dllAvailable() ? "Trip it and today's trading is done" : (state.plan === "flex" ? "Available on the 25K &mdash; confirm this size on your dashboard" : "Confirm on your dashboard")) +
+      row("Daily Loss Limit", dllValueHtml, "", dllAvailable() ? "Trip it and today's trading is done" : (state.plan === "flex" ? "Available on the 25K/50K &mdash; confirm this size on your dashboard" : "Confirm on your dashboard")) +
       row("Consistency", consistencyValueHtml, "", consistencySub) +
       row("Max Size", plainValue(contracts.maxMini + " Mini OR " + contracts.maxMicro + " Micros", ""), "", "Funded starts at " + contracts.fundedMini + " mini / " + contracts.fundedMicro + " micro and scales up as profit builds");
 
@@ -1187,11 +1193,11 @@
     var lossUsed = pnl < 0 ? Math.abs(pnl) : 0;
     var cushionRemaining = Math.max(0, effMll - lossUsed);
     var maxRiskPerTrade = kellyFraction * 0.5 * cushionRemaining;
-    var riskExceedsDll = dllOn && maxRiskPerTrade > 600;
+    var riskExceedsDll = dllOn && maxRiskPerTrade > dllAmount();
     var riskExceedsMll = maxRiskPerTrade > effMll;
 
     var maxDailyLossCap = maxRiskPerTrade * 3; // roughly three losing trades at that sizing
-    var dailyExceedsDll = dllOn && maxDailyLossCap > 600;
+    var dailyExceedsDll = dllOn && maxDailyLossCap > dllAmount();
     var dailyExceedsMll = maxDailyLossCap > effMll;
     var dailyStopTradeCount = maxRiskPerTrade > 0 ? Math.max(1, Math.round(maxDailyLossCap / maxRiskPerTrade)) : null;
 
@@ -1227,7 +1233,7 @@
         coRow("Daily minimum to qualify", money(d.dailyMin)) +
         coRow("Trade expectancy", expectancyR.toFixed(2) + "R &nbsp;(" + money(expectancyDollar) + "/trade)", expectancyR < 0 ? "red" : "") +
         coRow("Max risk per trade", maxRiskPerTrade > 0 ? money(maxRiskPerTrade) : "No edge yet", (maxRiskPerTrade <= 0 || riskExceedsDll || riskExceedsMll) ? "red" : "") +
-        (dllOn ? coRow("Daily Loss Limit (firm)", money(600), "red") : "") +
+        (dllOn ? coRow("Daily Loss Limit (firm)", money(dllAmount()), "red") : "") +
         coRow(dllOn ? "Recommended stop-out" : "Self-imposed daily stop", maxDailyLossCap > 0 ? money(maxDailyLossCap) : "No edge yet", (maxDailyLossCap <= 0 || dailyExceedsDll || dailyExceedsMll) ? "red" : "") +
         (fundedConsistencyPct ? coRow("Consistency ceiling (this cycle)", money(fundedConsistencyCeiling), fundedConsistencyBreach ? "red" : "") : "") +
         (safeDayTarget !== null ? coRow("Safe next-day target (consistency)", money(safeDayTarget), "") : "") +
@@ -1245,15 +1251,15 @@
       } else if (riskExceedsMll){
         flines.push('<span class="flag-red">Edge outruns the account:</span> your win rate and R multiple imply risking <b>' + money(maxRiskPerTrade) + '</b> per trade &mdash; more than your entire ' + money(effMll) + ' Max Loss Limit. One trade could end the account; scale down manually no matter what the math says.');
       } else if (riskExceedsDll){
-        flines.push('<span class="flag-red">Edge outruns your Daily Loss Limit:</span> your win rate and R multiple imply risking <b>' + money(maxRiskPerTrade) + '</b> per trade &mdash; more than the entire $600 Daily Loss Limit. One trade could end your day; scale down manually no matter what the math says.');
+        flines.push('<span class="flag-red">Edge outruns your Daily Loss Limit:</span> your win rate and R multiple imply risking <b>' + money(maxRiskPerTrade) + '</b> per trade &mdash; more than the entire ' + money(dllAmount()) + ' Daily Loss Limit. One trade could end your day; scale down manually no matter what the math says.');
       } else {
           flines.push('Keep risk at or under <b>' + money(maxRiskPerTrade) + '</b> per trade &mdash; half-Kelly on your <b>+' + expectancyR.toFixed(2) + 'R</b> trade expectancy, applied to the ' + money(cushionRemaining) + ' you have left before the Max Loss Limit (not your full balance), so it can never exceed what the account has left to give.');
       }
       if (dllOn){
         if (dailyExceedsDll){
-          flines.push('<span class="flag-red">That would blow the $600 Daily Loss Limit outright</span> &mdash; cap yourself at the full $600 regardless of the math above; a couple of losing trades at that sizing already ends your day.');
+          flines.push('<span class="flag-red">That would blow the ' + money(dllAmount()) + ' Daily Loss Limit outright</span> &mdash; cap yourself at the full ' + money(dllAmount()) + ' regardless of the math above; a couple of losing trades at that sizing already ends your day.');
         } else {
-          flines.push('You’re running a <b>$600 Daily Loss Limit</b> &mdash; trip it and today’s session is over. Pull the plug yourself at <b>' + money(maxDailyLossCap) + '</b> down' + (dailyStopTradeCount ? ' (about ' + dailyStopTradeCount + ' losing trade' + (dailyStopTradeCount === 1 ? '' : 's') + ' at your current sizing)' : '') + ' so a slippage spike doesn’t blow it for you.');
+          flines.push('You’re running a <b>' + money(dllAmount()) + ' Daily Loss Limit</b> &mdash; trip it and today’s session is over. Pull the plug yourself at <b>' + money(maxDailyLossCap) + '</b> down' + (dailyStopTradeCount ? ' (about ' + dailyStopTradeCount + ' losing trade' + (dailyStopTradeCount === 1 ? '' : 's') + ' at your current sizing)' : '') + ' so a slippage spike doesn’t blow it for you.');
         }
       } else if (dailyExceedsMll){
         flines.push('<span class="flag-red">That would exceed your entire Max Loss Limit</span> &mdash; cap your day well below ' + money(effMll) + ' regardless of the math above.');
@@ -1312,7 +1318,7 @@
       coRow("Required pace / day", money(perDay) + " &nbsp;(" + perDayPctOfSize.toFixed(2) + "% of size)", paceLevel === "red" ? "red" : "") +
       coRow("Trade expectancy", expectancyR.toFixed(2) + "R &nbsp;(" + money(expectancyDollar) + "/trade)", expectancyR < 0 ? "red" : "") +
       coRow("Max risk per trade", maxRiskPerTrade > 0 ? money(maxRiskPerTrade) : "No edge yet", (maxRiskPerTrade <= 0 || riskExceedsDll || riskExceedsMll) ? "red" : "") +
-      (dllOn ? coRow("Daily Loss Limit (firm)", money(600), "red") : "") +
+      (dllOn ? coRow("Daily Loss Limit (firm)", money(dllAmount()), "red") : "") +
       coRow(dllOn ? "Recommended stop-out" : "Self-imposed daily stop", maxDailyLossCap > 0 ? money(maxDailyLossCap) : "No edge yet", (maxDailyLossCap <= 0 || dailyExceedsDll || dailyExceedsMll) ? "red" : "") +
       (evalConsistencyPct ? coRow("Consistency ceiling (at target)", money(consistencyCeiling), consistencyBreach ? "red" : "") : "") +
       (safeDayTarget !== null ? coRow("Safe next-day target (consistency)", money(safeDayTarget), "") : "") +
@@ -1337,15 +1343,15 @@
     } else if (riskExceedsMll){
       lines.push('<span class="flag-red">Edge outruns the account:</span> your win rate and R multiple imply risking <b>' + money(maxRiskPerTrade) + '</b> per trade &mdash; more than your entire ' + money(effMll) + ' Max Loss Limit. One trade could end the account; scale down manually no matter what the math says.');
     } else if (riskExceedsDll){
-      lines.push('<span class="flag-red">Edge outruns your Daily Loss Limit:</span> your win rate and R multiple imply risking <b>' + money(maxRiskPerTrade) + '</b> per trade &mdash; more than the entire $600 Daily Loss Limit. One trade could end your day; scale down manually no matter what the math says.');
+      lines.push('<span class="flag-red">Edge outruns your Daily Loss Limit:</span> your win rate and R multiple imply risking <b>' + money(maxRiskPerTrade) + '</b> per trade &mdash; more than the entire ' + money(dllAmount()) + ' Daily Loss Limit. One trade could end your day; scale down manually no matter what the math says.');
     } else {
       lines.push('Keep risk at or under <b>' + money(maxRiskPerTrade) + '</b> per trade &mdash; half-Kelly on your <b>+' + expectancyR.toFixed(2) + 'R</b> trade expectancy, applied to the ' + money(cushionRemaining) + ' you have left before the Max Loss Limit (not your full balance), so it can never exceed what the account has left to give.');
     }
     if (dllOn){
       if (dailyExceedsDll){
-        lines.push('<span class="flag-red">That would blow the $600 Daily Loss Limit outright</span> &mdash; cap yourself at the full $600 regardless of the math above; a couple of losing trades at that sizing already ends your day.');
+        lines.push('<span class="flag-red">That would blow the ' + money(dllAmount()) + ' Daily Loss Limit outright</span> &mdash; cap yourself at the full ' + money(dllAmount()) + ' regardless of the math above; a couple of losing trades at that sizing already ends your day.');
       } else {
-        lines.push('You’re running a <b>$600 Daily Loss Limit</b> &mdash; trip it and today’s session is over. Pull the plug yourself at <b>' + money(maxDailyLossCap) + '</b> down' + (dailyStopTradeCount ? ' (about ' + dailyStopTradeCount + ' losing trade' + (dailyStopTradeCount === 1 ? '' : 's') + ' at your current sizing)' : '') + ' so a slippage spike doesn’t blow it for you.');
+        lines.push('You’re running a <b>' + money(dllAmount()) + ' Daily Loss Limit</b> &mdash; trip it and today’s session is over. Pull the plug yourself at <b>' + money(maxDailyLossCap) + '</b> down' + (dailyStopTradeCount ? ' (about ' + dailyStopTradeCount + ' losing trade' + (dailyStopTradeCount === 1 ? '' : 's') + ' at your current sizing)' : '') + ' so a slippage spike doesn’t blow it for you.');
       }
     } else if (dailyExceedsMll){
       lines.push('<span class="flag-red">That would exceed your entire Max Loss Limit</span> &mdash; cap your day well below ' + money(effMll) + ' regardless of the math above.');
