@@ -153,6 +153,11 @@
   }
   .top-cards-row .snapshot-card, .top-cards-row .console{ margin-bottom:0; min-width:0; display:flex; flex-direction:column; }
   .top-cards-row .card-body{ flex:1; display:flex; flex-direction:column; }
+  .top-cards-row .card-body[hidden]{ display:none; }
+  .top-cards-row .row-collapsed{ align-self:start; }
+  .top-cards-row .console-head{ padding-bottom:16px; border-bottom:1px solid var(--hairline); }
+  .top-cards-row .console-head h2{ font-weight:700; font-size:21px; }
+  .top-cards-row .field{ margin-top:20px; }
   @media (max-width:860px){
     .top-cards-row{ grid-template-columns:1fr; }
   }
@@ -510,7 +515,7 @@
         <button type="button" class="collapse-btn" data-card="importCard" aria-expanded="true" aria-label="Collapse Import Trade History"><span class="chev" aria-hidden="true"></span></button>
       </div>
       <div class="card-body" id="importCardBody">
-        <p class="hint" style="margin:-6px 0 16px; font-size:13px; line-height:1.6;">No login, no password &mdash; export a CSV from Tradovate and drop it in below. The file is read entirely in your browser; nothing gets uploaded anywhere.</p>
+        <p class="hint" style="margin:-6px 0 16px; font-size:13.5px; line-height:1.6;">No login, no password &mdash; export a CSV from Tradovate and drop it in below. The file is read entirely in your browser; nothing gets uploaded anywhere.</p>
         <ol class="csv-steps">
           <li>Log into Tradovate: <a href="https://trader.tradovate.com/" target="_blank" rel="noopener">trader.tradovate.com</a> (opens in a new tab)</li>
           <li>Click your <b>account name</b> at the top, then the small <b>gear icon</b> next to it &mdash; this opens <b>Account Reports</b> (some versions show this as a <b>Reports</b> item in the main menu instead)</li>
@@ -998,10 +1003,12 @@
   function setCardCollapsed(cardId, collapsed){
     var body = document.getElementById(cardId + "Body");
     var btn = document.querySelector('.collapse-btn[data-card="' + cardId + '"]');
+    var card = document.getElementById(cardId);
     if (!body || !btn) return;
     body.hidden = collapsed;
     btn.classList.toggle("collapsed", collapsed);
     btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    if (card) card.classList.toggle("row-collapsed", collapsed);
     state.collapsed[cardId] = collapsed;
   }
 
