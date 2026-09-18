@@ -180,7 +180,6 @@
     font-family:var(--font-mono); font-size:12px; letter-spacing:0.22em; text-transform:uppercase;
     color:var(--phosphor); margin-bottom:14px; display:flex; align-items:center; justify-content:center; gap:10px;
   }
-  .hero .eyebrow::before{ content:"//"; color:var(--muted-dim); }
   .hero h1{ font-size:clamp(30px,5.2vw,46px); font-weight:700; line-height:1.08; color:var(--ice); letter-spacing:-0.01em; }
   .hero .tagline{ margin:10px 0 0; font-style:italic; font-size:14.5px; color:var(--phosphor-soft); max-width:none; }
   .hero p{ margin:16px auto 0; max-width:52ch; color:var(--muted); font-size:15.5px; line-height:1.65; }
@@ -216,7 +215,7 @@
     box-shadow:0 16px 36px -20px var(--phosphor-glow);
   }
   .firm-card.active .firm-mark{
-    background:var(--panel-hi);
+    background:transparent;
     box-shadow:0 0 0 1px var(--hairline-bright), 0 0 16px rgba(62,224,140,0.3);
     border:none; overflow:hidden;
   }
@@ -230,14 +229,13 @@
   }
   .firm-card.active:focus-visible{ outline:2px solid var(--phosphor); outline-offset:3px; }
 
-  .section-head{ margin:48px 0 14px; }
+  .section-head{ margin:48px 0 14px; text-align:center; }
   .section-head .eyebrow{
     font-family:var(--font-mono); font-size:12px; letter-spacing:0.22em; text-transform:uppercase;
-    color:var(--phosphor); margin-bottom:8px; display:flex; align-items:center; gap:10px;
+    color:var(--phosphor); margin-bottom:8px;
   }
-  .section-head .eyebrow::before{ content:"//"; color:var(--muted-dim); }
   .section-head h2{ font-size:21px; color:var(--ice); }
-  .section-body{ margin:0; max-width:62ch; color:var(--muted); font-size:14.5px; line-height:1.7; }
+  .section-body{ margin:0 auto; max-width:62ch; color:var(--muted); font-size:14.5px; line-height:1.7; text-align:center; }
 
   .news-card{
     display:flex; align-items:center; gap:20px; text-align:left;
