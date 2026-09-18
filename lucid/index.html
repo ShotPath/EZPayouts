@@ -444,6 +444,17 @@
     .plan-tabs button{ font-size:11.5px; padding:12px 4px; }
   }
 
+  .plan-disclaimer{
+    background:rgba(239,90,90,0.07); border:1px solid var(--red); border-radius:20px;
+    padding:22px clamp(16px,3vw,30px); margin-bottom:26px;
+    box-shadow:0 16px 36px -20px var(--red-glow);
+  }
+  .plan-disclaimer-label{
+    font-family:var(--font-mono); font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase;
+    color:var(--red); margin-bottom:10px;
+  }
+  .plan-disclaimer p{ margin:0; color:var(--ice); font-size:15px; line-height:1.65; max-width:80ch; }
+
   @media (max-width:680px){
     .topbar{ border-radius:22px; flex-wrap:wrap; justify-content:center; padding:14px 18px; }
     .nav-links{ flex:1 1 100%; order:2; gap:10px; flex-wrap:wrap; row-gap:6px; }
@@ -494,7 +505,12 @@
     </div>
   </div>
 
-  <div class="top-cards-row">
+  <div class="plan-disclaimer" id="planDisclaimer" hidden>
+    <div class="plan-disclaimer-label">Before you open one of these</div>
+    <p id="planDisclaimerText"></p>
+  </div>
+
+  <div class="top-cards-row" id="topCardsRow">
     <div class="snapshot-card pricing-card" id="snapshotCard">
       <div class="snapshot-head">
         <div>
@@ -711,6 +727,11 @@
       100000: { on: { list:307, current:225.40, coupon:180.40, resetFee:180 }, off: { list:307, coupon:225.40, resetFee:225 } },
       150000: { on: { list:410, current:300.50, coupon:245.50, resetFee:245 }, off: { list:440, coupon:300.50, resetFee:300 } }
     }
+  };
+
+  var PLAN_DISCLAIMERS = {
+    daily: "As a trader trying to get your first payout, we recommend steering clear of LucidDaily for now — it isn't the strongest option in the daily prop-firm space. Once we find a daily account worth recommending, we'll update this page. For now, this guide is built around helping you land your first payout, and LucidDaily isn't the fastest way there.",
+    direct: "As a trader trying to get your first payout, we recommend steering clear of LucidDirect — it's priced steep for what it offers. If you've already landed a payout (or several), congratulations, seriously — but if you're still chasing your first one, this isn't the account to start with. This guide is built around helping you get there, not around this account."
   };
 
   var PLANS = {
@@ -1475,6 +1496,11 @@
     select.innerHTML = SIZE_ORDER.map(function(size){
       return '<option value="' + size + '"' + (size === state.size ? ' selected' : '') + '>$' + (size/1000) + 'K account</option>';
     }).join("");
+
+    var disclaimerText = PLAN_DISCLAIMERS[state.plan];
+    document.getElementById("topCardsRow").hidden = !!disclaimerText;
+    document.getElementById("planDisclaimer").hidden = !disclaimerText;
+    if (disclaimerText) document.getElementById("planDisclaimerText").textContent = disclaimerText;
   }
 
   var lastCsvResult = null;
