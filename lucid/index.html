@@ -121,15 +121,6 @@
   .market-status.closed .label{ color:var(--red); }
   .market-status.open strong{ color:var(--phosphor-soft); font-weight:600; }
   .market-status.closed strong{ color:var(--red); font-weight:600; }
-  .menu-btn{
-    width:38px; height:38px; border-radius:50%; flex:none;
-    background:var(--panel); border:1px solid var(--hairline); cursor:pointer;
-    display:flex; align-items:center; justify-content:center;
-    transition:border-color .15s, background .15s;
-  }
-  .menu-btn:hover{ border-color:var(--phosphor-dim); background:var(--panel-hi); box-shadow:0 0 16px -4px var(--phosphor-glow); }
-  .menu-lines{ width:16px; display:flex; flex-direction:column; gap:3.5px; }
-  .menu-lines span{ display:block; height:2px; border-radius:1px; background:var(--ice); }
 
   /* ---------- Hero ---------- */
   .hero{ padding:6px 0 26px; }
@@ -160,7 +151,8 @@
   .top-cards-row #importCardBody p.hint{ font-size:15px; }
   .top-cards-row .csv-steps{ gap:16px; }
   .top-cards-row .csv-steps li{ font-size:15px; }
-  .top-cards-row .import-bottom{ margin-top:auto; padding-top:20px; }
+  .top-cards-row .import-bottom{ padding-top:20px; }
+  .top-cards-row #importCardBody{ justify-content:space-between; }
   @media (max-width:860px){
     .top-cards-row{ grid-template-columns:1fr; }
   }
@@ -410,48 +402,36 @@
   footer p{ font-size:12px; color:var(--muted-dim); line-height:1.7; max-width:80ch; margin:0 0 8px; }
   footer a{ color:var(--muted); }
 
-  /* ---------- Account menu ---------- */
-  .menu-overlay{
-    position:fixed; inset:0; background:rgba(4,7,5,0.6); backdrop-filter:blur(2px);
-    opacity:0; pointer-events:none; transition:opacity .2s; z-index:40;
-  }
   #confettiCanvas{ position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:60; display:none; }
-  .menu-overlay.show{ opacity:1; pointer-events:auto; }
-  .account-menu{
-    position:fixed; top:0; right:0; bottom:0; width:min(340px,88vw);
-    background:var(--panel-raised); border-left:1px solid var(--hairline-bright);
-    box-shadow:-24px 0 60px -30px var(--phosphor-glow);
-    transform:translateX(100%); transition:transform .25s ease; z-index:41;
-    display:flex; flex-direction:column; padding:20px 18px; overflow-y:auto;
+
+  /* ---------- Account selector ---------- */
+  .account-selector{ margin-bottom:26px; }
+  .plan-tabs{
+    display:flex; border-radius:12px; overflow:hidden; border:1px solid var(--hairline-bright);
+    background:var(--panel-raised); box-shadow:0 16px 36px -20px var(--phosphor-glow);
   }
-  .account-menu.open{ transform:translateX(0); }
-  .account-menu-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; padding-bottom:14px; border-bottom:1px solid var(--hairline); }
-  .account-menu-head span{ font-family:var(--font-display); font-weight:700; font-size:16px; color:var(--ice); }
-  .menu-close{
-    width:32px; height:32px; border-radius:50%; border:1px solid var(--hairline); background:transparent;
-    color:var(--ice); font-size:18px; line-height:1; cursor:pointer;
+  .plan-tabs button{
+    flex:1; font-family:var(--font-display); font-weight:700; font-size:14px;
+    padding:14px 12px; background:transparent; border:none; color:var(--muted);
+    cursor:pointer; transition:background .15s, color .15s; white-space:nowrap;
   }
-  .menu-close:hover{ border-color:var(--hairline-bright); }
-  .menu-section{ padding:16px 0; border-bottom:1px solid var(--hairline); }
-  .menu-section:last-child{ border-bottom:none; }
-  .menu-section-title{
-    display:flex; align-items:center; gap:8px; font-family:var(--font-display); font-weight:600;
-    font-size:14.5px; color:var(--ice); margin-bottom:10px;
+  .plan-tabs button:hover{ color:var(--ice); }
+  .plan-tabs button.active{ background:var(--mint); color:var(--mint-text); }
+  .size-select-wrap{
+    display:flex; align-items:center; gap:12px; margin-top:14px; flex-wrap:wrap;
   }
-  .menu-current{
-    font-family:var(--font-mono); font-size:9px; letter-spacing:0.08em; background:var(--mint);
-    color:var(--mint-text); padding:2px 7px; border-radius:4px; font-weight:700;
+  .size-select-wrap label{
+    font-family:var(--font-mono); font-size:11.5px; letter-spacing:0.06em; text-transform:uppercase; color:var(--muted);
   }
-  .menu-tagline{ font-size:12px; color:var(--muted); line-height:1.5; margin-bottom:6px; font-family:var(--font-mono); }
-  .menu-verify{ font-size:11px; color:var(--muted-dim); margin-bottom:12px; font-family:var(--font-mono); }
-  .menu-sizes{ display:flex; gap:8px; flex-wrap:wrap; }
-  .menu-size-btn{
-    font-family:var(--font-mono); font-size:13px; font-weight:600; padding:8px 14px;
-    border-radius:999px; background:var(--panel); border:1px solid var(--hairline); color:var(--muted);
-    cursor:pointer; transition:border-color .15s, background .15s, color .15s;
+  .size-select-wrap select{
+    background:var(--void); border:1px solid var(--hairline-bright); border-radius:10px;
+    padding:9px 12px; color:var(--ice); font-family:var(--font-mono); font-size:14.5px; font-weight:600;
+    outline:none; cursor:pointer; transition:border-color .15s;
   }
-  .menu-size-btn:hover{ border-color:var(--phosphor-dim); color:var(--ice); box-shadow:0 0 12px -4px var(--phosphor-glow); }
-  .menu-size-btn.active{ background:var(--mint); border-color:var(--mint); color:var(--mint-text); }
+  .size-select-wrap select:focus{ border-color:var(--mint); box-shadow:0 0 0 3px rgba(126,232,172,0.14); }
+  @media (max-width:480px){
+    .plan-tabs button{ font-size:11.5px; padding:12px 4px; }
+  }
 
   @media (max-width:680px){
     .topbar{ border-radius:22px; flex-wrap:wrap; justify-content:center; padding:14px 18px; }
@@ -479,9 +459,6 @@
       <span class="label mono" id="marketLabel">NY OPEN IN</span>
       <strong class="mono" id="marketOpenIn">--:--:--</strong>
     </span>
-    <button type="button" class="menu-btn" id="menuBtn" aria-haspopup="true" aria-expanded="false" aria-controls="accountMenu" aria-label="Select account">
-      <span class="menu-lines" aria-hidden="true"><span></span><span></span><span></span></span>
-    </button>
   </div>
 </header>
 <div class="wrap">
@@ -492,6 +469,19 @@
     <p>A cockpit for your Lucid Trading accounts &mdash; live rules, a risk co-pilot that tells you the minimum pace you need and the max you should risk, and the exact path from evaluation to your first payout.</p>
   </div>
 
+  <div class="account-selector">
+    <div class="plan-tabs" id="planTabs">
+      <button type="button" data-plan="pro">LucidPro</button>
+      <button type="button" data-plan="flex">LucidFlex</button>
+      <button type="button" data-plan="daily">LucidDaily</button>
+      <button type="button" data-plan="direct">LucidDirect</button>
+    </div>
+    <div class="size-select-wrap">
+      <label for="sizeSelect">Account Size</label>
+      <select id="sizeSelect"></select>
+    </div>
+  </div>
+
   <div class="top-cards-row">
     <div class="snapshot-card pricing-card" id="snapshotCard">
       <div class="snapshot-head">
@@ -500,7 +490,6 @@
           <div class="snapshot-sub" id="snapshotSub">Live rule sheet for this plan and size</div>
         </div>
         <div class="rcontrol">
-          <button type="button" class="switch-btn" id="switchAccountBtn">Switch Account</button>
           <button type="button" class="collapse-btn" data-card="snapshotCard" aria-expanded="true" aria-label="Collapse Account Snapshot"><span class="chev" aria-hidden="true"></span></button>
         </div>
       </div>
@@ -673,15 +662,6 @@
 
 </div>
 
-<div class="menu-overlay" id="menuOverlay" hidden></div>
-<aside class="account-menu" id="accountMenu" aria-hidden="true">
-  <div class="account-menu-head">
-    <span>Select Account</span>
-    <button type="button" class="menu-close" id="menuClose" aria-label="Close menu">&times;</button>
-  </div>
-  <div id="accountMenuBody"></div>
-</aside>
-
 <canvas id="confettiCanvas" aria-hidden="true"></canvas>
 
 <script>
@@ -781,7 +761,6 @@
       consistency: { eval: null, funded: 20 }
     }
   };
-  var PLAN_ORDER = ["flex","pro","daily","direct"];
   var SIZE_ORDER = [25000,50000,100000,150000];
 
   var state = { plan: "flex", size: 25000, dllOn: {}, drawdownChoice: {}, phase: "eval", snapshotView: "eval", collapsed: {} };
@@ -1426,24 +1405,14 @@
     coachText.innerHTML = lines.join(' ');
   }
 
-  function renderAccountMenu(){
-    var body = document.getElementById("accountMenuBody");
-    var html = "";
-    PLAN_ORDER.forEach(function(planKey){
-      var plan = PLANS[planKey];
-      var isCurrentPlan = planKey === state.plan;
-      html += '<div class="menu-section">' +
-        '<div class="menu-section-title">' + plan.name + (isCurrentPlan ? ' <span class="menu-current">CURRENT</span>' : '') + '</div>' +
-        '<div class="menu-tagline">' + plan.name + ' &mdash; ' + plan.tagline + '</div>' +
-        '<div class="menu-verify">' + (plan.verified ? "Figures verified against Lucid rule trackers." : "Less-certain figures — verify on your dashboard.") + '</div>' +
-        '<div class="menu-sizes">';
-      SIZE_ORDER.forEach(function(size){
-        var active = isCurrentPlan && size === state.size;
-        html += '<button type="button" class="menu-size-btn' + (active ? ' active' : '') + '" data-plan="' + planKey + '" data-size="' + size + '">$' + (size/1000) + 'K</button>';
-      });
-      html += '</div></div>';
+  function renderAccountSelector(){
+    document.querySelectorAll("#planTabs button").forEach(function(btn){
+      btn.classList.toggle("active", btn.dataset.plan === state.plan);
     });
-    body.innerHTML = html;
+    var select = document.getElementById("sizeSelect");
+    select.innerHTML = SIZE_ORDER.map(function(size){
+      return '<option value="' + size + '"' + (size === state.size ? ' selected' : '') + '>$' + (size/1000) + 'K account</option>';
+    }).join("");
   }
 
   var lastCsvResult = null;
@@ -1501,7 +1470,7 @@
   function renderAll(){
     renderSnapshotCard();
     renderCoPilot();
-    renderAccountMenu();
+    renderAccountSelector();
     renderCsvConsistency();
   }
 
@@ -1556,43 +1525,21 @@
     });
   });
 
-  // Account menu open/close
-  var menuBtn = document.getElementById("menuBtn");
-  var menuClose = document.getElementById("menuClose");
-  var menuOverlay = document.getElementById("menuOverlay");
-  var accountMenu = document.getElementById("accountMenu");
-
-  function openMenu(){
-    accountMenu.classList.add("open");
-    accountMenu.setAttribute("aria-hidden", "false");
-    menuOverlay.hidden = false;
-    requestAnimationFrame(function(){ menuOverlay.classList.add("show"); });
-    menuBtn.setAttribute("aria-expanded", "true");
-  }
-  function closeMenu(){
-    accountMenu.classList.remove("open");
-    accountMenu.setAttribute("aria-hidden", "true");
-    menuOverlay.classList.remove("show");
-    menuBtn.setAttribute("aria-expanded", "false");
-    setTimeout(function(){ if (!menuOverlay.classList.contains("show")) menuOverlay.hidden = true; }, 200);
-  }
-  menuBtn.addEventListener("click", openMenu);
-  menuClose.addEventListener("click", closeMenu);
-  menuOverlay.addEventListener("click", closeMenu);
-  document.addEventListener("keydown", function(e){
-    if (e.key === "Escape") closeMenu();
+  // Account selector — plan tabs + size dropdown
+  document.getElementById("planTabs").addEventListener("click", function(e){
+    var btn = e.target.closest("button[data-plan]");
+    if (!btn) return;
+    state.plan = btn.dataset.plan;
+    state.snapshotView = "eval";
+    renderAll();
+    saveState();
   });
-  document.getElementById("accountMenuBody").addEventListener("click", function(e){
-    if (e.target.classList.contains("menu-size-btn")){
-      state.plan = e.target.dataset.plan;
-      state.size = parseInt(e.target.dataset.size, 10);
-      state.snapshotView = "eval";
-      renderAll();
-      saveState();
-      closeMenu();
-    }
+  document.getElementById("sizeSelect").addEventListener("change", function(e){
+    state.size = parseInt(e.target.value, 10);
+    state.snapshotView = "eval";
+    renderAll();
+    saveState();
   });
-  document.getElementById("switchAccountBtn").addEventListener("click", openMenu);
 
   // CSV import — everything happens locally in the browser, nothing is ever
   // uploaded. Column names are auto-detected from the file's header row since
