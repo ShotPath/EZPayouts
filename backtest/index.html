@@ -24,6 +24,8 @@
     --mint-text:#062b17;
     --red:#ef5a5a;
     --red-glow:rgba(239,90,90,0.35);
+    --amber:#e8c34a;
+    --amber-glow:rgba(232,195,74,0.35);
     --ice:#dcefe2;
     --muted:#7c9584;
     --muted-dim:#4d6055;
@@ -189,14 +191,19 @@
   }
   .wl-toggle .seg-thumb{ border-radius:inherit; }
   .wl-toggle.is-loss .seg-thumb{ background:var(--red); }
+  .wl-toggle.is-be .seg-thumb{ background:var(--amber); }
   .wl-toggle button{
-    font-family:var(--font-mono); font-size:12px; font-weight:700; padding:10px 16px;
+    font-family:var(--font-mono); font-size:12px; font-weight:700; padding:10px 14px;
     background:transparent; border:none; color:var(--muted); cursor:pointer;
     transition:color .15s; white-space:nowrap;
   }
   .wl-toggle button:hover{ color:var(--ice); }
   .wl-toggle button.active{ color:var(--mint-text); }
   .wl-toggle button.active:hover{ color:var(--mint-text); }
+  .wl-toggle.is-loss button.active{ color:#2b0808; }
+  .wl-toggle.is-loss button.active:hover{ color:#2b0808; }
+  .wl-toggle.is-be button.active{ color:#2b1f05; }
+  .wl-toggle.is-be button.active:hover{ color:#2b1f05; }
 
   .log-btn{
     font-family:var(--font-display); font-weight:600; font-size:13.5px; padding:11px 22px;
@@ -237,6 +244,7 @@
   }
   .bt-badge.win{ background:rgba(62,224,140,0.14); color:var(--phosphor-soft); border:1px solid var(--phosphor-dim); }
   .bt-badge.loss{ background:rgba(239,90,90,0.12); color:var(--red); border:1px solid var(--red); }
+  .bt-badge.be{ background:rgba(232,195,74,0.14); color:var(--amber); border:1px solid var(--amber); }
   .bt-del{
     background:transparent; border:none; color:var(--muted-dim); cursor:pointer;
     font-size:17px; line-height:1; padding:4px; transition:color .15s; justify-self:end;
@@ -327,6 +335,7 @@
         <div class="wl-toggle seg-track" id="wlToggle">
           <span class="seg-thumb" aria-hidden="true"></span>
           <button type="button" class="active" data-result="win">Win</button>
+          <button type="button" data-result="breakeven" aria-label="Breakeven">BE</button>
           <button type="button" data-result="loss">Loss</button>
         </div>
       </div>
@@ -422,6 +431,12 @@
     return (n > 0 ? "+" : "") + v + "R";
   }
 
+  function resultBadge(result){
+    if (result === "loss") return { cls:"loss", label:"Loss" };
+    if (result === "breakeven") return { cls:"be", label:"BE" };
+    return { cls:"win", label:"Win" };
+  }
+
   // Sliding-thumb segmented control helpers (shared pattern with the Lucid page).
   function layoutSegThumb(track, skipTransition){
     if (!track) return;
@@ -457,6 +472,7 @@
       b.classList.toggle("active", b === btn);
     });
     wlToggle.classList.toggle("is-loss", currentResult === "loss");
+    wlToggle.classList.toggle("is-be", currentResult === "breakeven");
     layoutSegThumb(wlToggle);
   });
 
@@ -510,7 +526,9 @@
     var wins = entries.filter(function(en){ return en.result === "win"; }).length;
     var winRate = (wins / total) * 100;
     var netR = entries.reduce(function(sum, en){
-      return sum + (en.result === "win" ? en.rrMultiple : -1);
+      if (en.result === "win") return sum + en.rrMultiple;
+      if (en.result === "loss") return sum - 1;
+      return sum;
     }, 0);
     var avgR = netR / total;
 
@@ -530,11 +548,12 @@
       return;
     }
     listEl.innerHTML = entries.map(function(en){
+      var badge = resultBadge(en.result);
       return '' +
         '<div class="bt-row">' +
           '<span class="bt-model" title="' + escapeHtml(en.model) + '">' + escapeHtml(en.model) + '</span>' +
           '<span class="bt-rr">' + escapeHtml(en.rrDisplay) + '</span>' +
-          '<span class="bt-badge ' + (en.result === "win" ? "win" : "loss") + '">' + (en.result === "win" ? "Win" : "Loss") + '</span>' +
+          '<span class="bt-badge ' + badge.cls + '">' + badge.label + '</span>' +
           '<button class="bt-del" type="button" data-id="' + en.id + '" aria-label="Delete trade">&times;</button>' +
         '</div>';
     }).join("");
