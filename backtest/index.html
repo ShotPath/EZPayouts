@@ -524,7 +524,9 @@
       return;
     }
     var wins = entries.filter(function(en){ return en.result === "win"; }).length;
-    var winRate = (wins / total) * 100;
+    var losses = entries.filter(function(en){ return en.result === "loss"; }).length;
+    var decided = wins + losses;
+    var winRate = decided ? (wins / decided) * 100 : null;
     var netR = entries.reduce(function(sum, en){
       if (en.result === "win") return sum + en.rrMultiple;
       if (en.result === "loss") return sum - 1;
@@ -532,7 +534,7 @@
     }, 0);
     var avgR = netR / total;
 
-    statWinRate.textContent = winRate.toFixed(0) + "%";
+    statWinRate.textContent = winRate === null ? "—" : winRate.toFixed(0) + "%";
     statNetR.textContent = fmtSigned(netR);
     statAvgR.textContent = fmtSigned(avgR);
     statNetR.classList.toggle("neg", netR < 0);
