@@ -1,0 +1,13 @@
+name = "ezpayouts-auth"
+main = "auth-worker.js"
+compatibility_date = "2025-01-01"
+
+# Deploys to the default ezpayouts-auth.<your-subdomain>.workers.dev URL.
+# Before the first deploy:
+#   1. cd worker/auth
+#   2. npx wrangler kv namespace create ACCOUNTS
+#      (paste the returned id below)
+#   3. npx wrangler deploy
+[[kv_namespaces]]
+binding = "ACCOUNTS"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"

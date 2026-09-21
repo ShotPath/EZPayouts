@@ -483,8 +483,10 @@
       <span class="label mono" id="marketLabel">NY OPEN IN</span>
       <strong class="mono" id="marketOpenIn">--:--:--</strong>
     </span>
+    <div id="authWidget"></div>
   </div>
 </header>
+<script src="../account.js"></script>
 <div class="wrap">
 
   <div class="hero">
@@ -859,6 +861,27 @@
       if (saved.winRate !== undefined) document.getElementById("winRateInput").value = saved.winRate;
       if (saved.avgR !== undefined) document.getElementById("avgRInput").value = saved.avgR;
     } catch(e){}
+  }
+
+  function pushCockpitToAccount(){
+    if (window.EZAuth && EZAuth.isLoggedIn()) EZAuth.saveData({ cockpit: { plan: state.plan, size: state.size } });
+  }
+
+  function syncCockpitFromAccount(){
+    if (!window.EZAuth || !EZAuth.isLoggedIn()) return;
+    EZAuth.fetchData().then(function(remote){
+      if (!remote) return;
+      var cockpit = remote.cockpit;
+      if (cockpit && cockpit.plan && PLANS[cockpit.plan] && cockpit.size && PLANS[cockpit.plan].sizes[cockpit.size]){
+        state.plan = cockpit.plan;
+        state.size = cockpit.size;
+        state.snapshotView = "eval";
+        renderAll();
+        saveState();
+      } else {
+        pushCockpitToAccount();
+      }
+    });
   }
 
   var fmt = new Intl.NumberFormat("en-US", { style:"currency", currency:"USD", maximumFractionDigits:0 });
@@ -1649,12 +1672,14 @@
     state.snapshotView = "eval";
     renderAll();
     saveState();
+    pushCockpitToAccount();
   });
   document.getElementById("sizeSelect").addEventListener("change", function(e){
     state.size = parseInt(e.target.value, 10);
     state.snapshotView = "eval";
     renderAll();
     saveState();
+    pushCockpitToAccount();
   });
 
   // Seg-thumb widths/positions are computed in px at render time, so a
@@ -1847,6 +1872,7 @@
       state.plan = plan;
       state.size = size;
       saveState();
+      pushCockpitToAccount();
     }
   }
 
@@ -1854,6 +1880,8 @@
   applyUrlParams();
   renderAll();
   CARD_IDS.forEach(function(id){ setCardCollapsed(id, !!state.collapsed[id]); });
+  syncCockpitFromAccount();
+  if (window.EZAuth) EZAuth.onChange(syncCockpitFromAccount);
 
   // NY market status: live "OPEN" badge from 9:30 AM to 4:15 PM ET on weekdays
   // (stocks close at 4:00, but futures keep trading another 15 minutes),
