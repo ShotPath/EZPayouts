@@ -459,6 +459,27 @@
     });
   }
 
+  function resetToDefault(){
+    entries = [];
+    try { localStorage.removeItem(STORAGE_KEY); } catch (err) {}
+    currentResult = "win";
+    wlToggle.querySelectorAll("button").forEach(function(b){
+      b.classList.toggle("active", b.getAttribute("data-result") === "win");
+    });
+    wlToggle.classList.remove("is-loss", "is-be");
+    layoutSegThumb(wlToggle, true);
+    currentFilter = "all";
+    btFilter.querySelectorAll("button").forEach(function(b){
+      b.classList.toggle("active", b.getAttribute("data-filter") === "all");
+    });
+    btFilter.classList.remove("filter-loss", "filter-be");
+    layoutSegThumb(btFilter, true);
+    modelInput.value = "";
+    rrInput.value = "";
+    updateValidity();
+    renderAll();
+  }
+
   function parseRR(raw){
     raw = (raw || "").trim();
     if (!raw) return null;
@@ -658,7 +679,12 @@
   layoutSegThumb(wlToggle, true);
   layoutSegThumb(btFilter, true);
   syncFromAccount();
-  if (window.EZAuth) EZAuth.onChange(syncFromAccount);
+  if (window.EZAuth) {
+    EZAuth.onChange(function(loggedIn){
+      if (loggedIn) syncFromAccount();
+      else resetToDefault();
+    });
+  }
 })();
 
 (function(){

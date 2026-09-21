@@ -884,6 +884,25 @@
     });
   }
 
+  function resetCockpitToDefault(){
+    state.plan = "flex";
+    state.size = 25000;
+    state.dllOn = {};
+    state.drawdownChoice = {};
+    state.phase = "eval";
+    state.snapshotView = "eval";
+    state.collapsed = {};
+    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+    document.getElementById("pnlInput").value = 0;
+    document.getElementById("daysInput").value = 1;
+    document.getElementById("bestDayInput").value = 0;
+    document.getElementById("qualDaysInput").value = 0;
+    document.getElementById("winRateInput").value = 50;
+    document.getElementById("avgRInput").value = 2;
+    CARD_IDS.forEach(function(id){ setCardCollapsed(id, false); });
+    renderAll();
+  }
+
   var fmt = new Intl.NumberFormat("en-US", { style:"currency", currency:"USD", maximumFractionDigits:0 });
   function money(n){ return fmt.format(Math.round(n)); }
   var fmtCents = new Intl.NumberFormat("en-US", { style:"currency", currency:"USD", minimumFractionDigits:2, maximumFractionDigits:2 });
@@ -1881,7 +1900,12 @@
   renderAll();
   CARD_IDS.forEach(function(id){ setCardCollapsed(id, !!state.collapsed[id]); });
   syncCockpitFromAccount();
-  if (window.EZAuth) EZAuth.onChange(syncCockpitFromAccount);
+  if (window.EZAuth) {
+    EZAuth.onChange(function(loggedIn){
+      if (loggedIn) syncCockpitFromAccount();
+      else resetCockpitToDefault();
+    });
+  }
 
   // NY market status: live "OPEN" badge from 9:30 AM to 4:15 PM ET on weekdays
   // (stocks close at 4:00, but futures keep trading another 15 minutes),
