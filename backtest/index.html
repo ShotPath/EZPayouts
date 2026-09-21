@@ -224,6 +224,27 @@
   }
   .clear-btn:hover{ color:var(--red); }
 
+  .bt-filter{
+    display:inline-flex; align-items:stretch; margin-bottom:16px;
+    border-radius:9px; overflow:hidden; border:1px solid var(--hairline-bright); background:var(--panel-raised);
+  }
+  .bt-filter[hidden]{ display:none; }
+  .bt-filter .seg-thumb{ border-radius:inherit; background:var(--mint); }
+  .bt-filter.filter-loss .seg-thumb{ background:var(--red); }
+  .bt-filter.filter-be .seg-thumb{ background:var(--amber); }
+  .bt-filter button{
+    font-family:var(--font-mono); font-size:11px; font-weight:700; padding:7px 13px;
+    background:transparent; border:none; color:var(--muted); cursor:pointer;
+    transition:color .15s; white-space:nowrap;
+  }
+  .bt-filter button:hover{ color:var(--ice); }
+  .bt-filter button.active{ color:var(--mint-text); }
+  .bt-filter button.active:hover{ color:var(--mint-text); }
+  .bt-filter.filter-loss button.active{ color:#2b0808; }
+  .bt-filter.filter-loss button.active:hover{ color:#2b0808; }
+  .bt-filter.filter-be button.active{ color:#2b1f05; }
+  .bt-filter.filter-be button.active:hover{ color:#2b1f05; }
+
   .bt-row{
     display:grid; grid-template-columns:1fr minmax(74px,100px) minmax(64px,80px) 28px;
     align-items:center; gap:10px; padding:12px 4px; border-bottom:1px solid var(--hairline);
@@ -352,6 +373,13 @@
       <p class="bt-card-title">Trade Log</p>
       <button class="clear-btn" id="clearBtn" type="button" hidden>Clear all</button>
     </div>
+    <div class="bt-filter seg-track" id="btFilter" hidden>
+      <span class="seg-thumb" aria-hidden="true"></span>
+      <button type="button" class="active" data-filter="all">All</button>
+      <button type="button" data-filter="win">Win</button>
+      <button type="button" data-filter="breakeven">BE</button>
+      <button type="button" data-filter="loss">Loss</button>
+    </div>
     <div class="bt-row bt-head-row" id="btHeadRow" hidden>
       <span>Model</span>
       <span><span class="rr-full">Risk:Reward</span><span class="rr-short">R:R</span></span>
@@ -383,6 +411,7 @@
   var listEl = document.getElementById("btList");
   var headRowEl = document.getElementById("btHeadRow");
   var clearBtn = document.getElementById("clearBtn");
+  var btFilter = document.getElementById("btFilter");
 
   var statTotal = document.getElementById("statTotal");
   var statWinRate = document.getElementById("statWinRate");
@@ -390,6 +419,7 @@
   var statAvgR = document.getElementById("statAvgR");
 
   var currentResult = "win";
+  var currentFilter = "all";
   var entries = [];
 
   function escapeHtml(s){
@@ -476,6 +506,19 @@
     layoutSegThumb(wlToggle);
   });
 
+  btFilter.addEventListener("click", function(e){
+    var btn = e.target.closest("button[data-filter]");
+    if (!btn) return;
+    currentFilter = btn.getAttribute("data-filter");
+    btFilter.querySelectorAll("button").forEach(function(b){
+      b.classList.toggle("active", b === btn);
+    });
+    btFilter.classList.toggle("filter-loss", currentFilter === "loss");
+    btFilter.classList.toggle("filter-be", currentFilter === "breakeven");
+    layoutSegThumb(btFilter);
+    renderList();
+  });
+
   logBtn.addEventListener("click", function(){
     var model = modelInput.value.trim();
     var rrMultiple = parseRR(rrInput.value);
@@ -541,15 +584,31 @@
     statAvgR.classList.toggle("neg", avgR < 0);
   }
 
+  function filterLabel(filter){
+    if (filter === "win") return "winning";
+    if (filter === "loss") return "losing";
+    if (filter === "breakeven") return "breakeven";
+    return "";
+  }
+
   function renderList(){
     var total = entries.length;
-    headRowEl.hidden = total === 0;
+    var wasHidden = btFilter.hidden;
+    btFilter.hidden = total === 0;
     clearBtn.hidden = total === 0;
     if (!total){
+      headRowEl.hidden = true;
       listEl.innerHTML = '<p class="bt-empty">No trades logged yet &mdash; log your first one above.</p>';
       return;
     }
-    listEl.innerHTML = entries.map(function(en){
+    if (wasHidden && !btFilter.hidden) layoutSegThumb(btFilter, true);
+    var filtered = currentFilter === "all" ? entries : entries.filter(function(en){ return en.result === currentFilter; });
+    headRowEl.hidden = filtered.length === 0;
+    if (!filtered.length){
+      listEl.innerHTML = '<p class="bt-empty">No ' + filterLabel(currentFilter) + ' trades yet.</p>';
+      return;
+    }
+    listEl.innerHTML = filtered.map(function(en){
       var badge = resultBadge(en.result);
       return '' +
         '<div class="bt-row">' +
@@ -571,6 +630,7 @@
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(function(){
       layoutSegThumb(wlToggle, true);
+      layoutSegThumb(btFilter, true);
     }, 100);
   });
 
@@ -578,6 +638,7 @@
   renderAll();
   updateValidity();
   layoutSegThumb(wlToggle, true);
+  layoutSegThumb(btFilter, true);
 })();
 
 (function(){
