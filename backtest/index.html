@@ -134,6 +134,37 @@
   .hero h1{ font-size:clamp(28px,5vw,40px); font-weight:700; line-height:1.1; color:var(--ice); letter-spacing:-0.01em; }
   .hero p{ margin:16px auto 0; color:var(--muted); font-size:15.5px; line-height:1.65; }
 
+  /* ---------- Strategy tabs (island bar, always centered) ---------- */
+  .strategy-bar{
+    display:flex; align-items:center; justify-content:center; flex-wrap:wrap;
+    gap:10px; margin:0 0 24px;
+  }
+  .strategy-tabs{
+    display:inline-flex; align-items:stretch; max-width:100%; min-width:0; overflow-x:auto;
+    border-radius:999px; border:1px solid var(--hairline-bright); background:var(--panel-raised);
+  }
+  .strategy-tabs .seg-thumb{ border-radius:999px; }
+  .strategy-tabs button{
+    font-family:var(--font-mono); font-size:12px; font-weight:700; padding:9px 16px;
+    background:transparent; border:none; color:var(--muted); cursor:pointer; white-space:nowrap;
+    transition:color .15s;
+  }
+  .strategy-tabs button:hover{ color:var(--ice); }
+  .strategy-tabs button.active{ color:var(--mint-text); }
+  .strategy-tabs button.active:hover{ color:var(--mint-text); }
+  .strategy-tabs .strategy-rename-input{
+    position:relative; z-index:1; font-family:var(--font-mono); font-size:12px; font-weight:700;
+    padding:9px 12px; background:transparent; border:none; outline:none; color:var(--mint-text);
+    text-align:center; min-width:60px;
+  }
+  .strategy-add{
+    font-family:var(--font-mono); font-size:11px; font-weight:700; white-space:nowrap; flex:none;
+    padding:8px 14px; border-radius:999px; border:1px dashed var(--hairline-bright);
+    background:transparent; color:var(--muted); cursor:pointer; transition:border-color .15s, color .15s;
+  }
+  .strategy-add:hover{ border-color:var(--phosphor-dim); color:var(--ice); }
+  .strategy-add[hidden]{ display:none; }
+
   /* ---------- Tally / average stat row ---------- */
   .bt-stats{ display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-bottom:28px; }
   .stat-card{
@@ -323,6 +354,13 @@
     <p>Log every setup &mdash; model, risk:reward, win or loss &mdash; and watch the tally build. Stored right in this browser &mdash; sign in to sync it across devices.</p>
   </div>
 
+  <div class="strategy-bar">
+    <div class="strategy-tabs seg-track" id="strategyTabs">
+      <span class="seg-thumb" aria-hidden="true"></span>
+    </div>
+    <button class="strategy-add" id="strategyAddBtn" type="button">+ Strategy</button>
+  </div>
+
   <div class="bt-stats" id="btStats">
     <div class="stat-card">
       <span class="stat-label">Trades</span>
@@ -404,7 +442,9 @@
 (function(){
   "use strict";
 
-  var STORAGE_KEY = "ezpayouts.backtest.v1";
+  var STORAGE_KEY = "ezpayouts.backtest.v2";
+  var LEGACY_STORAGE_KEY = "ezpayouts.backtest.v1";
+  var MAX_STRATEGIES = 5;
 
   var modelInput = document.getElementById("btModel");
   var rrInput = document.getElementById("btRR");
@@ -414,6 +454,8 @@
   var headRowEl = document.getElementById("btHeadRow");
   var clearBtn = document.getElementById("clearBtn");
   var btFilter = document.getElementById("btFilter");
+  var strategyTabs = document.getElementById("strategyTabs");
+  var strategyAddBtn = document.getElementById("strategyAddBtn");
 
   var statTotal = document.getElementById("statTotal");
   var statWinRate = document.getElementById("statWinRate");
@@ -422,7 +464,15 @@
 
   var currentResult = "win";
   var currentFilter = "all";
-  var entries = [];
+  var strategyTabsRenderedOnce = false;
+
+  // A strategy is just { id, name }; each strategy's trades live in
+  // entriesByStrategy[id]. `entries` always aliases the ACTIVE strategy's
+  // array so the existing render/log/delete/clear code below (written
+  // before multi-strategy support existed) keeps working unchanged.
+  var state = { strategies: [{ id: "s1", name: "Strategy 1" }], activeId: "s1" };
+  var entriesByStrategy = { s1: [] };
+  var entries = entriesByStrategy.s1;
 
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, function(c){
@@ -430,44 +480,89 @@
     });
   }
 
+  function normalizeStrategies(strategies){
+    var list = Array.isArray(strategies) ? strategies : [];
+    list = list.filter(function(s){ return s && s.id; }).slice(0, MAX_STRATEGIES);
+    if (!list.length) list = [{ id: "s1", name: "Strategy 1" }];
+    return list.map(function(s){ return { id: String(s.id), name: String(s.name || "Strategy") }; });
+  }
+
+  function applyStrategyPayload(payload){
+    state.strategies = normalizeStrategies(payload.strategies);
+    var activeId = payload.activeId;
+    state.activeId = state.strategies.some(function(s){ return s.id === activeId; }) ? activeId : state.strategies[0].id;
+    var byId = (payload.entriesByStrategy && typeof payload.entriesByStrategy === "object") ? payload.entriesByStrategy : {};
+    entriesByStrategy = {};
+    state.strategies.forEach(function(s){
+      entriesByStrategy[s.id] = Array.isArray(byId[s.id]) ? byId[s.id] : [];
+    });
+    entries = entriesByStrategy[state.activeId];
+  }
+
+  function buildSyncPayload(){
+    entriesByStrategy[state.activeId] = entries;
+    return { strategies: state.strategies, activeId: state.activeId, entriesByStrategy: entriesByStrategy };
+  }
+
   function load(){
     try {
       var raw = localStorage.getItem(STORAGE_KEY);
-      var parsed = raw ? JSON.parse(raw) : [];
-      entries = Array.isArray(parsed) ? parsed : [];
-    } catch (err) {
-      entries = [];
-    }
+      if (raw){
+        var parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object" && parsed.entriesByStrategy){
+          applyStrategyPayload(parsed);
+          return;
+        }
+      }
+      // Migrate the old single-log format (a plain array under the v1 key)
+      // into this device's default strategy, then drop the old key.
+      var legacyRaw = localStorage.getItem(LEGACY_STORAGE_KEY);
+      if (legacyRaw){
+        var legacyParsed = JSON.parse(legacyRaw);
+        if (Array.isArray(legacyParsed) && legacyParsed.length){
+          entriesByStrategy.s1 = legacyParsed;
+          entries = entriesByStrategy.s1;
+        }
+        try { localStorage.removeItem(LEGACY_STORAGE_KEY); } catch (err) {}
+      }
+    } catch (err) {}
   }
   function save(){
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)); } catch (err) {}
-    if (window.EZAuth && EZAuth.isLoggedIn()) EZAuth.saveData({ backtest: entries });
+    var payload = buildSyncPayload();
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(payload)); } catch (err) {}
+    if (window.EZAuth && EZAuth.isLoggedIn()) EZAuth.saveData({ backtest: payload });
   }
 
   function syncFromAccount(){
     if (!window.EZAuth || !EZAuth.isLoggedIn()) return;
     EZAuth.fetchData().then(function(remote){
       if (!remote) return;
-      var remoteBacktest = Array.isArray(remote.backtest) ? remote.backtest : [];
-      if (remoteBacktest.length){
-        entries = remoteBacktest;
+      var remoteBacktest = remote.backtest;
+      if (remoteBacktest && typeof remoteBacktest === "object" && !Array.isArray(remoteBacktest) && remoteBacktest.entriesByStrategy){
+        var hasAny = Object.keys(remoteBacktest.entriesByStrategy).some(function(id){
+          return Array.isArray(remoteBacktest.entriesByStrategy[id]) && remoteBacktest.entriesByStrategy[id].length;
+        });
+        if (hasAny){
+          applyStrategyPayload(remoteBacktest);
+          save();
+          renderStrategyTabs(true);
+          renderAll();
+          return;
+        }
+      } else if (Array.isArray(remoteBacktest) && remoteBacktest.length){
+        // Legacy single-log format saved by an older version of this page.
+        entriesByStrategy[state.activeId] = remoteBacktest;
+        entries = entriesByStrategy[state.activeId];
         save();
         renderAll();
-      } else if (entries.length){
-        EZAuth.saveData({ backtest: entries });
+        return;
       }
+      var anyLocal = Object.keys(entriesByStrategy).some(function(id){ return entriesByStrategy[id].length; });
+      if (anyLocal) EZAuth.saveData({ backtest: buildSyncPayload() });
     });
   }
 
-  function resetToDefault(){
-    entries = [];
-    try { localStorage.removeItem(STORAGE_KEY); } catch (err) {}
-    currentResult = "win";
-    wlToggle.querySelectorAll("button").forEach(function(b){
-      b.classList.toggle("active", b.getAttribute("data-result") === "win");
-    });
-    wlToggle.classList.remove("is-loss", "is-be");
-    layoutSegThumb(wlToggle, true);
+  function resetFilterAndFormUI(){
     currentFilter = "all";
     btFilter.querySelectorAll("button").forEach(function(b){
       b.classList.toggle("active", b.getAttribute("data-filter") === "all");
@@ -477,8 +572,115 @@
     modelInput.value = "";
     rrInput.value = "";
     updateValidity();
+  }
+
+  function resetToDefault(){
+    state.strategies = [{ id: "s1", name: "Strategy 1" }];
+    state.activeId = "s1";
+    entriesByStrategy = { s1: [] };
+    entries = entriesByStrategy.s1;
+    try { localStorage.removeItem(STORAGE_KEY); } catch (err) {}
+    currentResult = "win";
+    wlToggle.querySelectorAll("button").forEach(function(b){
+      b.classList.toggle("active", b.getAttribute("data-result") === "win");
+    });
+    wlToggle.classList.remove("is-loss", "is-be");
+    layoutSegThumb(wlToggle, true);
+    resetFilterAndFormUI();
+    renderStrategyTabs(true);
     renderAll();
   }
+
+  // ---------- Strategy tabs ----------
+  function buildTabButton(strategy){
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.setAttribute("data-id", strategy.id);
+    if (strategy.id === state.activeId){
+      btn.classList.add("active");
+      btn.title = "Click to rename";
+    }
+    btn.textContent = strategy.name;
+    return btn;
+  }
+
+  function renderStrategyTabs(skipTransition){
+    Array.prototype.slice.call(strategyTabs.children).forEach(function(el){
+      if (!el.classList.contains("seg-thumb")) el.remove();
+    });
+    state.strategies.forEach(function(s){ strategyTabs.appendChild(buildTabButton(s)); });
+    layoutSegThumb(strategyTabs, skipTransition || !strategyTabsRenderedOnce);
+    strategyTabsRenderedOnce = true;
+    strategyAddBtn.hidden = state.strategies.length >= MAX_STRATEGIES;
+    var activeBtn = strategyTabs.querySelector("button.active");
+    if (activeBtn && activeBtn.scrollIntoView) activeBtn.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }
+
+  function switchStrategy(id){
+    if (id === state.activeId) return;
+    entriesByStrategy[state.activeId] = entries;
+    state.activeId = id;
+    entries = entriesByStrategy[id] || [];
+    resetFilterAndFormUI();
+    save();
+    renderStrategyTabs();
+    renderAll();
+  }
+
+  function addStrategy(){
+    if (state.strategies.length >= MAX_STRATEGIES) return;
+    var newId = "s" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+    state.strategies.push({ id: newId, name: "Strategy " + (state.strategies.length + 1) });
+    entriesByStrategy[state.activeId] = entries;
+    entriesByStrategy[newId] = [];
+    state.activeId = newId;
+    entries = entriesByStrategy[newId];
+    resetFilterAndFormUI();
+    save();
+    renderStrategyTabs();
+    renderAll();
+  }
+
+  function startRenameStrategy(id){
+    if (strategyTabs.querySelector(".strategy-rename-input")) return;
+    var strategy = state.strategies.filter(function(s){ return s.id === id; })[0];
+    var btn = strategyTabs.querySelector('button[data-id="' + id + '"]');
+    if (!strategy || !btn) return;
+
+    var input = document.createElement("input");
+    input.type = "text";
+    input.className = "strategy-rename-input";
+    input.value = strategy.name;
+    input.maxLength = 24;
+    input.style.width = btn.offsetWidth + "px";
+    strategyTabs.replaceChild(input, btn);
+    input.focus();
+    input.select();
+
+    function commit(){
+      var val = input.value.trim();
+      strategy.name = val ? val.slice(0, 24) : strategy.name;
+      save();
+      renderStrategyTabs();
+    }
+    input.addEventListener("blur", commit);
+    input.addEventListener("click", function(e){ e.stopPropagation(); });
+    input.addEventListener("keydown", function(e){
+      if (e.key === "Enter"){ e.preventDefault(); input.blur(); }
+      else if (e.key === "Escape"){ e.preventDefault(); input.removeEventListener("blur", commit); renderStrategyTabs(); }
+    });
+  }
+
+  strategyTabs.addEventListener("click", function(e){
+    if (e.target.closest(".strategy-rename-input")) return;
+    var btn = e.target.closest("button[data-id]");
+    if (!btn) return;
+    var id = btn.getAttribute("data-id");
+    if (id === state.activeId) startRenameStrategy(id);
+    else switchStrategy(id);
+  });
+
+  strategyAddBtn.addEventListener("click", addStrategy);
 
   function parseRR(raw){
     raw = (raw || "").trim();
@@ -670,10 +872,12 @@
     resizeTimer = setTimeout(function(){
       layoutSegThumb(wlToggle, true);
       layoutSegThumb(btFilter, true);
+      layoutSegThumb(strategyTabs, true);
     }, 100);
   });
 
   load();
+  renderStrategyTabs(true);
   renderAll();
   updateValidity();
   layoutSegThumb(wlToggle, true);

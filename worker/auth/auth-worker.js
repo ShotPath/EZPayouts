@@ -150,9 +150,16 @@ async function handleGetData(request, env) {
   var username = await requireSession(request, env);
   if (!username) return json({ error: "Not signed in." }, 401);
   var raw = await env.ACCOUNTS.get(dataKey(username));
-  var data = raw ? JSON.parse(raw) : { backtest: [], cockpit: null, updatedAt: null };
+  var data = raw ? JSON.parse(raw) : { backtest: null, cockpit: null, updatedAt: null };
   return json(data);
 }
+
+// `backtest` and `cockpit` are opaque, page-owned JSON values — this worker
+// doesn't know or care about their internal shape (a flat array today, a
+// {strategies, entriesByStrategy} object tomorrow), only that whatever a
+// page sends up comes back unchanged. Keeps the frontend free to evolve its
+// own data model without needing this worker redeployed every time.
+var MAX_DATA_BYTES = 500000; // ~500KB combined; KV values can hold far more, this is just a sanity cap
 
 async function handlePutData(request, env) {
   var username = await requireSession(request, env);
@@ -161,13 +168,15 @@ async function handlePutData(request, env) {
   if (!body) return json({ error: "Bad request." }, 400);
 
   var raw = await env.ACCOUNTS.get(dataKey(username));
-  var existing = raw ? JSON.parse(raw) : { backtest: [], cockpit: null };
+  var existing = raw ? JSON.parse(raw) : { backtest: null, cockpit: null };
   var next = {
-    backtest: Array.isArray(body.backtest) ? body.backtest.slice(0, 500) : existing.backtest || [],
-    cockpit: body.cockpit !== undefined ? body.cockpit : existing.cockpit || null,
+    backtest: body.backtest !== undefined ? body.backtest : (existing.backtest !== undefined ? existing.backtest : null),
+    cockpit: body.cockpit !== undefined ? body.cockpit : (existing.cockpit !== undefined ? existing.cockpit : null),
     updatedAt: new Date().toISOString(),
   };
-  await env.ACCOUNTS.put(dataKey(username), JSON.stringify(next));
+  var serialized = JSON.stringify(next);
+  if (serialized.length > MAX_DATA_BYTES) return json({ error: "Data too large to save." }, 413);
+  await env.ACCOUNTS.put(dataKey(username), serialized);
   return json(next);
 }
 
