@@ -214,6 +214,50 @@
   .news-desc{ margin:0 0 10px; color:var(--muted); font-size:14px; line-height:1.6; max-width:62ch; }
   .news-cta{ font-family:var(--font-mono); font-size:12px; font-weight:600; color:var(--phosphor-soft); letter-spacing:0.02em; }
 
+  /* ---------- About Me / bio ---------- */
+  .bio-card{
+    max-width:680px; margin:0 auto; text-align:left;
+    padding:28px 26px; border-radius:20px;
+    background:var(--panel); border:1px solid var(--hairline-bright);
+    box-shadow:0 16px 36px -20px var(--phosphor-glow);
+  }
+  .bio-card p{ margin:0 0 14px; color:var(--muted); font-size:14.5px; line-height:1.75; }
+  .bio-card p:last-child{ margin-bottom:0; }
+  .bio-card p.bio-beat{ color:var(--ice); font-family:var(--font-display); font-weight:600; font-size:15.5px; }
+
+  /* ---------- Achievements collage ---------- */
+  .achievement-row{
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:14px;
+    max-width:680px; margin:24px auto 0;
+  }
+  .achievement-card{
+    display:flex; flex-direction:column; gap:12px; text-align:center;
+    padding:14px 14px 18px; border-radius:18px;
+    background:var(--panel); border:1px solid var(--hairline);
+  }
+  .achievement-mark{
+    width:100%; aspect-ratio:1.4; border-radius:11px; overflow:hidden;
+    background:var(--panel-hi); border:1px solid var(--hairline);
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-display); font-weight:700; font-size:26px; color:var(--muted-dim);
+  }
+  .achievement-mark img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .achievement-name{ font-family:var(--font-display); font-weight:600; font-size:13px; color:var(--muted); line-height:1.3; }
+  .achievement-status{
+    font-family:var(--font-mono); font-size:9.5px; letter-spacing:0.1em; text-transform:uppercase;
+    padding:3px 10px; border-radius:999px; background:var(--panel-hi); color:var(--muted-dim); border:1px solid var(--hairline);
+    align-self:center;
+  }
+  .achievement-card.disabled{ opacity:0.55; }
+  .achievement-card.active{
+    border-color:var(--phosphor-dim);
+    background:linear-gradient(180deg, rgba(62,224,140,0.10), var(--panel));
+    box-shadow:0 16px 36px -20px var(--phosphor-glow);
+  }
+  .achievement-card.active .achievement-mark{ border:none; box-shadow:0 0 0 1px var(--hairline-bright), 0 0 16px rgba(62,224,140,0.3); }
+  .achievement-card.active .achievement-name{ color:var(--ice); font-size:14px; }
+  .achievement-card.active .achievement-status{ background:var(--mint); color:var(--mint-text); font-weight:700; border-color:var(--mint); }
+
   footer{ margin-top:52px; text-align:center; }
   footer p{ font-size:12px; color:var(--muted-dim); line-height:1.7; margin:0; }
   footer a{ color:var(--muted); }
@@ -315,6 +359,58 @@
     <h2>What EZPayouts is</h2>
   </div>
   <p class="section-body">EZPayouts is a free, independent toolkit for prop-firm traders &mdash; payout guides, risk calculators, and automatically updated market news, built and maintained by ShotPath. No login, no paywall, and no affiliation with the prop firms it covers.</p>
+
+  <div class="section-head" id="about-me">
+    <div class="eyebrow">About Me</div>
+    <h2>Who is ShotPath?</h2>
+  </div>
+  <div class="bio-card">
+    <p>Austin never had a blueprint.</p>
+    <p>Born into a world already against him. His mother, heavily into drugs and working the streets, gave birth to him inside a prison. His father, an alcoholic who couldn't hold himself together, tried but the foundation was never there. Motel rooms were home. No car, so everywhere was walking distance or it wasn't going. Dinner some nights was tostada shells. A bean burrito was a good meal. You eat what's there and you don't complain because complaining doesn't fill the plate.</p>
+    <p class="bio-beat">But even in the darkest beginning, love found him anyway.</p>
+    <p>His dad's ex girlfriend showed up when she had no obligation to. Chosen love. Not blood, not duty, just a woman who looked at a kid in a hard situation and decided he mattered. She was the first real warmth he knew. Then when he was 8 his dad gave him up. And the system caught him.</p>
+    <p class="bio-beat">Then his grandma stepped in and made it permanent.</p>
+    <p>She adopted him at 9 or 10 and gave him something he had never had before. A home. Stability. Someone who chose him and meant it. It wasn't easy for her either. They penny pinched on meals together, stretching every dollar as far as it would go. But there was love on that table regardless of what was on it. And for the first time in his life, Austin had someone in his corner unconditionally.</p>
+    <p>He survived the beginning because two women loved him well enough to hold him together until he could hold himself together.</p>
+    <p>But poverty was still the foundation. Money was still something other people had. The scarcity he grew up with never fully left his bones.</p>
+    <p>So when the market handed him $1,000 on his very first trade, then turned $1,500 into $30k in two weeks, it wasn't just profit. It was the first time life had said yes on his own terms. He quit his job. He believed he had finally found the door out of everything he grew up without.</p>
+    <p>Then in two days it was gone. All $30k. And before he could even process it, he took his girlfriend's paycheck, her $1,500, and lost that too. Alone in that room, carrying the weight of every loss, every absent parent, every childhood meal that wasn't enough, he hit the darkest moment of his life. He wanted to end it all.</p>
+    <p class="bio-beat">He stayed.</p>
+    <p class="bio-beat">But staying didn't mean winning. Not yet.</p>
+    <p>What followed was three and a half years of quiet suffering most people never saw. He kept coming back to trading because it was the only dream he had ever believed in. But the losses kept coming. Hundreds of backtests. Blown accounts. Imposter syndrome whispering that maybe he was kidding himself. Maybe a kid born the way he was born doesn't get to have this life.</p>
+    <p>He worked shifts nobody brags about. Came home at midnight. Ate. Slept at 1am. Alarm at 6am. Traded for hours in the dark before most people were awake. Then went straight to work and did it all again. Day after day. Week after week. Running on fumes and the stubborn refusal to let his beginning define his ending.</p>
+    <p>He lost more. He doubted himself more. He kept going anyway.</p>
+    <p class="bio-beat">Then something shifted. Not in the market. In him.</p>
+    <p>He stopped chasing and started studying. Himself more than the charts. He found God, not in a church but at rock bottom. He backtested 500+ times. He defined his edge, his exits, his risk. He built a plan with the same quiet discipline he used to survive childhood.</p>
+    <p class="bio-beat">And then he executed it.</p>
+    <p>$3,000 became $12,500. Net positive for the first time in his entire journey. A partner beside him. Faith above him. A roadmap in front of him.</p>
+    <p>The boy born in a prison, who ate tostada shells for dinner and walked everywhere because there was no car, who was given up at 8 and penny pinched meals with his grandma, who once sat alone in a room not wanting to be here anymore, is building a life that was never supposed to be his.</p>
+    <p class="bio-beat">But it is.</p>
+    <p class="bio-beat">Because he stayed. And he never stopped showing up.</p>
+  </div>
+
+  <div class="achievement-row">
+    <div class="achievement-card active">
+      <span class="achievement-mark" aria-hidden="true"><img src="achievements/lucidflex-25k-funded.jpg" alt="" loading="lazy" /></span>
+      <span class="achievement-name">LucidFlex 25K</span>
+      <span class="achievement-status">Funded</span>
+    </div>
+    <div class="achievement-card disabled" aria-disabled="true">
+      <span class="achievement-mark" aria-hidden="true">+</span>
+      <span class="achievement-name">Next Milestone</span>
+      <span class="achievement-status">Coming Soon</span>
+    </div>
+    <div class="achievement-card disabled" aria-disabled="true">
+      <span class="achievement-mark" aria-hidden="true">+</span>
+      <span class="achievement-name">Next Milestone</span>
+      <span class="achievement-status">Coming Soon</span>
+    </div>
+    <div class="achievement-card disabled" aria-disabled="true">
+      <span class="achievement-mark" aria-hidden="true">+</span>
+      <span class="achievement-name">Next Milestone</span>
+      <span class="achievement-status">Coming Soon</span>
+    </div>
+  </div>
 
   <div class="section-head" id="disclaimer">
     <div class="eyebrow">Disclaimer</div>
