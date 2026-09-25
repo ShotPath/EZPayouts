@@ -275,7 +275,20 @@
     padding:24px; background:rgba(4,6,5,0.86); backdrop-filter:blur(4px); cursor:zoom-out;
   }
   .img-lightbox[hidden]{ display:none; }
-  .img-lightbox img{
+  .img-lightbox-frame{
+    position:relative; display:inline-block;
+    transform:perspective(1000px) rotateX(0deg) rotateY(0deg);
+    transition:transform .2s ease-out; will-change:transform;
+    --glow-x:50%;
+  }
+  .img-lightbox-frame::before{
+    content:""; position:absolute; left:var(--glow-x); bottom:-22px; transform:translateX(-50%);
+    width:55%; height:36px; border-radius:50%;
+    background:radial-gradient(ellipse, rgba(62,224,140,0.6), transparent 72%);
+    filter:blur(14px); opacity:0; transition:opacity .25s ease-out; pointer-events:none; z-index:-1;
+  }
+  .img-lightbox-frame:hover::before{ opacity:1; }
+  .img-lightbox-frame img{
     max-width:min(90vw, 900px); max-height:85vh; width:auto; height:auto; display:block;
     border-radius:14px; border:1px solid var(--hairline-bright);
     box-shadow:0 30px 80px -20px rgba(0,0,0,0.65); cursor:default;
@@ -555,16 +568,22 @@
     });
   }
 
-  // Click an achievement's image to view it full-size in a centered lightbox.
+  // Click an achievement's image to view it full-size in a centered lightbox
+  // that tilts and glows the same way as the card it came from — like
+  // picking the card up to look at it.
+  var LIGHTBOX_MAX_TILT_DEG = 14;
   var lightbox = null;
+  var lightboxFrame = null;
   var lightboxImg = null;
   function ensureLightbox(){
     if (lightbox) return;
     lightbox = document.createElement("div");
     lightbox.className = "img-lightbox";
     lightbox.hidden = true;
-    lightbox.innerHTML = '<button type="button" class="img-lightbox-close" aria-label="Close">&times;</button><img alt="" />';
+    lightbox.innerHTML = '<button type="button" class="img-lightbox-close" aria-label="Close">&times;</button>' +
+      '<div class="img-lightbox-frame"><img alt="" /></div>';
     document.body.appendChild(lightbox);
+    lightboxFrame = lightbox.querySelector(".img-lightbox-frame");
     lightboxImg = lightbox.querySelector("img");
     lightbox.addEventListener("click", function(e){
       if (e.target === lightbox) closeLightbox();
@@ -573,15 +592,38 @@
     document.addEventListener("keydown", function(e){
       if (e.key === "Escape" && !lightbox.hidden) closeLightbox();
     });
+    if (!reduceMotion){
+      lightboxFrame.addEventListener("mousemove", function(e){
+        var rect = lightboxFrame.getBoundingClientRect();
+        var x = e.clientX - rect.left;
+        var y = e.clientY - rect.top;
+        var centerX = rect.width / 2;
+        var centerY = rect.height / 2;
+        var rotateY = ((x - centerX) / centerX) * LIGHTBOX_MAX_TILT_DEG;
+        var rotateX = -((y - centerY) / centerY) * LIGHTBOX_MAX_TILT_DEG;
+        lightboxFrame.style.transform = "perspective(1000px) rotateX(" + rotateX.toFixed(2) + "deg) rotateY(" + rotateY.toFixed(2) + "deg)";
+        var glowPct = Math.max(0, Math.min(100, (x / rect.width) * 100));
+        lightboxFrame.style.setProperty("--glow-x", glowPct.toFixed(1) + "%");
+      });
+      lightboxFrame.addEventListener("mouseleave", function(){
+        lightboxFrame.style.transform = "perspective(1000px) rotateX(0deg) rotateY(0deg)";
+        lightboxFrame.style.removeProperty("--glow-x");
+      });
+    }
   }
   function openLightbox(src, alt){
     ensureLightbox();
     lightboxImg.src = src;
     lightboxImg.alt = alt || "";
+    lightboxFrame.style.transform = "perspective(1000px) rotateX(0deg) rotateY(0deg)";
+    lightboxFrame.style.removeProperty("--glow-x");
     lightbox.hidden = false;
   }
   function closeLightbox(){
-    if (lightbox) lightbox.hidden = true;
+    if (!lightbox) return;
+    lightbox.hidden = true;
+    lightboxFrame.style.transform = "perspective(1000px) rotateX(0deg) rotateY(0deg)";
+    lightboxFrame.style.removeProperty("--glow-x");
   }
   document.querySelectorAll(".achievement-card.active .achievement-mark img").forEach(function(img){
     img.addEventListener("click", function(){
