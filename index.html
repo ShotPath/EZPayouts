@@ -216,7 +216,7 @@
 
   /* ---------- About Me / bio ---------- */
   .bio-card{
-    max-width:680px; margin:0 auto; text-align:left;
+    max-width:680px; margin:24px auto 0; text-align:left;
     padding:28px 26px; border-radius:20px;
     background:var(--panel); border:1px solid var(--hairline-bright);
     box-shadow:0 16px 36px -20px var(--phosphor-glow);
@@ -228,7 +228,7 @@
   /* ---------- Achievements collage ---------- */
   .achievement-row{
     display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:14px;
-    max-width:680px; margin:24px auto 0;
+    max-width:680px; margin:8px auto 0;
   }
   .achievement-card{
     display:flex; flex-direction:column; gap:12px; text-align:center;
@@ -364,6 +364,29 @@
     <div class="eyebrow">About Me</div>
     <h2>Who is ShotPath?</h2>
   </div>
+  <div class="achievement-row">
+    <div class="achievement-card active">
+      <span class="achievement-mark" aria-hidden="true"><img src="achievements/lucidflex-25k-funded.jpg" alt="" loading="lazy" /></span>
+      <span class="achievement-name">LucidFlex 25K</span>
+      <span class="achievement-status">Funded</span>
+    </div>
+    <div class="achievement-card disabled" aria-disabled="true">
+      <span class="achievement-mark" aria-hidden="true">+</span>
+      <span class="achievement-name">Next Milestone</span>
+      <span class="achievement-status">Coming Soon</span>
+    </div>
+    <div class="achievement-card disabled" aria-disabled="true">
+      <span class="achievement-mark" aria-hidden="true">+</span>
+      <span class="achievement-name">Next Milestone</span>
+      <span class="achievement-status">Coming Soon</span>
+    </div>
+    <div class="achievement-card disabled" aria-disabled="true">
+      <span class="achievement-mark" aria-hidden="true">+</span>
+      <span class="achievement-name">Next Milestone</span>
+      <span class="achievement-status">Coming Soon</span>
+    </div>
+  </div>
+
   <div class="bio-card">
     <p>Austin never had a blueprint.</p>
     <p>Born into a world already against him. His mother, heavily into drugs and working the streets, gave birth to him inside a prison. His father, an alcoholic who couldn't hold himself together, tried but the foundation was never there. Motel rooms were home. No car, so everywhere was walking distance or it wasn't going. Dinner some nights was tostada shells. A bean burrito was a good meal. You eat what's there and you don't complain because complaining doesn't fill the plate.</p>
@@ -387,29 +410,6 @@
     <p>The boy born in a prison, who ate tostada shells for dinner and walked everywhere because there was no car, who was given up at 8 and penny pinched meals with his grandma, who once sat alone in a room not wanting to be here anymore, is building a life that was never supposed to be his.</p>
     <p class="bio-beat">But it is.</p>
     <p class="bio-beat">Because he stayed. And he never stopped showing up.</p>
-  </div>
-
-  <div class="achievement-row">
-    <div class="achievement-card active">
-      <span class="achievement-mark" aria-hidden="true"><img src="achievements/lucidflex-25k-funded.jpg" alt="" loading="lazy" /></span>
-      <span class="achievement-name">LucidFlex 25K</span>
-      <span class="achievement-status">Funded</span>
-    </div>
-    <div class="achievement-card disabled" aria-disabled="true">
-      <span class="achievement-mark" aria-hidden="true">+</span>
-      <span class="achievement-name">Next Milestone</span>
-      <span class="achievement-status">Coming Soon</span>
-    </div>
-    <div class="achievement-card disabled" aria-disabled="true">
-      <span class="achievement-mark" aria-hidden="true">+</span>
-      <span class="achievement-name">Next Milestone</span>
-      <span class="achievement-status">Coming Soon</span>
-    </div>
-    <div class="achievement-card disabled" aria-disabled="true">
-      <span class="achievement-mark" aria-hidden="true">+</span>
-      <span class="achievement-name">Next Milestone</span>
-      <span class="achievement-status">Coming Soon</span>
-    </div>
   </div>
 
   <div class="section-head" id="disclaimer">
