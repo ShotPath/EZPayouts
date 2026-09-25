@@ -234,6 +234,8 @@
     display:flex; flex-direction:column; gap:12px; text-align:center;
     padding:14px 14px 18px; border-radius:18px;
     background:var(--panel); border:1px solid var(--hairline);
+    transform:perspective(700px) rotateY(0deg); transition:transform .25s ease-out, box-shadow .25s ease-out;
+    will-change:transform;
   }
   .achievement-mark{
     width:100%; aspect-ratio:1.4; border-radius:11px; overflow:hidden;
@@ -254,9 +256,27 @@
     background:linear-gradient(180deg, rgba(62,224,140,0.10), var(--panel));
     box-shadow:0 16px 36px -20px var(--phosphor-glow);
   }
-  .achievement-card.active .achievement-mark{ border:none; box-shadow:0 0 0 1px var(--hairline-bright), 0 0 16px rgba(62,224,140,0.3); }
+  .achievement-card.active .achievement-mark{ border:none; box-shadow:0 0 0 1px var(--hairline-bright), 0 0 16px rgba(62,224,140,0.3); cursor:zoom-in; }
   .achievement-card.active .achievement-name{ color:var(--ice); font-size:14px; }
   .achievement-card.active .achievement-status{ background:var(--mint); color:var(--mint-text); font-weight:700; border-color:var(--mint); }
+
+  /* ---------- Image lightbox (achievement cards) ---------- */
+  .img-lightbox{
+    position:fixed; inset:0; z-index:200; display:flex; align-items:center; justify-content:center;
+    padding:24px; background:rgba(4,6,5,0.86); backdrop-filter:blur(4px); cursor:zoom-out;
+  }
+  .img-lightbox[hidden]{ display:none; }
+  .img-lightbox img{
+    max-width:min(90vw, 900px); max-height:85vh; width:auto; height:auto; display:block;
+    border-radius:14px; border:1px solid var(--hairline-bright);
+    box-shadow:0 30px 80px -20px rgba(0,0,0,0.65); cursor:default;
+  }
+  .img-lightbox-close{
+    position:fixed; top:18px; right:22px; background:var(--panel-raised); border:1px solid var(--hairline-bright);
+    color:var(--ice); font-size:22px; line-height:1; width:40px; height:40px; border-radius:50%;
+    cursor:pointer; transition:border-color .15s, color .15s;
+  }
+  .img-lightbox-close:hover{ border-color:var(--phosphor-dim); color:var(--phosphor-soft); }
 
   footer{ margin-top:52px; text-align:center; }
   footer p{ font-size:12px; color:var(--muted-dim); line-height:1.7; margin:0; }
@@ -499,6 +519,63 @@
   }
   tick();
   setInterval(tick, 1000);
+})();
+
+(function(){
+  "use strict";
+
+  // Side-to-side tilt on hover, following the cursor. Skipped entirely for
+  // anyone who's asked the OS for reduced motion.
+  var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!reduceMotion){
+    var MAX_TILT_DEG = 10;
+    document.querySelectorAll(".achievement-card").forEach(function(card){
+      card.addEventListener("mousemove", function(e){
+        var rect = card.getBoundingClientRect();
+        var x = e.clientX - rect.left;
+        var centerX = rect.width / 2;
+        var rotateY = ((x - centerX) / centerX) * MAX_TILT_DEG;
+        card.style.transform = "perspective(700px) rotateY(" + rotateY.toFixed(2) + "deg)";
+      });
+      card.addEventListener("mouseleave", function(){
+        card.style.transform = "";
+      });
+    });
+  }
+
+  // Click an achievement's image to view it full-size in a centered lightbox.
+  var lightbox = null;
+  var lightboxImg = null;
+  function ensureLightbox(){
+    if (lightbox) return;
+    lightbox = document.createElement("div");
+    lightbox.className = "img-lightbox";
+    lightbox.hidden = true;
+    lightbox.innerHTML = '<button type="button" class="img-lightbox-close" aria-label="Close">&times;</button><img alt="" />';
+    document.body.appendChild(lightbox);
+    lightboxImg = lightbox.querySelector("img");
+    lightbox.addEventListener("click", function(e){
+      if (e.target === lightbox) closeLightbox();
+    });
+    lightbox.querySelector(".img-lightbox-close").addEventListener("click", closeLightbox);
+    document.addEventListener("keydown", function(e){
+      if (e.key === "Escape" && !lightbox.hidden) closeLightbox();
+    });
+  }
+  function openLightbox(src, alt){
+    ensureLightbox();
+    lightboxImg.src = src;
+    lightboxImg.alt = alt || "";
+    lightbox.hidden = false;
+  }
+  function closeLightbox(){
+    if (lightbox) lightbox.hidden = true;
+  }
+  document.querySelectorAll(".achievement-card.active .achievement-mark img").forEach(function(img){
+    img.addEventListener("click", function(){
+      openLightbox(img.src, img.alt);
+    });
+  });
 })();
 </script>
 </body>
