@@ -231,12 +231,21 @@
     max-width:680px; margin:8px auto 0;
   }
   .achievement-card{
+    position:relative;
     display:flex; flex-direction:column; gap:12px; text-align:center;
     padding:14px 14px 18px; border-radius:18px;
     background:var(--panel); border:1px solid var(--hairline);
     transform:perspective(700px) rotateY(0deg); transition:transform .25s ease-out, box-shadow .25s ease-out;
     will-change:transform;
+    --glow-x:50%;
   }
+  .achievement-card::before{
+    content:""; position:absolute; left:var(--glow-x); bottom:-16px; transform:translateX(-50%);
+    width:65%; height:30px; border-radius:50%;
+    background:radial-gradient(ellipse, rgba(62,224,140,0.6), transparent 72%);
+    filter:blur(10px); opacity:0; transition:opacity .25s ease-out; pointer-events:none; z-index:-1;
+  }
+  .achievement-card:hover::before{ opacity:1; }
   .achievement-mark{
     width:100%; aspect-ratio:1.4; border-radius:11px; overflow:hidden;
     background:var(--panel-hi); border:1px solid var(--hairline);
@@ -536,9 +545,12 @@
         var centerX = rect.width / 2;
         var rotateY = ((x - centerX) / centerX) * MAX_TILT_DEG;
         card.style.transform = "perspective(700px) rotateY(" + rotateY.toFixed(2) + "deg)";
+        var glowPct = Math.max(0, Math.min(100, (x / rect.width) * 100));
+        card.style.setProperty("--glow-x", glowPct.toFixed(1) + "%");
       });
       card.addEventListener("mouseleave", function(){
         card.style.transform = "";
+        card.style.removeProperty("--glow-x");
       });
     });
   }
