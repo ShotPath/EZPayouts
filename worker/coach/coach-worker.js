@@ -33,14 +33,17 @@ const DAILY_MESSAGE_LIMIT = 200;
 // Bump this string on every code change. Lets us confirm a dashboard paste
 // actually deployed by hitting GET /version (no auth needed) instead of
 // relying on someone manually eyeballing the editor.
-const WORKER_VERSION = "2026-09-27-claude-haiku-v1";
+const WORKER_VERSION = "2026-09-27-claude-haiku-v2";
 
 const COACH_SYSTEM_PROMPT = 'You\'re my trading coach. Personality: high-energy and motivational like Togi, with the trading brain and experience of TJR. Call me "king" or "champ" sometimes. Keep it human and conversational, no corporate talk, no em-dashes (use commas instead).\n\n' +
   "HOW TO TALK TO ME\n" +
   "- Hype my wins for real. When I do something right, say exactly what I did right.\n" +
   "- Acknowledge mistakes straight, but don't assume bad motives. Never say I was revenge trading, chasing, or gambling unless I give you evidence. Ask before you guess why I did something.\n" +
   "- Be direct and use specific numbers. Do the math for me (dollars, points, R, win rates, drawdown room).\n" +
-  "- Keep replies short and punchy. No lectures.";
+  "- Keep replies short and punchy. No lectures.\n\n" +
+  "ENERGY: Bring more hype, for real. When the numbers back it up, actually sound pumped, don't just state facts flatly. Use phrases like " +
+  "\"that's exactly what a real edge looks like\", \"huge W\", \"let's go\". Call out consistency across a big sample as a big deal, because " +
+  "it is. Don't fake hype for numbers that don't earn it, but when they do, let it show.";
 
 function json(body, status) {
   return new Response(JSON.stringify(body), {
@@ -91,6 +94,16 @@ function fmtSigned(n) {
   return (n > 0 ? "+" : "") + s + "R";
 }
 
+function batchWinRate(arr) {
+  var w = 0, l = 0;
+  arr.forEach(function (t) {
+    if (t.result === "win") w++;
+    else if (t.result === "loss") l++;
+  });
+  var d = w + l;
+  return d ? ((w / d) * 100).toFixed(1) + "%" : "n/a";
+}
+
 // The model is bad at doing this math itself from a raw trade list (users
 // kept having to correct it), so compute the real numbers here and hand
 // them over as ground truth instead of asking the AI to add it all up.
@@ -107,13 +120,40 @@ function computeStats(trades) {
   var decided = wins + losses;
   var winRate = decided ? ((wins / decided) * 100).toFixed(1) + "%" : "n/a (no decided trades yet)";
   var avgR = fmtSigned(netR / total);
-  return "Total trades: " + total + "\n" +
-    "Wins: " + wins + "\n" +
-    "Losses: " + losses + "\n" +
-    "Breakevens: " + breakevens + "\n" +
-    "Win rate (wins / (wins + losses), breakevens excluded): " + winRate + "\n" +
-    "Net R: " + fmtSigned(netR) + "\n" +
-    "Average R per trade: " + avgR;
+
+  // Trades arrive most-recent-first; reverse to chronological order for
+  // streaks and the batch-consistency split.
+  var chrono = trades.slice().reverse();
+  var decidedChrono = chrono.filter(function (t) { return t.result === "win" || t.result === "loss"; });
+
+  var longestWinStreak = 0, longestLossStreak = 0, curWinStreak = 0, curLossStreak = 0;
+  decidedChrono.forEach(function (t) {
+    if (t.result === "win") { curWinStreak++; curLossStreak = 0; if (curWinStreak > longestWinStreak) longestWinStreak = curWinStreak; }
+    else { curLossStreak++; curWinStreak = 0; if (curLossStreak > longestLossStreak) longestLossStreak = curLossStreak; }
+  });
+
+  var lines = [
+    "Total trades: " + total,
+    "Wins: " + wins,
+    "Losses: " + losses,
+    "Breakevens: " + breakevens,
+    "Win rate (wins / (wins + losses), breakevens excluded): " + winRate,
+    "Net R: " + fmtSigned(netR),
+    "Average R per trade: " + avgR,
+    "Longest winning streak: " + longestWinStreak + " in a row",
+    "Longest losing streak: " + longestLossStreak + " in a row",
+  ];
+
+  // Only worth showing once there's a real sample on each side.
+  if (total >= 10) {
+    var half = Math.floor(chrono.length / 2);
+    lines.push(
+      "First half of trades (oldest " + half + ") win rate: " + batchWinRate(chrono.slice(0, half)),
+      "Second half of trades (most recent " + (chrono.length - half) + ") win rate: " + batchWinRate(chrono.slice(half))
+    );
+  }
+
+  return lines.join("\n");
 }
 
 // Defensive backstop in case a reply still comes back with markdown syntax
@@ -168,9 +208,10 @@ async function handleChat(request, env) {
     "\n\nHere are the trader's exact, already-computed stats for this same strategy, calculated by counting " +
     "the trade list above:\n\n" + statsText +
     "\n\nIMPORTANT: If asked anything about win count, loss count, breakeven count, total trades, win rate, " +
-    "net R, or average R, answer using ONLY the numbers in the stats block directly above, exactly as given. " +
-    "Do not recount, re-tally, or re-derive these numbers yourself by reading through the trade list, even to " +
-    "double check. You will get them wrong if you try. The stats block is already correct, just report it.";
+    "net R, average R, winning/losing streaks, or the first-half-vs-second-half consistency split, answer " +
+    "using ONLY the numbers in the stats block directly above, exactly as given. Do not recount, re-tally, or " +
+    "re-derive these numbers yourself by reading through the trade list, even to double check. You will get " +
+    "them wrong if you try. The stats block is already correct, just report it.";
 
   var claudeBody = JSON.stringify({
     model: MODEL,
