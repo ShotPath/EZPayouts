@@ -1182,39 +1182,58 @@
     var typingEl = pushMessage("bot typing", "thinking...");
 
     var ctx = window.EZBacktestContext ? window.EZBacktestContext() : { strategyName: "this strategy", trades: [] };
-
-    fetch(COACH_API_BASE + "/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + EZAuth.getToken(),
-      },
-      body: JSON.stringify({
-        messages: history,
-        trades: ctx.trades,
-        strategyName: ctx.strategyName,
-      }),
-    }).then(function(res){
-      return res.json().catch(function(){ return {}; }).then(function(data){ return { ok: res.ok, data: data }; });
-    }).then(function(result){
-      typingEl.remove();
-      sending = false;
-      if (!result.ok){
-        pushMessage("error", (result.data && result.data.error) || "Something went wrong. Try again.");
-        updateSendEnabled();
-        return;
-      }
-      var reply = result.data.reply || "";
-      history.push({ role: "assistant", content: reply });
-      pushMessage("bot", reply);
-      updateSendEnabled();
-    }).catch(function(){
-      typingEl.remove();
-      sending = false;
-      lastErrorWasLunch = true;
-      pushMessage("error", "Sorry, the coach is on lunch and will be back in a minute... They went to Taco Bell.");
-      updateSendEnabled();
+    var requestBody = JSON.stringify({
+      messages: history,
+      trades: ctx.trades,
+      strategyName: ctx.strategyName,
     });
+
+    // A 502 from the worker means the upstream AI call failed (rate limited,
+    // overloaded, or briefly unreachable) rather than something wrong with
+    // the request itself, so it's worth quietly retrying a few times before
+    // making the user resend the same message by hand.
+    var RETRY_DELAYS_MS = [1000, 2000, 4000, 8000, 15000];
+
+    function attempt(attemptIndex){
+      fetch(COACH_API_BASE + "/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + EZAuth.getToken(),
+        },
+        body: requestBody,
+      }).then(function(res){
+        return res.json().catch(function(){ return {}; }).then(function(data){ return { ok: res.ok, status: res.status, data: data }; });
+      }).then(function(result){
+        if (!result.ok && result.status === 502 && attemptIndex < RETRY_DELAYS_MS.length){
+          setTimeout(function(){ attempt(attemptIndex + 1); }, RETRY_DELAYS_MS[attemptIndex]);
+          return;
+        }
+        typingEl.remove();
+        sending = false;
+        if (!result.ok){
+          pushMessage("error", (result.data && result.data.error) || "Something went wrong. Try again.");
+          updateSendEnabled();
+          return;
+        }
+        var reply = result.data.reply || "";
+        history.push({ role: "assistant", content: reply });
+        pushMessage("bot", reply);
+        updateSendEnabled();
+      }).catch(function(){
+        if (attemptIndex < RETRY_DELAYS_MS.length){
+          setTimeout(function(){ attempt(attemptIndex + 1); }, RETRY_DELAYS_MS[attemptIndex]);
+          return;
+        }
+        typingEl.remove();
+        sending = false;
+        lastErrorWasLunch = true;
+        pushMessage("error", "Sorry, the coach is on lunch and will be back in a minute... They went to Taco Bell.");
+        updateSendEnabled();
+      });
+    }
+
+    attempt(0);
   }
 
   renderGateState();
