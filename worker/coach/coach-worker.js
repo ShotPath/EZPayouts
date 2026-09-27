@@ -82,6 +82,48 @@ function formatTrades(trades) {
   }).join("\n");
 }
 
+function fmtSigned(n) {
+  var s = n.toFixed(2).replace(/\.00$/, "");
+  return (n > 0 ? "+" : "") + s + "R";
+}
+
+// The model is bad at doing this math itself from a raw trade list (users
+// kept having to correct it), so compute the real numbers here and hand
+// them over as ground truth instead of asking Gemini to add it all up.
+function computeStats(trades) {
+  if (!Array.isArray(trades) || !trades.length) return "(no trades logged yet, so no stats to report)";
+  var wins = 0, losses = 0, breakevens = 0, netR = 0;
+  trades.forEach(function (t) {
+    var rr = typeof t.rrMultiple === "number" && isFinite(t.rrMultiple) ? t.rrMultiple : 0;
+    if (t.result === "win") { wins++; netR += rr; }
+    else if (t.result === "loss") { losses++; netR -= 1; }
+    else { breakevens++; }
+  });
+  var total = trades.length;
+  var decided = wins + losses;
+  var winRate = decided ? ((wins / decided) * 100).toFixed(1) + "%" : "n/a (no decided trades yet)";
+  var avgR = fmtSigned(netR / total);
+  return "Total trades: " + total + "\n" +
+    "Wins: " + wins + "\n" +
+    "Losses: " + losses + "\n" +
+    "Breakevens: " + breakevens + "\n" +
+    "Win rate (wins / (wins + losses), breakevens excluded): " + winRate + "\n" +
+    "Net R: " + fmtSigned(netR) + "\n" +
+    "Average R per trade: " + avgR;
+}
+
+// Gemini ignores the "keep it conversational" instruction often enough to
+// still emit markdown (### headers, **bold**, * bullets), which just shows
+// up as literal symbols in a plain chat bubble. Strip it defensively.
+function stripMarkdown(text) {
+  return text
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/__(.+?)__/g, "$1")
+    .replace(/^[*-]\s+/gm, "- ")
+    .trim();
+}
+
 function sanitizeMessages(messages) {
   if (!Array.isArray(messages)) return [];
   return messages
@@ -117,10 +159,16 @@ async function handleChat(request, env) {
 
   var strategyName = String(body.strategyName || "this strategy").slice(0, 60);
   var tradesText = formatTrades(body.trades);
+  var statsText = computeStats(body.trades);
   var system = COACH_SYSTEM_PROMPT +
-    "\n\nHere is the trader's real, current backtest data for the strategy \"" + strategyName + "\" " +
-    "(Model | Risk:Reward | Result), most recent first. Use only these real trades for any math, " +
-    "counts, or win rate. Don't invent trades that aren't listed here:\n\n" + tradesText;
+    "\n\nFORMATTING: This reply is shown in a plain text chat bubble, not a document. " +
+    "Never use markdown, no ### headers, no **bold**, no bullet lists with * or -. " +
+    "Just write in plain conversational sentences or short lines separated by line breaks." +
+    "\n\nHere are the trader's exact, already-computed stats for the strategy \"" + strategyName + "\". " +
+    "These numbers are correct, always use them as-is for win rate, R totals, or counts, never recompute " +
+    "your own from the trade list below:\n\n" + statsText +
+    "\n\nHere is the full trade list (Model | Risk:Reward | Result), most recent first, only for " +
+    "referencing specific individual trades. Don't invent trades that aren't listed here:\n\n" + tradesText;
 
   var geminiBody = JSON.stringify({
     systemInstruction: { parts: [{ text: system }] },
@@ -171,7 +219,7 @@ async function handleChat(request, env) {
   }
   if (!reply) return json({ error: "The AI didn't return a reply. Try again." }, 502);
 
-  return json({ reply: reply });
+  return json({ reply: stripMarkdown(reply) });
 }
 
 export default {

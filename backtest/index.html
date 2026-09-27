@@ -986,7 +986,7 @@
     var strategy = state.strategies.filter(function(s){ return s.id === state.activeId; })[0];
     return {
       strategyName: strategy ? strategy.name : "this strategy",
-      trades: entries.map(function(en){ return { model: en.model, rrDisplay: en.rrDisplay, result: en.result }; })
+      trades: entries.map(function(en){ return { model: en.model, rrDisplay: en.rrDisplay, rrMultiple: en.rrMultiple, result: en.result }; })
     };
   };
 })();
