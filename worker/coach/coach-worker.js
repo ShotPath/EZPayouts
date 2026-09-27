@@ -31,6 +31,11 @@ const MAX_MESSAGE_CHARS = 1000;
 const MAX_TRADES = 250;
 const DAILY_MESSAGE_LIMIT = 40;
 
+// Bump this string on every code change. Lets us confirm a dashboard paste
+// actually deployed by hitting GET /version (no auth needed) instead of
+// relying on someone manually eyeballing the editor.
+const WORKER_VERSION = "2026-09-27-stats-v3";
+
 const COACH_SYSTEM_PROMPT = 'You\'re my trading coach. Personality: high-energy and motivational like Togi, with the trading brain and experience of TJR. Call me "king" or "champ" sometimes. Keep it human and conversational, no corporate talk, no em-dashes (use commas instead).\n\n' +
   "HOW TO TALK TO ME\n" +
   "- Hype my wins for real. When I do something right, say exactly what I did right.\n" +
@@ -238,6 +243,7 @@ export default {
     var url = new URL(request.url);
     var path = url.pathname.replace(/\/+$/, "") || "/";
 
+    if (path === "/version" && request.method === "GET") return json({ version: WORKER_VERSION });
     if (path === "/chat" && request.method === "POST") return handleChat(request, env);
 
     return json({ error: "Not found." }, 404);
