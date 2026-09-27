@@ -1085,6 +1085,8 @@
   var history = [];
   var sending = false;
   var greeted = false;
+  var lastErrorWasLunch = false;
+  var ORDER_QUESTION_RE = /\b(what|whats|what's)\b[\s\S]*\b(order|get|got)\b/i;
 
   function pushMessage(role, text){
     var el = document.createElement("div");
@@ -1126,6 +1128,7 @@
       if (!loggedIn){
         history = [];
         greeted = false;
+        lastErrorWasLunch = false;
         messagesEl.innerHTML = "";
       }
       renderGateState();
@@ -1154,6 +1157,23 @@
     input.value = "";
     sending = true;
     updateSendEnabled();
+
+    var askedAboutOrder = lastErrorWasLunch && ORDER_QUESTION_RE.test(text);
+    lastErrorWasLunch = false;
+
+    if (askedAboutOrder){
+      var orderTypingEl = pushMessage("bot typing", "thinking...");
+      setTimeout(function(){
+        orderTypingEl.remove();
+        sending = false;
+        var joke = "They got a 5 layer burrito and a baja blast.";
+        history.push({ role: "assistant", content: joke });
+        pushMessage("bot", joke);
+        updateSendEnabled();
+      }, 700);
+      return;
+    }
+
     var typingEl = pushMessage("bot typing", "thinking...");
 
     var ctx = window.EZBacktestContext ? window.EZBacktestContext() : { strategyName: "this strategy", trades: [] };
@@ -1186,6 +1206,7 @@
     }).catch(function(){
       typingEl.remove();
       sending = false;
+      lastErrorWasLunch = true;
       pushMessage("error", "Sorry, the coach is on lunch and will be back in a minute... They went to Taco Bell.");
       updateSendEnabled();
     });
