@@ -122,9 +122,17 @@ async function handleChat(request, env) {
     "(Model | Risk:Reward | Result), most recent first. Use only these real trades for any math, " +
     "counts, or win rate. Don't invent trades that aren't listed here:\n\n" + tradesText;
 
-  var geminiRes;
-  try {
-    geminiRes = await fetch(
+  var geminiBody = JSON.stringify({
+    systemInstruction: { parts: [{ text: system }] },
+    contents: toGeminiContents(messages),
+    // thinkingBudget: 0 turns off Gemini's internal "thinking" tokens, which
+    // otherwise eat into maxOutputTokens and can leave zero tokens left for
+    // the actual reply on questions that need real computation.
+    generationConfig: { maxOutputTokens: MAX_OUTPUT_TOKENS, thinkingConfig: { thinkingBudget: 0 } },
+  });
+
+  async function callGemini() {
+    return fetch(
       "https://generativelanguage.googleapis.com/v1beta/models/" + MODEL + ":generateContent",
       {
         method: "POST",
@@ -132,13 +140,20 @@ async function handleChat(request, env) {
           "x-goog-api-key": env.GEMINI_API_KEY,
           "content-type": "application/json",
         },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: system }] },
-          contents: toGeminiContents(messages),
-          generationConfig: { maxOutputTokens: MAX_OUTPUT_TOKENS },
-        }),
+        body: geminiBody,
       }
     );
+  }
+
+  var geminiRes;
+  try {
+    geminiRes = await callGemini();
+    // Gemini's free tier occasionally returns a transient 503 (overloaded).
+    // One quick retry smooths that over instead of surfacing it to the user.
+    if (geminiRes.status === 503) {
+      await new Promise(function (resolve) { setTimeout(resolve, 600); });
+      geminiRes = await callGemini();
+    }
   } catch (err) {
     return json({ error: "Couldn't reach the AI right now. Try again in a bit." }, 502);
   }
