@@ -1086,7 +1086,10 @@
   var sending = false;
   var greeted = false;
   var lastErrorWasLunch = false;
-  var ORDER_QUESTION_RE = /\b(what|whats|what's)\b[\s\S]*\b(order|get|got)\b/i;
+  var LUNCH_FOLLOWUPS = [
+    { re: /\bwhy\b/i, reply: "Because bro is lowkey a fat ass, but don't tell him I said anything." },
+    { re: /\b(get|got|grab|grabbed|taco|bell|lunch|order)\b/i, reply: "They got a 5 layer burrito and a baja blast." }
+  ];
 
   function pushMessage(role, text){
     var el = document.createElement("div");
@@ -1158,17 +1161,19 @@
     sending = true;
     updateSendEnabled();
 
-    var askedAboutOrder = lastErrorWasLunch && ORDER_QUESTION_RE.test(text);
+    var lunchFollowup = null;
+    if (lastErrorWasLunch){
+      lunchFollowup = LUNCH_FOLLOWUPS.filter(function(f){ return f.re.test(text); })[0] || null;
+    }
     lastErrorWasLunch = false;
 
-    if (askedAboutOrder){
-      var orderTypingEl = pushMessage("bot typing", "thinking...");
+    if (lunchFollowup){
+      var followupTypingEl = pushMessage("bot typing", "thinking...");
       setTimeout(function(){
-        orderTypingEl.remove();
+        followupTypingEl.remove();
         sending = false;
-        var joke = "They got a 5 layer burrito and a baja blast.";
-        history.push({ role: "assistant", content: joke });
-        pushMessage("bot", joke);
+        history.push({ role: "assistant", content: lunchFollowup.reply });
+        pushMessage("bot", lunchFollowup.reply);
         updateSendEnabled();
       }, 700);
       return;
