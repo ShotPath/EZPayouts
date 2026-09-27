@@ -1,0 +1,18 @@
+name = "ezpayouts-coach"
+main = "coach-worker.js"
+compatibility_date = "2025-01-01"
+
+# Deploys to the default ezpayouts-coach.<your-subdomain>.workers.dev URL.
+# Before the first deploy:
+#   1. Bind the SAME KV namespace already used by ezpayouts-auth to the
+#      "ACCOUNTS" binding below (paste its id in) -- this worker reads the
+#      session tokens that auth worker creates, plus tracks its own daily
+#      rate-limit counters in the same namespace under separate key names.
+#   2. Add a secret named GEMINI_API_KEY (dashboard: Settings ->
+#      Variables and Secrets -> Add secret -> Encrypt), a free key from
+#      aistudio.google.com/apikey, or via
+#      `npx wrangler secret put GEMINI_API_KEY`. Never commit this key.
+#   3. npx wrangler deploy
+[[kv_namespaces]]
+binding = "ACCOUNTS"
+id = "REPLACE_WITH_SAME_KV_NAMESPACE_ID_AS_EZPAYOUTS_AUTH"

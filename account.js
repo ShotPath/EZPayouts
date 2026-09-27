@@ -127,7 +127,7 @@
       ".ez-auth-signout{ display:block; width:100%; text-align:left; font-family:var(--font-mono); font-size:11.5px;" +
       " padding:10px 14px; background:transparent; border:none; color:var(--muted); cursor:pointer; transition:color .15s, background .15s; }" +
       ".ez-auth-signout:hover{ color:#ef5a5a; background:rgba(239,90,90,0.08); }" +
-      ".ez-auth-overlay{ position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center;" +
+      ".ez-auth-overlay{ position:fixed; inset:0; z-index:1000; display:flex; align-items:center; justify-content:center;" +
       " padding:20px; background:rgba(4,6,5,0.72); backdrop-filter:blur(3px); }" +
       ".ez-auth-overlay[hidden]{ display:none; }" +
       ".ez-auth-modal{ position:relative; width:100%; max-width:360px; background:var(--panel); border:1px solid var(--hairline-bright);" +
@@ -360,6 +360,7 @@
     saveData: saveData,
     onChange: onChange,
     mountWidget: mountWidget,
+    openSignIn: function () { openModal("login"); },
   };
 
   var autoContainer = document.getElementById("authWidget");
