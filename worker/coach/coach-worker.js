@@ -164,11 +164,15 @@ async function handleChat(request, env) {
     "\n\nFORMATTING: This reply is shown in a plain text chat bubble, not a document. " +
     "Never use markdown, no ### headers, no **bold**, no bullet lists with * or -. " +
     "Just write in plain conversational sentences or short lines separated by line breaks." +
-    "\n\nHere are the trader's exact, already-computed stats for the strategy \"" + strategyName + "\". " +
-    "These numbers are correct, always use them as-is for win rate, R totals, or counts, never recompute " +
-    "your own from the trade list below:\n\n" + statsText +
-    "\n\nHere is the full trade list (Model | Risk:Reward | Result), most recent first, only for " +
-    "referencing specific individual trades. Don't invent trades that aren't listed here:\n\n" + tradesText;
+    "\n\nHere is the full trade list for the strategy \"" + strategyName + "\" (Model | Risk:Reward | Result), " +
+    "most recent first. This is only for referencing or quoting specific individual trades by name. " +
+    "Don't invent trades that aren't listed here:\n\n" + tradesText +
+    "\n\nHere are the trader's exact, already-computed stats for this same strategy, calculated by counting " +
+    "the trade list above:\n\n" + statsText +
+    "\n\nIMPORTANT: If asked anything about win count, loss count, breakeven count, total trades, win rate, " +
+    "net R, or average R, answer using ONLY the numbers in the stats block directly above, exactly as given. " +
+    "Do not recount, re-tally, or re-derive these numbers yourself by reading through the trade list, even to " +
+    "double check. You will get them wrong if you try. The stats block is already correct, just report it.";
 
   var geminiBody = JSON.stringify({
     systemInstruction: { parts: [{ text: system }] },
