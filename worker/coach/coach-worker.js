@@ -24,7 +24,7 @@ const CORS_HEADERS = {
 // Cost/quota controls. Adjust freely; these just bound how much a single
 // request (and a single account's daily usage) can cost or consume against
 // Gemini's free-tier rate limits.
-const MODEL = "gemini-2.5-flash";
+const MODEL = "gemini-3.8-flash";
 const MAX_OUTPUT_TOKENS = 500;
 const MAX_HISTORY_MESSAGES = 16; // last 8 user/assistant turns
 const MAX_MESSAGE_CHARS = 1000;
