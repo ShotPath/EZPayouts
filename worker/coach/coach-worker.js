@@ -1,19 +1,19 @@
 // Cloudflare Worker backing the Backtest page's AI coach chat widget.
 // Validates the same session tokens ezpayouts-auth issues (this worker
 // shares that worker's KV namespace), rate-limits per account per day so
-// a single account can't blow past Google's free-tier limits, injects the
-// coach persona plus the caller's current strategy data as context, and
-// proxies the actual conversation to Google's Gemini API. The API key
-// never reaches the browser.
+// a single account can't run up a big bill, injects the coach persona plus
+// the caller's current strategy data as context, and proxies the actual
+// conversation to Anthropic's Claude API (Haiku 4.5). The API key never
+// reaches the browser.
 //
 // Requires two things set on this Worker (Cloudflare dashboard):
 //   1. A KV binding named "ACCOUNTS" pointing at the SAME namespace bound
 //      to ezpayouts-auth (so session tokens created there are recognized
 //      here too).
-//   2. A secret named "GEMINI_API_KEY" (Settings -> Variables and Secrets
-//      -> Add secret -> Encrypt) with a free API key from
-//      aistudio.google.com/apikey. Never put this in code or in
-//      wrangler.toml.
+//   2. A secret named "ANTHROPIC_API_KEY" (Settings -> Variables and
+//      Secrets -> Add secret -> Encrypt). Get a key (and add billing,
+//      there's no free tier) at console.anthropic.com. Never put this in
+//      code or in wrangler.toml.
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -22,19 +22,18 @@ const CORS_HEADERS = {
 };
 
 // Cost/quota controls. Adjust freely; these just bound how much a single
-// request (and a single account's daily usage) can cost or consume against
-// Gemini's free-tier rate limits.
-const MODEL = "gemini-3.8-flash";
+// request (and a single account's daily usage) can cost or consume.
+const MODEL = "claude-haiku-4-5";
 const MAX_OUTPUT_TOKENS = 500;
 const MAX_HISTORY_MESSAGES = 16; // last 8 user/assistant turns
 const MAX_MESSAGE_CHARS = 1000;
 const MAX_TRADES = 250;
-const DAILY_MESSAGE_LIMIT = 40;
+const DAILY_MESSAGE_LIMIT = 200;
 
 // Bump this string on every code change. Lets us confirm a dashboard paste
 // actually deployed by hitting GET /version (no auth needed) instead of
 // relying on someone manually eyeballing the editor.
-const WORKER_VERSION = "2026-09-27-stats-v3";
+const WORKER_VERSION = "2026-09-27-claude-haiku-v1";
 
 const COACH_SYSTEM_PROMPT = 'You\'re my trading coach. Personality: high-energy and motivational like Togi, with the trading brain and experience of TJR. Call me "king" or "champ" sometimes. Keep it human and conversational, no corporate talk, no em-dashes (use commas instead).\n\n' +
   "HOW TO TALK TO ME\n" +
@@ -94,7 +93,7 @@ function fmtSigned(n) {
 
 // The model is bad at doing this math itself from a raw trade list (users
 // kept having to correct it), so compute the real numbers here and hand
-// them over as ground truth instead of asking Gemini to add it all up.
+// them over as ground truth instead of asking the AI to add it all up.
 function computeStats(trades) {
   if (!Array.isArray(trades) || !trades.length) return "(no trades logged yet, so no stats to report)";
   var wins = 0, losses = 0, breakevens = 0, netR = 0;
@@ -117,9 +116,9 @@ function computeStats(trades) {
     "Average R per trade: " + avgR;
 }
 
-// Gemini ignores the "keep it conversational" instruction often enough to
-// still emit markdown (### headers, **bold**, * bullets), which just shows
-// up as literal symbols in a plain chat bubble. Strip it defensively.
+// Defensive backstop in case a reply still comes back with markdown syntax
+// (### headers, **bold**, * bullets), which just shows as literal symbols
+// in a plain chat bubble.
 function stripMarkdown(text) {
   return text
     .replace(/^#{1,6}\s+/gm, "")
@@ -129,6 +128,9 @@ function stripMarkdown(text) {
     .trim();
 }
 
+// Claude's Messages API already uses "user"/"assistant" roles with plain
+// string content, matching the shape the browser sends, so no remapping
+// is needed here (unlike Gemini, which used "model" and a parts array).
 function sanitizeMessages(messages) {
   if (!Array.isArray(messages)) return [];
   return messages
@@ -137,19 +139,10 @@ function sanitizeMessages(messages) {
     .map(function (m) { return { role: m.role, content: m.content.slice(0, MAX_MESSAGE_CHARS) }; });
 }
 
-// Gemini uses "user" / "model" roles and a {parts:[{text}]} content shape,
-// unlike the "user" / "assistant" + plain-string shape everything else
-// here (and the browser side) uses.
-function toGeminiContents(messages) {
-  return messages.map(function (m) {
-    return { role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] };
-  });
-}
-
 async function handleChat(request, env) {
   var username = await requireSession(request, env);
   if (!username) return json({ error: "Not signed in." }, 401);
-  if (!env.GEMINI_API_KEY) return json({ error: "Server misconfigured: missing GEMINI_API_KEY secret." }, 500);
+  if (!env.ANTHROPIC_API_KEY) return json({ error: "Server misconfigured: missing ANTHROPIC_API_KEY secret." }, 500);
 
   var allowed = await checkAndBumpRateLimit(env, username);
   if (!allowed) return json({ error: "You've hit today's chat limit. Come back tomorrow, champ." }, 429);
@@ -179,52 +172,55 @@ async function handleChat(request, env) {
     "Do not recount, re-tally, or re-derive these numbers yourself by reading through the trade list, even to " +
     "double check. You will get them wrong if you try. The stats block is already correct, just report it.";
 
-  var geminiBody = JSON.stringify({
-    systemInstruction: { parts: [{ text: system }] },
-    contents: toGeminiContents(messages),
-    // thinkingBudget: 0 turns off Gemini's internal "thinking" tokens, which
-    // otherwise eat into maxOutputTokens and can leave zero tokens left for
-    // the actual reply on questions that need real computation.
-    generationConfig: { maxOutputTokens: MAX_OUTPUT_TOKENS, thinkingConfig: { thinkingBudget: 0 } },
+  var claudeBody = JSON.stringify({
+    model: MODEL,
+    max_tokens: MAX_OUTPUT_TOKENS,
+    system: system,
+    messages: messages,
   });
 
-  async function callGemini() {
-    return fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/" + MODEL + ":generateContent",
-      {
-        method: "POST",
-        headers: {
-          "x-goog-api-key": env.GEMINI_API_KEY,
-          "content-type": "application/json",
-        },
-        body: geminiBody,
-      }
-    );
+  async function callClaude() {
+    return fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": env.ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+      },
+      body: claudeBody,
+    });
   }
 
-  var geminiRes;
+  var RETRYABLE_STATUSES = { 429: true, 500: true, 529: true };
+
+  var claudeRes;
   try {
-    geminiRes = await callGemini();
-    // Gemini's free tier occasionally returns a transient 503 (overloaded).
-    // One quick retry smooths that over instead of surfacing it to the user.
-    if (geminiRes.status === 503) {
-      await new Promise(function (resolve) { setTimeout(resolve, 600); });
-      geminiRes = await callGemini();
+    claudeRes = await callClaude();
+    // Rate limited or briefly overloaded: one quick retry smooths that
+    // over instead of surfacing it to the user.
+    if (RETRYABLE_STATUSES[claudeRes.status]) {
+      var retryAfter = claudeRes.headers.get("retry-after");
+      var delayMs = retryAfter ? Math.min(parseInt(retryAfter, 10) * 1000, 5000) : 600;
+      await new Promise(function (resolve) { setTimeout(resolve, delayMs); });
+      claudeRes = await callClaude();
     }
   } catch (err) {
     return json({ error: "Couldn't reach the AI right now. Try again in a bit." }, 502);
   }
 
-  if (!geminiRes.ok) {
-    var errText = await geminiRes.text().catch(function () { return ""; });
-    return json({ error: "AI request failed (" + geminiRes.status + ").", detail: errText.slice(0, 300) }, 502);
+  if (!claudeRes.ok) {
+    var errText = await claudeRes.text().catch(function () { return ""; });
+    return json({ error: "AI request failed (" + claudeRes.status + ").", detail: errText.slice(0, 300) }, 502);
   }
 
-  var data = await geminiRes.json();
+  var data = await claudeRes.json();
   var reply = "";
-  var candidate = data && Array.isArray(data.candidates) ? data.candidates[0] : null;
-  if (candidate && candidate.content && Array.isArray(candidate.content.parts)) {
-    reply = candidate.content.parts.map(function (p) { return p.text || ""; }).join("").trim();
+  if (data && Array.isArray(data.content)) {
+    reply = data.content
+      .filter(function (b) { return b.type === "text"; })
+      .map(function (b) { return b.text || ""; })
+      .join("")
+      .trim();
   }
   if (!reply) return json({ error: "The AI didn't return a reply. Try again." }, 502);
 
