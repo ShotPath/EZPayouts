@@ -284,7 +284,7 @@
   .bt-filter.filter-be button.active:hover{ color:#2b1f05; }
 
   .bt-row{
-    display:grid; grid-template-columns:1fr minmax(74px,100px) minmax(64px,80px) 28px;
+    display:grid; grid-template-columns:1fr minmax(74px,100px) minmax(64px,80px) 24px 28px;
     align-items:center; gap:10px; padding:12px 4px; border-bottom:1px solid var(--hairline);
   }
   .bt-row:last-child{ border-bottom:none; }
@@ -304,6 +304,16 @@
   .bt-badge.win{ background:rgba(62,224,140,0.14); color:var(--phosphor-soft); border:1px solid var(--phosphor-dim); }
   .bt-badge.loss{ background:rgba(239,90,90,0.12); color:var(--red); border:1px solid var(--red); }
   .bt-badge.be{ background:rgba(232,195,74,0.14); color:var(--amber); border:1px solid var(--amber); }
+  .bt-note-btn{
+    background:transparent; border:none; color:var(--muted-dim); cursor:pointer;
+    font-size:14px; line-height:1; padding:4px; transition:color .15s; justify-self:end;
+  }
+  .bt-note-btn:hover{ color:var(--ice); }
+  .bt-note-btn.has-note{ color:var(--mint-text); }
+  .bt-note-preview{
+    grid-column:1 / -1; font-family:var(--font-mono); font-size:11.5px; color:var(--muted);
+    margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
   .bt-del{
     background:transparent; border:none; color:var(--muted-dim); cursor:pointer;
     font-size:17px; line-height:1; padding:4px; transition:color .15s; justify-self:end;
@@ -313,11 +323,36 @@
 
   .rr-short{ display:none; }
 
+  .note-modal-overlay{
+    position:fixed; inset:0; z-index:300; background:rgba(4,7,6,0.7); backdrop-filter:blur(4px);
+    display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  .note-modal-overlay[hidden]{ display:none; }
+  .note-modal{
+    width:100%; max-width:420px; background:var(--panel-raised); border:1px solid var(--hairline-bright);
+    border-radius:14px; padding:18px; box-shadow:0 20px 60px rgba(0,0,0,0.5);
+  }
+  .note-modal-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; }
+  .note-modal-title{ font-family:var(--font-display); font-weight:600; font-size:15px; color:var(--ice); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .note-modal-close{
+    background:transparent; border:none; color:var(--muted); cursor:pointer; font-size:20px; line-height:1;
+    padding:2px 6px; transition:color .15s; flex:none;
+  }
+  .note-modal-close:hover{ color:var(--ice); }
+  .note-modal textarea{
+    width:100%; min-height:120px; resize:vertical; font-family:var(--font-body); font-size:13.5px;
+    color:var(--ice); background:var(--panel); border:1px solid var(--hairline-bright); border-radius:10px;
+    padding:10px 12px; outline:none;
+  }
+  .note-modal textarea:focus{ border-color:var(--phosphor-dim); }
+  .note-modal-hint{ font-family:var(--font-mono); font-size:11px; color:var(--muted-dim); margin-top:8px; }
+
   @media (max-width:480px){
-    .bt-row{ grid-template-columns:minmax(0,1fr) 54px 60px 22px; gap:6px; padding:10px 2px; }
+    .bt-row{ grid-template-columns:minmax(0,1fr) 54px 60px 20px 22px; gap:6px; padding:10px 2px; }
     .bt-model{ white-space:normal; overflow-wrap:break-word; font-size:13.5px; }
     .bt-rr{ font-size:11.5px; }
     .bt-badge{ font-size:9px; padding:3px 6px; }
+    .bt-note-btn{ font-size:13px; }
     .bt-del{ font-size:15px; }
     .bt-head-row{ font-size:9px; }
     .rr-full{ display:none; }
@@ -503,9 +538,21 @@
       <span><span class="rr-full">Risk:Reward</span><span class="rr-short">R:R</span></span>
       <span>Result</span>
       <span></span>
+      <span></span>
     </div>
     <div id="btList">
       <p class="bt-empty">No trades logged yet &mdash; log your first one above.</p>
+    </div>
+  </div>
+
+  <div class="note-modal-overlay" id="noteModalOverlay" hidden>
+    <div class="note-modal">
+      <div class="note-modal-head">
+        <span class="note-modal-title" id="noteModalTitle">Trade note</span>
+        <button class="note-modal-close" id="noteModalClose" type="button" aria-label="Close">&times;</button>
+      </div>
+      <textarea id="noteModalTextarea" placeholder="What happened on this trade? Entry logic, mistakes, what you'd do differently..." maxlength="2000"></textarea>
+      <p class="note-modal-hint">Saved automatically when you close this.</p>
     </div>
   </div>
 
@@ -554,6 +601,12 @@
   var btFilter = document.getElementById("btFilter");
   var strategyTabs = document.getElementById("strategyTabs");
   var strategyAddBtn = document.getElementById("strategyAddBtn");
+
+  var noteModalOverlay = document.getElementById("noteModalOverlay");
+  var noteModalTitle = document.getElementById("noteModalTitle");
+  var noteModalTextarea = document.getElementById("noteModalTextarea");
+  var noteModalClose = document.getElementById("noteModalClose");
+  var noteModalTradeId = null;
 
   var statTotal = document.getElementById("statTotal");
   var statWinRate = document.getElementById("statWinRate");
@@ -906,7 +959,8 @@
       model: model,
       rrDisplay: rrInput.value.trim(),
       rrMultiple: rrMultiple,
-      result: currentResult
+      result: currentResult,
+      note: ""
     });
     save();
     rrInput.value = "";
@@ -915,7 +969,40 @@
     renderAll();
   });
 
+  function openNoteModal(id){
+    var entry = entries.filter(function(en){ return en.id === id; })[0];
+    if (!entry) return;
+    noteModalTradeId = id;
+    noteModalTitle.textContent = entry.model || "Trade note";
+    noteModalTextarea.value = entry.note || "";
+    noteModalOverlay.hidden = false;
+    noteModalTextarea.focus();
+  }
+
+  function closeNoteModal(){
+    if (noteModalOverlay.hidden) return;
+    var entry = entries.filter(function(en){ return en.id === noteModalTradeId; })[0];
+    if (entry) entry.note = noteModalTextarea.value.trim();
+    noteModalTradeId = null;
+    noteModalOverlay.hidden = true;
+    save();
+    renderList();
+  }
+
+  noteModalClose.addEventListener("click", closeNoteModal);
+  noteModalOverlay.addEventListener("click", function(e){
+    if (e.target === noteModalOverlay) closeNoteModal();
+  });
+  document.addEventListener("keydown", function(e){
+    if (e.key === "Escape" && !noteModalOverlay.hidden) closeNoteModal();
+  });
+
   listEl.addEventListener("click", function(e){
+    var noteBtn = e.target.closest(".bt-note-btn");
+    if (noteBtn){
+      openNoteModal(noteBtn.getAttribute("data-id"));
+      return;
+    }
     var btn = e.target.closest(".bt-del");
     if (!btn) return;
     var id = btn.getAttribute("data-id");
@@ -987,12 +1074,15 @@
     }
     listEl.innerHTML = filtered.map(function(en){
       var badge = resultBadge(en.result);
+      var hasNote = !!(en.note && en.note.trim());
       return '' +
         '<div class="bt-row">' +
           '<span class="bt-model" title="' + escapeHtml(en.model) + '">' + escapeHtml(en.model) + '</span>' +
           '<span class="bt-rr">' + escapeHtml(en.rrDisplay) + '</span>' +
           '<span class="bt-badge ' + badge.cls + '">' + badge.label + '</span>' +
+          '<button class="bt-note-btn' + (hasNote ? ' has-note' : '') + '" type="button" data-id="' + en.id + '" aria-label="' + (hasNote ? 'Edit note' : 'Add note') + '">&#9998;</button>' +
           '<button class="bt-del" type="button" data-id="' + en.id + '" aria-label="Delete trade">&times;</button>' +
+          (hasNote ? '<span class="bt-note-preview" title="' + escapeHtml(en.note) + '">' + escapeHtml(en.note) + '</span>' : '') +
         '</div>';
     }).join("");
   }
