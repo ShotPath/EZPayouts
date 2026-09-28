@@ -29,11 +29,13 @@ const MAX_HISTORY_MESSAGES = 16; // last 8 user/assistant turns
 const MAX_MESSAGE_CHARS = 1000;
 const MAX_TRADES = 250;
 const DAILY_MESSAGE_LIMIT = 200;
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+const MAX_IMAGE_BASE64_CHARS = 8000000; // ~6MB raw, comfortably under Anthropic's 10MB base64 cap
 
 // Bump this string on every code change. Lets us confirm a dashboard paste
 // actually deployed by hitting GET /version (no auth needed) instead of
 // relying on someone manually eyeballing the editor.
-const WORKER_VERSION = "2026-09-27-claude-haiku-v2";
+const WORKER_VERSION = "2026-09-28-screenshot-analyze-v1";
 
 const COACH_SYSTEM_PROMPT = 'You\'re my trading coach. Personality: high-energy and motivational like Togi, with the trading brain and experience of TJR. Call me "king" or "champ" sometimes. Keep it human and conversational, no corporate talk, no em-dashes (use commas instead).\n\n' +
   "HOW TO TALK TO ME\n" +
@@ -179,6 +181,42 @@ function sanitizeMessages(messages) {
     .map(function (m) { return { role: m.role, content: m.content.slice(0, MAX_MESSAGE_CHARS) }; });
 }
 
+const RETRYABLE_STATUSES = { 429: true, 500: true, 529: true };
+
+// Shared by /chat and /analyze: posts to the Messages API, and if Claude is
+// rate limited or briefly overloaded, retries once instead of surfacing it.
+async function callClaudeWithRetry(env, requestBody) {
+  var payload = JSON.stringify(requestBody);
+  async function attempt() {
+    return fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": env.ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+      },
+      body: payload,
+    });
+  }
+  var res = await attempt();
+  if (RETRYABLE_STATUSES[res.status]) {
+    var retryAfter = res.headers.get("retry-after");
+    var delayMs = retryAfter ? Math.min(parseInt(retryAfter, 10) * 1000, 5000) : 600;
+    await new Promise(function (resolve) { setTimeout(resolve, delayMs); });
+    res = await attempt();
+  }
+  return res;
+}
+
+function claudeTextContent(data) {
+  if (!data || !Array.isArray(data.content)) return "";
+  return data.content
+    .filter(function (b) { return b.type === "text"; })
+    .map(function (b) { return b.text || ""; })
+    .join("")
+    .trim();
+}
+
 async function handleChat(request, env) {
   var username = await requireSession(request, env);
   if (!username) return json({ error: "Not signed in." }, 401);
@@ -213,38 +251,14 @@ async function handleChat(request, env) {
     "re-derive these numbers yourself by reading through the trade list, even to double check. You will get " +
     "them wrong if you try. The stats block is already correct, just report it.";
 
-  var claudeBody = JSON.stringify({
-    model: MODEL,
-    max_tokens: MAX_OUTPUT_TOKENS,
-    system: system,
-    messages: messages,
-  });
-
-  async function callClaude() {
-    return fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": env.ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-      },
-      body: claudeBody,
-    });
-  }
-
-  var RETRYABLE_STATUSES = { 429: true, 500: true, 529: true };
-
   var claudeRes;
   try {
-    claudeRes = await callClaude();
-    // Rate limited or briefly overloaded: one quick retry smooths that
-    // over instead of surfacing it to the user.
-    if (RETRYABLE_STATUSES[claudeRes.status]) {
-      var retryAfter = claudeRes.headers.get("retry-after");
-      var delayMs = retryAfter ? Math.min(parseInt(retryAfter, 10) * 1000, 5000) : 600;
-      await new Promise(function (resolve) { setTimeout(resolve, delayMs); });
-      claudeRes = await callClaude();
-    }
+    claudeRes = await callClaudeWithRetry(env, {
+      model: MODEL,
+      max_tokens: MAX_OUTPUT_TOKENS,
+      system: system,
+      messages: messages,
+    });
   } catch (err) {
     return json({ error: "Couldn't reach the AI right now. Try again in a bit." }, 502);
   }
@@ -254,18 +268,85 @@ async function handleChat(request, env) {
     return json({ error: "AI request failed (" + claudeRes.status + ").", detail: errText.slice(0, 300) }, 502);
   }
 
-  var data = await claudeRes.json();
-  var reply = "";
-  if (data && Array.isArray(data.content)) {
-    reply = data.content
-      .filter(function (b) { return b.type === "text"; })
-      .map(function (b) { return b.text || ""; })
-      .join("")
-      .trim();
-  }
+  var reply = claudeTextContent(await claudeRes.json());
   if (!reply) return json({ error: "The AI didn't return a reply. Try again." }, 502);
 
   return json({ reply: stripMarkdown(reply) });
+}
+
+// Screenshots come from a chart platform (e.g. TradingView) with entry/stop/
+// target markup, not printed trade-history numbers, so the model has to
+// interpret the visual setup rather than read exact figures off the image.
+const ANALYZE_SYSTEM = "You analyze a single screenshot of a trading chart for a trader's backtest log. " +
+  "Look at any markup on the chart (entry, stop loss, take profit lines or boxes, order blocks, fair value gaps, " +
+  "trendlines, liquidity marks, breaker blocks, etc) and the visible price action.\n\n" +
+  "Respond with ONLY a single JSON object, no markdown, no code fences, no extra text, in exactly this shape:\n" +
+  "{\"model\":\"short descriptive setup name, 3-6 words\",\"rrDisplay\":\"risk:reward like 1:2, or a plain number " +
+  "like 2, or empty string if you truly cannot tell\",\"result\":\"win, loss, breakeven, or unknown\",\"notes\":" +
+  "\"one short sentence describing what you see\"}\n\n" +
+  "Rules: If entry, stop, and target are all visibly marked, estimate rrDisplay from the marked distances. Only " +
+  "set result to \"win\" or \"loss\" if the chart clearly shows price reaching the target or the stop after " +
+  "entry. If the chart only shows the setup with no visible outcome, or you're not confident, use \"unknown\" " +
+  "for result and leave rrDisplay empty rather than guessing. Never invent specific price levels or numbers you " +
+  "can't actually see.";
+
+async function handleAnalyze(request, env) {
+  var username = await requireSession(request, env);
+  if (!username) return json({ error: "Not signed in." }, 401);
+  if (!env.ANTHROPIC_API_KEY) return json({ error: "Server misconfigured: missing ANTHROPIC_API_KEY secret." }, 500);
+
+  var allowed = await checkAndBumpRateLimit(env, username);
+  if (!allowed) return json({ error: "You've hit today's chat limit. Come back tomorrow, champ." }, 429);
+
+  var body = await readJson(request);
+  var image = body && body.image;
+  if (!image || typeof image.data !== "string" || typeof image.mediaType !== "string") {
+    return json({ error: "Bad request." }, 400);
+  }
+  if (ALLOWED_IMAGE_TYPES.indexOf(image.mediaType) === -1) {
+    return json({ error: "Unsupported image type." }, 400);
+  }
+  if (image.data.length > MAX_IMAGE_BASE64_CHARS) {
+    return json({ error: "Image too large. Try a smaller screenshot." }, 413);
+  }
+
+  var claudeRes;
+  try {
+    claudeRes = await callClaudeWithRetry(env, {
+      model: MODEL,
+      max_tokens: 300,
+      system: ANALYZE_SYSTEM,
+      messages: [{
+        role: "user",
+        content: [
+          { type: "image", source: { type: "base64", media_type: image.mediaType, data: image.data } },
+          { type: "text", text: "Analyze this trade chart screenshot for my backtest log." },
+        ],
+      }],
+    });
+  } catch (err) {
+    return json({ error: "Couldn't reach the AI right now. Try again in a bit." }, 502);
+  }
+
+  if (!claudeRes.ok) {
+    var errText = await claudeRes.text().catch(function () { return ""; });
+    return json({ error: "AI request failed (" + claudeRes.status + ").", detail: errText.slice(0, 300) }, 502);
+  }
+
+  var text = claudeTextContent(await claudeRes.json());
+  var match = text.match(/\{[\s\S]*\}/);
+  var parsed = null;
+  if (match) {
+    try { parsed = JSON.parse(match[0]); } catch (err) { parsed = null; }
+  }
+  if (!parsed) return json({ error: "Couldn't read that screenshot. Try a clearer one or fill it in manually." }, 502);
+
+  return json({
+    model: typeof parsed.model === "string" ? parsed.model.slice(0, 60) : "",
+    rrDisplay: typeof parsed.rrDisplay === "string" ? parsed.rrDisplay.slice(0, 16) : "",
+    result: ["win", "loss", "breakeven"].indexOf(parsed.result) !== -1 ? parsed.result : "unknown",
+    notes: typeof parsed.notes === "string" ? parsed.notes.slice(0, 300) : "",
+  });
 }
 
 export default {
@@ -282,6 +363,7 @@ export default {
 
     if (path === "/version" && request.method === "GET") return json({ version: WORKER_VERSION });
     if (path === "/chat" && request.method === "POST") return handleChat(request, env);
+    if (path === "/analyze" && request.method === "POST") return handleAnalyze(request, env);
 
     return json({ error: "Not found." }, 404);
   },

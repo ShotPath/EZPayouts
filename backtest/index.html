@@ -253,6 +253,18 @@
 
   .bt-hint{ margin:12px 0 0; font-size:12.5px; color:var(--muted-dim); }
 
+  .bt-shot{ margin-top:14px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .bt-shot-btn{
+    font-family:var(--font-mono); font-size:11.5px; font-weight:700; white-space:nowrap;
+    padding:9px 14px; border-radius:10px; border:1px dashed var(--hairline-bright);
+    background:transparent; color:var(--muted); cursor:pointer; transition:border-color .15s, color .15s;
+  }
+  .bt-shot-btn:hover{ border-color:var(--phosphor-dim); color:var(--ice); }
+  .bt-shot-btn:disabled{ opacity:0.5; cursor:default; }
+  .bt-shot-status{ font-family:var(--font-mono); font-size:11.5px; color:var(--muted-dim); }
+  .bt-shot-status.error{ color:var(--red); }
+  .bt-shot-status.success{ color:var(--phosphor-soft); }
+
   /* ---------- Trade log ---------- */
   .bt-log-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
   .bt-log-head .bt-card-title{ margin:0; }
@@ -519,6 +531,11 @@
       </div>
     </div>
     <p class="bt-hint">Risk:Reward accepts either format &mdash; <span class="mono">1:2</span> or just <span class="mono">2</span>.</p>
+    <div class="bt-shot">
+      <input type="file" id="btShotInput" accept="image/png,image/jpeg,image/webp,image/gif" hidden />
+      <button class="bt-shot-btn" id="btShotBtn" type="button">Analyze a chart screenshot</button>
+      <span class="bt-shot-status" id="btShotStatus"></span>
+    </div>
   </div>
 
   <div class="bt-card">
@@ -607,6 +624,11 @@
   var noteModalTextarea = document.getElementById("noteModalTextarea");
   var noteModalClose = document.getElementById("noteModalClose");
   var noteModalTradeId = null;
+
+  var btShotInput = document.getElementById("btShotInput");
+  var btShotBtn = document.getElementById("btShotBtn");
+  var btShotStatus = document.getElementById("btShotStatus");
+  var SCREENSHOT_API_BASE = window.EZ_COACH_BASE || "https://ezpayouts-coach.ezpayouts.workers.dev";
 
   var statTotal = document.getElementById("statTotal");
   var statWinRate = document.getElementById("statWinRate");
@@ -995,6 +1017,97 @@
   });
   document.addEventListener("keydown", function(e){
     if (e.key === "Escape" && !noteModalOverlay.hidden) closeNoteModal();
+  });
+
+  // Downscales/re-encodes the picked file client-side before it ever leaves
+  // the browser, both to keep the upload small and to cap what the vision
+  // call costs (Claude downscales past this size anyway).
+  function resizeImageForAnalysis(file){
+    return new Promise(function(resolve, reject){
+      var reader = new FileReader();
+      reader.onerror = function(){ reject(new Error("Couldn't read that file.")); };
+      reader.onload = function(){
+        var img = new Image();
+        img.onerror = function(){ reject(new Error("That doesn't look like a valid image.")); };
+        img.onload = function(){
+          var maxDim = 1568;
+          var scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+          var w = Math.max(1, Math.round(img.width * scale));
+          var h = Math.max(1, Math.round(img.height * scale));
+          var canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+          var dataUrl = canvas.toDataURL("image/jpeg", 0.86);
+          resolve({ mediaType: "image/jpeg", data: dataUrl.split(",")[1] });
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function setShotStatus(text, kind){
+    btShotStatus.textContent = text;
+    btShotStatus.className = "bt-shot-status" + (kind ? " " + kind : "");
+  }
+
+  btShotBtn.addEventListener("click", function(){
+    if (!window.EZAuth || !EZAuth.isLoggedIn()){
+      if (window.EZAuth) EZAuth.openSignIn();
+      setShotStatus("Sign in to analyze a screenshot.", "error");
+      return;
+    }
+    btShotInput.click();
+  });
+
+  btShotInput.addEventListener("change", function(){
+    var file = btShotInput.files && btShotInput.files[0];
+    btShotInput.value = "";
+    if (!file) return;
+    if (!/^image\//.test(file.type)){
+      setShotStatus("That's not an image file.", "error");
+      return;
+    }
+
+    btShotBtn.disabled = true;
+    setShotStatus("Analyzing...");
+
+    resizeImageForAnalysis(file).then(function(image){
+      return fetch(SCREENSHOT_API_BASE + "/analyze", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + EZAuth.getToken(),
+        },
+        body: JSON.stringify({ image: image }),
+      });
+    }).then(function(res){
+      return res.json().catch(function(){ return {}; }).then(function(data){ return { ok: res.ok, data: data }; });
+    }).then(function(result){
+      btShotBtn.disabled = false;
+      if (!result.ok){
+        setShotStatus((result.data && result.data.error) || "Couldn't analyze that image.", "error");
+        return;
+      }
+      var suggestion = result.data;
+      if (suggestion.model) modelInput.value = String(suggestion.model).slice(0, 60);
+      if (suggestion.rrDisplay) rrInput.value = String(suggestion.rrDisplay).slice(0, 16);
+      if (suggestion.result === "win" || suggestion.result === "loss" || suggestion.result === "breakeven"){
+        currentResult = suggestion.result;
+        wlToggle.querySelectorAll("button").forEach(function(b){
+          b.classList.toggle("active", b.getAttribute("data-result") === currentResult);
+        });
+        wlToggle.classList.toggle("is-loss", currentResult === "loss");
+        wlToggle.classList.toggle("is-be", currentResult === "breakeven");
+        layoutSegThumb(wlToggle);
+      }
+      updateValidity();
+      setShotStatus("Filled in below, review and confirm" + (suggestion.notes ? ": " + suggestion.notes : "."), "success");
+    }).catch(function(){
+      btShotBtn.disabled = false;
+      setShotStatus("Couldn't reach the analyzer. Try again.", "error");
+    });
   });
 
   listEl.addEventListener("click", function(e){
