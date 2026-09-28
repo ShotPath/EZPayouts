@@ -136,7 +136,7 @@
 
   /* ---------- Strategy tabs (island bar, always centered) ---------- */
   .strategy-bar{
-    display:flex; align-items:center; justify-content:center; flex-wrap:wrap;
+    position:relative; display:flex; align-items:center; justify-content:center; flex-wrap:wrap;
     gap:10px; margin:0 0 24px;
   }
   .strategy-tabs{
@@ -153,12 +153,20 @@
   .strategy-tabs button:hover{ color:var(--ice); }
   .strategy-tabs button.active{ color:var(--mint-text); }
   .strategy-tabs button.active:hover{ color:var(--mint-text); }
-  .strategy-tab-del{
-    display:inline-flex; align-items:center; justify-content:center;
-    width:14px; height:14px; border-radius:999px; color:var(--muted-dim);
-    font-size:13px; line-height:1; transition:color .15s, background .15s;
+  .strategy-tab-menu{
+    position:absolute; z-index:50; min-width:130px; display:flex; flex-direction:column; gap:2px;
+    background:var(--panel-raised); border:1px solid var(--hairline-bright); border-radius:10px;
+    padding:4px; box-shadow:0 14px 32px -12px rgba(0,0,0,0.6);
   }
-  .strategy-tab-del:hover{ color:var(--red); background:rgba(239,90,90,0.14); }
+  .strategy-tab-menu button{
+    display:flex; align-items:center; gap:9px; width:100%; text-align:left;
+    padding:8px 10px; border-radius:6px; background:transparent; border:none;
+    color:var(--ice); font-family:var(--font-mono); font-size:12px; font-weight:600;
+    cursor:pointer; transition:background .15s;
+  }
+  .strategy-tab-menu button:hover{ background:var(--panel); }
+  .strategy-tab-menu button.danger:hover{ color:var(--red); }
+  .strategy-tab-menu .icon{ width:14px; flex:none; text-align:center; color:var(--muted); font-size:12px; }
   .strategy-tabs .strategy-rename-input{
     position:relative; z-index:1; font-family:var(--font-mono); font-size:12px; font-weight:700;
     padding:9px 12px; background:transparent; border:none; outline:none; color:var(--mint-text);
@@ -769,25 +777,70 @@
     var btn = document.createElement("button");
     btn.type = "button";
     btn.setAttribute("data-id", strategy.id);
-    if (strategy.id === state.activeId){
-      btn.classList.add("active");
-      btn.title = "Click to rename";
-    }
-    var nameSpan = document.createElement("span");
-    nameSpan.textContent = strategy.name;
-    btn.appendChild(nameSpan);
-    if (state.strategies.length > 1){
-      var delSpan = document.createElement("span");
-      delSpan.className = "strategy-tab-del";
-      delSpan.setAttribute("data-del-id", strategy.id);
-      delSpan.setAttribute("aria-label", "Delete strategy");
-      delSpan.textContent = "×";
-      btn.appendChild(delSpan);
-    }
+    if (strategy.id === state.activeId) btn.classList.add("active");
+    btn.title = "Double-click for rename / delete";
+    btn.textContent = strategy.name;
     return btn;
   }
 
+  var strategyMenuEl = null;
+
+  function closeStrategyMenu(){
+    if (strategyMenuEl){
+      strategyMenuEl.remove();
+      strategyMenuEl = null;
+    }
+  }
+
+  function openStrategyMenu(id, anchorBtn){
+    closeStrategyMenu();
+    var strategy = state.strategies.filter(function(s){ return s.id === id; })[0];
+    if (!strategy) return;
+
+    var menu = document.createElement("div");
+    menu.className = "strategy-tab-menu";
+
+    var renameBtn = document.createElement("button");
+    renameBtn.type = "button";
+    renameBtn.innerHTML = '<span class="icon">&#9998;</span>Rename';
+    renameBtn.addEventListener("click", function(e){
+      e.stopPropagation();
+      closeStrategyMenu();
+      startRenameStrategy(id);
+    });
+    menu.appendChild(renameBtn);
+
+    if (state.strategies.length > 1){
+      var delBtn = document.createElement("button");
+      delBtn.type = "button";
+      delBtn.className = "danger";
+      delBtn.innerHTML = '<span class="icon">&times;</span>Delete';
+      delBtn.addEventListener("click", function(e){
+        e.stopPropagation();
+        closeStrategyMenu();
+        deleteStrategy(id);
+      });
+      menu.appendChild(delBtn);
+    }
+
+    var bar = strategyTabs.closest(".strategy-bar");
+    var barRect = bar.getBoundingClientRect();
+    var btnRect = anchorBtn.getBoundingClientRect();
+    menu.style.top = (btnRect.bottom - barRect.top + 6) + "px";
+    menu.style.left = (btnRect.left - barRect.left) + "px";
+    bar.appendChild(menu);
+    strategyMenuEl = menu;
+  }
+
+  document.addEventListener("click", function(e){
+    if (strategyMenuEl && !strategyMenuEl.contains(e.target)) closeStrategyMenu();
+  });
+  document.addEventListener("keydown", function(e){
+    if (e.key === "Escape" && strategyMenuEl) closeStrategyMenu();
+  });
+
   function renderStrategyTabs(skipTransition){
+    closeStrategyMenu();
     Array.prototype.slice.call(strategyTabs.children).forEach(function(el){
       if (!el.classList.contains("seg-thumb")) el.remove();
     });
@@ -879,17 +932,17 @@
 
   strategyTabs.addEventListener("click", function(e){
     if (e.target.closest(".strategy-rename-input")) return;
-    var delEl = e.target.closest(".strategy-tab-del");
-    if (delEl){
-      e.stopPropagation();
-      deleteStrategy(delEl.getAttribute("data-del-id"));
-      return;
-    }
     var btn = e.target.closest("button[data-id]");
     if (!btn) return;
-    var id = btn.getAttribute("data-id");
-    if (id === state.activeId) startRenameStrategy(id);
-    else switchStrategy(id);
+    switchStrategy(btn.getAttribute("data-id"));
+  });
+
+  strategyTabs.addEventListener("dblclick", function(e){
+    if (e.target.closest(".strategy-rename-input")) return;
+    var btn = e.target.closest("button[data-id]");
+    if (!btn) return;
+    e.preventDefault();
+    openStrategyMenu(btn.getAttribute("data-id"), btn);
   });
 
   strategyAddBtn.addEventListener("click", addStrategy);
