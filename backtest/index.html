@@ -145,6 +145,7 @@
   }
   .strategy-tabs .seg-thumb{ border-radius:999px; }
   .strategy-tabs button{
+    display:inline-flex; align-items:center; gap:6px;
     font-family:var(--font-mono); font-size:12px; font-weight:700; padding:9px 16px;
     background:transparent; border:none; color:var(--muted); cursor:pointer; white-space:nowrap;
     transition:color .15s;
@@ -152,6 +153,12 @@
   .strategy-tabs button:hover{ color:var(--ice); }
   .strategy-tabs button.active{ color:var(--mint-text); }
   .strategy-tabs button.active:hover{ color:var(--mint-text); }
+  .strategy-tab-del{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:14px; height:14px; border-radius:999px; color:var(--muted-dim);
+    font-size:13px; line-height:1; transition:color .15s, background .15s;
+  }
+  .strategy-tab-del:hover{ color:var(--red); background:rgba(239,90,90,0.14); }
   .strategy-tabs .strategy-rename-input{
     position:relative; z-index:1; font-family:var(--font-mono); font-size:12px; font-weight:700;
     padding:9px 12px; background:transparent; border:none; outline:none; color:var(--mint-text);
@@ -691,7 +698,17 @@
       btn.classList.add("active");
       btn.title = "Click to rename";
     }
-    btn.textContent = strategy.name;
+    var nameSpan = document.createElement("span");
+    nameSpan.textContent = strategy.name;
+    btn.appendChild(nameSpan);
+    if (state.strategies.length > 1){
+      var delSpan = document.createElement("span");
+      delSpan.className = "strategy-tab-del";
+      delSpan.setAttribute("data-del-id", strategy.id);
+      delSpan.setAttribute("aria-label", "Delete strategy");
+      delSpan.textContent = "×";
+      btn.appendChild(delSpan);
+    }
     return btn;
   }
 
@@ -762,8 +779,37 @@
     });
   }
 
+  function deleteStrategy(id){
+    if (state.strategies.length <= 1) return;
+    var strategy = state.strategies.filter(function(s){ return s.id === id; })[0];
+    if (!strategy) return;
+    var tradeCount = (entriesByStrategy[id] || []).length;
+    var msg = "Delete \"" + strategy.name + "\"" +
+      (tradeCount ? " and its " + tradeCount + " logged trade" + (tradeCount === 1 ? "" : "s") : "") +
+      "? This can't be undone.";
+    if (!window.confirm(msg)) return;
+
+    state.strategies = state.strategies.filter(function(s){ return s.id !== id; });
+    delete entriesByStrategy[id];
+
+    if (state.activeId === id){
+      state.activeId = state.strategies[0].id;
+      entries = entriesByStrategy[state.activeId] || [];
+      resetFilterAndFormUI();
+    }
+    save();
+    renderStrategyTabs();
+    renderAll();
+  }
+
   strategyTabs.addEventListener("click", function(e){
     if (e.target.closest(".strategy-rename-input")) return;
+    var delEl = e.target.closest(".strategy-tab-del");
+    if (delEl){
+      e.stopPropagation();
+      deleteStrategy(delEl.getAttribute("data-del-id"));
+      return;
+    }
     var btn = e.target.closest("button[data-id]");
     if (!btn) return;
     var id = btn.getAttribute("data-id");
