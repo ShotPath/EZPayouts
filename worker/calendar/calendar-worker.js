@@ -35,7 +35,12 @@ export default {
     var upstream;
     try {
       upstream = await fetch(UPSTREAM_URL, {
-        headers: { "User-Agent": "Mozilla/5.0 (compatible; EZPayoutsCalendarBot/1.0)" },
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+          "Accept": "application/json,text/plain,*/*",
+          "Accept-Language": "en-US,en;q=0.9",
+          "Referer": "https://www.forexfactory.com/calendar",
+        },
         cf: { cacheTtl: 60, cacheEverything: true },
       });
     } catch (err) {
@@ -43,7 +48,11 @@ export default {
     }
 
     if (!upstream.ok) {
-      return errorResponse("Calendar feed unavailable.", 502);
+      var upstreamBody = await upstream.text().catch(function () { return ""; });
+      return errorResponse(
+        "Calendar feed unavailable (upstream " + upstream.status + "). " + upstreamBody.slice(0, 200),
+        502
+      );
     }
 
     var body = await upstream.text();
