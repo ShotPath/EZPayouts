@@ -121,14 +121,10 @@
       ".ez-sidebar-control-btn{ display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; border-radius:10px;" +
       " background:transparent; border:none; color:var(--muted); cursor:pointer; font-family:var(--font-mono); font-size:11.5px;" +
       " font-weight:600; white-space:nowrap; overflow:hidden; transition:background .15s, color .15s; }" +
+      ".ez-sidebar-control-btn{ justify-content:center; padding:10px 0; }" +
       ".ez-sidebar-control-btn:hover{ color:var(--ice); background:var(--panel); }" +
-      "body:not([data-sidebar-mode=\"expanded\"]) .ez-sidebar-control-btn{ justify-content:center; padding:10px 0; }" +
-      "body[data-sidebar-mode=\"hover\"] .ez-sidebar:hover .ez-sidebar-control-btn{ justify-content:flex-start; padding:10px 12px; }" +
-      ".ez-sidebar-control-label{ overflow:hidden; text-overflow:ellipsis; }" +
-      "body:not([data-sidebar-mode=\"expanded\"]) .ez-sidebar-control-label{ display:none; }" +
-      "body[data-sidebar-mode=\"hover\"] .ez-sidebar:hover .ez-sidebar-control-label{ display:inline; }" +
 
-      ".ez-sidebar-menu{ position:absolute; left:8px; bottom:calc(100% + 8px); z-index:60; min-width:190px;" +
+      ".ez-sidebar-menu{ position:fixed; z-index:600; min-width:190px;" +
       " background:var(--panel-raised); border:1px solid var(--hairline-bright); border-radius:12px; padding:8px;" +
       " box-shadow:0 18px 40px -14px rgba(0,0,0,0.65); }" +
       ".ez-sidebar-menu[hidden]{ display:none; }" +
@@ -146,8 +142,8 @@
       "@media (max-width:760px){" +
       "  body{ padding-left:var(--ez-sidebar-collapsed-w) !important; }" +
       "  .ez-sidebar{ width:var(--ez-sidebar-collapsed-w) !important; box-shadow:none !important; }" +
-      "  .ez-sidebar-label, .ez-sidebar-control-label{ display:none !important; }" +
-      "  .ez-sidebar-link, .ez-sidebar-control-btn{ justify-content:center !important; padding:12px 0 !important; }" +
+      "  .ez-sidebar-label{ display:none !important; }" +
+      "  .ez-sidebar-link{ justify-content:center !important; padding:12px 0 !important; }" +
       "}";
     document.head.appendChild(style);
   }
@@ -186,9 +182,8 @@
     }).join("") +
       '<span class="ez-sidebar-spacer"></span>' +
       '<div class="ez-sidebar-control">' +
-        '<button type="button" class="ez-sidebar-control-btn" id="ezSidebarControlBtn">' +
+        '<button type="button" class="ez-sidebar-control-btn" id="ezSidebarControlBtn" aria-label="Sidebar control">' +
           '<span class="ez-sidebar-icon" aria-hidden="true"><svg viewBox="0 0 20 20">' + SIDEBAR_TOGGLE_ICON + "</svg></span>" +
-          '<span class="ez-sidebar-control-label">Sidebar control</span>' +
         "</button>" +
       "</div>";
 
@@ -200,6 +195,10 @@
       if (menuEl) { menuEl.remove(); menuEl = null; }
     }
 
+    // Appended to <body> (not the sidebar) and positioned with fixed
+    // coordinates from the button's own rect, since the sidebar clips its
+    // children horizontally (overflow-x:hidden, for the collapse/expand
+    // width transition) and would otherwise cut the menu off when collapsed.
     function openMenu() {
       closeMenu();
       var current = getSidebarMode();
@@ -218,7 +217,10 @@
           closeMenu();
         });
       });
-      controlWrap.appendChild(menu);
+      document.body.appendChild(menu);
+      var btnRect = controlBtn.getBoundingClientRect();
+      menu.style.left = btnRect.left + "px";
+      menu.style.bottom = (window.innerHeight - btnRect.top + 8) + "px";
       menuEl = menu;
     }
 
@@ -228,7 +230,7 @@
       else openMenu();
     });
     document.addEventListener("click", function (e) {
-      if (menuEl && !e.target.closest(".ez-sidebar-control")) closeMenu();
+      if (menuEl && !e.target.closest(".ez-sidebar-control") && !e.target.closest(".ez-sidebar-menu")) closeMenu();
     });
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape" && menuEl) closeMenu();
