@@ -127,14 +127,24 @@
   .hero{ text-align:left; padding:22px 0 18px; }
   .hero h1{ font-size:26px; font-weight:700; line-height:1.2; color:var(--ice); letter-spacing:-0.01em; }
 
+  /* ---------- Mega card: every section below shares one panel instead of
+     floating as separate boxes, divided by hairlines like stacked layers.
+     Each section's own card(s) use --panel-raised so they read as a layer
+     nested inside the mega card's --panel background. ---------- */
+  .home-mega{
+    background:var(--panel); border:1px solid var(--hairline-bright); border-radius:20px;
+    box-shadow:0 20px 50px -24px var(--phosphor-glow); overflow:hidden; margin-bottom:26px;
+  }
+  .home-mega > .mega-section{ padding:22px clamp(16px,3vw,26px); }
+  .home-mega > .mega-section + .mega-section{ border-top:1px solid var(--hairline); }
+
   .firm-row{
     display:grid; grid-template-columns:repeat(auto-fit, minmax(128px, 1fr)); gap:14px;
-    margin-top:8px;
   }
   .firm-card{
     display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center;
-    padding:26px 14px 22px; border-radius:20px;
-    background:var(--panel); border:1px solid var(--hairline);
+    padding:26px 14px 22px; border-radius:16px;
+    background:var(--panel-raised); border:1px solid var(--hairline);
     text-decoration:none; transition:transform .18s ease, border-color .18s, box-shadow .18s;
   }
   .firm-mark{
@@ -153,7 +163,7 @@
 
   .firm-card.active{
     border-color:var(--phosphor-dim);
-    background:linear-gradient(180deg, rgba(62,224,140,0.10), var(--panel));
+    background:linear-gradient(180deg, rgba(62,224,140,0.10), var(--panel-raised));
     cursor:pointer;
     box-shadow:0 16px 36px -20px var(--phosphor-glow);
   }
@@ -172,19 +182,22 @@
   }
   .firm-card.active:focus-visible{ outline:2px solid var(--phosphor); outline-offset:3px; }
 
-  .section-head{ margin:48px 0 14px; text-align:center; }
+  .section-head{ margin:0 0 14px; text-align:center; }
   .section-head .eyebrow{
     font-family:var(--font-mono); font-size:12px; letter-spacing:0.22em; text-transform:uppercase;
     color:var(--phosphor); margin-bottom:8px;
   }
   .section-head h2{ font-size:21px; color:var(--ice); }
   .section-body{ margin:0 auto; max-width:62ch; color:var(--muted); font-size:14.5px; line-height:1.7; text-align:center; }
+  .text-card{
+    padding:20px 22px; border-radius:16px;
+    background:var(--panel-raised); border:1px solid var(--hairline);
+  }
 
   .news-card{
     display:flex; align-items:center; gap:20px; text-align:left;
-    padding:22px 24px; border-radius:20px;
-    background:var(--panel); border:1px solid var(--hairline-bright);
-    box-shadow:0 16px 36px -20px var(--phosphor-glow);
+    padding:22px 24px; border-radius:16px;
+    background:var(--panel-raised); border:1px solid var(--hairline);
     text-decoration:none; transition:transform .18s ease, border-color .18s, box-shadow .18s;
   }
   .news-card:hover{
@@ -211,9 +224,8 @@
   /* ---------- About Me / bio ---------- */
   .bio-card{
     max-width:680px; margin:24px auto 0; text-align:left;
-    padding:28px 26px; border-radius:20px;
-    background:var(--panel); border:1px solid var(--hairline-bright);
-    box-shadow:0 16px 36px -20px var(--phosphor-glow);
+    padding:28px 26px; border-radius:16px;
+    background:var(--panel-raised); border:1px solid var(--hairline);
   }
   .bio-card p{ margin:0 0 14px; color:var(--muted); font-size:14.5px; line-height:1.75; }
   .bio-card p:last-child{ margin-bottom:0; }
@@ -227,8 +239,8 @@
   .achievement-card{
     position:relative;
     display:flex; flex-direction:column; gap:12px; text-align:center;
-    padding:14px 14px 18px; border-radius:18px;
-    background:var(--panel); border:1px solid var(--hairline);
+    padding:14px 14px 18px; border-radius:14px;
+    background:var(--panel-raised); border:1px solid var(--hairline);
     transform:perspective(700px) rotateY(0deg); transition:transform .25s ease-out, box-shadow .25s ease-out;
     will-change:transform;
     --glow-x:50%;
@@ -256,7 +268,7 @@
   .achievement-card.disabled{ opacity:0.55; }
   .achievement-card.active{
     border-color:var(--phosphor-dim);
-    background:linear-gradient(180deg, rgba(62,224,140,0.10), var(--panel));
+    background:linear-gradient(180deg, rgba(62,224,140,0.10), var(--panel-raised));
     box-shadow:0 16px 36px -20px var(--phosphor-glow);
   }
   .achievement-card.active .achievement-mark{ border:none; box-shadow:0 0 0 1px var(--hairline-bright), 0 0 16px rgba(62,224,140,0.3); cursor:zoom-in; }
@@ -313,6 +325,8 @@
     <h1>Welcome to <img class="icon-inline" src="ezpayouts-icon-only.png" alt="EZ" /> | Payouts</h1>
   </div>
 
+  <div class="home-mega">
+  <div class="mega-section">
   <div class="firm-row">
     <div class="firm-card disabled" aria-disabled="true">
       <span class="firm-mark" aria-hidden="true">A</span>
@@ -340,7 +354,9 @@
       <span class="firm-status">Coming Soon</span>
     </div>
   </div>
+  </div>
 
+  <div class="mega-section">
   <div class="section-head">
     <div class="eyebrow">Stay Sharp</div>
     <h2>Economic Calendar</h2>
@@ -364,13 +380,17 @@
       <span class="news-cta">Open the Calendar &rarr;</span>
     </div>
   </a>
+  </div>
 
+  <div class="mega-section">
   <div class="section-head" id="about">
     <div class="eyebrow">About</div>
     <h2>What EZPayouts is</h2>
   </div>
-  <p class="section-body">EZPayouts is a free, independent toolkit for prop-firm traders &mdash; payout guides, risk calculators, and an economic calendar, built and maintained by ShotPath. No login, no paywall, and no affiliation with the prop firms it covers.</p>
+  <p class="section-body text-card">EZPayouts is a free, independent toolkit for prop-firm traders &mdash; payout guides, risk calculators, and an economic calendar, built and maintained by ShotPath. No login, no paywall, and no affiliation with the prop firms it covers.</p>
+  </div>
 
+  <div class="mega-section">
   <div class="section-head" id="about-me">
     <div class="eyebrow">About Me</div>
     <h2>Who is ShotPath?</h2>
@@ -422,12 +442,16 @@
     <p class="bio-beat">But it is.</p>
     <p class="bio-beat">Because he stayed. And he never stopped showing up.</p>
   </div>
+  </div>
 
+  <div class="mega-section">
   <div class="section-head" id="disclaimer">
     <div class="eyebrow">Disclaimer</div>
     <h2>Not financial advice</h2>
   </div>
-  <p class="section-body">EZPayouts is an independent, unofficial resource for prop-firm traders. Everything here &mdash; guides, calculators, and the economic calendar &mdash; is an educational planning aid, not financial, trading, or investment advice. Always verify figures against your firm's official rules before trading live.</p>
+  <p class="section-body text-card">EZPayouts is an independent, unofficial resource for prop-firm traders. Everything here &mdash; guides, calculators, and the economic calendar &mdash; is an educational planning aid, not financial, trading, or investment advice. Always verify figures against your firm's official rules before trading live.</p>
+  </div>
+  </div>
 
   <footer>
     <p>More firm guides are on the way. Have one you want next? Let us know. &middot; Built by ShotPath</p>
