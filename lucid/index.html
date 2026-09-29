@@ -128,16 +128,31 @@
   .hero h1 span{ color:var(--phosphor); }
 
   /* ---------- Snapshot card ---------- */
-  .snapshot-card{
+  /* ---------- Mega card: the dashboard's cards share one panel instead of
+     floating as separate boxes, divided by hairlines like stacked layers.
+     Repeated side-by-side cards (top-cards-row, phases) get a --panel-raised
+     "cell" treatment one shade lighter than the mega card itself. ---------- */
+  .lucid-mega{
     background:var(--panel); border:1px solid var(--hairline-bright); border-radius:20px;
-    padding:18px clamp(14px,2.5vw,24px) 20px; margin-bottom:20px;
-    box-shadow:0 16px 36px -20px var(--phosphor-glow);
+    box-shadow:0 20px 50px -24px var(--phosphor-glow); overflow:hidden; margin-bottom:26px;
+  }
+  .lucid-mega .mega-section{ padding:22px clamp(16px,3vw,26px); }
+  .lucid-mega .mega-section + .mega-section{ border-top:1px solid var(--hairline); }
+  #guideExtras > .mega-section:first-child{ border-top:1px solid var(--hairline); }
+
+  .snapshot-card{
+    background:var(--panel-raised); border:1px solid var(--hairline); border-radius:16px;
+    padding:18px clamp(14px,2.5vw,24px) 20px;
   }
   .top-cards-row{
-    display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:stretch; margin-bottom:20px;
+    display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:stretch;
   }
   .top-cards-row[hidden]{ display:none; }
-  .top-cards-row .snapshot-card, .top-cards-row .console{ margin-bottom:0; min-width:0; display:flex; flex-direction:column; }
+  .top-cards-row .snapshot-card, .top-cards-row .console{ min-width:0; display:flex; flex-direction:column; }
+  .top-cards-row .console{
+    background:var(--panel-raised); border:1px solid var(--hairline); border-radius:16px;
+    padding:18px clamp(14px,2.5vw,22px);
+  }
   .top-cards-row .card-body{ flex:1; display:flex; flex-direction:column; }
   .top-cards-row .card-body[hidden]{ display:none; }
   .top-cards-row .row-collapsed{ align-self:start; }
@@ -291,11 +306,6 @@
   .scaling-table td:first-child{ color:var(--ice); font-family:var(--font-mono); padding-right:12px; }
 
   /* ---------- Console (Risk Co-Pilot) ---------- */
-  .console{
-    background:var(--panel); border:1px solid var(--hairline-bright); border-radius:20px;
-    padding:18px clamp(14px,2.5vw,22px); margin-bottom:20px;
-    box-shadow:0 16px 36px -20px var(--phosphor-glow);
-  }
   .console-head{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
   .console-head h2{ font-size:16px; color:var(--ice); }
   .console-head .clock{ font-family:var(--font-mono); font-size:11.5px; color:var(--muted); }
@@ -379,16 +389,14 @@
   .coach .flag-red{ color:var(--red); font-weight:600; }
 
   /* ---------- Mission plan ---------- */
-  .section-head{ margin:30px 0 14px; }
   .section-head .eyebrow{ font-family:var(--font-mono); font-size:12px; letter-spacing:0.22em; text-transform:uppercase; color:var(--phosphor); margin-bottom:8px; }
   .section-head h2{ font-size:20px; color:var(--ice); }
 
   .phases{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; align-items:start; }
   @media (max-width:860px){ .phases{ grid-template-columns:1fr; } }
   .phase{
-    background:var(--panel); border:1px solid var(--hairline-bright); border-radius:20px;
+    background:var(--panel-raised); border:1px solid var(--hairline); border-radius:16px;
     padding:20px 20px 22px; display:flex; flex-direction:column; gap:12px;
-    box-shadow:0 16px 36px -20px var(--phosphor-glow);
   }
   .phase-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
   .phase-head-text{ display:flex; flex-direction:column; gap:4px; }
@@ -487,7 +495,8 @@
     <p id="planDisclaimerText"></p>
   </div>
 
-  <div class="top-cards-row" id="topCardsRow">
+  <div class="lucid-mega" id="lucidMega">
+  <div class="top-cards-row mega-section" id="topCardsRow">
     <div class="snapshot-card pricing-card" id="snapshotCard">
       <div class="snapshot-head">
         <div>
@@ -540,7 +549,7 @@
   </div>
 
   <div id="guideExtras">
-  <div class="console" id="copilotCard">
+  <div class="console mega-section" id="copilotCard">
     <div class="console-head">
       <h2>Risk Co-Pilot</h2>
       <div class="rcontrol">
@@ -603,11 +612,11 @@
     </div>
   </div>
 
-  <div class="section-head">
+  <div class="section-head mega-section">
     <div class="eyebrow">Flight Plan</div>
     <h2>Evaluation &rarr; Funded &rarr; First Payout</h2>
   </div>
-  <div class="phases">
+  <div class="phases mega-section">
     <div class="phase" id="phaseCard1">
       <div class="phase-head">
         <div class="phase-head-text">
@@ -660,6 +669,7 @@
         </ul>
       </div>
     </div>
+  </div>
   </div>
   </div>
 
@@ -1539,6 +1549,7 @@
     }).join("");
 
     var disclaimerText = PLAN_DISCLAIMERS[state.plan];
+    document.getElementById("lucidMega").hidden = !!disclaimerText;
     document.getElementById("topCardsRow").hidden = !!disclaimerText;
     document.getElementById("guideExtras").hidden = !!disclaimerText;
     document.getElementById("planDisclaimer").hidden = !disclaimerText;

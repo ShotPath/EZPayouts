@@ -133,15 +133,22 @@
   .hero{ text-align:left; padding:22px 0 18px; }
   .hero h1{ font-size:24px; font-weight:700; line-height:1.2; color:var(--ice); letter-spacing:-0.01em; }
 
+  /* ---------- Mega card: picker + compare cards + legend share one panel
+     instead of floating as separate boxes, divided by hairlines. ---------- */
+  .cmp-mega{
+    background:var(--panel); border:1px solid var(--hairline-bright); border-radius:20px;
+    box-shadow:0 20px 50px -24px var(--phosphor-glow); overflow:hidden; margin-bottom:26px;
+  }
+  .cmp-mega > *{ padding:22px clamp(16px,3vw,26px); }
+  .cmp-mega > * + *{ border-top:1px solid var(--hairline); }
+
   .picker{
     display:grid; grid-template-columns:repeat(3, 1fr); gap:16px;
-    margin-bottom:28px;
   }
   .picker-slot{
     display:flex; flex-direction:column; gap:10px;
-    background:var(--panel); border:1px solid var(--hairline-bright); border-radius:18px;
+    background:var(--panel-raised); border:1px solid var(--hairline); border-radius:18px;
     padding:16px 16px 18px;
-    box-shadow:0 16px 36px -20px var(--phosphor-glow), 0 0 0 1px rgba(62,224,140,0.05);
     transition:box-shadow .2s, border-color .2s;
   }
   .picker-slot:focus-within{
@@ -169,9 +176,8 @@
   @media (max-width:860px){ .compare-cards{ grid-template-columns:1fr; } }
 
   .compare-card{
-    background:var(--panel); border:1px solid var(--hairline-bright); border-radius:20px;
+    background:var(--panel-raised); border:1px solid var(--hairline); border-radius:16px;
     padding:20px 20px 8px;
-    box-shadow:0 20px 44px -24px var(--phosphor-glow), 0 0 0 1px rgba(62,224,140,0.05);
   }
   .compare-card-head{ margin:0 0 6px; padding-bottom:14px; border-bottom:1px solid var(--hairline); }
   .compare-card-title{ font-family:var(--font-display); font-weight:700; font-size:16px; color:var(--ice); display:block; }
@@ -202,7 +208,7 @@
     box-shadow:inset 3px 0 0 var(--phosphor), inset 0 0 20px -8px var(--phosphor-glow);
   }
 
-  .legend{ margin-top:14px; font-size:12px; color:var(--muted-dim); display:flex; align-items:center; gap:8px; }
+  .legend{ font-size:12px; color:var(--muted-dim); display:flex; align-items:center; gap:8px; }
   .legend .dot{ width:8px; height:8px; border-radius:2px; background:var(--phosphor); flex:none; }
 
   .coming-note{
@@ -233,24 +239,26 @@
     <h1>Compare prop firm accounts</h1>
   </div>
 
-  <div class="picker">
-    <div class="picker-slot">
-      <span class="picker-label">Account 1</span>
-      <select id="slot0" aria-label="Account 1"></select>
+  <div class="cmp-mega">
+    <div class="picker">
+      <div class="picker-slot">
+        <span class="picker-label">Account 1</span>
+        <select id="slot0" aria-label="Account 1"></select>
+      </div>
+      <div class="picker-slot">
+        <span class="picker-label">Account 2</span>
+        <select id="slot1" aria-label="Account 2"></select>
+      </div>
+      <div class="picker-slot">
+        <span class="picker-label">Account 3</span>
+        <select id="slot2" aria-label="Account 3"></select>
+      </div>
     </div>
-    <div class="picker-slot">
-      <span class="picker-label">Account 2</span>
-      <select id="slot1" aria-label="Account 2"></select>
-    </div>
-    <div class="picker-slot">
-      <span class="picker-label">Account 3</span>
-      <select id="slot2" aria-label="Account 3"></select>
-    </div>
+
+    <div class="compare-cards" id="compareCards"></div>
+
+    <div class="legend"><span class="dot" aria-hidden="true"></span> Highlighted = cheapest fee, or largest loss-limit cushion, in that row.</div>
   </div>
-
-  <div class="compare-cards" id="compareCards"></div>
-
-  <div class="legend"><span class="dot" aria-hidden="true"></span> Highlighted = cheapest fee, or largest loss-limit cushion, in that row.</div>
 
   <div class="coming-note">
     <b>Only Lucid Trading has verified numbers here so far.</b> Apex Trader Funding, FundedNext, TopStep, and Tradeify are shown in the picker but greyed out &mdash; we're not guessing at their rules or pricing until they're independently confirmed the same way Lucid's are.

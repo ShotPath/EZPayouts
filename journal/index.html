@@ -154,8 +154,19 @@
   }
   .dir-filter button.active{ color:var(--mint-text); }
 
+  /* ---------- Mega card: the stat carousel and the active panel share one
+     panel instead of floating as separate boxes, divided by a hairline.
+     Stat tiles get a --panel-raised "cell" treatment one shade lighter
+     than the mega card itself. ---------- */
+  .journal-mega{
+    background:var(--panel); border:1px solid var(--hairline-bright); border-radius:20px;
+    box-shadow:0 20px 50px -24px var(--phosphor-glow); overflow:hidden; margin-bottom:26px;
+  }
+  .journal-mega .mega-section{ padding:22px clamp(16px,3vw,26px); }
+  .journal-mega .mega-section + .mega-section{ border-top:1px solid var(--hairline); }
+
   /* ---------- Stat carousel ---------- */
-  .stat-carousel-wrap{ display:flex; align-items:center; gap:8px; margin-bottom:20px; }
+  .stat-carousel-wrap{ display:flex; align-items:center; gap:8px; }
   .carousel-nav{
     flex:none; width:32px; height:32px; border-radius:50%; padding:0;
     background:var(--panel-raised); border:1px solid var(--hairline-bright); color:var(--muted);
@@ -171,9 +182,8 @@
   .stat-carousel::-webkit-scrollbar{ display:none; }
   .stat-tile{
     flex:0 0 220px; scroll-snap-align:start;
-    background:var(--panel); border:1px solid var(--hairline-bright); border-radius:16px;
+    background:var(--panel-raised); border:1px solid var(--hairline); border-radius:14px;
     padding:16px 18px; position:relative;
-    box-shadow:0 14px 32px -20px var(--phosphor-glow);
   }
   .stat-tile-label{ font-family:var(--font-display); font-weight:600; font-size:13px; color:var(--ice); }
   .stat-tile-icon{
@@ -197,10 +207,6 @@
   .stat-tile-split .loss-txt{ color:var(--red); }
 
   /* ---------- Cards / panels ---------- */
-  .journal-card{
-    background:var(--panel); border:1px solid var(--hairline-bright); border-radius:16px;
-    padding:20px 22px; box-shadow:0 14px 32px -20px var(--phosphor-glow);
-  }
   .journal-card-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
   .journal-card-head h2{ font-size:15px; color:var(--ice); }
   .journal-card-actions{ display:flex; gap:10px; flex-wrap:wrap; }
@@ -394,46 +400,48 @@
     </div>
   </div>
 
-  <div class="stat-carousel-wrap">
-    <button type="button" class="carousel-nav" id="statPrev" aria-label="Scroll stats left">&lsaquo;</button>
-    <div class="stat-carousel" id="statCarousel"></div>
-    <button type="button" class="carousel-nav" id="statNext" aria-label="Scroll stats right">&rsaquo;</button>
-  </div>
+  <div class="journal-mega">
+    <div class="stat-carousel-wrap mega-section">
+      <button type="button" class="carousel-nav" id="statPrev" aria-label="Scroll stats left">&lsaquo;</button>
+      <div class="stat-carousel" id="statCarousel"></div>
+      <button type="button" class="carousel-nav" id="statNext" aria-label="Scroll stats right">&rsaquo;</button>
+    </div>
 
-  <div class="journal-panel" id="panelTrades">
-    <div class="journal-card">
-      <div class="journal-card-head">
-        <h2>Trades History</h2>
-        <div class="journal-card-actions">
-          <button type="button" class="ghost-btn" id="importCsvBtn">
-            <svg viewBox="0 0 20 20"><path d="M10 3v10M6 9l4 4 4-4" /><path d="M4 16h12" /></svg>
-            Import CSV
-          </button>
-          <button type="button" class="primary-btn" id="addTradeBtn">+ Add new trade</button>
+    <div class="journal-panel mega-section" id="panelTrades">
+      <div class="journal-card">
+        <div class="journal-card-head">
+          <h2>Trades History</h2>
+          <div class="journal-card-actions">
+            <button type="button" class="ghost-btn" id="importCsvBtn">
+              <svg viewBox="0 0 20 20"><path d="M10 3v10M6 9l4 4 4-4" /><path d="M4 16h12" /></svg>
+              Import CSV
+            </button>
+            <button type="button" class="primary-btn" id="addTradeBtn">+ Add new trade</button>
+          </div>
         </div>
+        <div id="tradesList"></div>
       </div>
-      <div id="tradesList"></div>
     </div>
-  </div>
 
-  <div class="journal-panel" id="panelDaily" hidden>
-    <div class="journal-card">
-      <div class="journal-card-head"><h2>Daily P&amp;L</h2></div>
-      <div id="dailyList"></div>
+    <div class="journal-panel mega-section" id="panelDaily" hidden>
+      <div class="journal-card">
+        <div class="journal-card-head"><h2>Daily P&amp;L</h2></div>
+        <div id="dailyList"></div>
+      </div>
     </div>
-  </div>
 
-  <div class="journal-panel" id="panelWeekly" hidden>
-    <div class="journal-card">
-      <div class="journal-card-head"><h2>Weekly P&amp;L</h2></div>
-      <div id="weeklyList"></div>
+    <div class="journal-panel mega-section" id="panelWeekly" hidden>
+      <div class="journal-card">
+        <div class="journal-card-head"><h2>Weekly P&amp;L</h2></div>
+        <div id="weeklyList"></div>
+      </div>
     </div>
-  </div>
 
-  <div class="journal-panel" id="panelStrategy" hidden>
-    <div class="journal-card">
-      <div class="journal-card-head"><h2>By Strategy / Setup</h2></div>
-      <div id="strategyList"></div>
+    <div class="journal-panel mega-section" id="panelStrategy" hidden>
+      <div class="journal-card">
+        <div class="journal-card-head"><h2>By Strategy / Setup</h2></div>
+        <div id="strategyList"></div>
+      </div>
     </div>
   </div>
 
