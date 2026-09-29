@@ -40,9 +40,7 @@
       {
         slug: "backtest", href: "/backtest/", label: "Backtest",
         icon: '<path d="M3.5 16.5V4M3.5 16.5H17" /><path d="m5.5 13 3-3.5 2.5 2 4-5" />'
-      }
-    ],
-    [
+      },
       {
         slug: "journal", href: "/journal/", label: "Journal",
         icon: '<path d="M5.5 3.5A1.5 1.5 0 0 1 7 2h7a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H7a1.5 1.5 0 0 1-1.5-1.5z" /><path d="M8 6.5h5M8 9.5h5M8 12.5h3" />'
