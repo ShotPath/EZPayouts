@@ -25,6 +25,7 @@
     --navy:#2b3550;
     --red:#ef5a5a;
     --red-glow:rgba(239,90,90,0.35);
+    --amber:#e8c34a;
     --ice:#dcefe2;
     --muted:#7c9584;
     --muted-dim:#4d6055;
@@ -230,6 +231,7 @@
   .readout .rsub{ display:block; font-size:11px; color:var(--muted-dim); margin-top:2px; }
   .readout .rvalue{ font-family:var(--font-mono); font-size:14.5px; font-weight:600; color:var(--phosphor-soft); white-space:nowrap; margin-left:auto; text-align:right; }
   .readout .rvalue.red{ color:var(--red); }
+  .readout .rvalue.amber{ color:var(--amber); }
   .rcontrol{ display:flex; align-items:center; gap:8px; margin-left:auto; }
 
   .collapse-btn{
@@ -409,36 +411,6 @@
   .csv-steps b{ color:var(--ice); font-weight:600; }
   .csv-steps a{ color:var(--phosphor-soft); }
 
-  .coach{
-    margin-top:20px; padding:16px 18px; border-radius:14px;
-    background:var(--void); border:1px solid var(--hairline-bright);
-    font-family:var(--font-mono); font-size:13.5px; line-height:1.75; color:var(--ice);
-  }
-  .coach .coach-label{ display:flex; align-items:center; gap:8px; color:var(--phosphor); font-size:11px; letter-spacing:0.14em; text-transform:uppercase; margin-bottom:10px; }
-  .coach .coach-label .cursor{ display:inline-block; width:7px; height:13px; background:var(--phosphor); animation:blink 1.1s step-end infinite; }
-  @keyframes blink{ 50%{ opacity:0; } }
-  .coach b{ color:var(--phosphor-soft); font-weight:600; }
-  .coach .flag-red{ color:var(--red); font-weight:600; }
-
-  /* ---------- Mission plan ---------- */
-  .section-head .eyebrow{ font-family:var(--font-mono); font-size:12px; letter-spacing:0.22em; text-transform:uppercase; color:var(--phosphor); margin-bottom:8px; }
-  .section-head h2{ font-size:20px; color:var(--ice); }
-
-  .phases{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; align-items:start; }
-  @media (max-width:860px){ .phases{ grid-template-columns:1fr; } }
-  .phase{
-    background:var(--panel-raised); border:1px solid var(--hairline); border-radius:16px;
-    padding:20px 20px 22px; display:flex; flex-direction:column; gap:12px;
-  }
-  .phase-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
-  .phase-head-text{ display:flex; flex-direction:column; gap:4px; }
-  .phase .phase-num{ font-family:var(--font-mono); font-size:12px; color:var(--phosphor-dim); letter-spacing:0.1em; }
-  .phase h3{ font-size:18px; color:var(--ice); }
-  .phase ul{ margin:0; padding-left:18px; display:flex; flex-direction:column; gap:9px; }
-  .phase li{ font-size:13.5px; color:var(--muted); line-height:1.55; }
-  .phase li::marker{ color:var(--phosphor-dim); }
-  .phase li b{ color:var(--phosphor-soft); font-weight:600; }
-
   /* ---------- Footer ---------- */
   footer{ margin-top:40px; padding-top:18px; border-top:1px solid var(--hairline); text-align:center; }
   footer p{ font-size:12px; color:var(--muted-dim); line-height:1.7; max-width:80ch; margin:0 auto 8px; }
@@ -610,12 +582,12 @@
       <div class="console-grid">
         <div>
           <div class="field">
-            <label for="pnlInput" id="pnlLabel">Net P&amp;L so far ($)</label>
+            <label for="pnlInput" id="pnlLabel">Net P&amp;L</label>
             <input id="pnlInput" type="number" step="1" value="0" />
             <span class="hint">Pull your real number from the Lucid dashboard.</span>
           </div>
           <div class="field" id="daysField">
-            <label for="daysInput">Trading days you want left</label>
+            <label for="daysInput">Days to Pass</label>
             <input id="daysInput" type="number" step="1" min="1" value="1" />
             <span class="hint">How many more sessions you're planning to trade before the target.</span>
           </div>
@@ -625,86 +597,23 @@
             <span class="hint">Days that cleared your size's daily minimum, out of the 5 needed for a payout.</span>
           </div>
           <div class="field" id="bestDayField">
-            <label for="bestDayInput">Best single day so far ($)</label>
+            <label for="bestDayInput">Biggest day</label>
             <input id="bestDayInput" type="number" step="1" value="0" />
             <span class="hint">Needed to check the 50% consistency rule during evaluation.</span>
           </div>
           <div class="field-row">
             <div class="field">
-              <label for="winRateInput">Expected win rate (%)</label>
+              <label for="winRateInput">Winrate</label>
               <input id="winRateInput" type="number" step="1" min="0" max="100" value="50" />
             </div>
             <div class="field">
-              <label for="avgRInput">Average R multiple</label>
+              <label for="avgRInput">Average R</label>
               <input id="avgRInput" type="number" step="0.1" min="0" value="2" />
             </div>
           </div>
-          <span class="hint" style="display:block; margin:0 0 16px;">R = reward &divide; risk on a trade &mdash; risking 30pts to make 60pts is 2R. Feeds the expectancy read below.</span>
+          <span class="hint" style="display:block; margin:0 0 16px;">R = reward &divide; risk on a trade &mdash; risking 30pts to make 60pts is 2R.</span>
         </div>
         <div class="readout-list" id="readoutList"></div>
-      </div>
-      <div class="coach">
-        <div class="coach-label">Co-Pilot Read <span class="cursor"></span></div>
-        <div id="coachText">Calculating&hellip;</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="section-head mega-section">
-    <div class="eyebrow">Flight Plan</div>
-    <h2>Evaluation &rarr; Funded &rarr; First Payout</h2>
-  </div>
-  <div class="phases mega-section">
-    <div class="phase" id="phaseCard1">
-      <div class="phase-head">
-        <div class="phase-head-text">
-          <span class="phase-num">PHASE 01</span>
-          <h3>Evaluation</h3>
-        </div>
-        <button type="button" class="collapse-btn" data-card="phaseCard1" aria-expanded="true" aria-label="Collapse Phase 1"><span class="chev" aria-hidden="true"></span></button>
-      </div>
-      <div class="card-body" id="phaseCard1Body">
-        <ul>
-          <li>Clear the <b>profit target</b> for your size without your balance touching the trailing <b>Max Loss Limit</b>.</li>
-          <li>The <b>Daily Loss Limit is optional</b> on the 25K and 50K Flex &mdash; OFF, or a firm cap if you opted in ($600 on the 25K, $1,200 on the 50K). Either way, the Co-Pilot above sets a stop for you.</li>
-          <li><b>Consistency rule (plan-dependent):</b> LucidFlex and LucidDaily cap it at 50% of total profit when you hit target &mdash; spread wins across at least 2&ndash;3 sessions. LucidPro and LucidDirect have no consistency rule during evaluation at all. Check the Account Snapshot above for your plan's exact figure.</li>
-          <li>Positions auto-flatten at <b>4:45 PM ET</b>. Holding past it doesn't fail you, but plan your exits before then.</li>
-          <li>No minimum trading days &mdash; pass as fast as the math allows, just don't let one hot day carry the whole account.</li>
-        </ul>
-      </div>
-    </div>
-    <div class="phase" id="phaseCard2">
-      <div class="phase-head">
-        <div class="phase-head-text">
-          <span class="phase-num">PHASE 02</span>
-          <h3>Funded</h3>
-        </div>
-        <button type="button" class="collapse-btn" data-card="phaseCard2" aria-expanded="true" aria-label="Collapse Phase 2"><span class="chev" aria-hidden="true"></span></button>
-      </div>
-      <div class="card-body" id="phaseCard2Body">
-        <ul>
-          <li><b>Consistency, plan-dependent:</b> LucidFlex and LucidDaily drop the rule entirely once funded &mdash; only the trailing Max Loss Limit matters. LucidPro (40%) and LucidDirect (20%) carry a fresh cap into every payout cycle instead; miss it and the payout is held, not the account.</li>
-          <li>Same Daily Loss Limit setting carries over from evaluation &mdash; if you're running OFF, this is where real discipline replaces the guardrail.</li>
-          <li>Positions still flatten by <b>4:45 PM ET</b> every session.</li>
-          <li>Bank <b>5 qualifying profitable days</b> (each clearing your size's daily minimum) with the cycle net positive.</li>
-        </ul>
-      </div>
-    </div>
-    <div class="phase" id="phaseCard3">
-      <div class="phase-head">
-        <div class="phase-head-text">
-          <span class="phase-num">PHASE 03</span>
-          <h3>First Payout</h3>
-        </div>
-        <button type="button" class="collapse-btn" data-card="phaseCard3" aria-expanded="true" aria-label="Collapse Phase 3"><span class="chev" aria-hidden="true"></span></button>
-      </div>
-      <div class="card-body" id="phaseCard3Body">
-        <ul>
-          <li>Once your 5 qualifying days are banked and the cycle is net positive, <b>submit from the dashboard</b>.</li>
-          <li>Lucid runs a <b>90/10 split</b> in your favor, with a <b>$500 minimum</b> payout request.</li>
-          <li>Balance is deducted within minutes of approval &mdash; disbursement then rides the processor's clock.</li>
-          <li>Timing: same day via Plaid (US), 1&ndash;2 business days to a US bank, 2&ndash;4 international, up to 8 via PayPal.</li>
-        </ul>
       </div>
     </div>
   </div>
@@ -825,7 +734,7 @@
 
   var state = { plan: "flex", size: 25000, dllOn: {}, drawdownChoice: {}, phase: "eval", snapshotView: "eval", collapsed: {} };
   var STORAGE_KEY = "lucidCockpit.v3";
-  var CARD_IDS = ["snapshotCard","importCard","copilotCard","phaseCard1","phaseCard2","phaseCard3"];
+  var CARD_IDS = ["snapshotCard","importCard","copilotCard"];
 
   var DLL_AMOUNTS = {
     flex: { 25000: 600, 50000: 1200 },
@@ -940,7 +849,6 @@
   var snapshotTitle = document.getElementById("snapshotTitle");
   var snapshotSub = document.getElementById("snapshotSub");
   var readoutList = document.getElementById("readoutList");
-  var coachText = document.getElementById("coachText");
   var statusBanner = document.getElementById("statusBanner");
   var statusLabelEl = document.getElementById("statusLabel");
   var statusRecEl = document.getElementById("statusRec");
@@ -1328,7 +1236,7 @@
       btn.classList.toggle("active", btn.dataset.phase === phase);
     });
     document.getElementById("copilotTitle").textContent = phase === "funded" ? "Reach Your Next Payout" : "Pass the Evaluation";
-    document.getElementById("pnlLabel").textContent = phase === "funded" ? "Net P&L this cycle ($)" : "Net P&L so far ($)";
+    document.getElementById("pnlLabel").textContent = phase === "funded" ? "Net P&L (cycle)" : "Net P&L";
     document.getElementById("daysField").hidden = phase === "funded";
     document.getElementById("qualDaysField").hidden = phase !== "funded";
 
@@ -1350,47 +1258,27 @@
     var winRate = winRatePct / 100;
     var avgR = Math.max(0, parseFloat(document.getElementById("avgRInput").value) || 0);
 
-    // Trade expectancy (in R) is the actual edge per $1 risked: winRate*avgR
-    // minus lossRate. Risk per trade is half-Kelly (kellyFraction =
-    // expectancyR / avgR, at half strength to tame variance) applied directly
-    // to whatever cushion is actually left before the trailing Max Loss Limit
-    // gets breached (effMll minus today's drawdown already used, not the
-    // static nominal MLL) — not to total account balance. Sizing off total
-    // balance made the number balloon to many times the MLL for any workable
-    // edge; sizing off the cushion itself means it's mathematically bounded
-    // by the account's real survival room (kellyFraction is always < 1) while
-    // still moving meaningfully as win rate or R change, and shrinks as the
-    // account gets closer to blown.
-    var expectancyR = winRate * avgR - (1 - winRate);
-    var kellyFraction = avgR > 0 ? Math.max(0, expectancyR / avgR) : 0;
     var lossUsed = pnl < 0 ? Math.abs(pnl) : 0;
     var cushionRemaining = Math.max(0, effMll - lossUsed);
-    var maxRiskPerTrade = kellyFraction * 0.5 * cushionRemaining;
-    var riskExceedsDll = dllOn && maxRiskPerTrade > dllAmount();
-    var riskExceedsMll = maxRiskPerTrade > effMll;
 
-    var maxDailyLossCap = maxRiskPerTrade * 3; // roughly three losing trades at that sizing
-    var dailyExceedsDll = dllOn && maxDailyLossCap > dllAmount();
-    var dailyExceedsMll = maxDailyLossCap > effMll;
-    var dailyStopTradeCount = maxRiskPerTrade > 0 ? Math.max(1, Math.round(maxDailyLossCap / maxRiskPerTrade)) : null;
-
-    var expectancyDollar = expectancyR * maxRiskPerTrade;
-
-    // Safe next single-day target that keeps the current phase's consistency ratio
-    // intact: if D is the next day's profit and P is profit banked so far, the
-    // rule requires D <= pct * (P + D), which solves to D <= (pct * P) / (1 - pct).
-    var safeDayTarget = null, rawSuggestedRisk = null, suggestedRisk = null;
-    if (thisPhaseConsistencyPct && pnl > 0){
-      var pctFrac = thisPhaseConsistencyPct / 100;
-      safeDayTarget = (pctFrac * pnl) / (1 - pctFrac);
-      if (avgR > 0 && maxRiskPerTrade > 0){
-        rawSuggestedRisk = safeDayTarget / avgR;
-        suggestedRisk = Math.min(rawSuggestedRisk, maxRiskPerTrade);
-      }
-    }
+    // How many max-sized losing trades in a row the remaining cushion (before
+    // the trailing Max Loss Limit) should be able to absorb. Sizing off this,
+    // rather than win-rate/R edge, is a survival cap: it holds even on a cold
+    // streak, and shrinks automatically as the cushion shrinks.
+    var RISK_BUFFER_TRADES = 8;
 
     function coRow(label, value, cls){
       return '<div class="readout"><span class="rlabel">' + label + '</span><span class="rvalue' + (cls ? " " + cls : "") + '">' + value + '</span></div>';
+    }
+
+    // Max risk per trade: sized so a single average (avgR) winner covers the
+    // day's required pace, capped by a fixed slice of whatever survival
+    // cushion is actually left — so chasing pace can never risk more than
+    // the account (or the firm's Daily Loss Limit) can safely absorb.
+    function riskFromPaceAndCushion(dailyPaceTarget){
+      var riskFromPace = avgR > 0 && dailyPaceTarget > 0 ? dailyPaceTarget / avgR : 0;
+      var riskFromCushion = cushionRemaining / RISK_BUFFER_TRADES;
+      return riskFromPace > 0 ? Math.min(riskFromPace, riskFromCushion) : riskFromCushion;
     }
 
     if (phase === "funded"){
@@ -1401,71 +1289,20 @@
 
       renderAccountStatus("funded", pnl, effMll, { qualDays: qualDays, d: d, fundedConsistencyBreach: fundedConsistencyBreach, fundedConsistencyPct: fundedConsistencyPct });
 
+      // Funded's "pace" is simply the size's own qualifying minimum — every
+      // session needs to clear it, not a remaining-balance countdown.
+      var maxRiskPerTradeFunded = riskFromPaceAndCushion(d.dailyMin);
+      var riskExceedsDllFunded = dllOn && maxRiskPerTradeFunded > dllAmount();
+      var expectancyRFunded = winRate * avgR - (1 - winRate);
+      var expectancyDollarFunded = expectancyRFunded * maxRiskPerTradeFunded;
+
       readoutList.innerHTML =
         coRow("Qualifying days banked", qualDays + " of 5") +
         coRow("Daily minimum to qualify", money(d.dailyMin)) +
-        coRow("Trade expectancy", expectancyR.toFixed(2) + "R &nbsp;(" + money(expectancyDollar) + "/trade)", expectancyR < 0 ? "red" : "") +
-        coRow("Max risk per trade", maxRiskPerTrade > 0 ? money(maxRiskPerTrade) : "No edge yet", (maxRiskPerTrade <= 0 || riskExceedsDll || riskExceedsMll) ? "red" : "") +
+        coRow("Max risk per trade", maxRiskPerTradeFunded > 0 ? money(maxRiskPerTradeFunded) : "No room left", (maxRiskPerTradeFunded <= 0 || riskExceedsDllFunded) ? "red" : "") +
         (dllOn ? coRow("Daily Loss Limit (firm)", money(dllAmount()), "red") : "") +
-        coRow(dllOn ? "Recommended stop-out" : "Self-imposed daily stop", maxDailyLossCap > 0 ? money(maxDailyLossCap) : "No edge yet", (maxDailyLossCap <= 0 || dailyExceedsDll || dailyExceedsMll) ? "red" : "") +
-        (fundedConsistencyPct ? coRow("Consistency ceiling (this cycle)", money(fundedConsistencyCeiling), fundedConsistencyBreach ? "red" : "") : "") +
-        (safeDayTarget !== null ? coRow("Safe next-day target (consistency)", money(safeDayTarget), "") : "") +
-        (suggestedRisk !== null ? coRow("Suggested risk to hit it", money(suggestedRisk), "") : "") +
-        (expectancyDollar > 0 ? coRow("Est. trades per qualifying day", Math.ceil(d.dailyMin / expectancyDollar) + " trades") : "");
-
-      var flines = [];
-      if (qualDays >= 5 && pnl > 0){
-        flines.push('All <b>5 qualifying days</b> are banked and the cycle is net positive &mdash; you can submit for a payout now. 90/10 split, $500 minimum.');
-      } else {
-        flines.push('You’ve banked <b>' + qualDays + ' of 5</b> qualifying days needed for a payout &mdash; each one has to clear <b>' + money(d.dailyMin) + '</b> in profit.' + (qualDays < 5 ? ' ' + (5 - qualDays) + ' to go.' : ''));
-      }
-      if (maxRiskPerTrade <= 0){
-        flines.push('<span class="flag-red">No sizeable edge yet:</span> at a ' + winRatePct.toFixed(0) + '% win rate and ' + avgR.toFixed(1) + 'R average, the math doesn’t support a recommended risk size &mdash; until your win rate or R improves, trade minimum size or paper trade.');
-      } else if (riskExceedsMll){
-        flines.push('<span class="flag-red">Edge outruns the account:</span> your win rate and R multiple imply risking <b>' + money(maxRiskPerTrade) + '</b> per trade &mdash; more than your entire ' + money(effMll) + ' Max Loss Limit. One trade could end the account; scale down manually no matter what the math says.');
-      } else if (riskExceedsDll){
-        flines.push('<span class="flag-red">Edge outruns your Daily Loss Limit:</span> your win rate and R multiple imply risking <b>' + money(maxRiskPerTrade) + '</b> per trade &mdash; more than the entire ' + money(dllAmount()) + ' Daily Loss Limit. One trade could end your day; scale down manually no matter what the math says.');
-      } else {
-          flines.push('Keep risk at or under <b>' + money(maxRiskPerTrade) + '</b> per trade &mdash; half-Kelly on your <b>+' + expectancyR.toFixed(2) + 'R</b> trade expectancy, applied to the ' + money(cushionRemaining) + ' you have left before the Max Loss Limit (not your full balance), so it can never exceed what the account has left to give.');
-      }
-      if (dllOn){
-        if (dailyExceedsDll){
-          flines.push('<span class="flag-red">That would blow the ' + money(dllAmount()) + ' Daily Loss Limit outright</span> &mdash; cap yourself at the full ' + money(dllAmount()) + ' regardless of the math above; a couple of losing trades at that sizing already ends your day.');
-        } else {
-          flines.push('You’re running a <b>' + money(dllAmount()) + ' Daily Loss Limit</b> &mdash; trip it and today’s session is over. Pull the plug yourself at <b>' + money(maxDailyLossCap) + '</b> down' + (dailyStopTradeCount ? ' (about ' + dailyStopTradeCount + ' losing trade' + (dailyStopTradeCount === 1 ? '' : 's') + ' at your current sizing)' : '') + ' so a slippage spike doesn’t blow it for you.');
-        }
-      } else if (dailyExceedsMll){
-        flines.push('<span class="flag-red">That would exceed your entire Max Loss Limit</span> &mdash; cap your day well below ' + money(effMll) + ' regardless of the math above.');
-      } else {
-        flines.push(c.plan.name + (dllAvailable() ? ' has your Daily Loss Limit set to OFF' : ' sets no firm daily loss limit here') + ', so stop yourself at <b>' + money(maxDailyLossCap) + '</b> down for the day' + (dailyStopTradeCount ? ' (about ' + dailyStopTradeCount + ' losing trade' + (dailyStopTradeCount === 1 ? '' : 's') + ' at your current sizing)' : '') + ' &mdash; the firm won’t, so you have to.');
-      }
-      if (fundedConsistencyPct){
-        if (fundedConsistencyBreach){
-          flines.push('<span class="flag-red">Consistency flag:</span> your best day (' + money(bestDay) + ') is above the ' + fundedConsistencyPct + '% cap for this cycle (' + money(fundedConsistencyCeiling) + '). ' + c.plan.name + ' holds the payout, not the account, until more days dilute that ratio &mdash; keep trading your normal size.');
-        } else if (pnl > 0){
-          flines.push('Consistency check passes for this cycle &mdash; your best day stays under <b>' + money(fundedConsistencyCeiling) + '</b>, the ' + fundedConsistencyPct + '% cap.');
-        }
-      } else {
-        flines.push('No consistency rule once funded &mdash; only the trailing Max Loss Limit matters now.');
-      }
-      if (safeDayTarget !== null){
-        if (rawSuggestedRisk !== null && rawSuggestedRisk > maxRiskPerTrade){
-          flines.push('To stay inside the ' + fundedConsistencyPct + '% cap, keep any single day at or under <b>' + money(safeDayTarget) + '</b> for now &mdash; hitting that in one trade would take about ' + money(rawSuggestedRisk) + ' of risk at your ' + avgR.toFixed(1) + 'R average, more than your ' + money(maxRiskPerTrade) + ' cap, so plan on a couple of trades instead of one oversized one.');
-        } else if (suggestedRisk !== null){
-          flines.push('To stay inside the ' + fundedConsistencyPct + '% cap, keep any single day at or under <b>' + money(safeDayTarget) + '</b> for now &mdash; at your ' + avgR.toFixed(1) + 'R average, size risk near <b>' + money(suggestedRisk) + '</b> per trade to land there.');
-        } else {
-          flines.push('To stay inside the ' + fundedConsistencyPct + '% cap, keep any single day at or under <b>' + money(safeDayTarget) + '</b> for now.');
-        }
-      } else if (fundedConsistencyPct){
-        flines.push('Once this cycle is net positive, this section will suggest a safe single-day target and the risk size to hit it.');
-      }
-      if (expectancyR < 0){
-        flines.push('<span class="flag-red">Negative expectancy:</span> at a ' + winRatePct.toFixed(0) + '% win rate and ' + avgR.toFixed(1) + 'R average, you’re expected to lose ' + money(Math.abs(expectancyDollar)) + ' per trade &mdash; fix the edge before pushing size, funded or not.');
-      } else {
-        flines.push('At a ' + winRatePct.toFixed(0) + '% win rate and ' + avgR.toFixed(1) + 'R average, your expectancy is <b>+' + expectancyR.toFixed(2) + 'R</b> per trade (about <b>' + money(expectancyDollar) + '</b>).');
-      }
-
-      coachText.innerHTML = flines.join(' ');
+        (fundedConsistencyPct ? coRow("Max per day (consistency)", money(fundedConsistencyCeiling), fundedConsistencyBreach ? "red" : "") : "") +
+        (expectancyDollarFunded > 0 ? coRow("Est. trades per qualifying day", Math.ceil(d.dailyMin / expectancyDollarFunded) + " trades") : "");
       return;
     }
 
@@ -1475,89 +1312,34 @@
     var perDay = remaining / days;
     var perDayPctOfSize = (perDay / state.size) * 100;
 
+    // Max per day (consistency): the most any single remaining session can
+    // add without pushing the eventual biggest day over the plan's
+    // consistency cap, projected against the final target — not just
+    // today's balance, since that's the total the rule actually judges.
     var projectedFinal = remaining > 0 ? Math.max(d.target, pnl) : pnl;
     var consistencyCeiling = evalConsistencyPct ? Math.max(projectedFinal, 1) * (evalConsistencyPct / 100) : 0;
     var consistencyBreach = !!evalConsistencyPct && pnl > 0 && bestDay > consistencyCeiling;
+    var paceBreachesConsistency = !!evalConsistencyPct && perDay > consistencyCeiling;
 
     var paceLevel;
-    if (perDayPctOfSize <= 1.2){ paceLevel = "good"; }
-    else if (perDayPctOfSize <= 2.5){ paceLevel = "amber"; }
-    else { paceLevel = "red"; }
+    if (paceBreachesConsistency || perDayPctOfSize > 2.5){ paceLevel = "red"; }
+    else if (perDayPctOfSize > 1.2){ paceLevel = "amber"; }
+    else { paceLevel = "good"; }
 
     renderAccountStatus("eval", pnl, effMll, { remaining: remaining, consistencyBreach: consistencyBreach, d: d, fundedConsistencyPct: fundedConsistencyPct });
 
+    var maxRiskPerTrade = riskFromPaceAndCushion(perDay);
+    var riskExceedsDll = dllOn && maxRiskPerTrade > dllAmount();
+    var expectancyR = winRate * avgR - (1 - winRate);
+    var expectancyDollar = expectancyR * maxRiskPerTrade;
+
     readoutList.innerHTML =
       coRow("Remaining to target", money(remaining)) +
-      coRow("Required pace / day", money(perDay) + " &nbsp;(" + perDayPctOfSize.toFixed(2) + "% of size)", paceLevel === "red" ? "red" : "") +
-      coRow("Trade expectancy", expectancyR.toFixed(2) + "R &nbsp;(" + money(expectancyDollar) + "/trade)", expectancyR < 0 ? "red" : "") +
-      coRow("Max risk per trade", maxRiskPerTrade > 0 ? money(maxRiskPerTrade) : "No edge yet", (maxRiskPerTrade <= 0 || riskExceedsDll || riskExceedsMll) ? "red" : "") +
+      (evalConsistencyPct ? coRow("Max per day (consistency)", money(consistencyCeiling), consistencyBreach ? "red" : "") : "") +
+      coRow("Required pace / day", money(perDay) + " &nbsp;(" + perDayPctOfSize.toFixed(2) + "% of size)", paceLevel === "red" ? "red" : (paceLevel === "amber" ? "amber" : "")) +
+      coRow("Max risk per trade", maxRiskPerTrade > 0 ? money(maxRiskPerTrade) : "No room left", (maxRiskPerTrade <= 0 || riskExceedsDll) ? "red" : "") +
       (dllOn ? coRow("Daily Loss Limit (firm)", money(dllAmount()), "red") : "") +
-      coRow(dllOn ? "Recommended stop-out" : "Self-imposed daily stop", maxDailyLossCap > 0 ? money(maxDailyLossCap) : "No edge yet", (maxDailyLossCap <= 0 || dailyExceedsDll || dailyExceedsMll) ? "red" : "") +
-      (evalConsistencyPct ? coRow("Consistency ceiling (at target)", money(consistencyCeiling), consistencyBreach ? "red" : "") : "") +
-      (safeDayTarget !== null ? coRow("Safe next-day target (consistency)", money(safeDayTarget), "") : "") +
-      (suggestedRisk !== null ? coRow("Suggested risk to hit it", money(suggestedRisk), "") : "") +
       (expectancyDollar > 0 ? coRow("Est. trades to target", Math.ceil(remaining / expectancyDollar) + " trades") : "");
-
-    var lines = [];
-    if (remaining === 0){
-      lines.push('Target already <b>cleared</b> at your current P&amp;L. Stop pushing size &mdash; from here, protecting the pass matters more than adding profit.');
-    } else {
-      lines.push('You need <b>' + money(remaining) + '</b> more across <b>' + days + '</b> session' + (days === 1 ? '' : 's') + ' &mdash; about <b>' + money(perDay) + '/day</b>, roughly ' + perDayPctOfSize.toFixed(1) + '% of your ' + money(state.size) + ' account.');
-      if (paceLevel === "red"){
-        lines.push('That pace is <span class="flag-red">too hot</span> for a ' + money(effMll) + ' Max Loss Limit. Add a trading day or two rather than sizing up to force it.');
-      } else if (paceLevel === "amber"){
-        lines.push('That’s <b>an aggressive pace</b> &mdash; doable, but leaves little room for a losing session before it snowballs.');
-      } else {
-        lines.push('That’s a <b>reasonable pace</b> relative to your Max Loss Limit &mdash; no need to force trades.');
-      }
-    }
-    if (maxRiskPerTrade <= 0){
-      lines.push('<span class="flag-red">No sizeable edge yet:</span> at a ' + winRatePct.toFixed(0) + '% win rate and ' + avgR.toFixed(1) + 'R average, the math doesn’t support a recommended risk size &mdash; until your win rate or R improves, trade minimum size or paper trade.');
-    } else if (riskExceedsMll){
-      lines.push('<span class="flag-red">Edge outruns the account:</span> your win rate and R multiple imply risking <b>' + money(maxRiskPerTrade) + '</b> per trade &mdash; more than your entire ' + money(effMll) + ' Max Loss Limit. One trade could end the account; scale down manually no matter what the math says.');
-    } else if (riskExceedsDll){
-      lines.push('<span class="flag-red">Edge outruns your Daily Loss Limit:</span> your win rate and R multiple imply risking <b>' + money(maxRiskPerTrade) + '</b> per trade &mdash; more than the entire ' + money(dllAmount()) + ' Daily Loss Limit. One trade could end your day; scale down manually no matter what the math says.');
-    } else {
-      lines.push('Keep risk at or under <b>' + money(maxRiskPerTrade) + '</b> per trade &mdash; half-Kelly on your <b>+' + expectancyR.toFixed(2) + 'R</b> trade expectancy, applied to the ' + money(cushionRemaining) + ' you have left before the Max Loss Limit (not your full balance), so it can never exceed what the account has left to give.');
-    }
-    if (dllOn){
-      if (dailyExceedsDll){
-        lines.push('<span class="flag-red">That would blow the ' + money(dllAmount()) + ' Daily Loss Limit outright</span> &mdash; cap yourself at the full ' + money(dllAmount()) + ' regardless of the math above; a couple of losing trades at that sizing already ends your day.');
-      } else {
-        lines.push('You’re running a <b>' + money(dllAmount()) + ' Daily Loss Limit</b> &mdash; trip it and today’s session is over. Pull the plug yourself at <b>' + money(maxDailyLossCap) + '</b> down' + (dailyStopTradeCount ? ' (about ' + dailyStopTradeCount + ' losing trade' + (dailyStopTradeCount === 1 ? '' : 's') + ' at your current sizing)' : '') + ' so a slippage spike doesn’t blow it for you.');
-      }
-    } else if (dailyExceedsMll){
-      lines.push('<span class="flag-red">That would exceed your entire Max Loss Limit</span> &mdash; cap your day well below ' + money(effMll) + ' regardless of the math above.');
-    } else {
-      lines.push(c.plan.name + (dllAvailable() ? ' has your Daily Loss Limit set to OFF' : ' sets no firm daily loss limit here') + ', so stop yourself at <b>' + money(maxDailyLossCap) + '</b> down for the day' + (dailyStopTradeCount ? ' (about ' + dailyStopTradeCount + ' losing trade' + (dailyStopTradeCount === 1 ? '' : 's') + ' at your current sizing)' : '') + ' &mdash; the firm won’t, so you have to.');
-    }
-    if (evalConsistencyPct){
-      if (consistencyBreach){
-        lines.push('<span class="flag-red">Consistency flag:</span> your best day (' + money(bestDay) + ') is above the ' + evalConsistencyPct + '% ceiling projected at target (' + money(consistencyCeiling) + '). Bank a couple more solid days before you’d be eligible to pass.');
-      } else if (pnl > 0){
-        lines.push('Consistency check passes &mdash; your best day stays under <b>' + money(consistencyCeiling) + '</b>, the ' + evalConsistencyPct + '% ceiling once you hit target.');
-      }
-    } else {
-      lines.push(c.plan.name + ' has no consistency rule during evaluation &mdash; pass as fast as the math allows.');
-    }
-    if (safeDayTarget !== null){
-      if (rawSuggestedRisk !== null && rawSuggestedRisk > maxRiskPerTrade){
-        lines.push('To stay inside the ' + evalConsistencyPct + '% cap, keep any single day at or under <b>' + money(safeDayTarget) + '</b> for now &mdash; hitting that in one trade would take about ' + money(rawSuggestedRisk) + ' of risk at your ' + avgR.toFixed(1) + 'R average, more than your ' + money(maxRiskPerTrade) + ' cap, so plan on a couple of trades instead of one oversized one.');
-      } else if (suggestedRisk !== null){
-        lines.push('To stay inside the ' + evalConsistencyPct + '% cap, keep any single day at or under <b>' + money(safeDayTarget) + '</b> for now &mdash; at your ' + avgR.toFixed(1) + 'R average, size risk near <b>' + money(suggestedRisk) + '</b> per trade to land there.');
-      } else {
-        lines.push('To stay inside the ' + evalConsistencyPct + '% cap, keep any single day at or under <b>' + money(safeDayTarget) + '</b> for now.');
-      }
-    } else if (evalConsistencyPct){
-      lines.push('Once you’re net positive, this section will suggest a safe single-day target and the risk size to hit it.');
-    }
-    if (expectancyR < 0){
-      lines.push('<span class="flag-red">Negative expectancy:</span> at a ' + winRatePct.toFixed(0) + '% win rate and ' + avgR.toFixed(1) + 'R average, you’re expected to lose ' + money(Math.abs(expectancyDollar)) + ' per trade on average. No amount of pace or sizing fixes a losing edge &mdash; improve your win rate or R multiple before pushing size.');
-    } else if (remaining > 0){
-      lines.push('At a ' + winRatePct.toFixed(0) + '% win rate and ' + avgR.toFixed(1) + 'R average, your expectancy is <b>+' + expectancyR.toFixed(2) + 'R</b> per trade (about <b>' + money(expectancyDollar) + '</b>) &mdash; roughly <b>' + (expectancyDollar > 0 ? Math.ceil(remaining / expectancyDollar) : '&mdash;') + ' trades</b> at that edge to reach target.');
-    }
-
-    coachText.innerHTML = lines.join(' ');
   }
 
   var planTabsRenderedOnce = false;
