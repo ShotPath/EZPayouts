@@ -148,6 +148,11 @@
   .strategy-tabs button:hover{ color:var(--ice); }
   .strategy-tabs button.active{ color:var(--mint-text); }
   .strategy-tabs button.active:hover{ color:var(--mint-text); }
+  .strategy-tabs button[data-id]{ cursor:grab; }
+  .strategy-tabs button[data-id].dragging{
+    cursor:grabbing; z-index:3; opacity:0.9;
+    box-shadow:0 10px 22px -8px rgba(0,0,0,0.55);
+  }
   .strategy-tab-menu{
     position:absolute; z-index:50; min-width:130px; display:flex; flex-direction:column; gap:2px;
     background:var(--panel-raised); border:1px solid var(--hairline-bright); border-radius:10px;
@@ -696,7 +701,7 @@
     btn.type = "button";
     btn.setAttribute("data-id", strategy.id);
     if (strategy.id === state.activeId) btn.classList.add("active");
-    btn.title = "Double-click for rename / delete";
+    btn.title = "Drag to reorder · double-click for rename / delete";
     btn.textContent = strategy.name;
     return btn;
   }
@@ -848,7 +853,10 @@
     renderAll();
   }
 
+  var suppressNextTabClick = false;
+
   strategyTabs.addEventListener("click", function(e){
+    if (suppressNextTabClick){ suppressNextTabClick = false; return; }
     if (e.target.closest(".strategy-rename-input")) return;
     var btn = e.target.closest("button[data-id]");
     if (!btn) return;
@@ -864,6 +872,75 @@
   });
 
   strategyAddBtn.addEventListener("click", addStrategy);
+
+  // ---------- Strategy tab drag-to-reorder ----------
+  // Whole-tab press-and-drag, threshold-gated so a plain click still just
+  // switches strategy (the existing click handler above). While dragging,
+  // only the DOM order of the tab buttons is shuffled live (cheap, and
+  // keeps the dragged element's identity intact); the authoritative
+  // state.strategies array is only reordered once, on drop.
+  //
+  // Tracking listens on `document`, not the tab row, and skips pointer
+  // capture entirely: capture ties pointerup delivery to the captured
+  // element still existing in the DOM with capture intact, which broke
+  // (silently — pointerup just never arrived) the moment the drag crossed
+  // any DOM churn. Document-level listeners, gated on `tabDrag` being set,
+  // get the same "keep tracking outside the tab row" behavior without that
+  // fragility.
+  var TAB_DRAG_THRESHOLD = 6;
+  var tabDrag = null; // { id, pointerId, btn, startX, dragging }
+
+  function tabButtonEls(){
+    return Array.prototype.slice.call(strategyTabs.querySelectorAll("button[data-id]"));
+  }
+
+  strategyTabs.addEventListener("pointerdown", function(e){
+    if (e.button !== 0) return;
+    if (strategyTabs.querySelector(".strategy-rename-input")) return;
+    var btn = e.target.closest("button[data-id]");
+    if (!btn) return;
+    tabDrag = { id: btn.getAttribute("data-id"), pointerId: e.pointerId, btn: btn, startX: e.clientX, dragging: false };
+  });
+
+  document.addEventListener("pointermove", function(e){
+    if (!tabDrag || e.pointerId !== tabDrag.pointerId) return;
+    if (!tabDrag.dragging){
+      if (Math.abs(e.clientX - tabDrag.startX) < TAB_DRAG_THRESHOLD) return;
+      tabDrag.dragging = true;
+      tabDrag.btn.classList.add("dragging");
+      tabDrag.btn.style.touchAction = "none";
+    }
+    e.preventDefault();
+    var others = tabButtonEls().filter(function(b){ return b !== tabDrag.btn; });
+    var insertBefore = null;
+    for (var i = 0; i < others.length; i++){
+      var rect = others[i].getBoundingClientRect();
+      if (e.clientX < rect.left + rect.width / 2){ insertBefore = others[i]; break; }
+    }
+    if (insertBefore){
+      if (insertBefore !== tabDrag.btn.nextSibling) strategyTabs.insertBefore(tabDrag.btn, insertBefore);
+    } else {
+      strategyTabs.appendChild(tabDrag.btn);
+    }
+    layoutSegThumb(strategyTabs, true);
+  });
+
+  function endTabDrag(){
+    if (!tabDrag) return;
+    var wasDragging = tabDrag.dragging;
+    var btn = tabDrag.btn;
+    tabDrag = null;
+    if (btn){ btn.classList.remove("dragging"); btn.style.touchAction = ""; }
+    if (wasDragging){
+      var order = tabButtonEls().map(function(b){ return b.getAttribute("data-id"); });
+      state.strategies.sort(function(a, b){ return order.indexOf(a.id) - order.indexOf(b.id); });
+      save();
+      renderStrategyTabs(true);
+      suppressNextTabClick = true;
+    }
+  }
+  document.addEventListener("pointerup", endTabDrag);
+  document.addEventListener("pointercancel", endTabDrag);
 
   function parseRR(raw){
     raw = (raw || "").trim();
