@@ -12,6 +12,7 @@
   var SIDEBAR_MODES = ["expanded", "collapsed", "hover"];
   var SIDEBAR_MODE_LABELS = { expanded: "Expanded", collapsed: "Collapsed", hover: "Expand on hover" };
 
+  // Main flat nav group, rendered first.
   var NAV_ITEMS = [
     {
       slug: "home", href: "/", label: "Home",
@@ -26,25 +27,41 @@
       icon: '<rect x="3.5" y="9" width="4.5" height="7.5" rx="1" /><rect x="12" y="4.5" width="4.5" height="12" rx="1" />'
     },
     {
-      slug: "backtest", href: "/backtest/", label: "Backtest",
-      icon: '<path d="M3.5 16.5V4M3.5 16.5H17" /><path d="m5.5 13 3-3.5 2.5 2 4-5" />'
-    },
-    {
       slug: "calendar", href: "/calendar/", label: "Calendar",
       icon: '<rect x="3" y="4.5" width="14" height="12.5" rx="1.5" /><path d="M3 8h14M6.5 2.5v4M13.5 2.5v4" /><circle cx="10" cy="12" r="1.4" fill="currentColor" stroke="none" />'
     }
   ];
 
+  // Extra sections, each rendered below a divider (same treatment as the
+  // collapse control at the bottom) so they read as separate groups from
+  // the main nav above and from each other.
+  var NAV_SECTIONS = [
+    [
+      {
+        slug: "backtest", href: "/backtest/", label: "Backtest",
+        icon: '<path d="M3.5 16.5V4M3.5 16.5H17" /><path d="m5.5 13 3-3.5 2.5 2 4-5" />'
+      }
+    ],
+    [
+      {
+        slug: "journal", href: "/journal/", label: "Journal",
+        icon: '<path d="M5.5 3.5A1.5 1.5 0 0 1 7 2h7a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H7a1.5 1.5 0 0 1-1.5-1.5z" /><path d="M8 6.5h5M8 9.5h5M8 12.5h3" />'
+      }
+    ]
+  ];
+
+  var ALL_NAV_ITEMS = NAV_ITEMS.concat(NAV_SECTIONS.reduce(function (acc, section) { return acc.concat(section); }, []));
+
   var SIDEBAR_TOGGLE_ICON = '<rect x="2.5" y="3.5" width="15" height="13" rx="2" /><path d="M8 3.5v13" />';
 
   function detectActiveItem() {
     var path = window.location.pathname;
-    for (var i = 0; i < NAV_ITEMS.length; i++) {
-      var slug = NAV_ITEMS[i].slug;
+    for (var i = 0; i < ALL_NAV_ITEMS.length; i++) {
+      var slug = ALL_NAV_ITEMS[i].slug;
       if (slug === "home") continue;
-      if (path.indexOf("/" + slug) === 0 || path.indexOf("/" + slug + "/") !== -1) return NAV_ITEMS[i];
+      if (path.indexOf("/" + slug) === 0 || path.indexOf("/" + slug + "/") !== -1) return ALL_NAV_ITEMS[i];
     }
-    return NAV_ITEMS[0];
+    return ALL_NAV_ITEMS[0];
   }
 
   function getSidebarMode() {
@@ -116,6 +133,9 @@
       "body[data-sidebar-mode=\"hover\"] .ez-sidebar:hover .ez-sidebar-label{ display:inline; }" +
       "body[data-sidebar-mode=\"hover\"] .ez-sidebar:hover .ez-sidebar-link{ justify-content:flex-start; padding:10px 12px; }" +
 
+      ".ez-sidebar-section{ display:flex; flex-direction:column; gap:2px;" +
+      " border-top:1px solid var(--hairline); padding-top:8px; margin-top:8px; }" +
+
       ".ez-sidebar-spacer{ flex:1; }" +
       ".ez-sidebar-control{ position:relative; border-top:1px solid var(--hairline); padding-top:10px; margin-top:8px; }" +
       ".ez-sidebar-control-btn{ display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; border-radius:10px;" +
@@ -174,12 +194,17 @@
     var nav = document.createElement("nav");
     nav.className = "ez-sidebar";
     nav.setAttribute("aria-label", "Primary");
-    nav.innerHTML = NAV_ITEMS.map(function (item) {
+    function renderLink(item) {
       return '<a class="ez-sidebar-link' + (item.slug === activeSlug ? " active" : "") + '" href="' + item.href + '">' +
         '<span class="ez-sidebar-icon" aria-hidden="true"><svg viewBox="0 0 20 20">' + item.icon + "</svg></span>" +
         '<span class="ez-sidebar-label">' + item.label + "</span>" +
       "</a>";
-    }).join("") +
+    }
+
+    nav.innerHTML = NAV_ITEMS.map(renderLink).join("") +
+      NAV_SECTIONS.map(function (section) {
+        return '<div class="ez-sidebar-section">' + section.map(renderLink).join("") + "</div>";
+      }).join("") +
       '<span class="ez-sidebar-spacer"></span>' +
       '<div class="ez-sidebar-control">' +
         '<button type="button" class="ez-sidebar-control-btn" id="ezSidebarControlBtn" aria-label="Sidebar control">' +

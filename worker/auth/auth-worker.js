@@ -174,19 +174,24 @@ async function handleMe(request, env) {
   return json({ username: record.username });
 }
 
+// Every page-owned data field this worker stores per account. Opaque JSON
+// values — this worker doesn't know or care about their internal shape,
+// only that whatever a page sends up comes back unchanged. Keeps the
+// frontend free to evolve its own data model without needing this worker
+// redeployed every time (adding a new page's field here is the exception).
+var DATA_FIELDS = ["backtest", "cockpit", "journal"];
+
 async function handleGetData(request, env) {
   var username = await requireSession(request, env);
   if (!username) return json({ error: "Not signed in." }, 401);
   var raw = await env.ACCOUNTS.get(dataKey(username));
-  var data = raw ? JSON.parse(raw) : { backtest: null, cockpit: null, updatedAt: null };
+  var stored = raw ? JSON.parse(raw) : {};
+  var data = {};
+  DATA_FIELDS.forEach(function (field) { data[field] = stored[field] !== undefined ? stored[field] : null; });
+  data.updatedAt = stored.updatedAt || null;
   return json(data);
 }
 
-// `backtest` and `cockpit` are opaque, page-owned JSON values — this worker
-// doesn't know or care about their internal shape (a flat array today, a
-// {strategies, entriesByStrategy} object tomorrow), only that whatever a
-// page sends up comes back unchanged. Keeps the frontend free to evolve its
-// own data model without needing this worker redeployed every time.
 var MAX_DATA_BYTES = 500000; // ~500KB combined; KV values can hold far more, this is just a sanity cap
 
 async function handlePutData(request, env) {
@@ -196,12 +201,12 @@ async function handlePutData(request, env) {
   if (!body) return json({ error: "Bad request." }, 400);
 
   var raw = await env.ACCOUNTS.get(dataKey(username));
-  var existing = raw ? JSON.parse(raw) : { backtest: null, cockpit: null };
-  var next = {
-    backtest: body.backtest !== undefined ? body.backtest : (existing.backtest !== undefined ? existing.backtest : null),
-    cockpit: body.cockpit !== undefined ? body.cockpit : (existing.cockpit !== undefined ? existing.cockpit : null),
-    updatedAt: new Date().toISOString(),
-  };
+  var existing = raw ? JSON.parse(raw) : {};
+  var next = {};
+  DATA_FIELDS.forEach(function (field) {
+    next[field] = body[field] !== undefined ? body[field] : (existing[field] !== undefined ? existing[field] : null);
+  });
+  next.updatedAt = new Date().toISOString();
   var serialized = JSON.stringify(next);
   if (serialized.length > MAX_DATA_BYTES) return json({ error: "Data too large to save." }, 413);
   await env.ACCOUNTS.put(dataKey(username), serialized);
