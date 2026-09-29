@@ -239,6 +239,14 @@
   .home-mega > .mega-section{ padding:22px clamp(16px,3vw,26px); }
   .home-mega > .mega-section + .mega-section{ border-top:1px solid var(--hairline); }
 
+  /* ---------- Firms: floats free on the page background instead of sitting
+     in a card, with just a soft glow behind it. ---------- */
+  .firms-standalone{ position:relative; text-align:center; padding:34px 0 42px; margin-bottom:14px; }
+  .firms-standalone::before{
+    content:""; position:absolute; inset:-30px -60px; z-index:-1; pointer-events:none;
+    background:radial-gradient(ellipse 65% 100% at 50% 40%, rgba(62,224,140,0.08), transparent 72%);
+  }
+
   .firm-row{
     display:grid; grid-template-columns:repeat(auto-fit, minmax(128px, 1fr)); gap:8px;
   }
@@ -426,7 +434,7 @@
     <div class="home-hero-copy">
       <div class="home-hero-badge">Free Prop Firm Toolkit</div>
       <h1>Trade the eval.<br /><span class="hl">Get paid faster.</span></h1>
-      <p class="home-hero-sub">Free payout guides, a backtester, and a trading journal &mdash; built by a funded trader, for funded traders. No login, no paywall.</p>
+      <p class="home-hero-sub">Free payout guides, a backtester, and a trading journal &mdash; built by a funded trader, for funded traders. No paywall.</p>
       <div class="home-hero-cta">
         <a class="home-hero-btn primary" href="lucid/">Start with the Guide &rarr;</a>
         <a class="home-hero-btn secondary" href="#showcase">See how it works</a>
@@ -486,10 +494,8 @@
     </div>
   </div>
 
-  <div class="home-mega">
-  <div class="mega-section">
+  <div class="firms-standalone">
   <div class="section-head">
-    <div class="eyebrow">Works Where You Trade</div>
     <h2>Supported Prop Firms</h2>
   </div>
   <div class="firm-row">
@@ -521,9 +527,9 @@
   </div>
   </div>
 
+  <div class="home-mega">
   <div class="mega-section">
   <div class="section-head">
-    <div class="eyebrow">Stay Sharp</div>
     <h2>Economic Calendar</h2>
   </div>
   <a class="news-card" href="calendar/">
@@ -549,7 +555,6 @@
 
   <div class="mega-section">
   <div class="section-head" id="about">
-    <div class="eyebrow">About</div>
     <h2>What EZPayouts is</h2>
   </div>
   <p class="section-body text-card">EZPayouts is a free, independent toolkit for prop-firm traders &mdash; payout guides, risk calculators, and an economic calendar, built and maintained by ShotPath. No login, no paywall, and no affiliation with the prop firms it covers.</p>
