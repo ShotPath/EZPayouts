@@ -384,13 +384,14 @@
 
   ensureStyles();
   var activeItem = detectActiveItem();
+  var isHome = window.location.pathname === "/" || window.location.pathname === "/index.html";
 
-  // The welcome page (Home) reads as a landing page, not the app: a pill
-  // nav bar in the content flow instead of the fixed header + sidebar the
-  // rest of the site uses.
+  // The welcome page (Home) and other plain content pages (like Credits)
+  // read as landing pages, not the app: a pill nav bar in the content flow
+  // instead of the fixed header + sidebar the rest of the site uses.
   if (activeItem.slug === "home") {
     document.body.classList.add("ez-pill-mode");
-    var topbar = buildTopbar(activeItem.slug);
+    var topbar = buildTopbar(isHome ? activeItem.slug : null);
     document.body.insertBefore(topbar, document.body.firstChild);
   } else {
     document.body.setAttribute("data-sidebar-mode", getSidebarMode());

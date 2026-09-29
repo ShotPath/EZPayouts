@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Credits &mdash; EZPayouts</title>
+<link rel="icon" type="image/png" href="../ezpayouts-icon-only.png">
+<link rel="apple-touch-icon" href="../ezpayouts-icon-only.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
+<style>
+  :root{
+    --void:#07090a;
+    --panel:#0c1310;
+    --panel-raised:#121b16;
+    --panel-hi:#182319;
+    --hairline:#23332a;
+    --hairline-bright:#345a44;
+    --phosphor:#3ee08c;
+    --phosphor-soft:#8fe6b6;
+    --phosphor-dim:#1c5c3d;
+    --phosphor-glow:rgba(62,224,140,0.35);
+    --mint:#7ee8ac;
+    --mint-text:#062b17;
+    --red:#ef5a5a;
+    --ice:#dcefe2;
+    --muted:#7c9584;
+    --muted-dim:#4d6055;
+    --font-display:'Chakra Petch', 'Segoe UI', sans-serif;
+    --font-body:'IBM Plex Sans', 'Segoe UI', sans-serif;
+    --font-mono:'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+  }
+
+  *{box-sizing:border-box;}
+  html{color-scheme:dark; scroll-behavior:smooth;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(ellipse 120% 60% at 50% -10%, rgba(62,224,140,0.10), transparent 60%),
+      radial-gradient(ellipse 80% 50% at 100% 100%, rgba(62,224,140,0.06), transparent 60%),
+      var(--void);
+    color:var(--ice);
+    font-family:var(--font-body);
+    padding:0 clamp(16px,4vw,48px);
+    padding-block:clamp(18px,3.4vw,32px) 60px;
+    position:relative;
+    overflow-x:hidden;
+  }
+  body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    background:repeating-linear-gradient(
+      to bottom,
+      rgba(62,224,140,0.035) 0px,
+      rgba(62,224,140,0.035) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    mix-blend-mode:overlay;
+    z-index:0;
+    animation:scan 9s linear infinite;
+  }
+  @keyframes scan{
+    0%{ background-position:0 0; }
+    100%{ background-position:0 120px; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    html{ scroll-behavior:auto; }
+    body::before{ animation:none; }
+    *{ animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; }
+  }
+
+  .wrap{ max-width:820px; margin:0 auto; position:relative; z-index:1; }
+
+  h1,h2{ font-family:var(--font-display); text-wrap:balance; margin:0; }
+  a{ color:var(--phosphor-soft); }
+  .mono{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
+
+  .credits-hero{ text-align:center; padding:34px 0 8px; }
+  .credits-hero .eyebrow{
+    font-family:var(--font-mono); font-size:12px; letter-spacing:0.22em; text-transform:uppercase;
+    color:var(--phosphor); margin-bottom:10px;
+  }
+  .credits-hero h1{ font-size:clamp(26px,3.6vw,34px); color:var(--ice); margin-bottom:10px; }
+  .credits-hero p{ color:var(--muted); font-size:14.5px; max-width:56ch; margin:0 auto; line-height:1.6; }
+
+  /* ---------- Achievements collage ---------- */
+  .achievement-row{
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:14px;
+    max-width:680px; margin:28px auto 0;
+  }
+  .achievement-card{
+    position:relative;
+    display:flex; flex-direction:column; gap:12px; text-align:center;
+    padding:14px 14px 18px; border-radius:14px;
+    background:var(--panel-raised); border:1px solid var(--hairline);
+    transform:perspective(700px) rotateY(0deg); transition:transform .25s ease-out, box-shadow .25s ease-out;
+    will-change:transform;
+    --glow-x:50%;
+  }
+  .achievement-card::before{
+    content:""; position:absolute; left:var(--glow-x); bottom:-16px; transform:translateX(-50%);
+    width:65%; height:30px; border-radius:50%;
+    background:radial-gradient(ellipse, rgba(62,224,140,0.6), transparent 72%);
+    filter:blur(10px); opacity:0; transition:opacity .25s ease-out; pointer-events:none; z-index:-1;
+  }
+  .achievement-card:hover::before{ opacity:1; }
+  .achievement-mark{
+    width:100%; aspect-ratio:1.4; border-radius:11px; overflow:hidden;
+    background:var(--panel-hi); border:1px solid var(--hairline);
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-display); font-weight:700; font-size:26px; color:var(--muted-dim);
+  }
+  .achievement-mark img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .achievement-name{ font-family:var(--font-display); font-weight:600; font-size:13px; color:var(--muted); line-height:1.3; }
+  .achievement-status{
+    font-family:var(--font-mono); font-size:9.5px; letter-spacing:0.1em; text-transform:uppercase;
+    padding:3px 10px; border-radius:999px; background:var(--panel-hi); color:var(--muted-dim); border:1px solid var(--hairline);
+    align-self:center;
+  }
+  .achievement-card.disabled{ opacity:0.55; }
+  .achievement-card.active{
+    border-color:var(--phosphor-dim);
+    background:linear-gradient(180deg, rgba(62,224,140,0.10), var(--panel-raised));
+    box-shadow:0 16px 36px -20px var(--phosphor-glow);
+  }
+  .achievement-card.active .achievement-mark{ border:none; box-shadow:0 0 0 1px var(--hairline-bright), 0 0 16px rgba(62,224,140,0.3); cursor:zoom-in; }
+  .achievement-card.active .achievement-name{ color:var(--ice); font-size:14px; }
+  .achievement-card.active .achievement-status{ background:var(--mint); color:var(--mint-text); font-weight:700; border-color:var(--mint); }
+
+  /* ---------- Image lightbox (achievement cards) ---------- */
+  .img-lightbox{
+    position:fixed; inset:0; z-index:200; display:flex; align-items:center; justify-content:center;
+    padding:24px; background:rgba(4,6,5,0.86); backdrop-filter:blur(4px); cursor:zoom-out;
+  }
+  .img-lightbox[hidden]{ display:none; }
+  .img-lightbox-frame{
+    position:relative; display:inline-block;
+    transform:perspective(1000px) rotateX(0deg) rotateY(0deg);
+    transition:transform .2s ease-out; will-change:transform;
+    --glow-x:50%;
+  }
+  .img-lightbox-frame::before{
+    content:""; position:absolute; left:var(--glow-x); bottom:-22px; transform:translateX(-50%);
+    width:55%; height:36px; border-radius:50%;
+    background:radial-gradient(ellipse, rgba(62,224,140,0.6), transparent 72%);
+    filter:blur(14px); opacity:0; transition:opacity .25s ease-out; pointer-events:none; z-index:-1;
+  }
+  .img-lightbox-frame:hover::before{ opacity:1; }
+  .img-lightbox-frame img{
+    max-width:min(90vw, 900px); max-height:85vh; width:auto; height:auto; display:block;
+    border-radius:14px; border:1px solid var(--hairline-bright);
+    box-shadow:0 30px 80px -20px rgba(0,0,0,0.65); cursor:default;
+  }
+  .img-lightbox-close{
+    position:fixed; top:18px; right:22px; background:var(--panel-raised); border:1px solid var(--hairline-bright);
+    color:var(--ice); font-size:22px; line-height:1; width:40px; height:40px; border-radius:50%;
+    cursor:pointer; transition:border-color .15s, color .15s;
+  }
+  .img-lightbox-close:hover{ border-color:var(--phosphor-dim); color:var(--phosphor-soft); }
+
+  /* ---------- Bio ---------- */
+  .bio-card{
+    max-width:680px; margin:28px auto 0; text-align:left;
+    padding:28px 26px; border-radius:16px;
+    background:var(--panel-raised); border:1px solid var(--hairline);
+  }
+  .bio-card p{ margin:0 0 14px; color:var(--muted); font-size:14.5px; line-height:1.75; }
+  .bio-card p:last-child{ margin-bottom:0; }
+  .bio-card p.bio-beat{ color:var(--ice); font-family:var(--font-display); font-weight:600; font-size:15.5px; }
+
+  footer{ margin-top:44px; text-align:center; }
+  footer p{ font-size:12px; color:var(--muted-dim); line-height:1.7; margin:0; }
+  footer a{ color:var(--muted); }
+</style>
+</head>
+<body>
+<script src="/nav.js"></script>
+<script src="/account.js"></script>
+<script src="/coach.js"></script>
+<div class="wrap">
+
+  <div class="credits-hero">
+    <div class="eyebrow">Credits</div>
+    <h1>Who is ShotPath?</h1>
+    <p>The trader behind EZPayouts &mdash; why this toolkit exists, and the story that led here.</p>
+  </div>
+
+  <div class="achievement-row">
+    <div class="achievement-card active">
+      <span class="achievement-mark" aria-hidden="true"><img src="../achievements/lucidflex-25k-funded.jpg" alt="" loading="lazy" /></span>
+      <span class="achievement-name">LucidFlex 25K</span>
+      <span class="achievement-status">Funded</span>
+    </div>
+    <div class="achievement-card disabled" aria-disabled="true">
+      <span class="achievement-mark" aria-hidden="true">+</span>
+      <span class="achievement-name">Next Milestone</span>
+      <span class="achievement-status">Coming Soon</span>
+    </div>
+    <div class="achievement-card disabled" aria-disabled="true">
+      <span class="achievement-mark" aria-hidden="true">+</span>
+      <span class="achievement-name">Next Milestone</span>
+      <span class="achievement-status">Coming Soon</span>
+    </div>
+    <div class="achievement-card disabled" aria-disabled="true">
+      <span class="achievement-mark" aria-hidden="true">+</span>
+      <span class="achievement-name">Next Milestone</span>
+      <span class="achievement-status">Coming Soon</span>
+    </div>
+  </div>
+
+  <div class="bio-card">
+    <p>Austin never had a blueprint.</p>
+    <p>Born into a world already against him. His mother, heavily into drugs and working the streets, gave birth to him inside a prison. His father, an alcoholic who couldn't hold himself together, tried but the foundation was never there. Motel rooms were home. No car, so everywhere was walking distance or it wasn't going. Dinner some nights was tostada shells. A bean burrito was a good meal. You eat what's there and you don't complain because complaining doesn't fill the plate.</p>
+    <p class="bio-beat">But even in the darkest beginning, love found him anyway.</p>
+    <p>His dad's ex girlfriend showed up when she had no obligation to. Chosen love. Not blood, not duty, just a woman who looked at a kid in a hard situation and decided he mattered. She was the first real warmth he knew. Then when he was 8 his dad gave him up. And the system caught him.</p>
+    <p class="bio-beat">Then his grandma stepped in and made it permanent.</p>
+    <p>She adopted him at 9 or 10 and gave him something he had never had before. A home. Stability. Someone who chose him and meant it. It wasn't easy for her either. They penny pinched on meals together, stretching every dollar as far as it would go. But there was love on that table regardless of what was on it. And for the first time in his life, Austin had someone in his corner unconditionally.</p>
+    <p>He survived the beginning because two women loved him well enough to hold him together until he could hold himself together.</p>
+    <p>But poverty was still the foundation. Money was still something other people had. The scarcity he grew up with never fully left his bones.</p>
+    <p>So when the market handed him $1,000 on his very first trade, then turned $1,500 into $30k in two weeks, it wasn't just profit. It was the first time life had said yes on his own terms. He quit his job. He believed he had finally found the door out of everything he grew up without.</p>
+    <p>Then in two days it was gone. All $30k. And before he could even process it, he took his girlfriend's paycheck, her $1,500, and lost that too. Alone in that room, carrying the weight of every loss, every absent parent, every childhood meal that wasn't enough, he hit the darkest moment of his life. He wanted to end it all.</p>
+    <p class="bio-beat">He stayed.</p>
+    <p class="bio-beat">But staying didn't mean winning. Not yet.</p>
+    <p>What followed was three and a half years of quiet suffering most people never saw. He kept coming back to trading because it was the only dream he had ever believed in. But the losses kept coming. Hundreds of backtests. Blown accounts. Imposter syndrome whispering that maybe he was kidding himself. Maybe a kid born the way he was born doesn't get to have this life.</p>
+    <p>He worked shifts nobody brags about. Came home at midnight. Ate. Slept at 1am. Alarm at 6am. Traded for hours in the dark before most people were awake. Then went straight to work and did it all again. Day after day. Week after week. Running on fumes and the stubborn refusal to let his beginning define his ending.</p>
+    <p>He lost more. He doubted himself more. He kept going anyway.</p>
+    <p class="bio-beat">Then something shifted. Not in the market. In him.</p>
+    <p>He stopped chasing and started studying. Himself more than the charts. He found God, not in a church but at rock bottom. He backtested 500+ times. He defined his edge, his exits, his risk. He built a plan with the same quiet discipline he used to survive childhood.</p>
+    <p class="bio-beat">And then he executed it.</p>
+    <p>$3,000 became $12,500. Net positive for the first time in his entire journey. A partner beside him. Faith above him. A roadmap in front of him.</p>
+    <p>The boy born in a prison, who ate tostada shells for dinner and walked everywhere because there was no car, who was given up at 8 and penny pinched meals with his grandma, who once sat alone in a room not wanting to be here anymore, is building a life that was never supposed to be his.</p>
+    <p class="bio-beat">But it is.</p>
+    <p class="bio-beat">Because he stayed. And he never stopped showing up.</p>
+  </div>
+
+  <footer>
+    <p><a href="/">&larr; Back to EZPayouts</a></p>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // Side-to-side tilt on hover, following the cursor. Skipped entirely for
+  // anyone who's asked the OS for reduced motion.
+  var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!reduceMotion){
+    var MAX_TILT_DEG = 10;
+    document.querySelectorAll(".achievement-card").forEach(function(card){
+      card.addEventListener("mousemove", function(e){
+        var rect = card.getBoundingClientRect();
+        var x = e.clientX - rect.left;
+        var centerX = rect.width / 2;
+        var rotateY = ((x - centerX) / centerX) * MAX_TILT_DEG;
+        card.style.transform = "perspective(700px) rotateY(" + rotateY.toFixed(2) + "deg)";
+        var glowPct = Math.max(0, Math.min(100, (x / rect.width) * 100));
+        card.style.setProperty("--glow-x", glowPct.toFixed(1) + "%");
+      });
+      card.addEventListener("mouseleave", function(){
+        card.style.transform = "";
+        card.style.removeProperty("--glow-x");
+      });
+    });
+  }
+
+  // Click an achievement's image to view it full-size in a centered lightbox
+  // that tilts and glows the same way as the card it came from — like
+  // picking the card up to look at it.
+  var LIGHTBOX_MAX_TILT_DEG = 14;
+  var lightbox = null;
+  var lightboxFrame = null;
+  var lightboxImg = null;
+  function ensureLightbox(){
+    if (lightbox) return;
+    lightbox = document.createElement("div");
+    lightbox.className = "img-lightbox";
+    lightbox.hidden = true;
+    lightbox.innerHTML = '<button type="button" class="img-lightbox-close" aria-label="Close">&times;</button>' +
+      '<div class="img-lightbox-frame"><img alt="" /></div>';
+    document.body.appendChild(lightbox);
+    lightboxFrame = lightbox.querySelector(".img-lightbox-frame");
+    lightboxImg = lightbox.querySelector("img");
+    lightbox.addEventListener("click", function(e){
+      if (e.target === lightbox) closeLightbox();
+    });
+    lightbox.querySelector(".img-lightbox-close").addEventListener("click", closeLightbox);
+    document.addEventListener("keydown", function(e){
+      if (e.key === "Escape" && !lightbox.hidden) closeLightbox();
+    });
+    if (!reduceMotion){
+      lightboxFrame.addEventListener("mousemove", function(e){
+        var rect = lightboxFrame.getBoundingClientRect();
+        var x = e.clientX - rect.left;
+        var y = e.clientY - rect.top;
+        var centerX = rect.width / 2;
+        var centerY = rect.height / 2;
+        var rotateY = ((x - centerX) / centerX) * LIGHTBOX_MAX_TILT_DEG;
+        var rotateX = -((y - centerY) / centerY) * LIGHTBOX_MAX_TILT_DEG;
+        lightboxFrame.style.transform = "perspective(1000px) rotateX(" + rotateX.toFixed(2) + "deg) rotateY(" + rotateY.toFixed(2) + "deg)";
+        var glowPct = Math.max(0, Math.min(100, (x / rect.width) * 100));
+        lightboxFrame.style.setProperty("--glow-x", glowPct.toFixed(1) + "%");
+      });
+      lightboxFrame.addEventListener("mouseleave", function(){
+        lightboxFrame.style.transform = "perspective(1000px) rotateX(0deg) rotateY(0deg)";
+        lightboxFrame.style.removeProperty("--glow-x");
+      });
+    }
+  }
+  function openLightbox(src, alt){
+    ensureLightbox();
+    lightboxImg.src = src;
+    lightboxImg.alt = alt || "";
+    lightboxFrame.style.transform = "perspective(1000px) rotateX(0deg) rotateY(0deg)";
+    lightboxFrame.style.removeProperty("--glow-x");
+    lightbox.hidden = false;
+  }
+  function closeLightbox(){
+    if (!lightbox) return;
+    lightbox.hidden = true;
+    lightboxFrame.style.transform = "perspective(1000px) rotateX(0deg) rotateY(0deg)";
+    lightboxFrame.style.removeProperty("--glow-x");
+  }
+  document.querySelectorAll(".achievement-card.active .achievement-mark img").forEach(function(img){
+    img.addEventListener("click", function(){
+      openLightbox(img.src, img.alt);
+    });
+  });
+})();
+</script>
+</body>
+</html>
