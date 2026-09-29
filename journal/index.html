@@ -253,8 +253,21 @@
   .trade-row-head{
     font-family:var(--font-mono); font-size:10px; letter-spacing:0.08em; text-transform:uppercase;
     color:var(--muted); padding:0 6px 10px; border-bottom:1px solid var(--hairline-bright); cursor:default;
+    position:sticky; top:0; z-index:1; background:var(--panel-raised);
   }
-  .trade-row-head:hover{ background:transparent; }
+  .trade-row-head:hover{ background:var(--panel-raised); }
+
+  /* Once a list grows past 4 rows, scroll inside the card instead of
+     letting the page grow forever. */
+  #tradesList{ max-height:204px; }
+  #dailyList, #weeklyList, #strategyList{ max-height:232px; }
+  #tradesList, #dailyList, #weeklyList, #strategyList{
+    overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(--hairline-bright) transparent;
+  }
+  #tradesList::-webkit-scrollbar, #dailyList::-webkit-scrollbar, #weeklyList::-webkit-scrollbar, #strategyList::-webkit-scrollbar{ width:8px; }
+  #tradesList::-webkit-scrollbar-track, #dailyList::-webkit-scrollbar-track, #weeklyList::-webkit-scrollbar-track, #strategyList::-webkit-scrollbar-track{ background:transparent; }
+  #tradesList::-webkit-scrollbar-thumb, #dailyList::-webkit-scrollbar-thumb, #weeklyList::-webkit-scrollbar-thumb, #strategyList::-webkit-scrollbar-thumb{ background:var(--hairline-bright); border-radius:999px; }
+  #tradesList::-webkit-scrollbar-thumb:hover, #dailyList::-webkit-scrollbar-thumb:hover, #weeklyList::-webkit-scrollbar-thumb:hover, #strategyList::-webkit-scrollbar-thumb:hover{ background:var(--phosphor-dim); }
   .trade-date{ font-size:11.5px; color:var(--muted); white-space:nowrap; }
   .trade-symbol{ display:flex; flex-direction:column; min-width:0; }
   .trade-symbol > span:first-child{ font-family:var(--font-display); font-weight:600; font-size:13.5px; color:var(--ice); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }

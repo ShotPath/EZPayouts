@@ -347,6 +347,13 @@
     font-family:var(--font-mono); font-size:10px; letter-spacing:0.08em; text-transform:uppercase;
     color:var(--muted); padding:0 4px 10px; border-bottom:1px solid var(--hairline-bright);
   }
+  /* Once there are more than 4 rows, scroll inside the card instead of
+     letting the page grow forever. */
+  #btList{ max-height:204px; overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(--hairline-bright) transparent; }
+  #btList::-webkit-scrollbar{ width:8px; }
+  #btList::-webkit-scrollbar-track{ background:transparent; }
+  #btList::-webkit-scrollbar-thumb{ background:var(--hairline-bright); border-radius:999px; }
+  #btList::-webkit-scrollbar-thumb:hover{ background:var(--phosphor-dim); }
   .bt-model{
     font-family:var(--font-display); font-weight:600; font-size:14.5px; color:var(--ice);
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
