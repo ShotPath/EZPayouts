@@ -103,6 +103,9 @@
     if (!isLoggedIn()) return Promise.resolve(null);
     return apiFetch("/data", { method: "PUT", json: partial }).catch(function () { return null; });
   }
+  function changePassword(currentPassword, newPassword) {
+    return apiFetch("/change-password", { method: "POST", json: { currentPassword: currentPassword, newPassword: newPassword } });
+  }
 
   // ---------- Styles (injected once; relies on the :root tokens every page already defines) ----------
   function ensureStyles() {
@@ -115,18 +118,21 @@
       " color:var(--phosphor-soft); cursor:pointer; transition:background .15s, border-color .15s, color .15s; }" +
       ".ez-auth-btn:hover{ border-color:var(--phosphor-dim); color:var(--ice); }" +
       ".ez-auth-pill{ position:relative; }" +
-      ".ez-auth-user{ display:inline-flex; align-items:center; gap:5px; font-family:var(--font-mono); font-size:11.5px; font-weight:600;" +
-      " white-space:nowrap; padding:6px 12px; border-radius:999px; border:1px solid var(--hairline-bright); background:var(--panel);" +
-      " color:var(--ice); cursor:pointer; transition:border-color .15s; }" +
-      ".ez-auth-user:hover{ border-color:var(--phosphor-dim); }" +
-      ".ez-auth-caret{ font-size:9px; color:var(--muted); }" +
-      ".ez-auth-menu{ position:absolute; top:calc(100% + 8px); right:0; z-index:40; min-width:120px;" +
+      ".ez-auth-avatar{ display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex:none;" +
+      " border-radius:50%; border:1px solid var(--hairline-bright); background:var(--mint); color:var(--mint-text);" +
+      " font-family:var(--font-display); font-weight:700; font-size:14px; cursor:pointer; transition:filter .15s; }" +
+      ".ez-auth-avatar:hover{ filter:brightness(1.08); }" +
+      ".ez-auth-menu{ position:absolute; top:calc(100% + 8px); right:0; z-index:40; min-width:170px;" +
       " background:var(--panel-raised); border:1px solid var(--hairline-bright); border-radius:12px; overflow:hidden;" +
       " box-shadow:0 18px 36px -18px rgba(0,0,0,0.6); }" +
       ".ez-auth-menu[hidden]{ display:none; }" +
-      ".ez-auth-signout{ display:block; width:100%; text-align:left; font-family:var(--font-mono); font-size:11.5px;" +
+      ".ez-auth-menu-user{ padding:10px 14px 8px; font-family:var(--font-mono); font-size:11px; color:var(--muted);" +
+      " border-bottom:1px solid var(--hairline); }" +
+      ".ez-auth-menu-user strong{ display:block; color:var(--ice); font-size:12.5px; margin-top:2px; }" +
+      ".ez-auth-menu-item{ display:block; width:100%; text-align:left; font-family:var(--font-mono); font-size:11.5px;" +
       " padding:10px 14px; background:transparent; border:none; color:var(--muted); cursor:pointer; transition:color .15s, background .15s; }" +
-      ".ez-auth-signout:hover{ color:#ef5a5a; background:rgba(239,90,90,0.08); }" +
+      ".ez-auth-menu-item:hover{ color:var(--ice); background:var(--panel); }" +
+      ".ez-auth-menu-item.danger:hover{ color:#ef5a5a; background:rgba(239,90,90,0.08); }" +
       ".ez-auth-overlay{ position:fixed; inset:0; z-index:1000; display:flex; align-items:center; justify-content:center;" +
       " padding:20px; background:rgba(4,6,5,0.72); backdrop-filter:blur(3px); }" +
       ".ez-auth-overlay[hidden]{ display:none; }" +
@@ -292,6 +298,86 @@
     setTimeout(function () { modalEls.usernameInput.focus(); }, 30);
   }
 
+  // ---------- Change password modal (built once, shared across mounts) ----------
+  var cpModalBuilt = false;
+  var cpModalEls = null;
+
+  function ensureChangePasswordModal() {
+    if (cpModalBuilt) return;
+    cpModalBuilt = true;
+    ensureStyles();
+
+    var overlay = document.createElement("div");
+    overlay.className = "ez-auth-overlay";
+    overlay.hidden = true;
+    overlay.innerHTML = "" +
+      '<div class="ez-auth-modal" role="dialog" aria-modal="true" aria-label="Change password">' +
+        '<button type="button" class="ez-auth-close" aria-label="Close">&times;</button>' +
+        '<p class="ez-auth-eyebrow">Change Password</p>' +
+        '<form novalidate>' +
+          '<label class="ez-auth-field"><span>Current Password</span>' +
+            '<input type="password" class="ez-cp-current" autocomplete="current-password" maxlength="72" /></label>' +
+          '<label class="ez-auth-field"><span>New Password</span>' +
+            '<input type="password" class="ez-cp-new" autocomplete="new-password" maxlength="72" /></label>' +
+          '<label class="ez-auth-field"><span>Confirm New Password</span>' +
+            '<input type="password" class="ez-cp-confirm" autocomplete="new-password" maxlength="72" /></label>' +
+          '<p class="ez-auth-error" hidden></p>' +
+          '<button type="submit" class="ez-auth-submit">Update Password</button>' +
+        "</form>" +
+      "</div>";
+    document.body.appendChild(overlay);
+
+    var formEl = overlay.querySelector("form");
+    var currentInput = overlay.querySelector(".ez-cp-current");
+    var newInput = overlay.querySelector(".ez-cp-new");
+    var confirmInput = overlay.querySelector(".ez-cp-confirm");
+    var errorEl = overlay.querySelector(".ez-auth-error");
+    var submitBtn = overlay.querySelector(".ez-auth-submit");
+
+    formEl.addEventListener("submit", function (e) {
+      e.preventDefault();
+      errorEl.hidden = true;
+      if (newInput.value !== confirmInput.value) {
+        errorEl.textContent = "New passwords don't match.";
+        errorEl.hidden = false;
+        return;
+      }
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Updating…";
+      changePassword(currentInput.value, newInput.value).then(function () {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Update Password";
+        closeCpModal();
+        formEl.reset();
+      }).catch(function (err) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Update Password";
+        errorEl.textContent = err.message || "Something went wrong.";
+        errorEl.hidden = false;
+      });
+    });
+
+    overlay.querySelector(".ez-auth-close").addEventListener("click", closeCpModal);
+    overlay.addEventListener("click", function (e) {
+      if (e.target === overlay) closeCpModal();
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && !overlay.hidden) closeCpModal();
+    });
+
+    function closeCpModal() { overlay.hidden = true; }
+
+    cpModalEls = { overlay: overlay, currentInput: currentInput, errorEl: errorEl, formEl: formEl };
+  }
+
+  function openChangePasswordModal() {
+    ensureChangePasswordModal();
+    cpModalEls.errorEl.hidden = true;
+    cpModalEls.formEl.reset();
+    cpModalEls.overlay.hidden = false;
+    setTimeout(function () { cpModalEls.currentInput.focus(); }, 30);
+  }
+
   // ---------- Topbar widget ----------
   var globalClickWired = false;
   function ensureGlobalClickHandler() {
@@ -306,23 +392,28 @@
 
   function renderWidget(container) {
     if (isLoggedIn()) {
+      var username = getUsername() || "";
+      var initial = username.slice(0, 1).toUpperCase() || "?";
       container.innerHTML = "" +
         '<div class="ez-auth-pill">' +
-          '<button type="button" class="ez-auth-user">' +
-            '<span>@' + escapeHtml(getUsername()) + "</span>" +
-            '<span class="ez-auth-caret" aria-hidden="true">&#9662;</span>' +
-          "</button>" +
+          '<button type="button" class="ez-auth-avatar" aria-label="Account menu">' + escapeHtml(initial) + "</button>" +
           '<div class="ez-auth-menu" hidden>' +
-            '<button type="button" class="ez-auth-signout">Sign out</button>' +
+            '<div class="ez-auth-menu-user">Signed in as<strong>@' + escapeHtml(username) + "</strong></div>" +
+            '<button type="button" class="ez-auth-menu-item" data-action="change-password">Change Password</button>' +
+            '<button type="button" class="ez-auth-menu-item danger" data-action="sign-out">Sign out</button>' +
           "</div>" +
         "</div>";
-      var userBtn = container.querySelector(".ez-auth-user");
+      var avatarBtn = container.querySelector(".ez-auth-avatar");
       var menu = container.querySelector(".ez-auth-menu");
-      userBtn.addEventListener("click", function (e) {
+      avatarBtn.addEventListener("click", function (e) {
         e.stopPropagation();
         menu.hidden = !menu.hidden;
       });
-      container.querySelector(".ez-auth-signout").addEventListener("click", function () {
+      menu.querySelector('[data-action="change-password"]').addEventListener("click", function () {
+        menu.hidden = true;
+        openChangePasswordModal();
+      });
+      menu.querySelector('[data-action="sign-out"]').addEventListener("click", function () {
         menu.hidden = true;
         logout().then(function () { renderWidget(container); });
       });
@@ -358,9 +449,11 @@
     logout: logout,
     fetchData: fetchData,
     saveData: saveData,
+    changePassword: changePassword,
     onChange: onChange,
     mountWidget: mountWidget,
     openSignIn: function () { openModal("login"); },
+    openChangePassword: openChangePasswordModal,
   };
 
   var autoContainer = document.getElementById("authWidget");

@@ -137,6 +137,34 @@ async function handleLogout(request, env) {
   return json({ ok: true });
 }
 
+async function handleChangePassword(request, env) {
+  var username = await requireSession(request, env);
+  if (!username) return json({ error: "Not signed in." }, 401);
+  var body = await readJson(request);
+  if (!body) return json({ error: "Bad request." }, 400);
+  var currentPassword = String(body.currentPassword || "");
+  var newPassword = String(body.newPassword || "");
+
+  if (newPassword.length < MIN_PASSWORD_LENGTH) {
+    return json({ error: "New password must be at least " + MIN_PASSWORD_LENGTH + " characters." }, 400);
+  }
+
+  var raw = await env.ACCOUNTS.get(userKey(username));
+  if (!raw) return json({ error: "Account not found." }, 404);
+  var record = JSON.parse(raw);
+  var candidateHash = await hashPassword(currentPassword, record.salt);
+  if (!timingSafeEqual(candidateHash, record.hash)) {
+    return json({ error: "Current password is incorrect." }, 401);
+  }
+
+  var saltBytes = crypto.getRandomValues(new Uint8Array(16));
+  record.salt = bytesToBase64(saltBytes);
+  record.hash = await hashPassword(newPassword, record.salt);
+  await env.ACCOUNTS.put(userKey(username), JSON.stringify(record));
+
+  return json({ ok: true });
+}
+
 async function handleMe(request, env) {
   var username = await requireSession(request, env);
   if (!username) return json({ error: "Not signed in." }, 401);
@@ -195,6 +223,7 @@ export default {
     if (path === "/signup" && request.method === "POST") return handleSignup(request, env);
     if (path === "/login" && request.method === "POST") return handleLogin(request, env);
     if (path === "/logout" && request.method === "POST") return handleLogout(request, env);
+    if (path === "/change-password" && request.method === "POST") return handleChangePassword(request, env);
     if (path === "/me" && request.method === "GET") return handleMe(request, env);
     if (path === "/data" && request.method === "GET") return handleGetData(request, env);
     if (path === "/data" && request.method === "PUT") return handlePutData(request, env);
