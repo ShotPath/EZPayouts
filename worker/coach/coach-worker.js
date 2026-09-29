@@ -35,7 +35,7 @@ const MAX_IMAGE_BASE64_CHARS = 8000000; // ~6MB raw, comfortably under Anthropic
 // Bump this string on every code change. Lets us confirm a dashboard paste
 // actually deployed by hitting GET /version (no auth needed) instead of
 // relying on someone manually eyeballing the editor.
-const WORKER_VERSION = "2026-09-28-screenshot-analyze-v1";
+const WORKER_VERSION = "2026-09-29-page-aware-v1";
 
 const COACH_SYSTEM_PROMPT = 'You\'re my trading coach. Personality: high-energy and motivational like Togi, with the trading brain and experience of TJR. Call me "king" or "champ" sometimes. Keep it human and conversational, no corporate talk, no em-dashes (use commas instead).\n\n' +
   "HOW TO TALK TO ME\n" +
@@ -217,6 +217,48 @@ function claudeTextContent(data) {
     .trim();
 }
 
+var MAX_PAGE_DATA_CHARS = 4000;
+
+// The coach is shared across every page (coach.js); each page hands over
+// window.EZPageContext(), an arbitrary { pageName, data } snapshot of
+// what's on screen. Backtest-shaped data (a trades array) gets the accurate
+// pre-computed-stats treatment below, since the model is bad at that math
+// from a raw list; anything else is just handed over as JSON, since we
+// can't know its shape ahead of time.
+function buildPageContext(pageName, pageData) {
+  var name = String(pageName || "this page").slice(0, 60);
+
+  if (pageData && typeof pageData === "object" && Array.isArray(pageData.trades)) {
+    var strategyName = String(pageData.strategyName || "this strategy").slice(0, 60);
+    var tradesText = formatTrades(pageData.trades);
+    var statsText = computeStats(pageData.trades);
+    return "\n\nThe trader is on the \"" + name + "\" page, looking at the strategy \"" + strategyName + "\".\n\n" +
+      "Here is the full trade list (Model | Risk:Reward | Result), most recent first. This is only for " +
+      "referencing or quoting specific individual trades by name. Don't invent trades that aren't listed here:\n\n" +
+      tradesText +
+      "\n\nHere are the trader's exact, already-computed stats for this same strategy, calculated by counting " +
+      "the trade list above:\n\n" + statsText +
+      "\n\nIMPORTANT: If asked anything about win count, loss count, breakeven count, total trades, win rate, " +
+      "net R, average R, winning/losing streaks, or the first-half-vs-second-half consistency split, answer " +
+      "using ONLY the numbers in the stats block directly above, exactly as given. Do not recount, re-tally, or " +
+      "re-derive these numbers yourself by reading through the trade list, even to double check. You will get " +
+      "them wrong if you try. The stats block is already correct, just report it.";
+  }
+
+  var dataText = "(nothing specific)";
+  if (pageData !== null && pageData !== undefined) {
+    try {
+      dataText = JSON.stringify(pageData).slice(0, MAX_PAGE_DATA_CHARS);
+    } catch (err) {
+      dataText = "(couldn't read the page data)";
+    }
+  }
+  return "\n\nThe trader is currently on the \"" + name + "\" page of the site. Here is exactly what's showing " +
+    "on their screen right now, as JSON:\n\n" + dataText +
+    "\n\nUse only this real information to answer questions about what they're looking at. Don't invent numbers " +
+    "or details that aren't in this data.";
+}
+
 async function handleChat(request, env) {
   var username = await requireSession(request, env);
   if (!username) return json({ error: "Not signed in." }, 401);
@@ -233,23 +275,11 @@ async function handleChat(request, env) {
     return json({ error: "Bad request." }, 400);
   }
 
-  var strategyName = String(body.strategyName || "this strategy").slice(0, 60);
-  var tradesText = formatTrades(body.trades);
-  var statsText = computeStats(body.trades);
   var system = COACH_SYSTEM_PROMPT +
     "\n\nFORMATTING: This reply is shown in a plain text chat bubble, not a document. " +
     "Never use markdown, no ### headers, no **bold**, no bullet lists with * or -. " +
     "Just write in plain conversational sentences or short lines separated by line breaks." +
-    "\n\nHere is the full trade list for the strategy \"" + strategyName + "\" (Model | Risk:Reward | Result), " +
-    "most recent first. This is only for referencing or quoting specific individual trades by name. " +
-    "Don't invent trades that aren't listed here:\n\n" + tradesText +
-    "\n\nHere are the trader's exact, already-computed stats for this same strategy, calculated by counting " +
-    "the trade list above:\n\n" + statsText +
-    "\n\nIMPORTANT: If asked anything about win count, loss count, breakeven count, total trades, win rate, " +
-    "net R, average R, winning/losing streaks, or the first-half-vs-second-half consistency split, answer " +
-    "using ONLY the numbers in the stats block directly above, exactly as given. Do not recount, re-tally, or " +
-    "re-derive these numbers yourself by reading through the trade list, even to double check. You will get " +
-    "them wrong if you try. The stats block is already correct, just report it.";
+    buildPageContext(body.pageName, body.pageData);
 
   var claudeRes;
   try {

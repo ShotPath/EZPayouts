@@ -231,6 +231,7 @@
 <body>
 <script src="/nav.js"></script>
 <script src="/account.js"></script>
+<script src="/coach.js"></script>
 <div class="wrap">
 
   <div class="hero">
@@ -512,6 +513,16 @@
     select.addEventListener("change", render);
   });
   render();
+
+  // Lets the shared coach widget (coach.js) answer questions about
+  // whichever accounts the trader currently has picked to compare.
+  window.EZPageContext = function(){
+    var accounts = [0,1,2].map(function(i){
+      var a = parseKey(document.getElementById("slot" + i).value);
+      return accountLabel(a.plan, a.size);
+    });
+    return { pageName: "Compare", data: { comparing: accounts } };
+  };
 })();
 </script>
 </body>

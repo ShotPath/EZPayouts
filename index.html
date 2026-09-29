@@ -315,6 +315,7 @@
 <body>
 <script src="/nav.js"></script>
 <script src="/account.js"></script>
+<script src="/coach.js"></script>
 <div class="wrap">
 
   <div class="hero">
@@ -534,6 +535,17 @@
     });
   });
 })();
+
+// Lets the shared coach widget (coach.js) answer questions about which
+// prop firms are shown here and which are actually live.
+window.EZPageContext = function(){
+  var firms = Array.prototype.slice.call(document.querySelectorAll(".firm-card")).map(function(card){
+    var name = card.querySelector(".firm-name");
+    var status = card.querySelector(".firm-status");
+    return { name: name ? name.textContent.trim() : "", status: status ? status.textContent.trim() : "" };
+  });
+  return { pageName: "Home", data: { firms: firms } };
+};
 </script>
 </body>
 </html>

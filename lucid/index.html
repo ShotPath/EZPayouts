@@ -466,6 +466,7 @@
 <body>
 <script src="/nav.js"></script>
 <script src="/account.js"></script>
+<script src="/coach.js"></script>
 <div class="wrap">
 
   <div class="hero">
@@ -1885,6 +1886,19 @@
       else resetCockpitToDefault();
     });
   }
+
+  // Lets the shared coach widget (coach.js) answer questions about the
+  // trader's currently selected plan and account size.
+  window.EZPageContext = function(){
+    var plan = PLANS[state.plan];
+    return {
+      pageName: "Guide",
+      data: {
+        selectedPlan: plan ? plan.name : state.plan,
+        selectedSize: "$" + (state.size / 1000) + "K"
+      }
+    };
+  };
 })();
 </script>
 </body>
