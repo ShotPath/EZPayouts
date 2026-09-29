@@ -86,15 +86,8 @@
   a{ color:var(--phosphor-soft); }
   .mono{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
 
-  .cal-head{
-    flex:none; display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;
-    padding:2px 0 10px;
-  }
-  .cal-head .eyebrow{
-    font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.2em; text-transform:uppercase; color:var(--phosphor);
-  }
-  .cal-head h1{ font-size:20px; font-weight:700; color:var(--ice); letter-spacing:-0.01em; }
-  .cal-head p{ margin:0; color:var(--muted); font-size:12.5px; line-height:1.4; }
+  .cal-head{ flex:none; padding:2px 0 10px; }
+  .cal-head h1{ font-size:22px; font-weight:700; color:var(--ice); letter-spacing:-0.01em; }
 
   .cal-toolbar{
     flex:none; display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
@@ -221,7 +214,6 @@
   }
   @media (max-width:640px){
     .cal-head h1{ font-size:17px; }
-    .cal-head p{ display:none; }
   }
 </style>
 </head>
@@ -232,9 +224,7 @@
 <div class="wrap">
 
   <div class="cal-head">
-    <span class="eyebrow">Stay Sharp</span>
     <h1>Economic Calendar</h1>
-    <p>This week's scheduled data releases and Fed speakers.</p>
   </div>
 
   <div class="cal-toolbar">
