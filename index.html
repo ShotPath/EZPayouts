@@ -171,7 +171,9 @@
   .showcase-mock-btn{
     margin-top:16px; display:inline-block; font-family:var(--font-display); font-weight:600; font-size:13px;
     padding:11px 20px; border-radius:10px; background:var(--mint); color:var(--mint-text);
+    text-decoration:none; cursor:pointer; transition:filter .15s;
   }
+  .showcase-mock-btn:hover{ filter:brightness(1.08); }
   .showcase-rows{ display:flex; flex-direction:column; }
   .showcase-row{
     display:grid; grid-template-columns:1.4fr 70px 70px; gap:10px; align-items:center;
@@ -394,7 +396,7 @@
           <span class="showcase-mock-label">Result</span>
           <div class="showcase-mock-toggle"><span class="active">Win</span><span>BE</span><span>Loss</span></div>
         </div>
-        <span class="showcase-mock-btn">+ Log Trade</span>
+        <a class="showcase-mock-btn" href="backtest/?logTrade=1">+ Log Trade</a>
       </div>
       <div class="showcase-col">
         <p class="showcase-col-title">Trade Log</p>

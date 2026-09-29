@@ -417,6 +417,28 @@
   footer{ margin-top:52px; text-align:center; }
   footer p{ font-size:12px; color:var(--muted-dim); line-height:1.7; margin:0; }
   footer a{ color:var(--muted); }
+
+  /* ---------- "arrived to log a trade, signed out" warning ---------- */
+  .ez-save-warning{
+    position:fixed; left:50%; bottom:26px; transform:translateX(-50%); z-index:300;
+    display:flex; align-items:center; gap:14px; max-width:min(92vw, 480px);
+    padding:14px 16px; border-radius:14px;
+    background:var(--panel-raised); border:1px solid var(--amber);
+    box-shadow:0 20px 50px -20px rgba(0,0,0,0.6);
+    font-family:var(--font-body); font-size:13px; color:var(--ice);
+  }
+  .ez-save-warning span{ flex:1; line-height:1.5; }
+  .ez-save-warning-signin{
+    font-family:var(--font-display); font-weight:700; font-size:12px; white-space:nowrap;
+    padding:7px 12px; border-radius:8px; background:var(--amber); color:#2b1f05; border:none; cursor:pointer;
+  }
+  .ez-save-warning-close{
+    flex:none; background:transparent; border:none; color:var(--muted); font-size:18px; line-height:1; cursor:pointer; padding:0 2px;
+  }
+  .ez-save-warning-close:hover{ color:var(--ice); }
+  @media (max-width:480px){
+    .ez-save-warning{ flex-wrap:wrap; }
+  }
 </style>
 </head>
 <body>
@@ -1372,6 +1394,60 @@
       else resetToDefault();
     });
   }
+
+  // Arrived here via Home's "+ Log Trade" showcase link (?logTrade=1): take
+  // the visitor straight to the Log a Trade form. If they're not signed in,
+  // put the sign-in prompt front and center first, since trades logged
+  // while signed out never leave this browser.
+  (function(){
+    var params = new URLSearchParams(window.location.search);
+    if (params.get("logTrade") !== "1") return;
+    var cleanUrl = window.location.pathname + window.location.hash;
+    window.history.replaceState({}, "", cleanUrl);
+
+    function focusLogForm(){
+      var card = document.querySelector(".bt-card");
+      if (card) card.scrollIntoView({ behavior: "smooth", block: "start" });
+      var modelInput = document.getElementById("btModel");
+      if (modelInput) modelInput.focus({ preventScroll: true });
+    }
+
+    function showSaveWarning(){
+      var el = document.createElement("div");
+      el.className = "ez-save-warning";
+      el.innerHTML =
+        '<span>You’re not signed in — trades you log here won’t be saved.</span>' +
+        '<button type="button" class="ez-save-warning-signin">Sign In</button>' +
+        '<button type="button" class="ez-save-warning-close" aria-label="Dismiss">&times;</button>';
+      document.body.appendChild(el);
+      el.querySelector(".ez-save-warning-close").addEventListener("click", function(){ el.remove(); });
+      el.querySelector(".ez-save-warning-signin").addEventListener("click", function(){
+        el.remove();
+        if (window.EZAuth) EZAuth.openSignIn();
+      });
+      setTimeout(function(){ if (el.parentNode) el.remove(); }, 10000);
+    }
+
+    if (!window.EZAuth || EZAuth.isLoggedIn()){
+      focusLogForm();
+      return;
+    }
+
+    EZAuth.openSignIn();
+    var overlay = document.querySelector(".ez-auth-overlay");
+    if (!overlay){ focusLogForm(); return; }
+    var wasOpen = true;
+    var observer = new MutationObserver(function(){
+      var isOpen = !overlay.hidden;
+      if (wasOpen && !isOpen){
+        observer.disconnect();
+        if (!EZAuth.isLoggedIn()) showSaveWarning();
+        focusLogForm();
+      }
+      wasOpen = isOpen;
+    });
+    observer.observe(overlay, { attributes: true, attributeFilter: ["hidden"] });
+  })();
 
   // Read-only snapshot for the shared coach widget (coach.js): always
   // reflects whichever strategy is currently active, at call time.
