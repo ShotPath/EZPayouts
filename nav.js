@@ -162,8 +162,52 @@
       "  .ez-sidebar{ width:var(--ez-sidebar-collapsed-w) !important; box-shadow:none !important; }" +
       "  .ez-sidebar-label{ display:none !important; }" +
       "  .ez-sidebar-link{ justify-content:center !important; padding:12px 0 !important; }" +
+      "}" +
+
+      // Welcome-page pill nav: no fixed header/sidebar chrome at all, just a
+      // rounded top bar that scrolls with the page, matching the width of
+      // the page's own .wrap content column.
+      "body.ez-pill-mode{ padding-top:0 !important; padding-left:0 !important; }" +
+      ".ez-topbar{ display:flex; align-items:center; gap:16px;" +
+      " max-width:1080px; margin:0 auto 28px; padding:10px 22px 10px 14px;" +
+      " background:var(--panel-raised); border:1px solid var(--hairline-bright);" +
+      " border-radius:999px; box-shadow:0 18px 44px -24px var(--phosphor-glow); }" +
+      ".ez-topbar .ez-brand img{ width:34px; height:34px; }" +
+      ".ez-topbar-links{ display:flex; align-items:center; justify-content:center; flex:1; min-width:0; gap:clamp(14px,2.4vw,28px); }" +
+      ".ez-topbar-links a{ font-family:var(--font-display); font-weight:600; font-size:13.5px;" +
+      " color:var(--muted); text-decoration:none; letter-spacing:0.01em; white-space:nowrap; transition:color .15s; }" +
+      ".ez-topbar-links a:hover{ color:var(--ice); }" +
+      ".ez-topbar-links a.active{ color:var(--ice); }" +
+      ".ez-topbar-actions{ display:flex; align-items:center; gap:10px; flex:none; }" +
+      "@media (max-width:680px){" +
+      "  .ez-topbar{ border-radius:22px; flex-wrap:wrap; justify-content:center; padding:14px 18px; }" +
+      "  .ez-topbar-links{ flex:1 1 100%; order:2; gap:10px; flex-wrap:wrap; row-gap:6px; }" +
+      "  .ez-topbar-actions{ order:3; }" +
       "}";
     document.head.appendChild(style);
+  }
+
+  function buildTopbar(activeSlug) {
+    var topbar = document.createElement("header");
+    topbar.className = "ez-topbar";
+    topbar.innerHTML = "" +
+      '<a class="ez-brand" href="/" aria-label="EZPayouts home">' +
+        '<img src="/ezpayouts-icon-only.png" alt="EZ" />' +
+      "</a>" +
+      '<nav class="ez-topbar-links" aria-label="Primary">' +
+        ALL_NAV_ITEMS.map(function (item) {
+          return '<a href="' + item.href + '"' + (item.slug === activeSlug ? ' class="active"' : "") + ">" + item.label + "</a>";
+        }).join("") +
+      "</nav>" +
+      '<div class="ez-topbar-actions">' +
+        '<span class="market-status" id="marketStatus">' +
+          '<span class="dot" aria-hidden="true"></span>' +
+          '<span class="label mono" id="marketLabel">NY OPEN IN</span>' +
+          '<strong class="mono" id="marketOpenIn">--:--:--</strong>' +
+        "</span>" +
+        '<div id="authWidget"></div>' +
+      "</div>";
+    return topbar;
   }
 
   function buildHeader(activeItem) {
@@ -339,11 +383,21 @@
   }
 
   ensureStyles();
-  document.body.setAttribute("data-sidebar-mode", getSidebarMode());
   var activeItem = detectActiveItem();
-  var header = buildHeader(activeItem);
-  var sidebar = buildSidebar(activeItem.slug);
-  document.body.insertBefore(sidebar, document.body.firstChild);
-  document.body.insertBefore(header, document.body.firstChild);
+
+  // The welcome page (Home) reads as a landing page, not the app: a pill
+  // nav bar in the content flow instead of the fixed header + sidebar the
+  // rest of the site uses.
+  if (activeItem.slug === "home") {
+    document.body.classList.add("ez-pill-mode");
+    var topbar = buildTopbar(activeItem.slug);
+    document.body.insertBefore(topbar, document.body.firstChild);
+  } else {
+    document.body.setAttribute("data-sidebar-mode", getSidebarMode());
+    var header = buildHeader(activeItem);
+    var sidebar = buildSidebar(activeItem.slug);
+    document.body.insertBefore(sidebar, document.body.firstChild);
+    document.body.insertBefore(header, document.body.firstChild);
+  }
   startClock();
 })();
