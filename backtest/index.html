@@ -185,10 +185,17 @@
      like layers stacked in the same panel. ---------- */
   .bt-mega{
     background:var(--panel); border:1px solid var(--hairline-bright); border-radius:20px;
-    box-shadow:0 20px 50px -24px var(--phosphor-glow); overflow:hidden; margin-bottom:26px;
+    box-shadow:0 20px 50px -24px var(--phosphor-glow); margin-bottom:26px;
+    padding:18px clamp(14px,2.6vw,22px);
+    --section-bg:var(--panel-raised); --section-nested-raised:var(--panel-hi);
   }
-  .bt-mega > *{ padding:22px clamp(16px,3vw,26px); }
-  .bt-mega > * + *{ border-top:1px solid var(--hairline); }
+  .bt-mega > *{
+    background:var(--section-bg); border:1px solid var(--hairline); border-radius:16px;
+    box-shadow:0 14px 30px -22px rgba(0,0,0,0.6);
+    padding:22px clamp(16px,3vw,26px);
+    --panel-raised:var(--section-nested-raised);
+  }
+  .bt-mega > * + *{ margin-top:16px; }
 
   /* ---------- Tally / average stat row ---------- */
   .bt-stats{ display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; }

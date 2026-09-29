@@ -160,10 +160,17 @@
      than the mega card itself. ---------- */
   .journal-mega{
     background:var(--panel); border:1px solid var(--hairline-bright); border-radius:20px;
-    box-shadow:0 20px 50px -24px var(--phosphor-glow); overflow:hidden; margin-bottom:26px;
+    box-shadow:0 20px 50px -24px var(--phosphor-glow); margin-bottom:26px;
+    padding:18px clamp(14px,2.6vw,22px);
+    --section-bg:var(--panel-raised); --section-nested-raised:var(--panel-hi);
   }
-  .journal-mega .mega-section{ padding:22px clamp(16px,3vw,26px); }
-  .journal-mega .mega-section + .mega-section{ border-top:1px solid var(--hairline); }
+  .journal-mega .mega-section{
+    background:var(--section-bg); border:1px solid var(--hairline); border-radius:16px;
+    box-shadow:0 14px 30px -22px rgba(0,0,0,0.6);
+    padding:22px clamp(16px,3vw,26px);
+    --panel-raised:var(--section-nested-raised);
+  }
+  .journal-mega .mega-section + .mega-section{ margin-top:16px; }
 
   /* ---------- Stat carousel ---------- */
   .stat-carousel-wrap{ display:flex; align-items:center; gap:8px; }
