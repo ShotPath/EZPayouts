@@ -35,20 +35,22 @@
   }
 
   *{box-sizing:border-box;}
-  html{color-scheme:dark;}
+  html{color-scheme:dark; height:100%;}
   body{
     margin:0;
-    min-height:100vh;
+    height:100vh;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
     background:
       radial-gradient(ellipse 120% 60% at 50% -10%, rgba(62,224,140,0.10), transparent 60%),
       radial-gradient(ellipse 80% 50% at 100% 100%, rgba(62,224,140,0.06), transparent 60%),
       var(--void);
     color:var(--ice);
     font-family:var(--font-body);
-    padding:0 clamp(16px,4vw,48px);
-    padding-block:clamp(18px,3.4vw,32px) 60px;
+    padding-inline:clamp(16px,3vw,40px);
+    padding-block:12px 10px;
     position:relative;
-    overflow-x:hidden;
   }
   body::before{
     content:"";
@@ -75,27 +77,39 @@
     *{ animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; }
   }
 
-  .wrap{ max-width:1320px; margin:0 auto; position:relative; z-index:1; }
+  .wrap{
+    max-width:1440px; width:100%; margin:0 auto; position:relative; z-index:1;
+    flex:1; min-height:0; display:flex; flex-direction:column;
+  }
 
   h1,h2{ font-family:var(--font-display); text-wrap:balance; margin:0; }
   a{ color:var(--phosphor-soft); }
   .mono{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
 
-  .hero{ max-width:620px; margin:0 auto; text-align:center; padding:32px 0 36px; }
-  .hero .eyebrow{
-    font-family:var(--font-mono); font-size:12px; letter-spacing:0.22em; text-transform:uppercase;
-    color:var(--phosphor); margin-bottom:14px; display:flex; align-items:center; justify-content:center; gap:10px;
+  .cal-head{
+    flex:none; display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;
+    padding:2px 0 10px;
   }
-  .hero h1{ font-size:clamp(28px,5vw,40px); font-weight:700; line-height:1.1; color:var(--ice); letter-spacing:-0.01em; }
-  .hero p{ margin:16px auto 0; color:var(--muted); font-size:15.5px; line-height:1.65; max-width:52ch; }
+  .cal-head .eyebrow{
+    font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.2em; text-transform:uppercase; color:var(--phosphor);
+  }
+  .cal-head h1{ font-size:20px; font-weight:700; color:var(--ice); letter-spacing:-0.01em; }
+  .cal-head p{ margin:0; color:var(--muted); font-size:12.5px; line-height:1.4; }
 
   .cal-toolbar{
-    display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
-    margin-bottom:16px;
+    flex:none; display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
+    margin-bottom:10px;
   }
-  .cal-range{ font-family:var(--font-mono); font-size:12.5px; letter-spacing:0.04em; color:var(--muted); }
-  .cal-legend{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
-  .cal-legend-item{ display:flex; align-items:center; gap:6px; font-family:var(--font-mono); font-size:10.5px; color:var(--muted); white-space:nowrap; }
+  .cal-range{ font-family:var(--font-mono); font-size:12px; letter-spacing:0.04em; color:var(--muted); }
+  .cal-legend{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .cal-legend-item{
+    display:flex; align-items:center; gap:6px; font-family:var(--font-mono); font-size:10.5px; color:var(--muted);
+    white-space:nowrap; background:transparent; border:1px solid var(--hairline); border-radius:999px;
+    padding:5px 11px 5px 9px; cursor:pointer; transition:border-color .15s, color .15s, background .15s, opacity .15s;
+  }
+  .cal-legend-item:hover{ border-color:var(--hairline-bright); color:var(--ice); }
+  .cal-legend-item.active{ color:var(--ice); background:var(--panel-raised); border-color:var(--hairline-bright); }
+  .cal-legend-item:not(.active){ opacity:0.45; }
   .cal-legend-dot{ width:8px; height:8px; border-radius:50%; flex:none; }
   .cal-legend-dot.high{ background:var(--red); }
   .cal-legend-dot.medium{ background:var(--amber); }
@@ -104,46 +118,110 @@
   .cal-filter{ display:flex; align-items:center; gap:8px; }
   .cal-filter span{ font-family:var(--font-mono); font-size:10px; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); }
   .cal-filter select{
-    padding:8px 30px 8px 12px; border-radius:10px; border:1px solid var(--hairline-bright);
+    padding:7px 28px 7px 12px; border-radius:10px; border:1px solid var(--hairline-bright);
     background:var(--panel-raised) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 10 10"><path d="M1 3l4 4 4-4" fill="none" stroke="%237c9584" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>') no-repeat right 10px center;
     color:var(--ice); font-family:var(--font-mono); font-size:12px; font-weight:600; outline:none; cursor:pointer;
     appearance:none; transition:border-color .15s;
   }
   .cal-filter select:focus{ border-color:var(--phosphor-dim); }
 
-  .cal-grid{ display:flex; gap:10px; overflow-x:auto; padding-bottom:10px; scrollbar-width:thin; }
+  .cal-grid{
+    flex:1; min-height:0; display:grid; grid-template-columns:repeat(7, 1fr); gap:10px;
+  }
   .cal-day{
-    flex:1 0 190px; min-width:190px; max-width:220px;
+    min-width:0; min-height:0; display:flex; flex-direction:column; overflow:hidden;
     background:var(--panel); border:1px solid var(--hairline-bright); border-radius:14px; padding:12px;
     box-shadow:0 14px 32px -22px var(--phosphor-glow);
   }
   .cal-day.today{ border-color:var(--phosphor); box-shadow:0 14px 32px -18px var(--phosphor-glow); }
   .cal-day-head{
-    display:flex; align-items:baseline; justify-content:space-between;
-    margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid var(--hairline);
+    flex:none; display:flex; align-items:baseline; justify-content:space-between;
+    margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid var(--hairline);
   }
   .cal-day-name{ font-family:var(--font-mono); font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); }
   .cal-day.today .cal-day-name{ color:var(--phosphor-soft); }
   .cal-day-num{ font-family:var(--font-display); font-weight:700; font-size:15px; color:var(--ice); }
   .cal-day.today .cal-day-num{ color:var(--mint-text); background:var(--mint); padding:1px 9px; border-radius:999px; }
 
-  .cal-event{ display:flex; align-items:flex-start; gap:8px; padding:8px 0; border-bottom:1px solid var(--hairline); }
+  .cal-day-events{
+    flex:1; min-height:0; overflow-y:auto; overflow-x:hidden;
+    margin-right:-6px; padding-right:6px;
+    scrollbar-width:thin; scrollbar-color:var(--hairline-bright) transparent;
+  }
+  .cal-day-events::-webkit-scrollbar{ width:5px; }
+  .cal-day-events::-webkit-scrollbar-track{ background:transparent; }
+  .cal-day-events::-webkit-scrollbar-thumb{ background:var(--hairline-bright); border-radius:999px; }
+
+  .cal-event{
+    display:flex; align-items:flex-start; gap:8px; padding:7px 4px; margin:0 -4px; border-bottom:1px solid var(--hairline);
+    width:100%; background:transparent; border-left:none; border-right:none; border-top:none; text-align:left;
+    font:inherit; color:inherit; cursor:pointer; border-radius:6px; transition:background .12s;
+  }
+  .cal-event:hover, .cal-event:focus-visible{ background:var(--panel-hi); outline:none; }
   .cal-event:last-child{ border-bottom:none; }
   .cal-event-dot{ width:8px; height:8px; border-radius:50%; margin-top:5px; flex:none; }
   .cal-event-dot.high{ background:var(--red); box-shadow:0 0 6px 1px var(--red-glow); }
   .cal-event-dot.medium{ background:var(--amber); box-shadow:0 0 6px 1px var(--amber-glow); }
   .cal-event-dot.low{ background:var(--muted-dim); }
-  .cal-event-title{ font-family:var(--font-display); font-weight:600; font-size:12.5px; color:var(--ice); line-height:1.35; }
-  .cal-event-time{ font-family:var(--font-mono); font-size:10.5px; color:var(--muted); margin-top:3px; }
-  .cal-empty{ color:var(--muted-dim); font-size:11.5px; text-align:center; padding:24px 0; }
+  .cal-event-title{ display:block; font-family:var(--font-display); font-weight:600; font-size:12px; color:var(--ice); line-height:1.3; }
+  .cal-event-time{ display:block; font-family:var(--font-mono); font-size:10px; color:var(--muted); margin-top:3px; }
+  .cal-empty{ color:var(--muted-dim); font-size:11px; text-align:center; padding:18px 0; }
 
-  footer{ margin-top:52px; text-align:center; }
-  footer p{ font-size:12px; color:var(--muted-dim); line-height:1.7; margin:0; }
+  footer{ flex:none; margin-top:8px; text-align:center; }
+  footer p{ font-size:10px; color:var(--muted-dim); line-height:1.5; margin:0; }
   footer a{ color:var(--muted); }
 
+  /* ---------- Event detail modal ---------- */
+  .cal-overlay{
+    display:none; position:fixed; inset:0; z-index:700; background:rgba(4,7,6,0.72);
+    align-items:center; justify-content:center; padding:24px;
+    backdrop-filter:blur(2px);
+  }
+  .cal-overlay.open{ display:flex; }
+  .cal-modal{
+    width:100%; max-width:420px; max-height:calc(100vh - 48px); overflow-y:auto;
+    background:var(--panel-raised); border:1px solid var(--hairline-bright); border-radius:16px;
+    padding:20px; box-shadow:0 30px 60px -20px rgba(0,0,0,0.6), 0 0 30px -10px var(--phosphor-glow);
+  }
+  .cal-modal-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding-bottom:14px; border-bottom:1px solid var(--hairline); margin-bottom:14px; }
+  .cal-modal-title{ font-family:var(--font-display); font-weight:700; font-size:17px; color:var(--ice); line-height:1.3; }
+  .cal-modal-head-right{ display:flex; align-items:center; gap:10px; flex:none; }
+  .cal-modal-impact{ display:flex; align-items:center; gap:6px; font-family:var(--font-mono); font-size:11px; font-weight:600; color:var(--muted); white-space:nowrap; }
+  .cal-modal-impact .cal-event-dot{ margin-top:0; }
+  .cal-modal-impact.high{ color:var(--red); }
+  .cal-modal-impact.medium{ color:var(--amber); }
+  .cal-modal-close{
+    width:28px; height:28px; border-radius:50%; flex:none; padding:0; cursor:pointer;
+    background:var(--panel-hi); border:1px solid var(--hairline-bright); color:var(--muted);
+    font-size:15px; line-height:1; display:flex; align-items:center; justify-content:center;
+    transition:border-color .15s, color .15s;
+  }
+  .cal-modal-close:hover{ border-color:var(--phosphor-dim); color:var(--ice); }
+  .cal-modal-row{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:9px 0; border-bottom:1px solid var(--hairline); font-size:13px;
+  }
+  .cal-modal-row:last-of-type{ border-bottom:none; }
+  .cal-modal-row-label{ color:var(--muted); }
+  .cal-modal-row-value{ color:var(--ice); font-weight:600; text-align:right; }
+  .cal-modal-about{ margin-top:14px; padding-top:14px; border-top:1px solid var(--hairline); }
+  .cal-modal-about h3{ font-family:var(--font-display); font-weight:700; font-size:13.5px; color:var(--ice); margin:0 0 8px; }
+  .cal-modal-about p{ margin:0; font-size:13px; color:var(--muted); line-height:1.6; }
+  .cal-modal-foot{ display:flex; justify-content:flex-end; margin-top:18px; padding-top:14px; border-top:1px solid var(--hairline); }
+  .cal-modal-close-btn{
+    font-family:var(--font-display); font-weight:600; font-size:13px; padding:9px 20px;
+    border-radius:10px; background:var(--panel-hi); border:1px solid var(--hairline-bright);
+    color:var(--ice); cursor:pointer; transition:border-color .15s, background .15s;
+  }
+  .cal-modal-close-btn:hover{ border-color:var(--phosphor-dim); background:var(--mint); color:var(--mint-text); }
+
+  @media (max-width:820px){
+    .cal-grid{ grid-template-columns:repeat(7, minmax(130px,1fr)); overflow-x:auto; padding-bottom:4px; }
+    .cal-day{ min-width:130px; }
+  }
   @media (max-width:640px){
-    .cal-day{ flex:1 0 78vw; min-width:78vw; }
-    .cal-toolbar{ align-items:flex-start; }
+    .cal-head h1{ font-size:17px; }
+    .cal-head p{ display:none; }
   }
 </style>
 </head>
@@ -153,18 +231,18 @@
 <script src="/coach.js"></script>
 <div class="wrap">
 
-  <div class="hero">
-    <div class="eyebrow">Stay Sharp</div>
+  <div class="cal-head">
+    <span class="eyebrow">Stay Sharp</span>
     <h1>Economic Calendar</h1>
-    <p>This week's scheduled data releases and Fed speakers &mdash; know what's coming before it moves the market.</p>
+    <p>This week's scheduled data releases and Fed speakers.</p>
   </div>
 
   <div class="cal-toolbar">
     <span class="cal-range mono" id="calRange">Loading...</span>
-    <div class="cal-legend">
-      <span class="cal-legend-item"><span class="cal-legend-dot high" aria-hidden="true"></span>High</span>
-      <span class="cal-legend-item"><span class="cal-legend-dot medium" aria-hidden="true"></span>Medium</span>
-      <span class="cal-legend-item"><span class="cal-legend-dot low" aria-hidden="true"></span>Low</span>
+    <div class="cal-legend" id="calLegend">
+      <button type="button" class="cal-legend-item active" data-impact="high"><span class="cal-legend-dot high" aria-hidden="true"></span>High</button>
+      <button type="button" class="cal-legend-item active" data-impact="medium"><span class="cal-legend-dot medium" aria-hidden="true"></span>Medium</button>
+      <button type="button" class="cal-legend-item active" data-impact="low"><span class="cal-legend-dot low" aria-hidden="true"></span>Low</button>
     </div>
     <label class="cal-filter">
       <span>Filter</span>
@@ -187,9 +265,12 @@
     <p class="cal-empty">Loading calendar&hellip;</p>
   </div>
 
+  <div class="cal-overlay" id="calOverlay">
+    <div class="cal-modal" id="calModal" role="dialog" aria-modal="true"></div>
+  </div>
+
   <footer>
-    <p><a href="/">&larr; Back to EZPayouts</a> &middot; Built by ShotPath</p>
-    <p style="margin-top:8px;">Event schedule pulled automatically from a public feed, covering the current week only, for informational purposes only &mdash; not trading or financial advice. Times, forecasts, and importance ratings can change; always verify before trading around a release.</p>
+    <p><a href="/">&larr; Back to EZPayouts</a> &middot; Current week only, from a public feed, not trading or financial advice &mdash; always verify before trading around a release.</p>
   </footer>
 
 </div>
@@ -202,9 +283,58 @@
   var gridEl = document.getElementById("calGrid");
   var rangeEl = document.getElementById("calRange");
   var countrySelect = document.getElementById("calCountry");
+  var legendEl = document.getElementById("calLegend");
+  var overlayEl = document.getElementById("calOverlay");
+  var modalEl = document.getElementById("calModal");
   var DAY_NAMES = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
   var allEvents = [];
+  var renderedEvents = [];
   var loadFailed = false;
+  var activeImpacts = { high: true, medium: true, low: true };
+
+  // The feed has no description field, so match common indicator names to a
+  // plain-English explanation. Order matters — more specific patterns (Core
+  // CPI) are checked before their looser parents (CPI).
+  var EVENT_DESCRIPTIONS = [
+    [/core\s*pce/i, "The Fed's preferred inflation gauge, excluding volatile food and energy prices. A hotter-than-expected print tends to push back rate-cut expectations."],
+    [/\bpce\b/i, "Personal Consumption Expenditures price index, a broad measure of inflation across the whole economy, tracking what households actually spent on."],
+    [/core\s*cpi/i, "Consumer Price Index excluding food and energy, viewed as a cleaner read on underlying inflation trends than the headline number."],
+    [/\bcpi\b/i, "Consumer Price Index, the most widely watched measure of inflation, tracking the change in prices paid by consumers for a basket of goods and services."],
+    [/\bppi\b/i, "Producer Price Index, tracking inflation at the wholesale level before it reaches consumers. Often a leading signal for future CPI prints."],
+    [/non\s*farm\s*payrolls|\bnfp\b/i, "The headline U.S. jobs report: net change in employment excluding the farming sector. One of the most market-moving releases of the month."],
+    [/adp\s*non\s*farm\s*employment/i, "A private-sector estimate of monthly U.S. job creation, released ahead of the official government payrolls report and often used to gauge its likely direction."],
+    [/unemployment\s*rate/i, "The percentage of the labor force that is jobless and actively looking for work."],
+    [/initial\s*jobless\s*claims|unemployment\s*claims/i, "The number of people filing for unemployment benefits for the first time in the past week, a timely read on labor market health."],
+    [/\bgdp\b/i, "Gross Domestic Product, the total value of goods and services produced within the country, adjusted to an annual rate. A vital indicator used to evaluate economic performance."],
+    [/retail\s*sales/i, "The change in total value of sales at the retail level, a key gauge of consumer spending strength."],
+    [/(manufacturing|services|composite)?\s*pmi/i, "Purchasing Managers' Index, a survey-based gauge of business activity. Above 50 signals expansion, below 50 signals contraction."],
+    [/ism\s*manufacturing|ism\s*non-?manufacturing|ism\s*services/i, "An ISM survey of purchasing managers gauging business conditions in that sector. Above 50 signals expansion, below 50 signals contraction."],
+    [/interest\s*rate\s*decision|rate\s*decision/i, "The central bank's official benchmark interest rate announcement, one of the highest-impact releases on the calendar."],
+    [/fomc\s*statement|monetary\s*policy\s*statement/i, "The central bank's official policy statement accompanying a rate decision, scrutinized line by line for shifts in forward guidance."],
+    [/press\s*conference/i, "A central bank official's live press conference following a policy decision, often more market-moving than the decision itself as reporters press for detail."],
+    [/\bspeaks\b|testifies|testimony/i, "A scheduled public appearance by a central bank or government official. Off-the-cuff remarks on policy or the economy can move markets in real time."],
+    [/crude\s*oil\s*inventories/i, "The weekly change in U.S. commercial crude oil stockpiles, closely watched by oil traders as a supply/demand signal."],
+    [/natural\s*gas\s*storage/i, "The weekly change in U.S. natural gas inventories, a key input for natural gas price moves."],
+    [/building\s*permits/i, "The number of new building permits issued, a forward-looking indicator of construction activity."],
+    [/housing\s*starts/i, "The number of new residential construction projects started during the period, a gauge of housing market momentum."],
+    [/existing\s*home\s*sales/i, "The annualized number of previously owned homes sold during the period, the bulk of the U.S. housing market."],
+    [/new\s*home\s*sales/i, "The annualized number of newly constructed homes sold during the period."],
+    [/consumer\s*confidence/i, "A survey-based gauge of how optimistic consumers feel about the economy and their own finances, which feeds into future spending."],
+    [/michigan\s*consumer\s*sentiment/i, "The University of Michigan's survey of consumer attitudes toward current conditions and expectations, a widely followed sentiment gauge."],
+    [/durable\s*goods\s*orders/i, "The change in new orders placed with manufacturers for goods meant to last three years or more, a read on business investment demand."],
+    [/industrial\s*production/i, "The change in output produced by manufacturers, mines, and utilities, a core measure of the economy's productive activity."],
+    [/trade\s*balance/i, "The difference between a country's exports and imports of goods and services over the period."],
+    [/current\s*account/i, "A broad measure of a country's transactions with the rest of the world, including trade, income, and transfers."],
+    [/employment\s*change/i, "The net change in the number of employed people during the period, a core labor market indicator for that economy."],
+    [/minutes/i, "The detailed record of a recent central bank policy meeting, released with a lag and scoured for clues on the path of future rate decisions."],
+  ];
+
+  function describeEvent(ev){
+    for (var i = 0; i < EVENT_DESCRIPTIONS.length; i++){
+      if (EVENT_DESCRIPTIONS[i][0].test(ev.title)) return EVENT_DESCRIPTIONS[i][1];
+    }
+    return "Scheduled economic data release for " + escapeHtml(ev.country) + ". Check the forecast and previous figures above, and watch for a market reaction around the release time.";
+  }
 
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, function(c){
@@ -239,7 +369,10 @@
 
   function visibleEvents(){
     var country = countrySelect.value;
-    return country ? allEvents.filter(function(e){ return e.country === country; }) : allEvents;
+    return allEvents.filter(function(e){
+      if (country && e.country !== country) return false;
+      return activeImpacts[impactClass(e.impact)];
+    });
   }
 
   function render(){
@@ -257,27 +390,88 @@
       (byDate[key] = byDate[key] || []).push(e);
     });
 
+    renderedEvents = [];
+
     gridEl.innerHTML = week.days.map(function(d){
       var key = d.toDateString();
       var events = (byDate[key] || []).sort(function(a, b){ return a.dateObj - b.dateObj; });
       var isToday = key === week.today.toDateString();
       var body = events.length
         ? events.map(function(e){
-            return '<div class="cal-event">' +
+            var idx = renderedEvents.push(e) - 1;
+            return '<button type="button" class="cal-event" data-idx="' + idx + '">' +
               '<span class="cal-event-dot ' + impactClass(e.impact) + '" aria-hidden="true"></span>' +
-              '<div><div class="cal-event-title">' + escapeHtml(e.title) + '</div>' +
-              '<div class="cal-event-time">' + fmtTime(e.dateObj) + ' &middot; ' + escapeHtml(e.country) + '</div></div>' +
-            '</div>';
+              '<span><span class="cal-event-title">' + escapeHtml(e.title) + '</span>' +
+              '<span class="cal-event-time">' + fmtTime(e.dateObj) + ' &middot; ' + escapeHtml(e.country) + '</span></span>' +
+            '</button>';
           }).join("")
         : '<p class="cal-empty">No events</p>';
       return '<div class="cal-day' + (isToday ? ' today' : '') + '">' +
         '<div class="cal-day-head"><span class="cal-day-name">' + DAY_NAMES[d.getDay()] + '</span><span class="cal-day-num">' + d.getDate() + '</span></div>' +
-        body +
+        '<div class="cal-day-events">' + body + '</div>' +
       "</div>";
     }).join("");
   }
 
+  function openEventModal(ev){
+    var impactCls = impactClass(ev.impact);
+    var impactLabel = impactCls.charAt(0).toUpperCase() + impactCls.slice(1);
+    var rows = [
+      ["Date", ev.dateObj.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })],
+      ["Time", fmtTime(ev.dateObj)],
+      ["Country", ev.country],
+    ];
+    if (ev.forecast) rows.push(["Forecast", ev.forecast]);
+    if (ev.previous) rows.push(["Previous", ev.previous]);
+
+    modalEl.innerHTML =
+      '<div class="cal-modal-head">' +
+        '<span class="cal-modal-title">' + escapeHtml(ev.title) + '</span>' +
+        '<span class="cal-modal-head-right">' +
+          '<span class="cal-modal-impact ' + impactCls + '"><span class="cal-event-dot ' + impactCls + '" aria-hidden="true"></span>' + impactLabel + '</span>' +
+          '<button type="button" class="cal-modal-close" id="calModalX" aria-label="Close">&times;</button>' +
+        '</span>' +
+      '</div>' +
+      rows.map(function(r){
+        return '<div class="cal-modal-row"><span class="cal-modal-row-label">' + r[0] + '</span><span class="cal-modal-row-value">' + escapeHtml(r[1]) + '</span></div>';
+      }).join("") +
+      '<div class="cal-modal-about"><h3>About this event</h3><p>' + describeEvent(ev) + '</p></div>' +
+      '<div class="cal-modal-foot"><button type="button" class="cal-modal-close-btn" id="calModalClose">Close</button></div>';
+
+    overlayEl.classList.add("open");
+    document.getElementById("calModalX").addEventListener("click", closeEventModal);
+    document.getElementById("calModalClose").addEventListener("click", closeEventModal);
+  }
+
+  function closeEventModal(){
+    overlayEl.classList.remove("open");
+  }
+
+  overlayEl.addEventListener("click", function(e){
+    if (e.target === overlayEl) closeEventModal();
+  });
+  document.addEventListener("keydown", function(e){
+    if (e.key === "Escape" && overlayEl.classList.contains("open")) closeEventModal();
+  });
+
+  gridEl.addEventListener("click", function(e){
+    var btn = e.target.closest(".cal-event");
+    if (!btn) return;
+    var idx = parseInt(btn.getAttribute("data-idx"), 10);
+    var ev = renderedEvents[idx];
+    if (ev) openEventModal(ev);
+  });
+
   countrySelect.addEventListener("change", render);
+
+  legendEl.addEventListener("click", function(e){
+    var btn = e.target.closest(".cal-legend-item");
+    if (!btn) return;
+    var impact = btn.getAttribute("data-impact");
+    activeImpacts[impact] = !activeImpacts[impact];
+    btn.classList.toggle("active", activeImpacts[impact]);
+    render();
+  });
 
   fetch(FEED_URL)
     .then(function(res){ return res.json(); })
@@ -287,6 +481,8 @@
           title: e.title,
           country: e.country,
           impact: e.impact,
+          forecast: e.forecast || "",
+          previous: e.previous || "",
           dateObj: new Date(e.date),
         };
       }).filter(function(e){ return e.title && e.dateObj && !isNaN(e.dateObj.getTime()); });
@@ -299,14 +495,18 @@
     });
 
   // Lets the shared coach widget (coach.js) answer questions about the
-  // events actually visible on screen right now, respecting the filter.
+  // events actually visible on screen right now, respecting the filters.
   window.EZPageContext = function(){
     var events = visibleEvents().slice(0, 60).map(function(e){
       return { title: e.title, country: e.country, impact: e.impact, time: e.dateObj.toISOString() };
     });
     return {
       pageName: "Economic Calendar",
-      data: { filter: countrySelect.value || "All countries", events: events }
+      data: {
+        countryFilter: countrySelect.value || "All countries",
+        impactFilter: Object.keys(activeImpacts).filter(function(k){ return activeImpacts[k]; }).join(", ") || "none",
+        events: events
+      }
     };
   };
 })();
