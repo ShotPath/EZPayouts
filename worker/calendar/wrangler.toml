@@ -1,0 +1,6 @@
+name = "ezpayouts-calendar"
+main = "calendar-worker.js"
+compatibility_date = "2025-01-01"
+
+# No routes/custom domain configured yet — deploys to the default
+# ezpayouts-calendar.<your-subdomain>.workers.dev URL.

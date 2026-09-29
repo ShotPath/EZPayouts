@@ -30,8 +30,8 @@
       icon: '<path d="M3.5 16.5V4M3.5 16.5H17" /><path d="m5.5 13 3-3.5 2.5 2 4-5" />'
     },
     {
-      slug: "news", href: "/news/", label: "News",
-      icon: '<rect x="3.5" y="3.5" width="13" height="13" rx="1.5" /><path d="M6.5 7h7M6.5 10h7M6.5 13h4" />'
+      slug: "calendar", href: "/calendar/", label: "Calendar",
+      icon: '<rect x="3" y="4.5" width="14" height="12.5" rx="1.5" /><path d="M3 8h14M6.5 2.5v4M13.5 2.5v4" /><circle cx="10" cy="12" r="1.4" fill="currentColor" stroke="none" />'
     }
   ];
 
