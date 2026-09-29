@@ -530,8 +530,32 @@
   var activeTab = "trades";
   var editingTradeId = null;
   var pendingImageIds = [];
+  var originalImageIds = [];
   var currentDirection = "long";
   var filterDirection = "";
+
+  var TRADE_DRAFT_KEY = "ezpayouts.journal.drafts.v1";
+  function draftKeyFor(editId){ return editId ? ("edit:" + editId) : "new"; }
+  function loadDraft(key){
+    try {
+      var all = JSON.parse(localStorage.getItem(TRADE_DRAFT_KEY) || "{}");
+      return all[key] || null;
+    } catch (err) { return null; }
+  }
+  function saveDraftFor(key, draft){
+    try {
+      var all = JSON.parse(localStorage.getItem(TRADE_DRAFT_KEY) || "{}");
+      all[key] = draft;
+      localStorage.setItem(TRADE_DRAFT_KEY, JSON.stringify(all));
+    } catch (err) {}
+  }
+  function clearDraftFor(key){
+    try {
+      var all = JSON.parse(localStorage.getItem(TRADE_DRAFT_KEY) || "{}");
+      delete all[key];
+      localStorage.setItem(TRADE_DRAFT_KEY, JSON.stringify(all));
+    } catch (err) {}
+  }
 
   // ---------- DOM refs ----------
   var journalTabsEl = document.getElementById("journalTabs");
@@ -740,14 +764,6 @@
     var best = list.reduce(function(a, t){ return (!a || t.pnl > a.pnl) ? t : a; }, null);
     var worst = list.reduce(function(a, t){ return (!a || t.pnl < a.pnl) ? t : a; }, null);
 
-    var byDay = {};
-    list.forEach(function(t){ byDay[t.date] = (byDay[t.date] || 0) + t.pnl; });
-    var dayWin = 0, dayLoss = 0;
-    Object.keys(byDay).forEach(function(d){
-      if (byDay[d] > 0) dayWin++;
-      else if (byDay[d] < 0) dayLoss++;
-    });
-
     var longPnl = list.filter(function(t){ return t.direction === "long"; }).reduce(function(s, t){ return s + t.pnl; }, 0);
     var shortPnl = list.filter(function(t){ return t.direction === "short"; }).reduce(function(s, t){ return s + t.pnl; }, 0);
 
@@ -756,15 +772,11 @@
       wins: wins.length,
       losses: losses.length,
       winRate: (wins.length + losses.length) ? (wins.length / (wins.length + losses.length)) * 100 : 0,
-      profitFactor: grossLoss > 0 ? (grossWin / grossLoss) : (grossWin > 0 ? Infinity : 0),
       best: best,
       worst: worst,
       avgWin: wins.length ? grossWin / wins.length : 0,
       avgLoss: losses.length ? grossLoss / losses.length : 0,
       totalPnl: totalPnl,
-      dayWin: dayWin,
-      dayLoss: dayLoss,
-      dayWinPct: (dayWin + dayLoss) ? (dayWin / (dayWin + dayLoss)) * 100 : 0,
       longPnl: longPnl,
       shortPnl: shortPnl
     };
@@ -773,10 +785,8 @@
   var ICONS = {
     list: '<path d="M4 5h12M4 10h12M4 15h8" />',
     target: '<circle cx="10" cy="10" r="6" /><circle cx="10" cy="10" r="2" fill="currentColor" stroke="none" />',
-    gauge: '<path d="M4 13a6 6 0 1 1 12 0" /><path d="M10 13l3-4" />',
     up: '<path d="M4 13l5-5 3 3 4-5" /><path d="M13 6h3v3" />',
     down: '<path d="M4 7l5 5 3-3 4 5" /><path d="M13 14h3v-3" />',
-    calendar: '<rect x="3.5" y="4.5" width="13" height="12" rx="1.5" /><path d="M3.5 8h13M7 3v3M13 3v3" />',
     dollar: '<path d="M10 3v14M13.5 6.5c0-1.4-1.6-2.5-3.5-2.5s-3.5 1.1-3.5 2.5S8.1 9 10 9s3.5 1.1 3.5 2.5S11.9 14 10 14s-3.5-1.1-3.5-2.5" />',
     scale: '<path d="M10 3v14M5 7l-2 4a2.5 2.5 0 0 0 5 0zM15 7l-2 4a2.5 2.5 0 0 0 5 0zM5 7h10" />'
   };
@@ -786,30 +796,23 @@
 
   function renderStats(){
     var s = computeStats(filteredTrades());
-    var pfDisplay = s.profitFactor === Infinity ? "&infin;" : s.profitFactor.toFixed(2);
     var tiles = [
-      '<div class="stat-tile">' + iconSpan("list") +
-        '<span class="stat-tile-label">Total Trades</span>' +
-        '<span class="stat-tile-value">' + s.total + '</span>' +
-        '<span class="stat-tile-sub">Trades taken</span>' +
-      '</div>',
-
       '<div class="stat-tile">' + iconSpan("target") +
         '<span class="stat-tile-label">Win Rate</span>' +
         '<span class="stat-tile-value">' + s.winRate.toFixed(1) + '%</span>' +
         '<span class="stat-tile-sub">' + s.wins + 'W - ' + s.losses + 'L</span>' +
       '</div>',
 
-      '<div class="stat-tile">' + iconSpan("gauge") +
-        '<span class="stat-tile-label">Profit Factor</span>' +
-        '<span class="stat-tile-value">' + pfDisplay + '</span>' +
-        '<span class="stat-tile-sub">' + (s.total ? "Wins &divide; losses" : "No data") + '</span>' +
+      '<div class="stat-tile">' + iconSpan("list") +
+        '<span class="stat-tile-label">Total Trades</span>' +
+        '<span class="stat-tile-value">' + s.total + '</span>' +
+        '<span class="stat-tile-sub">Trades taken</span>' +
       '</div>',
 
-      '<div class="stat-tile">' + iconSpan("up", "pos") +
-        '<span class="stat-tile-label">Best Trade</span>' +
-        '<span class="stat-tile-value pos">' + (s.best ? fmtMoneySigned(s.best.pnl) : "&mdash;") + '</span>' +
-        '<span class="stat-tile-sub">' + (s.best ? escapeHtml(s.best.symbol) : "No trades yet") + '</span>' +
+      '<div class="stat-tile">' + iconSpan("dollar", s.totalPnl >= 0 ? "pos" : "neg") +
+        '<span class="stat-tile-label">PNL</span>' +
+        '<span class="stat-tile-value ' + (s.totalPnl >= 0 ? "pos" : "neg") + '">' + fmtMoneySigned(s.totalPnl) + '</span>' +
+        '<span class="stat-tile-sub">' + s.total + ' trades</span>' +
       '</div>',
 
       '<div class="stat-tile">' + iconSpan("scale") +
@@ -820,17 +823,16 @@
         '<div class="stat-tile-split"><span class="win-txt">' + fmtMoneyPlain(s.avgWin) + '</span><span class="loss-txt">' + fmtMoneyPlain(s.avgLoss) + '</span></div>' +
       '</div>',
 
+      '<div class="stat-tile">' + iconSpan("up", "pos") +
+        '<span class="stat-tile-label">Best Trade</span>' +
+        '<span class="stat-tile-value pos">' + (s.best ? fmtMoneySigned(s.best.pnl) : "&mdash;") + '</span>' +
+        '<span class="stat-tile-sub">' + (s.best ? escapeHtml(s.best.symbol) : "No trades yet") + '</span>' +
+      '</div>',
+
       '<div class="stat-tile">' + iconSpan("down", "neg") +
         '<span class="stat-tile-label">Worst Trade</span>' +
         '<span class="stat-tile-value neg">' + (s.worst ? fmtMoneySigned(s.worst.pnl) : "&mdash;") + '</span>' +
         '<span class="stat-tile-sub">' + (s.worst ? escapeHtml(s.worst.symbol) : "No trades yet") + '</span>' +
-      '</div>',
-
-      '<div class="stat-tile">' + iconSpan("calendar") +
-        '<span class="stat-tile-label">Day Win %</span>' +
-        '<span class="stat-tile-value">' + s.dayWinPct.toFixed(1) + '%</span>' +
-        '<span class="stat-tile-sub">' + s.dayWin + 'W - ' + s.dayLoss + 'L</span>' +
-        '<div class="stat-tile-bar"><span class="win" style="flex:' + Math.max(s.dayWin, 0.01) + '"></span><span class="loss" style="flex:' + Math.max(s.dayLoss, 0.01) + '"></span></div>' +
       '</div>',
 
       '<div class="stat-tile">' + iconSpan(s.longPnl - s.shortPnl >= 0 ? "up" : "down", s.longPnl - s.shortPnl >= 0 ? "pos" : "neg") +
@@ -838,12 +840,6 @@
         '<span class="stat-tile-value ' + (s.totalPnl >= 0 ? "pos" : "neg") + '">' + fmtMoneySigned(s.totalPnl) + '</span>' +
         '<span class="stat-tile-sub">Total PNL</span>' +
         '<div class="stat-tile-split"><span>L <b class="' + (s.longPnl >= 0 ? "win-txt" : "loss-txt") + '">' + fmtMoneySigned(s.longPnl) + '</b></span><span>S <b class="' + (s.shortPnl >= 0 ? "win-txt" : "loss-txt") + '">' + fmtMoneySigned(s.shortPnl) + '</b></span></div>' +
-      '</div>',
-
-      '<div class="stat-tile">' + iconSpan("dollar", s.totalPnl >= 0 ? "pos" : "neg") +
-        '<span class="stat-tile-label">PNL</span>' +
-        '<span class="stat-tile-value ' + (s.totalPnl >= 0 ? "pos" : "neg") + '">' + fmtMoneySigned(s.totalPnl) + '</span>' +
-        '<span class="stat-tile-sub">' + s.total + ' trades</span>' +
       '</div>'
     ];
     statCarousel.innerHTML = tiles.join("");
@@ -1064,17 +1060,39 @@
   });
   lightboxOverlay.addEventListener("click", function(){ lightboxOverlay.hidden = true; lightboxImg.src = ""; });
 
+  // A backdrop click (easy to trigger by accident, e.g. a text-selection
+  // drag inside the modal that slips past its edge before mouseup) saves
+  // whatever's typed as a resumable draft instead of losing it, but does
+  // NOT commit it to Trades History. X / Cancel / Escape discard on
+  // purpose: they clear that draft and delete any screenshots uploaded
+  // this session that never made it into a saved trade.
+  function collectFormAsDraft(){
+    return {
+      date: tfDate.value,
+      symbol: tfSymbol.value,
+      strategy: tfStrategy.value,
+      direction: currentDirection,
+      pnl: tfPnl.value,
+      title: tfTitle.value,
+      notes: tfNotes.value,
+      imageIds: pendingImageIds.slice()
+    };
+  }
+
   function openTradeModal(trade){
     editingTradeId = trade ? trade.id : null;
-    pendingImageIds = trade && Array.isArray(trade.imageIds) ? trade.imageIds.slice() : [];
+    originalImageIds = trade && Array.isArray(trade.imageIds) ? trade.imageIds.slice() : [];
+    var draft = loadDraft(draftKeyFor(editingTradeId));
+    var source = draft || trade || {};
+    pendingImageIds = Array.isArray(source.imageIds) ? source.imageIds.slice() : [];
     tradeModalTitle.textContent = trade ? "Edit trade" : "Add trade";
-    tfDate.value = trade ? trade.date : todayStr();
-    tfSymbol.value = trade ? trade.symbol : "";
-    tfStrategy.value = trade ? (trade.strategy || "") : "";
-    setDirection(trade ? trade.direction : "long");
-    tfPnl.value = trade ? String(trade.pnl) : "";
-    tfTitle.value = trade ? (trade.title || "") : "";
-    tfNotes.value = trade ? (trade.notes || "") : "";
+    tfDate.value = source.date || todayStr();
+    tfSymbol.value = source.symbol || "";
+    tfStrategy.value = source.strategy || "";
+    setDirection(source.direction || "long");
+    tfPnl.value = source.pnl !== undefined && source.pnl !== null && source.pnl !== "" ? String(source.pnl) : "";
+    tfTitle.value = source.title || "";
+    tfNotes.value = source.notes || "";
     renderImageThumbs();
     deleteTradeBtn.hidden = !trade;
     tradeModalOverlay.hidden = false;
@@ -1083,15 +1101,42 @@
     tradeModalOverlay.hidden = true;
     editingTradeId = null;
     pendingImageIds = [];
+    originalImageIds = [];
+  }
+  // Backdrop click: save as a draft, don't add/commit.
+  function softCloseTradeModal(){
+    saveDraftFor(draftKeyFor(editingTradeId), collectFormAsDraft());
+    closeTradeModal();
+  }
+  // X / Cancel / Escape: discard the draft and any orphaned images.
+  function discardTradeModal(){
+    clearDraftFor(draftKeyFor(editingTradeId));
+    pendingImageIds.forEach(function(id){
+      if (originalImageIds.indexOf(id) === -1) deleteImage(id);
+    });
+    closeTradeModal();
   }
   addTradeBtn.addEventListener("click", function(){ openTradeModal(null); });
-  tradeModalClose.addEventListener("click", closeTradeModal);
-  cancelTradeBtn.addEventListener("click", closeTradeModal);
-  tradeModalOverlay.addEventListener("click", function(e){ if (e.target === tradeModalOverlay) closeTradeModal(); });
+  tradeModalClose.addEventListener("click", discardTradeModal);
+  cancelTradeBtn.addEventListener("click", discardTradeModal);
+
+  // Only treat this as "clicked the backdrop" when BOTH the mousedown and
+  // the click landed on the overlay itself — otherwise selecting text (or
+  // dragging an image thumb) inside the modal and releasing the mouse past
+  // its edge would close it mid-edit.
+  var tradeModalMouseDownOnBackdrop = false;
+  tradeModalOverlay.addEventListener("mousedown", function(e){
+    tradeModalMouseDownOnBackdrop = e.target === tradeModalOverlay;
+  });
+  tradeModalOverlay.addEventListener("click", function(e){
+    if (e.target === tradeModalOverlay && tradeModalMouseDownOnBackdrop) softCloseTradeModal();
+    tradeModalMouseDownOnBackdrop = false;
+  });
+
   document.addEventListener("keydown", function(e){
     if (e.key !== "Escape") return;
     if (!lightboxOverlay.hidden){ lightboxOverlay.hidden = true; lightboxImg.src = ""; return; }
-    if (!tradeModalOverlay.hidden) closeTradeModal();
+    if (!tradeModalOverlay.hidden) discardTradeModal();
     if (!helpModalOverlay.hidden) helpModalOverlay.hidden = true;
   });
 
@@ -1121,6 +1166,7 @@
     if (editingTradeId) trades = trades.map(function(t){ return t.id === editingTradeId ? trade : t; });
     else trades.unshift(trade);
 
+    clearDraftFor(draftKeyFor(editingTradeId));
     save();
     renderAll();
     closeTradeModal();
@@ -1131,6 +1177,7 @@
     var t = trades.find(function(x){ return x.id === editingTradeId; });
     if (t && Array.isArray(t.imageIds)) t.imageIds.forEach(deleteImage);
     trades = trades.filter(function(x){ return x.id !== editingTradeId; });
+    clearDraftFor(draftKeyFor(editingTradeId));
     save();
     renderAll();
     closeTradeModal();
@@ -1235,7 +1282,12 @@
   // ---------- Help modal ----------
   helpBtn.addEventListener("click", function(){ helpModalOverlay.hidden = false; });
   helpModalClose.addEventListener("click", function(){ helpModalOverlay.hidden = true; });
-  helpModalOverlay.addEventListener("click", function(e){ if (e.target === helpModalOverlay) helpModalOverlay.hidden = true; });
+  var helpModalMouseDownOnBackdrop = false;
+  helpModalOverlay.addEventListener("mousedown", function(e){ helpModalMouseDownOnBackdrop = e.target === helpModalOverlay; });
+  helpModalOverlay.addEventListener("click", function(e){
+    if (e.target === helpModalOverlay && helpModalMouseDownOnBackdrop) helpModalOverlay.hidden = true;
+    helpModalMouseDownOnBackdrop = false;
+  });
 
   // ---------- Page-aware coach ----------
   window.EZPageContext = function(){

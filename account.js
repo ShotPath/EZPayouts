@@ -260,8 +260,11 @@
     });
 
     overlay.querySelector(".ez-auth-close").addEventListener("click", closeModal);
+    var authMouseDownOnBackdrop = false;
+    overlay.addEventListener("mousedown", function (e) { authMouseDownOnBackdrop = e.target === overlay; });
     overlay.addEventListener("click", function (e) {
-      if (e.target === overlay) closeModal();
+      if (e.target === overlay && authMouseDownOnBackdrop) closeModal();
+      authMouseDownOnBackdrop = false;
     });
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape" && !overlay.hidden) closeModal();
@@ -358,8 +361,11 @@
     });
 
     overlay.querySelector(".ez-auth-close").addEventListener("click", closeCpModal);
+    var cpMouseDownOnBackdrop = false;
+    overlay.addEventListener("mousedown", function (e) { cpMouseDownOnBackdrop = e.target === overlay; });
     overlay.addEventListener("click", function (e) {
-      if (e.target === overlay) closeCpModal();
+      if (e.target === overlay && cpMouseDownOnBackdrop) closeCpModal();
+      cpMouseDownOnBackdrop = false;
     });
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape" && !overlay.hidden) closeCpModal();

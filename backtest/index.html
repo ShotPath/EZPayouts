@@ -946,8 +946,11 @@
   }
 
   noteModalClose.addEventListener("click", closeNoteModal);
+  var noteModalMouseDownOnBackdrop = false;
+  noteModalOverlay.addEventListener("mousedown", function(e){ noteModalMouseDownOnBackdrop = e.target === noteModalOverlay; });
   noteModalOverlay.addEventListener("click", function(e){
-    if (e.target === noteModalOverlay) closeNoteModal();
+    if (e.target === noteModalOverlay && noteModalMouseDownOnBackdrop) closeNoteModal();
+    noteModalMouseDownOnBackdrop = false;
   });
   document.addEventListener("keydown", function(e){
     if (e.key === "Escape" && !noteModalOverlay.hidden) closeNoteModal();
