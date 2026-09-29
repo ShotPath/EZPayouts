@@ -4,3 +4,8 @@ compatibility_date = "2025-01-01"
 
 # No routes/custom domain configured yet — deploys to the default
 # ezpayouts-calendar.<your-subdomain>.workers.dev URL.
+
+# Requires a KV binding named "ACCOUNTS" — the SAME namespace already bound
+# to ezpayouts-auth and ezpayouts-coach. This worker only ever reads/writes
+# its own "calendar:lastGood" key in it (a durable, cross-colo fallback copy
+# of the last successfully fetched feed), so sharing the namespace is safe.
