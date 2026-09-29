@@ -215,6 +215,26 @@
   .journal-empty p{ margin:0 0 6px; font-size:13.5px; line-height:1.6; }
   .journal-empty p:first-child{ color:var(--ice); font-size:14.5px; }
 
+  /* ---------- Edge curve ---------- */
+  .edge-chart-wrap{ position:relative; }
+  .edge-chart-wrap svg{ display:block; width:100%; height:180px; }
+  .edge-crosshair{
+    position:absolute; top:0; bottom:0; width:1px; background:var(--hairline-bright);
+    pointer-events:none; opacity:0; transition:opacity .1s;
+  }
+  .edge-tooltip{
+    position:absolute; top:0; pointer-events:none; opacity:0; transition:opacity .1s;
+    transform:translate(-50%,-100%); margin-top:-8px;
+    background:var(--panel-hi); border:1px solid var(--hairline-bright); border-radius:10px;
+    padding:8px 11px; font-family:var(--font-mono); font-size:11px; color:var(--ice);
+    white-space:nowrap; box-shadow:0 14px 30px -12px rgba(0,0,0,0.6); z-index:5;
+  }
+  .edge-tooltip-line{ line-height:1.5; }
+  .edge-tooltip-line + .edge-tooltip-line{ margin-top:1px; }
+  .edge-tooltip-r{ font-weight:700; }
+  .edge-tooltip-r.pos{ color:var(--phosphor-soft); }
+  .edge-tooltip-r.neg{ color:var(--red); }
+
   .trade-row{
     display:grid; grid-template-columns:80px 1.4fr 70px 100px 1.6fr 50px;
     align-items:center; gap:12px; padding:12px 6px; border-bottom:1px solid var(--hairline);
@@ -405,6 +425,13 @@
       <button type="button" class="carousel-nav" id="statPrev" aria-label="Scroll stats left">&lsaquo;</button>
       <div class="stat-carousel" id="statCarousel"></div>
       <button type="button" class="carousel-nav" id="statNext" aria-label="Scroll stats right">&rsaquo;</button>
+    </div>
+
+    <div class="mega-section">
+      <div class="journal-card-head"><h2>Edge Curve</h2></div>
+      <div class="edge-chart-wrap" id="edgeChartWrap">
+        <div class="journal-empty"><p>Log a couple trades to see your cumulative edge.</p></div>
+      </div>
     </div>
 
     <div class="journal-panel mega-section" id="panelTrades">
@@ -802,6 +829,78 @@
     return '<span class="stat-tile-icon' + (tone ? " " + tone : "") + '"><svg viewBox="0 0 20 20">' + ICONS[name] + "</svg></span>";
   }
 
+  // ---------- Edge curve: cumulative $ P&L across the filtered trades,
+  // oldest first. Same SVG + hover approach as Backtest's Edge Curve card.
+  function buildEdgeChartSvg(series){
+    var w = 600, h = 180, padX = 10, padY = 16;
+    var minV = Math.min.apply(null, series.concat([0]));
+    var maxV = Math.max.apply(null, series.concat([0]));
+    var range = (maxV - minV) || 1;
+    function xAt(i){ return padX + (series.length > 1 ? (i / (series.length - 1)) * (w - padX * 2) : (w - padX * 2) / 2); }
+    function yAt(v){ return h - padY - ((v - minV) / range) * (h - padY * 2); }
+    var zeroY = yAt(0);
+    var pts = series.map(function(v, i){ return xAt(i).toFixed(1) + "," + yAt(v).toFixed(1); }).join(" ");
+    var areaPts = pts + " " + xAt(series.length - 1).toFixed(1) + "," + zeroY.toFixed(1) + " " + xAt(0).toFixed(1) + "," + zeroY.toFixed(1);
+    var last = series[series.length - 1];
+    var lineColor = last >= 0 ? "#3ee08c" : "#ef5a5a";
+    return '<svg viewBox="0 0 ' + w + ' ' + h + '" width="100%" height="180" preserveAspectRatio="none" role="img" aria-label="Cumulative P&amp;L edge curve" id="edgeChartSvg">' +
+      '<defs><linearGradient id="edgeFill" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0%" stop-color="' + lineColor + '" stop-opacity="0.28"/>' +
+        '<stop offset="100%" stop-color="' + lineColor + '" stop-opacity="0"/>' +
+      '</linearGradient></defs>' +
+      '<line x1="' + padX + '" y1="' + zeroY.toFixed(1) + '" x2="' + (w - padX) + '" y2="' + zeroY.toFixed(1) + '" stroke="#23332a" stroke-width="1" stroke-dasharray="3,3"/>' +
+      '<polygon points="' + areaPts + '" fill="url(#edgeFill)" stroke="none"/>' +
+      '<polyline points="' + pts + '" fill="none" stroke="' + lineColor + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>' +
+    '</svg>';
+  }
+
+  function wireEdgeChartHover(wrap, series, meta){
+    var crosshair = document.getElementById("edgeCrosshair");
+    var tooltip = document.getElementById("edgeTooltip");
+    if (!crosshair || !tooltip) return;
+    function show(clientX){
+      var rect = wrap.getBoundingClientRect();
+      var relX = Math.max(0, Math.min(1, rect.width ? (clientX - rect.left) / rect.width : 0));
+      var idx = series.length > 1 ? Math.round(relX * (series.length - 1)) : 0;
+      var xPct = series.length > 1 ? (idx / (series.length - 1)) * 100 : 50;
+      var m = meta[idx];
+      crosshair.style.left = xPct + "%";
+      crosshair.style.opacity = "1";
+      if (!m){ tooltip.style.opacity = "0"; return; }
+      tooltip.innerHTML =
+        '<div class="edge-tooltip-line">#' + m.index + ' &middot; ' + escapeHtml(m.symbol) + '</div>' +
+        '<div class="edge-tooltip-line">' + (m.direction === "long" ? "Long" : "Short") + ' &middot; ' + fmtMoneySigned(m.pnl) + '</div>' +
+        '<div class="edge-tooltip-line">Cumulative: <span class="edge-tooltip-r ' + (m.cum >= 0 ? "pos" : "neg") + '">' + fmtMoneySigned(m.cum) + '</span></div>';
+      tooltip.style.left = xPct + "%";
+      tooltip.style.opacity = "1";
+    }
+    wrap.addEventListener("mousemove", function(e){ show(e.clientX); });
+    wrap.addEventListener("mouseleave", function(){ crosshair.style.opacity = "0"; tooltip.style.opacity = "0"; });
+  }
+
+  function renderEdgeChart(){
+    var wrap = document.getElementById("edgeChartWrap");
+    if (!wrap) return;
+    var list = filteredTrades();
+    if (list.length < 2){
+      wrap.innerHTML = '<div class="journal-empty"><p>Log a couple trades to see your cumulative edge.</p></div>';
+      return;
+    }
+    var chrono = list.slice().reverse();
+    var series = [0];
+    var meta = [null];
+    var cum = 0;
+    chrono.forEach(function(t, i){
+      cum += t.pnl;
+      series.push(cum);
+      meta.push({ index: i + 1, symbol: t.symbol, direction: t.direction, pnl: t.pnl, cum: cum });
+    });
+    wrap.innerHTML = buildEdgeChartSvg(series) +
+      '<div class="edge-crosshair" id="edgeCrosshair"></div>' +
+      '<div class="edge-tooltip" id="edgeTooltip"></div>';
+    wireEdgeChartHover(wrap, series, meta);
+  }
+
   function renderStats(){
     var s = computeStats(filteredTrades());
     var tiles = [
@@ -962,6 +1061,7 @@
 
   function renderAll(){
     renderStats();
+    renderEdgeChart();
     renderActivePanel();
   }
 
