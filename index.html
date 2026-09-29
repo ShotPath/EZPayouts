@@ -139,33 +139,32 @@
   .home-mega > .mega-section + .mega-section{ border-top:1px solid var(--hairline); }
 
   .firm-row{
-    display:grid; grid-template-columns:repeat(auto-fit, minmax(128px, 1fr)); gap:14px;
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(128px, 1fr)); gap:8px;
   }
   .firm-card{
-    display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center;
-    padding:26px 14px 22px; border-radius:16px;
-    background:var(--panel-raised); border:1px solid var(--hairline);
-    text-decoration:none; transition:transform .18s ease, border-color .18s, box-shadow .18s;
+    display:flex; flex-direction:column; align-items:center; gap:13px; text-align:center;
+    padding:22px 12px; border-radius:16px;
+    background:transparent; border:1px solid transparent;
+    text-decoration:none; transition:transform .18s ease, background .18s, border-color .18s, box-shadow .18s;
   }
   .firm-mark{
-    width:54px; height:54px; border-radius:50%; flex:none;
+    width:50px; height:50px; border-radius:50%; flex:none;
     display:flex; align-items:center; justify-content:center;
-    font-family:var(--font-display); font-weight:700; font-size:15px;
+    font-family:var(--font-display); font-weight:700; font-size:14px;
     background:var(--panel-hi); color:var(--muted-dim); border:1px solid var(--hairline);
   }
   .firm-name{ font-family:var(--font-display); font-weight:600; font-size:13.5px; color:var(--muted); line-height:1.3; }
   .firm-status{
-    font-family:var(--font-mono); font-size:9.5px; letter-spacing:0.1em; text-transform:uppercase;
-    padding:3px 10px; border-radius:999px; background:var(--panel-hi); color:var(--muted-dim); border:1px solid var(--hairline);
+    font-family:var(--font-mono); font-size:9px; letter-spacing:0.1em; text-transform:uppercase;
+    color:var(--muted-dim);
   }
 
-  .firm-card.disabled{ cursor:not-allowed; opacity:0.55; }
+  .firm-card.disabled{ cursor:not-allowed; opacity:0.6; }
+  .firm-card.disabled:hover{ background:var(--panel-raised); }
 
   .firm-card.active{
-    border-color:var(--phosphor-dim);
-    background:linear-gradient(180deg, rgba(62,224,140,0.10), var(--panel-raised));
+    border-color:var(--hairline);
     cursor:pointer;
-    box-shadow:0 16px 36px -20px var(--phosphor-glow);
   }
   .firm-card.active .firm-mark{
     background:transparent;
@@ -174,10 +173,11 @@
   }
   .firm-card.active .firm-mark img{ width:100%; height:100%; object-fit:cover; }
   .firm-card.active .firm-name{ color:var(--ice); font-size:14.5px; }
-  .firm-card.active .firm-status{ background:var(--mint); color:var(--mint-text); font-weight:700; border-color:var(--mint); }
+  .firm-card.active .firm-status{ color:var(--phosphor-soft); font-weight:700; }
   .firm-card.active:hover{
-    transform:translateY(-5px);
-    border-color:var(--phosphor);
+    transform:translateY(-4px);
+    background:var(--panel-raised);
+    border-color:var(--phosphor-dim);
     box-shadow:0 14px 34px -14px rgba(62,224,140,0.4);
   }
   .firm-card.active:focus-visible{ outline:2px solid var(--phosphor); outline-offset:3px; }
@@ -327,17 +327,11 @@
 
   <div class="home-mega">
   <div class="mega-section">
+  <div class="section-head">
+    <div class="eyebrow">Works Where You Trade</div>
+    <h2>Supported Prop Firms</h2>
+  </div>
   <div class="firm-row">
-    <div class="firm-card disabled" aria-disabled="true">
-      <span class="firm-mark" aria-hidden="true">A</span>
-      <span class="firm-name">Apex Trader Funding</span>
-      <span class="firm-status">Coming Soon</span>
-    </div>
-    <div class="firm-card disabled" aria-disabled="true">
-      <span class="firm-mark" aria-hidden="true">FN</span>
-      <span class="firm-name">FundedNext</span>
-      <span class="firm-status">Coming Soon</span>
-    </div>
     <a class="firm-card active" href="lucid/">
       <span class="firm-mark" aria-hidden="true"><img src="lucid-orb.png" alt="" /></span>
       <span class="firm-name">Lucid Trading</span>
@@ -351,6 +345,16 @@
     <div class="firm-card disabled" aria-disabled="true">
       <span class="firm-mark" aria-hidden="true">TF</span>
       <span class="firm-name">Tradeify</span>
+      <span class="firm-status">Coming Soon</span>
+    </div>
+    <div class="firm-card disabled" aria-disabled="true">
+      <span class="firm-mark" aria-hidden="true">FN</span>
+      <span class="firm-name">FundedNext</span>
+      <span class="firm-status">Coming Soon</span>
+    </div>
+    <div class="firm-card disabled" aria-disabled="true">
+      <span class="firm-mark" aria-hidden="true">MFF</span>
+      <span class="firm-name">My Funded Futures</span>
       <span class="firm-status">Coming Soon</span>
     </div>
   </div>
