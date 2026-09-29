@@ -77,7 +77,6 @@
       ".ez-brand-group{ display:flex; align-items:center; gap:10px; flex:none; min-width:0; }" +
       ".ez-brand{ display:flex; align-items:center; gap:8px; flex:none; text-decoration:none; }" +
       ".ez-brand img{ width:30px; height:30px; object-fit:contain; }" +
-      ".ez-brand-text{ font-family:var(--font-display); font-weight:700; font-size:16px; color:var(--ice); }" +
       ".ez-page-sep{ color:var(--hairline-bright); font-size:16px; }" +
       ".ez-page-title{ font-family:var(--font-display); font-weight:600; font-size:15px; color:var(--muted);" +
       " overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }" +
@@ -159,8 +158,7 @@
     header.innerHTML = "" +
       '<div class="ez-brand-group">' +
         '<a class="ez-brand" href="/" aria-label="EZPayouts home">' +
-          '<img src="/ezpayouts-icon-only.png" alt="" />' +
-          '<span class="ez-brand-text">EZ</span>' +
+          '<img src="/ezpayouts-icon-only.png" alt="EZ" />' +
         "</a>" +
         '<span class="ez-page-sep" aria-hidden="true">|</span>' +
         '<span class="ez-page-title">' + activeItem.label + "</span>" +
