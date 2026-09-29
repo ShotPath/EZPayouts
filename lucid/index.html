@@ -140,32 +140,69 @@
   .lucid-mega .mega-section + .mega-section{ border-top:1px solid var(--hairline); }
   #guideExtras > .mega-section:first-child{ border-top:1px solid var(--hairline); }
 
-  .snapshot-card{
-    background:var(--panel-raised); border:1px solid var(--hairline); border-radius:16px;
-    padding:18px clamp(14px,2.5vw,24px) 20px;
+  /* ---------- Stat carousel ---------- */
+  .stat-carousel-wrap{ display:flex; align-items:center; gap:8px; }
+  .carousel-nav{
+    flex:none; width:32px; height:32px; border-radius:50%; padding:0;
+    background:var(--panel-raised); border:1px solid var(--hairline-bright); color:var(--muted);
+    font-size:16px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    transition:border-color .15s, color .15s;
   }
-  .top-cards-row{
-    display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:stretch;
+  .carousel-nav:hover{ border-color:var(--phosphor-dim); color:var(--ice); }
+  .carousel-nav:disabled{ opacity:0.35; cursor:default; }
+  .stat-carousel{
+    flex:1; min-width:0; display:flex; gap:12px; overflow-x:auto; scroll-behavior:smooth;
+    scrollbar-width:none; padding-bottom:2px;
   }
-  .top-cards-row[hidden]{ display:none; }
-  .top-cards-row .snapshot-card, .top-cards-row .console{ min-width:0; display:flex; flex-direction:column; }
-  .top-cards-row .console{
-    background:var(--panel-raised); border:1px solid var(--hairline); border-radius:16px;
-    padding:18px clamp(14px,2.5vw,22px);
+  .stat-carousel::-webkit-scrollbar{ display:none; }
+  .stat-tile{
+    flex:0 0 220px; scroll-snap-align:start;
+    background:var(--panel-raised); border:1px solid var(--hairline); border-radius:14px;
+    padding:16px 18px; position:relative;
   }
-  .top-cards-row .card-body{ flex:1; display:flex; flex-direction:column; }
-  .top-cards-row .card-body[hidden]{ display:none; }
-  .top-cards-row .row-collapsed{ align-self:start; }
-  .top-cards-row .console-head{ padding-bottom:13px; border-bottom:1px solid var(--hairline); }
-  .top-cards-row .console-head h2{ font-weight:700; font-size:16px; }
-  .top-cards-row #importCardBody p.hint{ font-size:13.5px; }
-  .top-cards-row .csv-steps{ gap:13px; }
-  .top-cards-row .csv-steps li{ font-size:13.5px; }
-  .top-cards-row .import-bottom{ padding-top:16px; }
-  .top-cards-row #importCardBody{ justify-content:space-between; }
-  @media (max-width:860px){
-    .top-cards-row{ grid-template-columns:1fr; }
+  .stat-tile-label{ font-family:var(--font-display); font-weight:600; font-size:13px; color:var(--ice); }
+  .stat-tile-icon{
+    position:absolute; top:14px; right:14px; width:26px; height:26px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; background:var(--panel-hi); color:var(--muted);
   }
+  .stat-tile-icon.pos{ color:var(--phosphor-soft); }
+  .stat-tile-icon.neg{ color:var(--red); }
+  .stat-tile-icon svg{ width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .stat-tile-value{ display:block; font-family:var(--font-display); font-weight:700; font-size:24px; color:var(--ice); margin-top:14px; }
+  .stat-tile-value.pos{ color:var(--phosphor-soft); text-shadow:0 0 16px var(--phosphor-glow); }
+  .stat-tile-value.neg{ color:var(--red); text-shadow:0 0 16px var(--red-glow); }
+  .stat-tile-sub{ display:block; font-family:var(--font-mono); font-size:11px; color:var(--muted); margin-top:4px; }
+  .stat-tile-bar{ display:flex; height:5px; border-radius:999px; overflow:hidden; margin-top:10px; background:var(--panel-hi); }
+  .stat-tile-bar span{ display:block; height:100%; }
+  .stat-tile-bar .win{ background:var(--phosphor); }
+  .stat-tile-bar .loss{ background:var(--red); }
+  .stat-tile-split{ display:flex; justify-content:space-between; margin-top:8px; font-family:var(--font-mono); font-size:10.5px; color:var(--muted); }
+  .stat-tile-split b{ font-weight:700; }
+  .stat-tile-split .win-txt{ color:var(--phosphor-soft); }
+  .stat-tile-split .loss-txt{ color:var(--red); }
+
+  /* ---------- Edge curve ---------- */
+  .edge-chart-wrap{ position:relative; }
+  .edge-chart-wrap svg{ display:block; width:100%; height:180px; }
+  .edge-crosshair{
+    position:absolute; top:0; bottom:0; width:1px; background:var(--hairline-bright);
+    pointer-events:none; opacity:0; transition:opacity .1s;
+  }
+  .edge-tooltip{
+    position:absolute; top:0; pointer-events:none; opacity:0; transition:opacity .1s;
+    transform:translate(-50%,-100%); margin-top:-8px;
+    background:var(--panel-hi); border:1px solid var(--hairline-bright); border-radius:10px;
+    padding:8px 11px; font-family:var(--font-mono); font-size:11px; color:var(--ice);
+    white-space:nowrap; box-shadow:0 14px 30px -12px rgba(0,0,0,0.6); z-index:5;
+  }
+  .edge-tooltip-line{ line-height:1.5; }
+  .edge-tooltip-line + .edge-tooltip-line{ margin-top:1px; }
+  .edge-tooltip-r{ font-weight:700; }
+  .edge-tooltip-r.pos{ color:var(--phosphor-soft); }
+  .edge-tooltip-r.neg{ color:var(--red); }
+  .guide-empty{ text-align:center; padding:34px 10px; color:var(--muted); }
+  .guide-empty p{ margin:0; font-size:13.5px; line-height:1.6; }
+
   .snapshot-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
   .snapshot-title{ font-size:16px; color:var(--ice); margin-bottom:2px; }
   .snapshot-sub{ font-family:var(--font-mono); font-size:11px; color:var(--muted); }
@@ -254,11 +291,6 @@
     font-size:12px; color:var(--muted);
   }
   .fee-box-sub b{ color:var(--ice); font-family:var(--font-mono); font-size:13px; }
-
-  /* ---------- Pricing card (Snapshot, eval/funded flip) ---------- */
-  .pricing-card .snapshot-head{ padding-bottom:13px; border-bottom:1px solid var(--hairline); margin-bottom:14px; }
-  .pricing-card .snapshot-title{ font-weight:700; font-size:17px; }
-  .pricing-card .snapshot-sub{ display:none; }
 
   .pricing-flags{ display:flex; flex-direction:column; gap:10px; margin:16px 0; }
   .pricing-flag-row{ display:flex; justify-content:space-between; align-items:center; gap:12px; font-size:13px; color:var(--muted); }
@@ -363,13 +395,6 @@
     background:var(--panel-raised); color:var(--phosphor-soft); cursor:pointer; margin-right:10px;
   }
   .field input[type="file"]::file-selector-button:hover{ background:var(--mint); color:var(--mint-text); border-color:var(--mint); }
-
-  .csv-chart-wrap{
-    margin-top:20px; padding:14px 16px 8px; border-radius:14px;
-    background:var(--void); border:1px solid var(--hairline-bright);
-  }
-  .csv-chart-title{ font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); margin-bottom:8px; }
-  .csv-chart-wrap svg{ display:block; }
 
   .csv-steps{ margin:0 0 18px; padding-left:20px; display:flex; flex-direction:column; gap:8px; }
   .csv-steps li{ font-size:13.5px; color:var(--muted); line-height:1.55; }
@@ -476,88 +501,94 @@
     <h1>Get through the eval. Get <span>funded</span>. Get <span>paid</span>.</h1>
   </div>
 
-  <div class="account-selector">
-    <div class="plan-tabs seg-track" id="planTabs">
-      <span class="seg-thumb" aria-hidden="true"></span>
-      <button type="button" data-plan="pro">LucidPro</button>
-      <button type="button" data-plan="flex">LucidFlex</button>
-      <button type="button" data-plan="daily">LucidDaily</button>
-      <button type="button" data-plan="direct">LucidDirect</button>
-    </div>
-    <div class="size-select-wrap">
-      <label for="sizeSelect">Account Size</label>
-      <select id="sizeSelect"></select>
-    </div>
-  </div>
-
   <div class="plan-disclaimer" id="planDisclaimer" hidden>
     <div class="plan-disclaimer-label">Before you open one of these</div>
     <p id="planDisclaimerText"></p>
   </div>
 
   <div class="lucid-mega" id="lucidMega">
-  <div class="top-cards-row mega-section" id="topCardsRow">
-    <div class="snapshot-card pricing-card" id="snapshotCard">
-      <div class="snapshot-head">
-        <div>
-          <div class="snapshot-title" id="snapshotTitle">25K FLEX EVAL</div>
-          <div class="snapshot-sub" id="snapshotSub">Live rule sheet for this plan and size</div>
-        </div>
-        <div class="rcontrol">
-          <button type="button" class="collapse-btn" data-card="snapshotCard" aria-expanded="true" aria-label="Collapse Account Snapshot"><span class="chev" aria-hidden="true"></span></button>
-        </div>
+
+  <div class="mega-section" id="snapshotCard">
+    <div class="snapshot-head">
+      <div>
+        <div class="snapshot-title" id="snapshotTitle">25K FLEX EVAL</div>
+        <div class="snapshot-sub" id="snapshotSub">Live rule sheet for this plan and size</div>
       </div>
-      <div class="card-body" id="snapshotCardBody">
-        <div class="readout-list" id="statList"></div>
-        <div class="pricing-flags" id="pricingFlags"></div>
-        <div id="feeBox"></div>
-        <div class="pricing-actions" id="pricingActions"></div>
+      <div class="rcontrol">
+        <button type="button" class="collapse-btn" data-card="snapshotCard" aria-expanded="true" aria-label="Collapse Account Selection"><span class="chev" aria-hidden="true"></span></button>
       </div>
     </div>
-
-    <div class="console" id="importCard">
-      <div class="console-head">
-        <h2>Import Trade History</h2>
-        <button type="button" class="collapse-btn" data-card="importCard" aria-expanded="true" aria-label="Collapse Import Trade History"><span class="chev" aria-hidden="true"></span></button>
+    <div class="account-selector">
+      <div class="plan-tabs seg-track" id="planTabs">
+        <span class="seg-thumb" aria-hidden="true"></span>
+        <button type="button" data-plan="pro">LucidPro</button>
+        <button type="button" data-plan="flex">LucidFlex</button>
+        <button type="button" data-plan="daily">LucidDaily</button>
+        <button type="button" data-plan="direct">LucidDirect</button>
       </div>
-      <div class="card-body" id="importCardBody">
-        <p class="hint" style="margin:-6px 0 16px; font-size:13.5px; line-height:1.6;">No login, no password &mdash; export a CSV from Tradovate and drop it in below. The file is read entirely in your browser; nothing gets uploaded anywhere.</p>
-        <ol class="csv-steps">
-          <li>Log into Tradovate: <a href="https://trader.tradovate.com/" target="_blank" rel="noopener">trader.tradovate.com</a> (opens in a new tab)</li>
-          <li>Click your <b>account name</b> at the top, then the small <b>gear icon</b> next to it &mdash; this opens <b>Account Reports</b> (some versions show this as a <b>Reports</b> item in the main menu instead)</li>
-          <li>Click the <b>Account Balance History</b> tab &mdash; not Client Statements or Performance, those are different reports (Cash History also works if that's what you've got)</li>
-          <li>Set the date range back to the day you first opened the account, so it captures everything</li>
-          <li>Click <b>Download Report</b> to save the CSV</li>
-          <li>Come back here and upload that file below</li>
-        </ol>
-        <div class="import-bottom">
-          <div class="field">
-            <label for="csvFile">Account Balance History CSV</label>
-            <input id="csvFile" type="file" accept=".csv,text/csv" />
-            <span class="hint" id="csvMessage">Auto-fills Net P&amp;L and Best Day below once uploaded. Cash History files are also accepted.</span>
-          </div>
-          <div id="csvResults" hidden>
-            <div class="csv-chart-wrap">
-              <div class="csv-chart-title">Cumulative P&amp;L</div>
-              <div id="csvChart"></div>
-            </div>
-            <div class="readout-list" id="csvConsistencyList" style="margin-top:16px;"></div>
-          </div>
+      <div class="size-select-wrap">
+        <label for="sizeSelect">Account Size</label>
+        <select id="sizeSelect"></select>
+      </div>
+    </div>
+    <div class="card-body" id="snapshotCardBody">
+      <div class="readout-list" id="statList"></div>
+      <div class="pricing-flags" id="pricingFlags"></div>
+      <div id="feeBox"></div>
+      <div class="pricing-actions" id="pricingActions"></div>
+    </div>
+  </div>
+
+  <div class="mega-section" id="importCard">
+    <div class="console-head">
+      <h2>Import Trade History</h2>
+      <button type="button" class="collapse-btn" data-card="importCard" aria-expanded="true" aria-label="Collapse Import Trade History"><span class="chev" aria-hidden="true"></span></button>
+    </div>
+    <div class="card-body" id="importCardBody">
+      <p class="hint" style="margin:-6px 0 16px; font-size:13.5px; line-height:1.6;">No login, no password &mdash; export a CSV from Tradovate and drop it in below. The file is read entirely in your browser; nothing gets uploaded anywhere.</p>
+      <ol class="csv-steps">
+        <li>Log into Tradovate: <a href="https://trader.tradovate.com/" target="_blank" rel="noopener">trader.tradovate.com</a> (opens in a new tab)</li>
+        <li>Click your <b>account name</b> at the top, then the small <b>gear icon</b> next to it &mdash; this opens <b>Account Reports</b> (some versions show this as a <b>Reports</b> item in the main menu instead)</li>
+        <li>Click the <b>Account Balance History</b> tab &mdash; not Client Statements or Performance, those are different reports (Cash History also works if that's what you've got)</li>
+        <li>Set the date range back to the day you first opened the account, so it captures everything</li>
+        <li>Click <b>Download Report</b> to save the CSV</li>
+        <li>Come back here and upload that file below</li>
+      </ol>
+      <div class="import-bottom">
+        <div class="field">
+          <label for="csvFile">Account Balance History CSV</label>
+          <input id="csvFile" type="file" accept=".csv,text/csv" />
+          <span class="hint" id="csvMessage">Auto-fills Net P&amp;L and Best Day below once uploaded. Cash History files are also accepted.</span>
         </div>
       </div>
+    </div>
+  </div>
+
+  <div class="mega-section" id="edgeCurveCard">
+    <div class="console-head"><h2>Edge Curve</h2></div>
+    <div class="edge-chart-wrap" id="guideEdgeChartWrap">
+      <div class="guide-empty"><p>Import a CSV above to see your cumulative edge.</p></div>
+    </div>
+  </div>
+
+  <div class="mega-section" id="guideStatsCard">
+    <div class="stat-carousel-wrap">
+      <button type="button" class="carousel-nav" id="guideStatPrev" aria-label="Scroll stats left">&lsaquo;</button>
+      <div class="stat-carousel" id="guideStatCarousel"></div>
+      <button type="button" class="carousel-nav" id="guideStatNext" aria-label="Scroll stats right">&rsaquo;</button>
     </div>
   </div>
 
   <div id="guideExtras">
   <div class="console mega-section" id="copilotCard">
     <div class="console-head">
-      <h2>Risk Co-Pilot</h2>
+      <h2 id="copilotTitle">Pass the Evaluation</h2>
       <div class="rcontrol">
         <div class="rcontrol" id="phaseToggle">
           <button type="button" class="opt-pill active" data-phase="eval">Evaluation</button>
           <button type="button" class="opt-pill" data-phase="funded">Funded</button>
         </div>
-        <button type="button" class="collapse-btn" data-card="copilotCard" aria-expanded="true" aria-label="Collapse Risk Co-Pilot"><span class="chev" aria-hidden="true"></span></button>
+        <button type="button" class="collapse-btn" data-card="copilotCard" aria-expanded="true" aria-label="Collapse the calculator"><span class="chev" aria-hidden="true"></span></button>
       </div>
     </div>
     <div class="card-body" id="copilotCardBody">
@@ -890,6 +921,13 @@
   function money(n){ return fmt.format(Math.round(n)); }
   var fmtCents = new Intl.NumberFormat("en-US", { style:"currency", currency:"USD", minimumFractionDigits:2, maximumFractionDigits:2 });
   function moneyCents(n){ return fmtCents.format(n); }
+  function fmtMoneySigned(n){
+    var sign = n < 0 ? "-" : "+";
+    return sign + "$" + Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  }
+  function fmtMoneyPlain(n){
+    return "$" + Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
 
   var statList = document.getElementById("statList");
   var snapshotTitle = document.getElementById("snapshotTitle");
@@ -1066,28 +1104,6 @@
     btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
     if (card) card.classList.toggle("row-collapsed", collapsed);
     state.collapsed[cardId] = collapsed;
-    if (cardId === "snapshotCard" || cardId === "importCard") syncImportCardHeight();
-  }
-
-  // Import Trade History's box height tracks the pricing card's height
-  // whenever the pricing card is expanded, so the two line up. But if the
-  // pricing card is then collapsed, Import Trade History shouldn't shrink
-  // along with it — it stays pinned at the last height it matched, until
-  // it's collapsed itself (or the pricing card re-expands to a new height).
-  var lastSnapshotHeight = null;
-  function syncImportCardHeight(){
-    var snapshotCard = document.getElementById("snapshotCard");
-    var importCard = document.getElementById("importCard");
-    if (!snapshotCard || !importCard || document.getElementById("topCardsRow").hidden) return;
-    if (!state.collapsed.snapshotCard){
-      importCard.style.minHeight = "";
-      lastSnapshotHeight = snapshotCard.offsetHeight;
-    }
-    if (state.collapsed.importCard){
-      importCard.style.minHeight = "";
-    } else if (lastSnapshotHeight){
-      importCard.style.minHeight = lastSnapshotHeight + "px";
-    }
   }
 
   document.addEventListener("click", function(e){
@@ -1304,6 +1320,7 @@
     document.querySelectorAll("#phaseToggle .opt-pill").forEach(function(btn){
       btn.classList.toggle("active", btn.dataset.phase === phase);
     });
+    document.getElementById("copilotTitle").textContent = phase === "funded" ? "Reach Your Next Payout" : "Pass the Evaluation";
     document.getElementById("pnlLabel").textContent = phase === "funded" ? "Net P&L this cycle ($)" : "Net P&L so far ($)";
     document.getElementById("daysField").hidden = phase === "funded";
     document.getElementById("qualDaysField").hidden = phase !== "funded";
@@ -1549,71 +1566,194 @@
     }).join("");
 
     var disclaimerText = PLAN_DISCLAIMERS[state.plan];
-    document.getElementById("lucidMega").hidden = !!disclaimerText;
-    document.getElementById("topCardsRow").hidden = !!disclaimerText;
+    ["importCard", "edgeCurveCard", "guideStatsCard"].forEach(function(id){
+      var el = document.getElementById(id);
+      if (el) el.hidden = !!disclaimerText;
+    });
     document.getElementById("guideExtras").hidden = !!disclaimerText;
+    document.querySelector('.collapse-btn[data-card="snapshotCard"]').hidden = !!disclaimerText;
+    if (disclaimerText){
+      document.getElementById("snapshotCardBody").hidden = true;
+    } else {
+      document.getElementById("snapshotCardBody").hidden = !!state.collapsed.snapshotCard;
+    }
     document.getElementById("planDisclaimer").hidden = !disclaimerText;
     if (disclaimerText) document.getElementById("planDisclaimerText").textContent = disclaimerText;
   }
 
-  var lastCsvResult = null;
+  var lastCsvDays = null;
+  var lastCsvByDay = null;
 
-  function buildPnlChartSvg(series){
-    var w = 600, h = 160, padX = 8, padY = 14;
+  // ---------- Edge curve: cumulative $ P&L across imported trading days,
+  // oldest first. Same SVG + hover approach as Backtest/Journal's Edge Curve.
+  function buildEdgeChartSvg(series){
+    var w = 600, h = 180, padX = 10, padY = 16;
     var minV = Math.min.apply(null, series.concat([0]));
     var maxV = Math.max.apply(null, series.concat([0]));
     var range = (maxV - minV) || 1;
-    function xAt(i){ return padX + (i / (series.length - 1)) * (w - padX * 2); }
+    function xAt(i){ return padX + (series.length > 1 ? (i / (series.length - 1)) * (w - padX * 2) : (w - padX * 2) / 2); }
     function yAt(v){ return h - padY - ((v - minV) / range) * (h - padY * 2); }
     var zeroY = yAt(0);
     var pts = series.map(function(v, i){ return xAt(i).toFixed(1) + "," + yAt(v).toFixed(1); }).join(" ");
     var areaPts = pts + " " + xAt(series.length - 1).toFixed(1) + "," + zeroY.toFixed(1) + " " + xAt(0).toFixed(1) + "," + zeroY.toFixed(1);
     var last = series[series.length - 1];
     var lineColor = last >= 0 ? "#3ee08c" : "#ef5a5a";
-    return '<svg viewBox="0 0 ' + w + ' ' + h + '" width="100%" height="160" preserveAspectRatio="none" role="img" aria-label="Cumulative P&amp;L chart">' +
-      '<defs><linearGradient id="pnlFill" x1="0" y1="0" x2="0" y2="1">' +
+    return '<svg viewBox="0 0 ' + w + ' ' + h + '" width="100%" height="180" preserveAspectRatio="none" role="img" aria-label="Cumulative P&amp;L edge curve" id="guideEdgeChartSvg">' +
+      '<defs><linearGradient id="guideEdgeFill" x1="0" y1="0" x2="0" y2="1">' +
         '<stop offset="0%" stop-color="' + lineColor + '" stop-opacity="0.28"/>' +
         '<stop offset="100%" stop-color="' + lineColor + '" stop-opacity="0"/>' +
       '</linearGradient></defs>' +
       '<line x1="' + padX + '" y1="' + zeroY.toFixed(1) + '" x2="' + (w - padX) + '" y2="' + zeroY.toFixed(1) + '" stroke="#23332a" stroke-width="1" stroke-dasharray="3,3"/>' +
-      '<polygon points="' + areaPts + '" fill="url(#pnlFill)" stroke="none"/>' +
-      '<polyline points="' + pts + '" fill="none" stroke="' + lineColor + '" stroke-width="2"/>' +
+      '<polygon points="' + areaPts + '" fill="url(#guideEdgeFill)" stroke="none"/>' +
+      '<polyline points="' + pts + '" fill="none" stroke="' + lineColor + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>' +
     '</svg>';
   }
 
-  function renderCsvChart(days, byDay){
-    var sorted = days.slice().sort();
-    var series = [0];
-    var cum = 0;
-    sorted.forEach(function(day){ cum += byDay[day]; series.push(cum); });
-    document.getElementById("csvChart").innerHTML = buildPnlChartSvg(series);
+  function wireEdgeChartHover(wrap, series, meta){
+    var crosshair = document.getElementById("edgeCrosshair");
+    var tooltip = document.getElementById("edgeTooltip");
+    if (!crosshair || !tooltip) return;
+    function show(clientX){
+      var rect = wrap.getBoundingClientRect();
+      var relX = Math.max(0, Math.min(1, rect.width ? (clientX - rect.left) / rect.width : 0));
+      var idx = series.length > 1 ? Math.round(relX * (series.length - 1)) : 0;
+      var xPct = series.length > 1 ? (idx / (series.length - 1)) * 100 : 50;
+      var m = meta[idx];
+      crosshair.style.left = xPct + "%";
+      crosshair.style.opacity = "1";
+      if (!m){ tooltip.style.opacity = "0"; return; }
+      tooltip.innerHTML =
+        '<div class="edge-tooltip-line">' + m.day + '</div>' +
+        '<div class="edge-tooltip-line">Day P&amp;L: ' + fmtMoneySigned(m.pnl) + '</div>' +
+        '<div class="edge-tooltip-line">Cumulative: <span class="edge-tooltip-r ' + (m.cum >= 0 ? "pos" : "neg") + '">' + fmtMoneySigned(m.cum) + '</span></div>';
+      tooltip.style.left = xPct + "%";
+      tooltip.style.opacity = "1";
+    }
+    wrap.addEventListener("mousemove", function(e){ show(e.clientX); });
+    wrap.addEventListener("mouseleave", function(){ crosshair.style.opacity = "0"; tooltip.style.opacity = "0"; });
   }
 
-  function renderCsvConsistency(){
-    if (!lastCsvResult) return;
-    var best = lastCsvResult.best, total = lastCsvResult.total;
-    var list = document.getElementById("csvConsistencyList");
-    if (total <= 0 || best <= 0){
-      list.innerHTML = row("Current Consistency", plainValue("N/A", ""), "", "Needs a net positive total with at least one profitable day");
+  function renderGuideEdgeChart(){
+    var wrap = document.getElementById("guideEdgeChartWrap");
+    if (!wrap) return;
+    if (!lastCsvDays || lastCsvDays.length < 2){
+      wrap.innerHTML = '<div class="guide-empty"><p>Import a CSV above to see your cumulative edge.</p></div>';
       return;
     }
-    var pct = (best / total) * 100;
-    var c = current();
-    var limitPct = state.phase === "funded" ? c.plan.consistency.funded : c.plan.consistency.eval;
-    var overLimit = !!limitPct && pct > limitPct;
-    var phaseWord = state.phase === "funded" ? "funded" : "evaluation";
-    var sub = limitPct
-      ? "Largest day " + money(best) + " of " + money(total) + " total &mdash; " + phaseWord + " cap is " + limitPct + "%"
-      : "Largest day " + money(best) + " of " + money(total) + " total &mdash; " + c.plan.name + " has no consistency rule during " + phaseWord;
-    list.innerHTML = row("Current Consistency", plainValue(pct.toFixed(1) + "%", overLimit ? "red" : ""), "", sub);
+    var sorted = lastCsvDays.slice().sort();
+    var series = [0];
+    var meta = [null];
+    var cum = 0;
+    sorted.forEach(function(day){
+      var pnl = lastCsvByDay[day];
+      cum += pnl;
+      series.push(cum);
+      meta.push({ day: day, pnl: pnl, cum: cum });
+    });
+    wrap.innerHTML = buildEdgeChartSvg(series) +
+      '<div class="edge-crosshair" id="edgeCrosshair"></div>' +
+      '<div class="edge-tooltip" id="edgeTooltip"></div>';
+    wireEdgeChartHover(wrap, series, meta);
+  }
+
+  function computeGuideDayStats(){
+    var days = lastCsvDays || [];
+    var byDay = lastCsvByDay || {};
+    var winDays = days.filter(function(d){ return byDay[d] > 0; });
+    var lossDays = days.filter(function(d){ return byDay[d] < 0; });
+    var grossWin = winDays.reduce(function(s, d){ return s + byDay[d]; }, 0);
+    var grossLoss = lossDays.reduce(function(s, d){ return s + Math.abs(byDay[d]); }, 0);
+    var totalPnl = days.reduce(function(s, d){ return s + byDay[d]; }, 0);
+    var best = days.reduce(function(a, d){ return (!a || byDay[d] > byDay[a]) ? d : a; }, null);
+    return {
+      total: days.length,
+      wins: winDays.length,
+      losses: lossDays.length,
+      winRate: (winDays.length + lossDays.length) ? (winDays.length / (winDays.length + lossDays.length)) * 100 : 0,
+      best: best,
+      bestPnl: best ? byDay[best] : 0,
+      avgWin: winDays.length ? grossWin / winDays.length : 0,
+      avgLoss: lossDays.length ? grossLoss / lossDays.length : 0,
+      totalPnl: totalPnl
+    };
+  }
+
+  var GUIDE_ICONS = {
+    list: '<path d="M4 5h12M4 10h12M4 15h8" />',
+    target: '<circle cx="10" cy="10" r="6" /><circle cx="10" cy="10" r="2" fill="currentColor" stroke="none" />',
+    up: '<path d="M4 13l5-5 3 3 4-5" /><path d="M13 6h3v3" />',
+    dollar: '<path d="M10 3v14M13.5 6.5c0-1.4-1.6-2.5-3.5-2.5s-3.5 1.1-3.5 2.5S8.1 9 10 9s3.5 1.1 3.5 2.5S11.9 14 10 14s-3.5-1.1-3.5-2.5" />',
+    scale: '<path d="M10 3v14M5 7l-2 4a2.5 2.5 0 0 0 5 0zM15 7l-2 4a2.5 2.5 0 0 0 5 0zM5 7h10" />'
+  };
+  function guideIconSpan(name, tone){
+    return '<span class="stat-tile-icon' + (tone ? " " + tone : "") + '"><svg viewBox="0 0 20 20">' + GUIDE_ICONS[name] + "</svg></span>";
+  }
+
+  function renderGuideStats(){
+    var carousel = document.getElementById("guideStatCarousel");
+    if (!carousel) return;
+    var s = computeGuideDayStats();
+    var tiles = [
+      '<div class="stat-tile">' + guideIconSpan("target") +
+        '<span class="stat-tile-label">Win Rate</span>' +
+        '<span class="stat-tile-value">' + s.winRate.toFixed(1) + '%</span>' +
+        '<span class="stat-tile-sub">' + s.wins + 'W - ' + s.losses + 'L (by day)</span>' +
+      '</div>',
+
+      '<div class="stat-tile">' + guideIconSpan("list") +
+        '<span class="stat-tile-label">Trades</span>' +
+        '<span class="stat-tile-value">' + s.total + '</span>' +
+        '<span class="stat-tile-sub">Trading days logged</span>' +
+      '</div>',
+
+      '<div class="stat-tile">' + guideIconSpan("dollar", s.totalPnl >= 0 ? "pos" : "neg") +
+        '<span class="stat-tile-label">PNL</span>' +
+        '<span class="stat-tile-value ' + (s.totalPnl >= 0 ? "pos" : "neg") + '">' + fmtMoneySigned(s.totalPnl) + '</span>' +
+        '<span class="stat-tile-sub">' + s.total + ' days</span>' +
+      '</div>',
+
+      '<div class="stat-tile">' + guideIconSpan("scale") +
+        '<span class="stat-tile-label">Avg Win/Loss</span>' +
+        '<span class="stat-tile-value">' + fmtMoneyPlain(s.avgWin) + '</span>' +
+        '<span class="stat-tile-sub">Per winning day</span>' +
+        '<div class="stat-tile-bar"><span class="win" style="flex:' + Math.max(s.avgWin, 0.01) + '"></span><span class="loss" style="flex:' + Math.max(s.avgLoss, 0.01) + '"></span></div>' +
+        '<div class="stat-tile-split"><span class="win-txt">' + fmtMoneyPlain(s.avgWin) + '</span><span class="loss-txt">' + fmtMoneyPlain(s.avgLoss) + '</span></div>' +
+      '</div>',
+
+      '<div class="stat-tile">' + guideIconSpan("up", "pos") +
+        '<span class="stat-tile-label">Best Trade</span>' +
+        '<span class="stat-tile-value pos">' + (s.best ? fmtMoneySigned(s.bestPnl) : "&mdash;") + '</span>' +
+        '<span class="stat-tile-sub">' + (s.best ? "Best day &middot; " + s.best : "No days yet") + '</span>' +
+      '</div>'
+    ];
+    carousel.innerHTML = tiles.join("");
+    updateGuideCarouselNav();
+  }
+
+  var guideStatCarousel = document.getElementById("guideStatCarousel");
+  var guideStatPrev = document.getElementById("guideStatPrev");
+  var guideStatNext = document.getElementById("guideStatNext");
+  function updateGuideCarouselNav(){
+    if (!guideStatCarousel) return;
+    guideStatPrev.disabled = guideStatCarousel.scrollLeft <= 2;
+    guideStatNext.disabled = guideStatCarousel.scrollLeft >= (guideStatCarousel.scrollWidth - guideStatCarousel.clientWidth - 2);
+  }
+  if (guideStatCarousel){
+    guideStatCarousel.addEventListener("scroll", updateGuideCarouselNav);
+    guideStatPrev.addEventListener("click", function(){
+      guideStatCarousel.scrollBy({ left: -(guideStatCarousel.clientWidth * 0.9), behavior: "smooth" });
+    });
+    guideStatNext.addEventListener("click", function(){
+      guideStatCarousel.scrollBy({ left: guideStatCarousel.clientWidth * 0.9, behavior: "smooth" });
+    });
   }
 
   function renderAll(){
     renderSnapshotCard();
     renderCoPilot();
     renderAccountSelector();
-    renderCsvConsistency();
-    syncImportCardHeight();
+    renderGuideEdgeChart();
+    renderGuideStats();
   }
 
   document.getElementById("snapshotCardBody").addEventListener("click", function(e){
@@ -1656,7 +1796,6 @@
     if (e.target.dataset.phase !== undefined){
       state.phase = e.target.dataset.phase;
       renderCoPilot();
-      renderCsvConsistency();
       saveState();
     }
   });
@@ -1847,10 +1986,10 @@
 
         document.getElementById("pnlInput").value = Math.round(total);
         document.getElementById("bestDayInput").value = Math.round(best);
-        lastCsvResult = { best: best, total: total };
-        renderCsvChart(days, byDay);
-        renderCsvConsistency();
-        document.getElementById("csvResults").hidden = false;
+        lastCsvDays = days;
+        lastCsvByDay = byDay;
+        renderGuideEdgeChart();
+        renderGuideStats();
         renderCoPilot();
         saveState();
         csvSetMessage("Imported " + tradedDays + " trading day(s) from " + (format === "balance" ? "Account Balance History" : "Cash History") + ". Total P&L " + money(total) + ", best day " + money(best) + ". Double-check this against your dashboard, especially on a first import.");
