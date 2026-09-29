@@ -183,21 +183,10 @@
   .showcase-row .res.win{ color:var(--phosphor-soft); }
   .showcase-row .res.loss{ color:var(--red); }
 
-  /* ---------- Mega card: every section below shares one panel instead of
-     floating as separate boxes, divided by hairlines like stacked layers.
-     Each section's own card(s) use --panel-raised so they read as a layer
-     nested inside the mega card's --panel background. ---------- */
-  .home-mega{
-    background:var(--panel); border:1px solid var(--hairline-bright); border-radius:20px;
-    box-shadow:0 20px 50px -24px var(--phosphor-glow); overflow:hidden; margin-bottom:26px;
-  }
-  .home-mega > .mega-section{ padding:22px clamp(16px,3vw,26px); }
-  .home-mega > .mega-section + .mega-section{ border-top:1px solid var(--hairline); }
-
-  /* ---------- Firms: floats free on the page background instead of sitting
-     in a card, with just a soft glow behind it. ---------- */
-  .firms-standalone{ position:relative; text-align:center; padding:34px 0 42px; margin-bottom:14px; }
-  .firms-standalone::before{
+  /* ---------- Firms / Funded Traders / Economic Calendar: float free on the page background
+     instead of sitting in a card, with just a soft glow behind them. ---------- */
+  .glow-standalone{ position:relative; text-align:center; padding:34px 0 42px; margin-bottom:14px; }
+  .glow-standalone::before{
     content:""; position:absolute; inset:-30px -60px; z-index:-1; pointer-events:none;
     background:radial-gradient(ellipse 65% 100% at 50% 40%, rgba(62,224,140,0.08), transparent 72%);
   }
@@ -247,16 +236,7 @@
   .firm-card.active:focus-visible{ outline:2px solid var(--phosphor); outline-offset:3px; }
 
   .section-head{ margin:0 0 14px; text-align:center; }
-  .section-head .eyebrow{
-    font-family:var(--font-mono); font-size:12px; letter-spacing:0.22em; text-transform:uppercase;
-    color:var(--phosphor); margin-bottom:8px;
-  }
   .section-head h2{ font-size:21px; color:var(--ice); }
-  .section-body{ margin:0 auto; max-width:62ch; color:var(--muted); font-size:14.5px; line-height:1.7; text-align:center; }
-  .text-card{
-    padding:20px 22px; border-radius:16px;
-    background:var(--panel-raised); border:1px solid var(--hairline);
-  }
 
   .news-card{
     display:flex; align-items:center; gap:20px; text-align:left;
@@ -292,13 +272,19 @@
   .community-card{
     position:relative; border-radius:18px; overflow:hidden; min-height:190px;
     display:flex; flex-direction:column; justify-content:space-between;
-    padding:20px 20px 16px;
+    padding:20px 20px 16px; width:100%; text-align:left; font-family:inherit;
   }
   .community-card.real{
     background:linear-gradient(155deg, #17362a 0%, #0f1a15 62%, #0a1712 100%);
-    border:1px solid var(--phosphor-dim);
+    border:1px solid var(--phosphor-dim); cursor:pointer;
     box-shadow:0 20px 46px -22px var(--phosphor-glow);
+    transition:transform .18s ease, box-shadow .18s ease;
   }
+  .community-card.real:hover{
+    transform:translateY(-4px);
+    box-shadow:0 24px 52px -20px var(--phosphor-glow);
+  }
+  .community-card.real:focus-visible{ outline:2px solid var(--phosphor); outline-offset:3px; }
   .community-card-top{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
   .community-brand{ display:flex; align-items:center; gap:8px; font-family:var(--font-display); font-weight:700; font-size:13px; color:var(--ice); }
   .community-brand img{ width:20px; height:20px; object-fit:contain; }
@@ -318,7 +304,32 @@
   }
   .community-card.soon span{ font-family:var(--font-mono); font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted-dim); }
 
-  footer{ margin-top:52px; text-align:center; }
+  /* ---------- Funded certificate lightbox ---------- */
+  .img-lightbox{
+    position:fixed; inset:0; z-index:200; display:flex; align-items:center; justify-content:center;
+    padding:24px; background:rgba(4,6,5,0.86); backdrop-filter:blur(4px); cursor:zoom-out;
+  }
+  .img-lightbox[hidden]{ display:none; }
+  .img-lightbox img{
+    max-width:min(90vw, 900px); max-height:85vh; width:auto; height:auto; display:block;
+    border-radius:14px; border:1px solid var(--hairline-bright);
+    box-shadow:0 30px 80px -20px rgba(0,0,0,0.65); cursor:default;
+  }
+  .img-lightbox-close{
+    position:fixed; top:18px; right:22px; background:var(--panel-raised); border:1px solid var(--hairline-bright);
+    color:var(--ice); font-size:22px; line-height:1; width:40px; height:40px; border-radius:50%;
+    cursor:pointer; transition:border-color .15s, color .15s;
+  }
+  .img-lightbox-close:hover{ border-color:var(--phosphor-dim); color:var(--phosphor-soft); }
+
+  .disclaimer-note{ margin-top:44px; text-align:center; }
+  .disclaimer-note h3{
+    font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.1em; text-transform:uppercase;
+    color:var(--muted-dim); margin:0 0 8px; font-weight:600;
+  }
+  .disclaimer-note p{ font-size:11.5px; color:var(--muted-dim); line-height:1.7; max-width:68ch; margin:0 auto; }
+
+  footer{ margin-top:18px; text-align:center; }
   footer p{ font-size:12px; color:var(--muted-dim); line-height:1.7; margin:0; }
   footer a{ color:var(--muted); }
 
@@ -397,7 +408,7 @@
     </div>
   </div>
 
-  <div class="firms-standalone">
+  <div class="glow-standalone">
   <div class="section-head">
     <h2>Supported Prop Firms</h2>
   </div>
@@ -430,8 +441,30 @@
   </div>
   </div>
 
-  <div class="home-mega">
-  <div class="mega-section">
+  <div class="glow-standalone">
+  <div class="section-head">
+    <h2>Funded Traders</h2>
+  </div>
+  <div class="community-row">
+    <button type="button" class="community-card real" id="fundedCertBtn">
+      <div class="community-card-top">
+        <span class="community-brand"><img src="ezpayouts-icon-only.png" alt="" />EZPayouts</span>
+        <span class="community-handle">@shotpath</span>
+      </div>
+      <div class="community-card-stats">
+        <span class="community-stat-label">Account</span>
+        <span class="community-stat-value">LucidFlex 25K</span>
+        <span class="community-stat-sub">Funded</span>
+      </div>
+      <div class="community-card-foot">Tap to view certificate</div>
+    </button>
+    <div class="community-card soon"><span>Coming Soon</span></div>
+    <div class="community-card soon"><span>Coming Soon</span></div>
+    <div class="community-card soon"><span>Coming Soon</span></div>
+  </div>
+  </div>
+
+  <div class="glow-standalone">
   <div class="section-head">
     <h2>Economic Calendar</h2>
   </div>
@@ -456,43 +489,9 @@
   </a>
   </div>
 
-  <div class="mega-section">
-  <div class="section-head" id="about">
-    <h2>What EZPayouts is</h2>
-  </div>
-  <p class="section-body text-card">EZPayouts is a free, independent toolkit for prop-firm traders &mdash; payout guides, risk calculators, and an economic calendar, built and maintained by ShotPath. No login, no paywall, and no affiliation with the prop firms it covers.</p>
-  </div>
-
-  <div class="mega-section">
-  <div class="section-head">
-    <h2>Funded Traders</h2>
-  </div>
-  <div class="community-row">
-    <div class="community-card real">
-      <div class="community-card-top">
-        <span class="community-brand"><img src="ezpayouts-icon-only.png" alt="" />EZPayouts</span>
-        <span class="community-handle">@shotpath</span>
-      </div>
-      <div class="community-card-stats">
-        <span class="community-stat-label">Account</span>
-        <span class="community-stat-value">LucidFlex 25K</span>
-        <span class="community-stat-sub">Funded</span>
-      </div>
-      <div class="community-card-foot">ezpayouts.xyz</div>
-    </div>
-    <div class="community-card soon"><span>Coming Soon</span></div>
-    <div class="community-card soon"><span>Coming Soon</span></div>
-    <div class="community-card soon"><span>Coming Soon</span></div>
-  </div>
-  </div>
-
-  <div class="mega-section">
-  <div class="section-head" id="disclaimer">
-    <div class="eyebrow">Disclaimer</div>
-    <h2>Not financial advice</h2>
-  </div>
-  <p class="section-body text-card">EZPayouts is an independent, unofficial resource for prop-firm traders. Everything here &mdash; guides, calculators, and the economic calendar &mdash; is an educational planning aid, not financial, trading, or investment advice. Always verify figures against your firm's official rules before trading live.</p>
-  </div>
+  <div class="disclaimer-note" id="disclaimer">
+    <h3>Not financial advice</h3>
+    <p>EZPayouts is an independent, unofficial resource for prop-firm traders. Everything here &mdash; guides, calculators, and the economic calendar &mdash; is an educational planning aid, not financial, trading, or investment advice. Always verify figures against your firm's official rules before trading live.</p>
   </div>
 
   <footer>
@@ -502,6 +501,34 @@
 </div>
 
 <script>
+(function(){
+  "use strict";
+  var btn = document.getElementById("fundedCertBtn");
+  if (!btn) return;
+  var lightbox = null;
+  function openLightbox(){
+    if (!lightbox){
+      lightbox = document.createElement("div");
+      lightbox.className = "img-lightbox";
+      lightbox.innerHTML = '<button type="button" class="img-lightbox-close" aria-label="Close">&times;</button>' +
+        '<img src="achievements/lucidflex-25k-funded.jpg" alt="LucidFlex 25K funded certificate" />';
+      document.body.appendChild(lightbox);
+      lightbox.addEventListener("click", function(e){
+        if (e.target === lightbox) closeLightbox();
+      });
+      lightbox.querySelector(".img-lightbox-close").addEventListener("click", closeLightbox);
+      document.addEventListener("keydown", function(e){
+        if (e.key === "Escape" && !lightbox.hidden) closeLightbox();
+      });
+    }
+    lightbox.hidden = false;
+  }
+  function closeLightbox(){
+    if (lightbox) lightbox.hidden = true;
+  }
+  btn.addEventListener("click", openLightbox);
+})();
+
 // Lets the shared coach widget (coach.js) answer questions about which
 // prop firms are shown here and which are actually live.
 window.EZPageContext = function(){
