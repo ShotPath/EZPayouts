@@ -463,6 +463,10 @@
               <svg viewBox="0 0 20 20"><path d="M10 3v10M6 9l4 4 4-4" /><path d="M4 16h12" /></svg>
               Import CSV
             </button>
+            <button type="button" class="ghost-btn" id="exportCsvBtn">
+              <svg viewBox="0 0 20 20"><path d="M10 13V3M6 7l4-4 4 4" /><path d="M4 16h12" /></svg>
+              Export CSV
+            </button>
             <button type="button" class="primary-btn" id="addTradeBtn">+ Add new trade</button>
           </div>
         </div>
@@ -640,6 +644,7 @@
 
   var addTradeBtn = document.getElementById("addTradeBtn");
   var importCsvBtn = document.getElementById("importCsvBtn");
+  var exportCsvBtn = document.getElementById("exportCsvBtn");
   var csvFileInput = document.getElementById("csvFileInput");
 
   var tradeModalOverlay = document.getElementById("tradeModalOverlay");
@@ -1358,6 +1363,33 @@
     if (v.indexOf("short") !== -1 || v.indexOf("sell") === 0 || v === "s") return "short";
     return "long";
   }
+
+  function csvField(v){
+    v = (v === null || v === undefined) ? "" : String(v);
+    return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+  }
+  function downloadCsv(filename, rows){
+    var csv = rows.map(function(row){ return row.map(csvField).join(","); }).join("\r\n");
+    var blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  }
+
+  exportCsvBtn.addEventListener("click", function(){
+    var list = filteredTrades();
+    if (!list.length) return;
+    var rows = [["Date", "Symbol", "Strategy", "Direction", "P&L", "Title", "Notes"]];
+    list.slice().reverse().forEach(function(t){
+      rows.push([t.date, t.symbol, t.strategy || "", t.direction, t.pnl, t.title || "", t.notes || ""]);
+    });
+    downloadCsv("ezpayouts-journal-" + todayStr() + ".csv", rows);
+  });
 
   importCsvBtn.addEventListener("click", function(){ csvFileInput.click(); });
   csvFileInput.addEventListener("change", function(){

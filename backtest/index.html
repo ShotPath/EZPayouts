@@ -310,6 +310,7 @@
 
   /* ---------- Trade log ---------- */
   .bt-log-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+  .bt-log-head-actions{ display:flex; align-items:center; gap:14px; }
   .bt-log-head .bt-card-title{ margin:0; }
   .clear-btn{
     font-family:var(--font-mono); font-size:11px; letter-spacing:0.03em; color:var(--muted-dim);
@@ -528,7 +529,10 @@
     <div class="bt-card">
       <div class="bt-log-head">
         <p class="bt-card-title">Trade Log</p>
-        <button class="clear-btn" id="clearBtn" type="button" hidden>Clear all</button>
+        <div class="bt-log-head-actions">
+          <button class="clear-btn" id="exportCsvBtn" type="button" hidden>Export CSV</button>
+          <button class="clear-btn" id="clearBtn" type="button" hidden>Clear all</button>
+        </div>
       </div>
       <div class="bt-filter seg-track" id="btFilter" hidden>
         <span class="seg-thumb" aria-hidden="true"></span>
@@ -582,6 +586,7 @@
   var listEl = document.getElementById("btList");
   var headRowEl = document.getElementById("btHeadRow");
   var clearBtn = document.getElementById("clearBtn");
+  var exportCsvBtn = document.getElementById("exportCsvBtn");
   var btFilter = document.getElementById("btFilter");
   var strategyTabs = document.getElementById("strategyTabs");
   var strategyAddBtn = document.getElementById("strategyAddBtn");
@@ -1304,6 +1309,41 @@
     renderAll();
   });
 
+  function csvField(v){
+    v = (v === null || v === undefined) ? "" : String(v);
+    return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+  }
+  function downloadCsv(filename, rows){
+    var csv = rows.map(function(row){ return row.map(csvField).join(","); }).join("\r\n");
+    var blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  }
+
+  exportCsvBtn.addEventListener("click", function(){
+    if (!entries.length) return;
+    var strategy = state.strategies.filter(function(s){ return s.id === state.activeId; })[0];
+    var rows = [["Strategy", "Model", "Risk:Reward", "R Multiple", "Result", "Note"]];
+    entries.forEach(function(en){
+      rows.push([
+        strategy ? strategy.name : "",
+        en.model,
+        en.rrDisplay,
+        en.rrMultiple,
+        en.result,
+        en.note || ""
+      ]);
+    });
+    var safeName = (strategy ? strategy.name : "strategy").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+    downloadCsv("ezpayouts-backtest-" + safeName + ".csv", rows);
+  });
+
   function renderStats(){
     var total = entries.length;
     statTotal.textContent = String(total);
@@ -1345,6 +1385,7 @@
     var wasHidden = btFilter.hidden;
     btFilter.hidden = total === 0;
     clearBtn.hidden = total === 0;
+    exportCsvBtn.hidden = total === 0;
     if (!total){
       headRowEl.hidden = true;
       listEl.innerHTML = '<p class="bt-empty">No trades logged yet &mdash; log your first one above.</p>';
