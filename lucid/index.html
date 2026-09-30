@@ -543,14 +543,14 @@
     </div>
   </div>
 
-  <div class="mega-section" id="edgeCurveCard">
+  <div class="mega-section" id="edgeCurveCard" hidden>
     <div class="console-head"><h2>Edge Curve</h2></div>
     <div class="edge-chart-wrap" id="guideEdgeChartWrap">
       <div class="guide-empty"><p>Import a CSV above to see your cumulative edge.</p></div>
     </div>
   </div>
 
-  <div class="mega-section" id="guideStatsCard">
+  <div class="mega-section" id="guideStatsCard" hidden>
     <div class="stat-carousel-wrap">
       <button type="button" class="carousel-nav" id="guideStatPrev" aria-label="Scroll stats left">&lsaquo;</button>
       <div class="stat-carousel" id="guideStatCarousel"></div>
@@ -1425,9 +1425,14 @@
     wrap.addEventListener("mouseleave", function(){ crosshair.style.opacity = "0"; tooltip.style.opacity = "0"; });
   }
 
+  function hasCsvData(){
+    return !!lastCsvDays && lastCsvDays.length > 0;
+  }
+
   function renderGuideEdgeChart(){
     var wrap = document.getElementById("guideEdgeChartWrap");
     if (!wrap) return;
+    document.getElementById("edgeCurveCard").hidden = !hasCsvData();
     if (!lastCsvDays || lastCsvDays.length < 2){
       wrap.innerHTML = '<div class="guide-empty"><p>Import a CSV above to see your cumulative edge.</p></div>';
       return;
@@ -1484,6 +1489,7 @@
   function renderGuideStats(){
     var carousel = document.getElementById("guideStatCarousel");
     if (!carousel) return;
+    document.getElementById("guideStatsCard").hidden = !hasCsvData();
     var s = computeGuideDayStats();
     var tiles = [
       '<div class="stat-tile">' + guideIconSpan("target") +
