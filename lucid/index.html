@@ -1261,24 +1261,27 @@
     var lossUsed = pnl < 0 ? Math.abs(pnl) : 0;
     var cushionRemaining = Math.max(0, effMll - lossUsed);
 
-    // How many max-sized losing trades in a row the remaining cushion (before
-    // the trailing Max Loss Limit) should be able to absorb. Sizing off this,
-    // rather than win-rate/R edge, is a survival cap: it holds even on a cold
-    // streak, and shrinks automatically as the cushion shrinks.
-    var RISK_BUFFER_TRADES = 8;
+    // Kelly fraction from the actual edge: winRate*avgR minus the loss rate,
+    // divided by avgR. This is how heavily winrate/R drive sizing — a coin-flip
+    // edge (kelly near 0) caps risk hard, a strong edge (kelly near 1) barely
+    // caps it at all. Applied to whatever cushion is left before the trailing
+    // Max Loss Limit, it's the most that edge justifies risking without ever
+    // outrunning the account's real survival room.
+    var kellyFraction = avgR > 0 ? Math.max(0, (winRate * avgR - (1 - winRate)) / avgR) : 0;
+    var kellyCeiling = kellyFraction * cushionRemaining;
 
     function coRow(label, value, cls){
       return '<div class="readout"><span class="rlabel">' + label + '</span><span class="rvalue' + (cls ? " " + cls : "") + '">' + value + '</span></div>';
     }
 
     // Max risk per trade: sized so a single average (avgR) winner covers the
-    // day's required pace, capped by a fixed slice of whatever survival
-    // cushion is actually left — so chasing pace can never risk more than
-    // the account (or the firm's Daily Loss Limit) can safely absorb.
-    function riskFromPaceAndCushion(dailyPaceTarget){
+    // day's required pace, but never more than the edge-scaled Kelly ceiling
+    // above — so a weak or negative edge gets capped down hard regardless of
+    // how aggressive the pace is, while a strong edge lets the pace-driven
+    // number through.
+    function riskFromPaceAndEdge(dailyPaceTarget){
       var riskFromPace = avgR > 0 && dailyPaceTarget > 0 ? dailyPaceTarget / avgR : 0;
-      var riskFromCushion = cushionRemaining / RISK_BUFFER_TRADES;
-      return riskFromPace > 0 ? Math.min(riskFromPace, riskFromCushion) : riskFromCushion;
+      return riskFromPace > 0 ? Math.min(riskFromPace, kellyCeiling) : kellyCeiling;
     }
 
     if (phase === "funded"){
@@ -1291,7 +1294,7 @@
 
       // Funded's "pace" is simply the size's own qualifying minimum — every
       // session needs to clear it, not a remaining-balance countdown.
-      var maxRiskPerTradeFunded = riskFromPaceAndCushion(d.dailyMin);
+      var maxRiskPerTradeFunded = riskFromPaceAndEdge(d.dailyMin);
       var riskExceedsDllFunded = dllOn && maxRiskPerTradeFunded > dllAmount();
       var expectancyRFunded = winRate * avgR - (1 - winRate);
       var expectancyDollarFunded = expectancyRFunded * maxRiskPerTradeFunded;
@@ -1299,10 +1302,10 @@
       readoutList.innerHTML =
         coRow("Qualifying days banked", qualDays + " of 5") +
         coRow("Daily minimum to qualify", money(d.dailyMin)) +
-        coRow("Max risk per trade", maxRiskPerTradeFunded > 0 ? money(maxRiskPerTradeFunded) : "No room left", (maxRiskPerTradeFunded <= 0 || riskExceedsDllFunded) ? "red" : "") +
+        coRow("Max risk per trade", maxRiskPerTradeFunded > 0 ? money(maxRiskPerTradeFunded) : "No safe size yet", (maxRiskPerTradeFunded <= 0 || riskExceedsDllFunded) ? "red" : "") +
         (dllOn ? coRow("Daily Loss Limit (firm)", money(dllAmount()), "red") : "") +
         (fundedConsistencyPct ? coRow("Max per day (consistency)", money(fundedConsistencyCeiling), fundedConsistencyBreach ? "red" : "") : "") +
-        (expectancyDollarFunded > 0 ? coRow("Est. trades per qualifying day", Math.ceil(d.dailyMin / expectancyDollarFunded) + " trades") : "");
+        (maxRiskPerTradeFunded > 0 && expectancyDollarFunded > 0.01 ? coRow("Est. trades per qualifying day", Math.ceil(d.dailyMin / expectancyDollarFunded) + " trades") : "");
       return;
     }
 
@@ -1328,7 +1331,7 @@
 
     renderAccountStatus("eval", pnl, effMll, { remaining: remaining, consistencyBreach: consistencyBreach, d: d, fundedConsistencyPct: fundedConsistencyPct });
 
-    var maxRiskPerTrade = riskFromPaceAndCushion(perDay);
+    var maxRiskPerTrade = riskFromPaceAndEdge(perDay);
     var riskExceedsDll = dllOn && maxRiskPerTrade > dllAmount();
     var expectancyR = winRate * avgR - (1 - winRate);
     var expectancyDollar = expectancyR * maxRiskPerTrade;
@@ -1337,9 +1340,9 @@
       coRow("Remaining to target", money(remaining)) +
       (evalConsistencyPct ? coRow("Max per day (consistency)", money(consistencyCeiling), consistencyBreach ? "red" : "") : "") +
       coRow("Required pace / day", money(perDay) + " &nbsp;(" + perDayPctOfSize.toFixed(2) + "% of size)", paceLevel === "red" ? "red" : (paceLevel === "amber" ? "amber" : "")) +
-      coRow("Max risk per trade", maxRiskPerTrade > 0 ? money(maxRiskPerTrade) : "No room left", (maxRiskPerTrade <= 0 || riskExceedsDll) ? "red" : "") +
+      coRow("Max risk per trade", maxRiskPerTrade > 0 ? money(maxRiskPerTrade) : "No safe size yet", (maxRiskPerTrade <= 0 || riskExceedsDll) ? "red" : "") +
       (dllOn ? coRow("Daily Loss Limit (firm)", money(dllAmount()), "red") : "") +
-      (expectancyDollar > 0 ? coRow("Est. trades to target", Math.ceil(remaining / expectancyDollar) + " trades") : "");
+      (maxRiskPerTrade > 0 && expectancyDollar > 0.01 ? coRow("Est. trades to target", Math.ceil(remaining / expectancyDollar) + " trades") : "");
   }
 
   var planTabsRenderedOnce = false;
