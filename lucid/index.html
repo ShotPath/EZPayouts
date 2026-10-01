@@ -607,9 +607,25 @@
               <input id="winRateInput" type="number" step="1" min="0" max="100" value="50" />
             </div>
             <div class="field">
+              <label for="sampleNInput">Sample Size (n)</label>
+              <input id="sampleNInput" type="number" step="1" min="1" value="20" />
+              <span class="hint">Trades/days behind that winrate &mdash; small samples get discounted.</span>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
               <label for="avgRInput">Average R</label>
               <input id="avgRInput" type="number" step="0.1" min="0" value="2" />
             </div>
+            <div class="field">
+              <label for="stopPointsInput">Stop (points)</label>
+              <input id="stopPointsInput" type="number" step="0.25" min="0" value="0" />
+            </div>
+          </div>
+          <div class="field">
+            <label for="pointValueInput">Point Value ($)</label>
+            <input id="pointValueInput" type="number" step="0.01" min="0" value="2" />
+            <span class="hint">$ per point for your contract &mdash; MNQ is $2, MES is $5, NQ is $20, ES is $50.</span>
           </div>
           <span class="hint" style="display:block; margin:0 0 16px;">R = reward &divide; risk on a trade &mdash; risking 30pts to make 60pts is 2R.</span>
         </div>
@@ -767,7 +783,10 @@
         bestDay: document.getElementById("bestDayInput").value,
         qualDays: document.getElementById("qualDaysInput").value,
         winRate: document.getElementById("winRateInput").value,
-        avgR: document.getElementById("avgRInput").value
+        avgR: document.getElementById("avgRInput").value,
+        sampleN: document.getElementById("sampleNInput").value,
+        stopPoints: document.getElementById("stopPointsInput").value,
+        pointValue: document.getElementById("pointValueInput").value
       }));
     } catch(e){}
   }
@@ -790,6 +809,9 @@
       if (saved.qualDays !== undefined) document.getElementById("qualDaysInput").value = saved.qualDays;
       if (saved.winRate !== undefined) document.getElementById("winRateInput").value = saved.winRate;
       if (saved.avgR !== undefined) document.getElementById("avgRInput").value = saved.avgR;
+      if (saved.sampleN !== undefined) document.getElementById("sampleNInput").value = saved.sampleN;
+      if (saved.stopPoints !== undefined) document.getElementById("stopPointsInput").value = saved.stopPoints;
+      if (saved.pointValue !== undefined) document.getElementById("pointValueInput").value = saved.pointValue;
     } catch(e){}
   }
 
@@ -829,6 +851,9 @@
     document.getElementById("qualDaysInput").value = 0;
     document.getElementById("winRateInput").value = 50;
     document.getElementById("avgRInput").value = 2;
+    document.getElementById("sampleNInput").value = 20;
+    document.getElementById("stopPointsInput").value = 0;
+    document.getElementById("pointValueInput").value = 2;
     CARD_IDS.forEach(function(id){ setCardCollapsed(id, false); });
     renderAll();
   }
@@ -1257,32 +1282,39 @@
     var winRatePct = Math.max(0, Math.min(100, parseFloat(document.getElementById("winRateInput").value) || 0));
     var winRate = winRatePct / 100;
     var avgR = Math.max(0, parseFloat(document.getElementById("avgRInput").value) || 0);
-
-    var lossUsed = pnl < 0 ? Math.abs(pnl) : 0;
-    var cushionRemaining = Math.max(0, effMll - lossUsed);
-
-    // Kelly fraction from the actual edge: winRate*avgR minus the loss rate,
-    // divided by avgR. This is how heavily winrate/R drive sizing — a coin-flip
-    // edge (kelly near 0) caps risk hard, a strong edge (kelly near 1) barely
-    // caps it at all. Applied to whatever cushion is left before the trailing
-    // Max Loss Limit, it's the most that edge justifies risking without ever
-    // outrunning the account's real survival room.
-    var kellyFraction = avgR > 0 ? Math.max(0, (winRate * avgR - (1 - winRate)) / avgR) : 0;
-    var kellyCeiling = kellyFraction * cushionRemaining;
+    var sampleN = Math.max(1, parseInt(document.getElementById("sampleNInput").value, 10) || 1);
+    var stopPoints = Math.max(0, parseFloat(document.getElementById("stopPointsInput").value) || 0);
+    var pointValue = Math.max(0, parseFloat(document.getElementById("pointValueInput").value) || 0);
 
     function coRow(label, value, cls){
       return '<div class="readout"><span class="rlabel">' + label + '</span><span class="rvalue' + (cls ? " " + cls : "") + '">' + value + '</span></div>';
     }
 
-    // Max risk per trade: sized so a single average (avgR) winner covers the
-    // day's required pace, but never more than the edge-scaled Kelly ceiling
-    // above — so a weak or negative edge gets capped down hard regardless of
-    // how aggressive the pace is, while a strong edge lets the pace-driven
-    // number through.
-    function riskFromPaceAndEdge(dailyPaceTarget){
-      var riskFromPace = avgR > 0 && dailyPaceTarget > 0 ? dailyPaceTarget / avgR : 0;
-      return riskFromPace > 0 ? Math.min(riskFromPace, kellyCeiling) : kellyCeiling;
-    }
+    // 1. Room (live): cushion left before the trailing Max Loss Limit.
+    var room = Math.max(0, Math.min(effMll, effMll + pnl));
+
+    // 2. Win rate, adjusted for sample size (Wald lower bound) — stops a
+    // lucky small sample from oversizing risk.
+    var pAdj = winRate - 1.96 * Math.sqrt((winRate * (1 - winRate)) / sampleN);
+
+    // 3. Kelly with a safety fraction (half Kelly) and a hard cap (room / 4).
+    var kelly = avgR > 0 ? pAdj - (1 - pAdj) / avgR : -1;
+    var noEdge = kelly <= 0;
+    var riskPct = noEdge ? 0 : Math.min(kelly * 0.5, 0.25);
+    var maxRisk = room * riskPct;
+    var riskExceedsDll = dllOn && maxRisk > dllAmount();
+
+    // 4. Contracts: how many the stop/point value allow at that risk.
+    var stopDollarsPerContract = stopPoints * pointValue;
+    var hasStopInputs = stopDollarsPerContract > 0;
+    var contracts = hasStopInputs ? Math.floor(maxRisk / stopDollarsPerContract) : 0;
+    var stopTooWide = !noEdge && hasStopInputs && contracts < 1;
+    var stopMissing = !noEdge && !hasStopInputs;
+
+    var riskRowValue = noEdge ? "No edge at this win rate/R" : money(maxRisk);
+    var riskRowCls = (noEdge || riskExceedsDll) ? "red" : "";
+    var contractsRowValue = noEdge ? "&mdash;" : (stopMissing ? "Enter stop (points)" : (stopTooWide ? "0 &mdash; stop too wide, skip" : String(contracts)));
+    var contractsRowCls = (noEdge || stopTooWide || stopMissing) ? "red" : "";
 
     if (phase === "funded"){
       var qualDays = Math.max(0, Math.min(5, parseInt(document.getElementById("qualDaysInput").value, 10) || 0));
@@ -1292,20 +1324,14 @@
 
       renderAccountStatus("funded", pnl, effMll, { qualDays: qualDays, d: d, fundedConsistencyBreach: fundedConsistencyBreach, fundedConsistencyPct: fundedConsistencyPct });
 
-      // Funded's "pace" is simply the size's own qualifying minimum — every
-      // session needs to clear it, not a remaining-balance countdown.
-      var maxRiskPerTradeFunded = riskFromPaceAndEdge(d.dailyMin);
-      var riskExceedsDllFunded = dllOn && maxRiskPerTradeFunded > dllAmount();
-      var expectancyRFunded = winRate * avgR - (1 - winRate);
-      var expectancyDollarFunded = expectancyRFunded * maxRiskPerTradeFunded;
-
       readoutList.innerHTML =
         coRow("Qualifying days banked", qualDays + " of 5") +
         coRow("Daily minimum to qualify", money(d.dailyMin)) +
-        coRow("Max risk per trade", maxRiskPerTradeFunded > 0 ? money(maxRiskPerTradeFunded) : "No safe size yet", (maxRiskPerTradeFunded <= 0 || riskExceedsDllFunded) ? "red" : "") +
+        coRow("Room", money(room)) +
+        coRow("Max risk per trade", riskRowValue, riskRowCls) +
+        coRow("Contracts", contractsRowValue, contractsRowCls) +
         (dllOn ? coRow("Daily Loss Limit (firm)", money(dllAmount()), "red") : "") +
-        (fundedConsistencyPct ? coRow("Max per day (consistency)", money(fundedConsistencyCeiling), fundedConsistencyBreach ? "red" : "") : "") +
-        (maxRiskPerTradeFunded > 0 && expectancyDollarFunded > 0.01 ? coRow("Est. trades per qualifying day", Math.ceil(d.dailyMin / expectancyDollarFunded) + " trades") : "");
+        (fundedConsistencyPct ? coRow("Max per day (consistency)", money(fundedConsistencyCeiling), fundedConsistencyBreach ? "red" : "") : "");
       return;
     }
 
@@ -1331,18 +1357,19 @@
 
     renderAccountStatus("eval", pnl, effMll, { remaining: remaining, consistencyBreach: consistencyBreach, d: d, fundedConsistencyPct: fundedConsistencyPct });
 
-    var maxRiskPerTrade = riskFromPaceAndEdge(perDay);
-    var riskExceedsDll = dllOn && maxRiskPerTrade > dllAmount();
-    var expectancyR = winRate * avgR - (1 - winRate);
-    var expectancyDollar = expectancyR * maxRiskPerTrade;
+    // 5. Days to pass: info only, never feeds back into risk sizing.
+    var minDays = consistencyCeiling > 0 ? Math.ceil(remaining / consistencyCeiling) : days;
+    var daysTooFew = consistencyCeiling > 0 && days < minDays;
 
     readoutList.innerHTML =
       coRow("Remaining to target", money(remaining)) +
       (evalConsistencyPct ? coRow("Max per day (consistency)", money(consistencyCeiling), consistencyBreach ? "red" : "") : "") +
       coRow("Required pace / day", money(perDay) + " &nbsp;(" + perDayPctOfSize.toFixed(2) + "% of size)", paceLevel === "red" ? "red" : (paceLevel === "amber" ? "amber" : "")) +
-      coRow("Max risk per trade", maxRiskPerTrade > 0 ? money(maxRiskPerTrade) : "No safe size yet", (maxRiskPerTrade <= 0 || riskExceedsDll) ? "red" : "") +
-      (dllOn ? coRow("Daily Loss Limit (firm)", money(dllAmount()), "red") : "") +
-      (maxRiskPerTrade > 0 && expectancyDollar > 0.01 ? coRow("Est. trades to target", Math.ceil(remaining / expectancyDollar) + " trades") : "");
+      (daysTooFew ? coRow("Days to pass", days + " &mdash; can't pass in under " + minDays + " days with the consistency rule", "red") : "") +
+      coRow("Room", money(room)) +
+      coRow("Max risk per trade", riskRowValue, riskRowCls) +
+      coRow("Contracts", contractsRowValue, contractsRowCls) +
+      (dllOn ? coRow("Daily Loss Limit (firm)", money(dllAmount()), "red") : "");
   }
 
   var planTabsRenderedOnce = false;
@@ -1597,7 +1624,7 @@
       saveState();
     }
   });
-  ["pnlInput","daysInput","bestDayInput","qualDaysInput","winRateInput","avgRInput"].forEach(function(id){
+  ["pnlInput","daysInput","bestDayInput","qualDaysInput","winRateInput","avgRInput","sampleNInput","stopPointsInput","pointValueInput"].forEach(function(id){
     document.getElementById(id).addEventListener("input", function(){
       renderCoPilot();
       saveState();
@@ -1784,6 +1811,7 @@
 
         document.getElementById("pnlInput").value = Math.round(total);
         document.getElementById("bestDayInput").value = Math.round(best);
+        if (tradedDays > 0) document.getElementById("sampleNInput").value = tradedDays;
         lastCsvDays = days;
         lastCsvByDay = byDay;
         renderGuideEdgeChart();
