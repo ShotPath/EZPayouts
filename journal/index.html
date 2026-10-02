@@ -83,6 +83,41 @@
 
   .page-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:14px; padding:22px 0 18px; }
   .page-head h1{ font-size:24px; font-weight:700; line-height:1.2; color:var(--ice); letter-spacing:-0.01em; }
+  .page-head-actions{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+
+  /* ---------- Account switcher ---------- */
+  .account-switcher{ position:relative; }
+  #accountSwitcherBtn svg.chev{ width:11px; height:11px; margin-left:-1px; opacity:0.7; }
+  #accountSwitcherLabel{ max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .account-popover{
+    position:absolute; top:calc(100% + 8px); right:0; z-index:60; width:240px;
+    background:var(--panel-raised); border:1px solid var(--hairline-bright); border-radius:14px;
+    padding:8px; box-shadow:0 20px 44px -18px rgba(0,0,0,0.65);
+  }
+  .account-popover[hidden]{ display:none; }
+  .account-list{ max-height:260px; overflow-y:auto; }
+  .account-row{ display:flex; align-items:stretch; gap:4px; border-radius:10px; }
+  .account-row + .account-row{ margin-top:2px; }
+  .account-row.active{ background:var(--panel-hi); }
+  .account-row-main{
+    flex:1; min-width:0; display:flex; flex-direction:column; align-items:flex-start; gap:2px;
+    background:transparent; border:none; padding:9px 10px; cursor:pointer; text-align:left; border-radius:8px;
+  }
+  .account-row-main:hover{ background:var(--panel-hi); }
+  .account-row-name{ font-family:var(--font-display); font-weight:600; font-size:13px; color:var(--ice); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:140px; }
+  .account-row.active .account-row-name{ color:var(--phosphor-soft); }
+  .account-row-sub{ font-family:var(--font-mono); font-size:10px; color:var(--muted); }
+  .account-row-icon-btn{
+    flex:none; width:30px; border-radius:8px; padding:0; margin:4px 0; cursor:pointer;
+    background:transparent; border:none; color:var(--muted); display:flex; align-items:center; justify-content:center;
+    transition:background .12s, color .12s;
+  }
+  .account-row-icon-btn svg{ width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+  .account-row-icon-btn:hover{ background:var(--panel-hi); color:var(--ice); }
+  .account-row-icon-btn.delete:hover{ color:var(--red); }
+  .account-row-icon-btn:disabled{ opacity:0.3; cursor:default; pointer-events:none; }
+  .account-popover-foot{ margin-top:6px; padding-top:8px; border-top:1px solid var(--hairline); }
+  .account-popover-foot .ghost-btn{ width:100%; justify-content:center; }
 
   .ghost-btn{
     display:inline-flex; align-items:center; gap:7px;
@@ -395,10 +430,25 @@
 
   <div class="page-head">
     <h1>Journal</h1>
-    <button type="button" class="ghost-btn" id="helpBtn">
-      <svg viewBox="0 0 20 20"><path d="M6 4h9a1 1 0 0 1 1 1v11l-3-2H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" /><path d="M8 8h5M8 11h3" /></svg>
-      Help
-    </button>
+    <div class="page-head-actions">
+      <div class="account-switcher" id="accountSwitcher">
+        <button type="button" class="ghost-btn" id="accountSwitcherBtn">
+          <svg viewBox="0 0 20 20"><path d="M4 16v-1a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v1" /><circle cx="10" cy="6.5" r="3" /></svg>
+          <span id="accountSwitcherLabel">Account</span>
+          <svg viewBox="0 0 20 20" class="chev"><path d="M6 8l4 4 4-4" /></svg>
+        </button>
+        <div class="account-popover" id="accountPopover" hidden>
+          <div class="account-list" id="accountList"></div>
+          <div class="account-popover-foot">
+            <button type="button" class="ghost-btn" id="newAccountBtn">+ New account</button>
+          </div>
+        </div>
+      </div>
+      <button type="button" class="ghost-btn" id="helpBtn">
+        <svg viewBox="0 0 20 20"><path d="M6 4h9a1 1 0 0 1 1 1v11l-3-2H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" /><path d="M8 8h5M8 11h3" /></svg>
+        Help
+      </button>
+    </div>
   </div>
 
   <div class="journal-toolbar">
@@ -567,7 +617,8 @@
     </div>
     <div class="help-body">
       <p>Log your <b>actual</b> trades here &mdash; symbol, direction, and real dollar P&amp;L &mdash; separate from the Backtest page, which is for testing a strategy's edge with model/R:R/win-loss data.</p>
-      <p>Click <b>+ Add new trade</b> to log one manually, or <b>Import CSV</b> to bulk-import from a broker export (looking for columns like Date, Symbol, Side, and P&amp;L).</p>
+      <p>Use the account switcher at the top to keep separate journals for separate funded accounts or prop firms. Each account has its own trade list, stats, and CSV export &mdash; switch any time, and <b>+ New account</b> to add another.</p>
+      <p>Click <b>+ Add new trade</b> to log one manually, or <b>Import CSV</b> to bulk-import from a broker export (looking for columns like Date, Symbol, Side, and P&amp;L) into the active account.</p>
       <p>Click any row in Trades History to open it back up &mdash; give it a title, write notes on what happened, and attach up to 4 screenshots of the chart.</p>
       <p>Trade numbers sync across devices when you're signed in. Screenshots are kept only in this browser and won't follow you to another device.</p>
       <p>Use the <b>Daily</b>, <b>Weekly</b>, and <b>Strategy</b> tabs to see P&amp;L rolled up by day, by week, or by the strategy tag you gave each trade.</p>
@@ -584,6 +635,8 @@
   var MAX_IMAGES_PER_TRADE = 4;
   var MAX_IMAGE_WIDTH = 900;
 
+  var accounts = [];
+  var activeAccountId = null;
   var trades = [];
   var filters = { symbol: "", direction: "", from: "", to: "" };
   var activeTab = "trades";
@@ -628,6 +681,12 @@
   var dailyListEl = document.getElementById("dailyList");
   var weeklyListEl = document.getElementById("weeklyList");
   var strategyListEl = document.getElementById("strategyList");
+
+  var accountSwitcherBtn = document.getElementById("accountSwitcherBtn");
+  var accountSwitcherLabel = document.getElementById("accountSwitcherLabel");
+  var accountPopover = document.getElementById("accountPopover");
+  var accountListEl = document.getElementById("accountList");
+  var newAccountBtn = document.getElementById("newAccountBtn");
 
   var statCarousel = document.getElementById("statCarousel");
   var statPrev = document.getElementById("statPrev");
@@ -726,34 +785,159 @@
     return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
   }
 
+  // ---------- Accounts: separate journals, each with its own trade list ----------
+  function newAccountId(){ return "acc_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8); }
+  function activeAccount(){
+    return accounts.find(function(a){ return a.id === activeAccountId; }) || accounts[0];
+  }
+  // Legacy saves stored a single flat { trades: [...] } with no account
+  // concept — fold that into one "Main" account under a stable id so a
+  // first sync between an old local save and an old remote save converges
+  // on the same account instead of duplicating it.
+  function migrateJournalData(parsed){
+    if (parsed && Array.isArray(parsed.accounts) && parsed.accounts.length){
+      return { accounts: parsed.accounts, activeAccountId: parsed.activeAccountId || parsed.accounts[0].id };
+    }
+    if (parsed && Array.isArray(parsed.trades)){
+      return { accounts: [{ id: "acc_default", name: "Main", trades: parsed.trades }], activeAccountId: "acc_default" };
+    }
+    return null;
+  }
+  function totalTradeCount(){
+    return accounts.reduce(function(s, a){ return s + (a.trades ? a.trades.length : 0); }, 0);
+  }
+
   // ---------- Local storage: trades (synced) + images (local-only) ----------
   function load(){
     try {
       var raw = localStorage.getItem(STORAGE_KEY);
-      if (raw){
-        var parsed = JSON.parse(raw);
-        if (parsed && Array.isArray(parsed.trades)) trades = parsed.trades;
+      var migrated = raw ? migrateJournalData(JSON.parse(raw)) : null;
+      if (migrated){
+        accounts = migrated.accounts;
+        activeAccountId = migrated.activeAccountId;
       }
     } catch (err) {}
+    if (!accounts.length){
+      accounts = [{ id: "acc_default", name: "Main", trades: [] }];
+      activeAccountId = "acc_default";
+    }
+    if (!activeAccount()) activeAccountId = accounts[0].id;
+    trades = activeAccount().trades;
   }
   function save(){
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ trades: trades })); } catch (err) {}
-    if (window.EZAuth && EZAuth.isLoggedIn()) EZAuth.saveData({ journal: { trades: trades } });
+    activeAccount().trades = trades;
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ accounts: accounts, activeAccountId: activeAccountId })); } catch (err) {}
+    if (window.EZAuth && EZAuth.isLoggedIn()) EZAuth.saveData({ journal: { accounts: accounts, activeAccountId: activeAccountId } });
   }
   function syncFromAccount(){
     if (!window.EZAuth || !EZAuth.isLoggedIn()) return;
     EZAuth.fetchData().then(function(remote){
       if (!remote) return;
-      var remoteJournal = remote.journal;
-      if (remoteJournal && Array.isArray(remoteJournal.trades) && remoteJournal.trades.length){
-        trades = remoteJournal.trades;
+      var migrated = remote.journal ? migrateJournalData(remote.journal) : null;
+      var remoteTradeCount = migrated ? migrated.accounts.reduce(function(s, a){ return s + (a.trades ? a.trades.length : 0); }, 0) : 0;
+      if (migrated && remoteTradeCount){
+        accounts = migrated.accounts;
+        activeAccountId = accounts.some(function(a){ return a.id === activeAccountId; }) ? activeAccountId : migrated.activeAccountId;
+        trades = activeAccount().trades;
         save();
         renderAll();
+        renderAccountSwitcher();
         return;
       }
-      if (trades.length) EZAuth.saveData({ journal: { trades: trades } });
+      if (totalTradeCount()) EZAuth.saveData({ journal: { accounts: accounts, activeAccountId: activeAccountId } });
     });
   }
+
+  // ---------- Account switcher UI ----------
+  function slugify(s){
+    return String(s).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "account";
+  }
+  function renderAccountSwitcher(){
+    var active = activeAccount();
+    accountSwitcherLabel.textContent = active.name;
+    accountListEl.innerHTML = accounts.map(function(a){
+      var count = a.trades ? a.trades.length : 0;
+      return '<div class="account-row' + (a.id === activeAccountId ? " active" : "") + '">' +
+        '<button type="button" class="account-row-main" data-id="' + a.id + '">' +
+          '<span class="account-row-name">' + escapeHtml(a.name) + '</span>' +
+          '<span class="account-row-sub">' + count + ' trade' + (count === 1 ? "" : "s") + '</span>' +
+        '</button>' +
+        '<button type="button" class="account-row-icon-btn rename" data-id="' + a.id + '" aria-label="Rename account">' +
+          '<svg viewBox="0 0 20 20"><path d="M13.5 3.5l3 3L7 16l-4 1 1-4z" /></svg>' +
+        '</button>' +
+        '<button type="button" class="account-row-icon-btn delete" data-id="' + a.id + '" aria-label="Delete account"' + (accounts.length <= 1 ? " disabled" : "") + '>' +
+          '<svg viewBox="0 0 20 20"><path d="M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10" /></svg>' +
+        '</button>' +
+      '</div>';
+    }).join("");
+  }
+  function switchAccount(id){
+    if (id === activeAccountId) return;
+    activeAccountId = id;
+    trades = activeAccount().trades;
+    save();
+    renderAll();
+    renderAccountSwitcher();
+  }
+  accountSwitcherBtn.addEventListener("click", function(e){
+    e.stopPropagation();
+    accountPopover.hidden = !accountPopover.hidden;
+  });
+  document.addEventListener("click", function(e){
+    if (!accountPopover.hidden && !e.target.closest(".account-switcher")) accountPopover.hidden = true;
+  });
+  accountListEl.addEventListener("click", function(e){
+    var renameBtn = e.target.closest(".account-row-icon-btn.rename");
+    var deleteBtn = e.target.closest(".account-row-icon-btn.delete");
+    var mainBtn = e.target.closest(".account-row-main");
+    if (renameBtn){
+      var a = accounts.find(function(x){ return x.id === renameBtn.getAttribute("data-id"); });
+      if (!a) return;
+      var name = window.prompt("Rename account", a.name);
+      if (name && name.trim()){
+        a.name = name.trim();
+        save();
+        renderAccountSwitcher();
+      }
+      return;
+    }
+    if (deleteBtn){
+      if (accounts.length <= 1) return;
+      var id = deleteBtn.getAttribute("data-id");
+      var acc = accounts.find(function(x){ return x.id === id; });
+      if (!acc) return;
+      var count = acc.trades ? acc.trades.length : 0;
+      if (!window.confirm("Delete \"" + acc.name + "\"" + (count ? " and its " + count + " trade" + (count === 1 ? "" : "s") : "") + "? This can't be undone.")) return;
+      (acc.trades || []).forEach(function(t){
+        if (Array.isArray(t.imageIds)) t.imageIds.forEach(deleteImage);
+      });
+      accounts = accounts.filter(function(x){ return x.id !== id; });
+      if (activeAccountId === id){
+        activeAccountId = accounts[0].id;
+        trades = activeAccount().trades;
+      }
+      save();
+      renderAll();
+      renderAccountSwitcher();
+      return;
+    }
+    if (mainBtn){
+      switchAccount(mainBtn.getAttribute("data-id"));
+      accountPopover.hidden = true;
+    }
+  });
+  newAccountBtn.addEventListener("click", function(){
+    var name = window.prompt("Name for the new account", "Account " + (accounts.length + 1));
+    if (!name || !name.trim()) return;
+    var acc = { id: newAccountId(), name: name.trim(), trades: [] };
+    accounts.push(acc);
+    activeAccountId = acc.id;
+    trades = activeAccount().trades;
+    save();
+    renderAll();
+    renderAccountSwitcher();
+    accountPopover.hidden = true;
+  });
 
   function loadImageStore(){
     try { return JSON.parse(localStorage.getItem(IMAGE_STORE_KEY) || "{}"); } catch (err) { return {}; }
@@ -1271,6 +1455,7 @@
     if (!lightboxOverlay.hidden){ lightboxOverlay.hidden = true; lightboxImg.src = ""; return; }
     if (!tradeModalOverlay.hidden) discardTradeModal();
     if (!helpModalOverlay.hidden) helpModalOverlay.hidden = true;
+    if (!accountPopover.hidden) accountPopover.hidden = true;
   });
 
   saveTradeBtn.addEventListener("click", function(){
@@ -1388,7 +1573,7 @@
     list.slice().reverse().forEach(function(t){
       rows.push([t.date, t.symbol, t.strategy || "", t.direction, t.pnl, t.title || "", t.notes || ""]);
     });
-    downloadCsv("ezpayouts-journal-" + todayStr() + ".csv", rows);
+    downloadCsv("ezpayouts-journal-" + slugify(activeAccount().name) + "-" + todayStr() + ".csv", rows);
   });
 
   importCsvBtn.addEventListener("click", function(){ csvFileInput.click(); });
@@ -1458,6 +1643,7 @@
     return {
       pageName: "Journal",
       data: {
+        account: activeAccount().name,
         totalTrades: s.total,
         winRate: s.winRate.toFixed(1) + "%",
         totalPnl: s.totalPnl,
@@ -1469,6 +1655,7 @@
   // ---------- Init ----------
   load();
   renderAll();
+  renderAccountSwitcher();
   layoutSegThumb(journalTabsEl, true);
   layoutSegThumb(dirFilterEl, true);
   layoutSegThumb(dirToggleEl, true);
