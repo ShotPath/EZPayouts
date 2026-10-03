@@ -19,7 +19,7 @@
   var THEME_KEY = "ezpayouts.theme";
   var THEMES = ["green", "ink", "red", "magenta"];
   var THEME_LABELS = { green: "Green", ink: "Inked Japan", red: "Red", magenta: "Magenta" };
-  var THEME_SWATCHES = { green: "#3ee08c", ink: "#c1432d", red: "#d4323f", magenta: "#d63f9d" };
+  var THEME_SWATCHES = { green: "#3ee08c", ink: "#7b86d9", red: "#d4323f", magenta: "#d63f9d" };
   var THEME_ICON = '<path d="M10 3.2c-3.9 0-7 2.9-7 6.5 0 3.4 2.9 6.3 6.6 6.3.6 0 1.1-.4 1.1-1 0-.3-.1-.5-.3-.7-.2-.2-.3-.4-.3-.7 0-.5.5-1 1.1-1H13c2.2 0 4-1.6 4-3.6 0-3.2-3.1-5.8-7-5.8z" /><circle cx="7.3" cy="8.3" r=".9" fill="currentColor" stroke="none" /><circle cx="10" cy="6.3" r=".9" fill="currentColor" stroke="none" /><circle cx="12.7" cy="8.3" r=".9" fill="currentColor" stroke="none" />';
 
   function getTheme() {
@@ -213,11 +213,11 @@
       // specificity, so these win over each page's own default (green)
       // tokens without touching --red/--amber (loss/warning stay fixed).
       "html[data-ez-theme=\"ink\"]{" +
-      " --void:#0a0906; --panel:#15130f; --panel-raised:#1d1a15; --panel-hi:#26221b;" +
-      " --hairline:#332d22; --hairline-bright:#584a35;" +
-      " --phosphor:#c1432d; --phosphor-soft:#e2886c; --phosphor-dim:#6b2a1c; --phosphor-glow:rgba(193,67,45,0.35);" +
-      " --mint:#d9775c; --mint-text:#1c0f0a;" +
-      " --ice:#efe7d8; --muted:#a89b84; --muted-dim:#6f6552; }" +
+      " --void:#07080c; --panel:#0e1118; --panel-raised:#151926; --panel-hi:#1d2233;" +
+      " --hairline:#262b3d; --hairline-bright:#3d4566;" +
+      " --phosphor:#7b86d9; --phosphor-soft:#a8b0ec; --phosphor-dim:#363f6e; --phosphor-glow:rgba(123,134,217,0.35);" +
+      " --mint:#8d93e0; --mint-text:#0b0d1a;" +
+      " --ice:#e4e3f0; --muted:#8a8ca6; --muted-dim:#585a73; }" +
       "html[data-ez-theme=\"red\"]{" +
       " --void:#0a0707; --panel:#150c0c; --panel-raised:#1f1313; --panel-hi:#2a1818;" +
       " --hairline:#3a2020; --hairline-bright:#612c2c;" +
