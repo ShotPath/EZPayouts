@@ -12,6 +12,30 @@
   var SIDEBAR_MODES = ["expanded", "collapsed", "hover"];
   var SIDEBAR_MODE_LABELS = { expanded: "Expanded", collapsed: "Collapsed", hover: "Expand on hover" };
 
+  // Theme: swaps the dark undertone + accent/text tokens site-wide. Loss
+  // (--red) and warning (--amber) stay fixed across themes since they carry
+  // financial meaning the reskin shouldn't touch — only the background
+  // undertone, accent/brand color, and main text tones change.
+  var THEME_KEY = "ezpayouts.theme";
+  var THEMES = ["green", "ink", "red", "magenta"];
+  var THEME_LABELS = { green: "Green", ink: "Inked Japan", red: "Red", magenta: "Magenta" };
+  var THEME_SWATCHES = { green: "#3ee08c", ink: "#c1432d", red: "#d4323f", magenta: "#d63f9d" };
+  var THEME_ICON = '<path d="M10 3.2c-3.9 0-7 2.9-7 6.5 0 3.4 2.9 6.3 6.6 6.3.6 0 1.1-.4 1.1-1 0-.3-.1-.5-.3-.7-.2-.2-.3-.4-.3-.7 0-.5.5-1 1.1-1H13c2.2 0 4-1.6 4-3.6 0-3.2-3.1-5.8-7-5.8z" /><circle cx="7.3" cy="8.3" r=".9" fill="currentColor" stroke="none" /><circle cx="10" cy="6.3" r=".9" fill="currentColor" stroke="none" /><circle cx="12.7" cy="8.3" r=".9" fill="currentColor" stroke="none" />';
+
+  function getTheme() {
+    try {
+      var stored = localStorage.getItem(THEME_KEY);
+      if (THEMES.indexOf(stored) !== -1) return stored;
+    } catch (err) {}
+    return "green";
+  }
+
+  function setTheme(theme) {
+    if (THEMES.indexOf(theme) === -1) return;
+    document.documentElement.setAttribute("data-ez-theme", theme);
+    try { localStorage.setItem(THEME_KEY, theme); } catch (err) {}
+  }
+
   // Main flat nav group, rendered first.
   var NAV_ITEMS = [
     {
@@ -183,7 +207,29 @@
       "  .ez-topbar{ border-radius:22px; flex-wrap:wrap; justify-content:center; padding:14px 18px; }" +
       "  .ez-topbar-links{ flex:1 1 100%; order:2; gap:10px; flex-wrap:wrap; row-gap:6px; }" +
       "  .ez-topbar-actions{ order:3; }" +
-      "}";
+      "}" +
+
+      // Theme overrides. html[data-ez-theme] beats a bare :root on
+      // specificity, so these win over each page's own default (green)
+      // tokens without touching --red/--amber (loss/warning stay fixed).
+      "html[data-ez-theme=\"ink\"]{" +
+      " --void:#0a0906; --panel:#15130f; --panel-raised:#1d1a15; --panel-hi:#26221b;" +
+      " --hairline:#332d22; --hairline-bright:#584a35;" +
+      " --phosphor:#c1432d; --phosphor-soft:#e2886c; --phosphor-dim:#6b2a1c; --phosphor-glow:rgba(193,67,45,0.35);" +
+      " --mint:#d9775c; --mint-text:#1c0f0a;" +
+      " --ice:#efe7d8; --muted:#a89b84; --muted-dim:#6f6552; }" +
+      "html[data-ez-theme=\"red\"]{" +
+      " --void:#0a0707; --panel:#150c0c; --panel-raised:#1f1313; --panel-hi:#2a1818;" +
+      " --hairline:#3a2020; --hairline-bright:#612c2c;" +
+      " --phosphor:#d4323f; --phosphor-soft:#f08a93; --phosphor-dim:#6e1a21; --phosphor-glow:rgba(212,50,63,0.35);" +
+      " --mint:#e2525f; --mint-text:#2b0609;" +
+      " --ice:#f3dcdc; --muted:#a67f7f; --muted-dim:#6d4f4f; }" +
+      "html[data-ez-theme=\"magenta\"]{" +
+      " --void:#0a0710; --panel:#150d1c; --panel-raised:#1e1327; --panel-hi:#281a33;" +
+      " --hairline:#3a2748; --hairline-bright:#5c3a74;" +
+      " --phosphor:#d63f9d; --phosphor-soft:#ef8fc7; --phosphor-dim:#6e1e52; --phosphor-glow:rgba(214,63,157,0.35);" +
+      " --mint:#e06bb8; --mint-text:#2b0a1f;" +
+      " --ice:#ede3f2; --muted:#9586a8; --muted-dim:#645271; }";
     document.head.appendChild(style);
   }
 
@@ -232,6 +278,77 @@
     return header;
   }
 
+  // Shared across every ez-sidebar-control instance so opening one closes
+  // any other that's already open (they're visually identical popovers).
+  var openControlCloser = null;
+
+  // Builds one bottom-of-sidebar icon button that opens a small popover
+  // menu of radio-style choices. Used for both the theme switcher and the
+  // expanded/collapsed/hover control below it.
+  function buildSidebarControl(opts) {
+    var wrap = document.createElement("div");
+    wrap.className = "ez-sidebar-control";
+    wrap.innerHTML =
+      '<button type="button" class="ez-sidebar-control-btn" aria-label="' + opts.ariaLabel + '">' +
+        '<span class="ez-sidebar-icon" aria-hidden="true"><svg viewBox="0 0 20 20">' + opts.icon + "</svg></span>" +
+      "</button>";
+    var controlBtn = wrap.querySelector(".ez-sidebar-control-btn");
+    var menuEl = null;
+
+    function closeMenu() {
+      if (menuEl) { menuEl.remove(); menuEl = null; }
+      if (openControlCloser === closeMenu) openControlCloser = null;
+    }
+
+    // Appended to <body> (not the sidebar) and positioned with fixed
+    // coordinates from the button's own rect, since the sidebar clips its
+    // children horizontally (overflow-x:hidden, for the collapse/expand
+    // width transition) and would otherwise cut the menu off when collapsed.
+    function openMenu() {
+      if (openControlCloser) openControlCloser();
+      var current = opts.getActive();
+      var menu = document.createElement("div");
+      menu.className = "ez-sidebar-menu";
+      menu.innerHTML = '<div class="ez-sidebar-menu-eyebrow">' + opts.eyebrow + '</div>' +
+        opts.items.map(function (item) {
+          var selected = item.value === current;
+          var dotStyle = item.swatch
+            ? ' style="background:' + item.swatch + ';border-color:' + item.swatch + (selected ? ";box-shadow:0 0 8px 1px " + item.swatch : "") + '"'
+            : "";
+          return '<button type="button" class="ez-sidebar-menu-item' + (selected ? " selected" : "") + '" data-value="' + item.value + '">' +
+            '<span class="dot" aria-hidden="true"' + dotStyle + '></span>' + item.label +
+          "</button>";
+        }).join("");
+      menu.querySelectorAll("[data-value]").forEach(function (btn) {
+        btn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          opts.onSelect(btn.getAttribute("data-value"));
+          closeMenu();
+        });
+      });
+      document.body.appendChild(menu);
+      var btnRect = controlBtn.getBoundingClientRect();
+      menu.style.left = btnRect.left + "px";
+      menu.style.bottom = (window.innerHeight - btnRect.top + 8) + "px";
+      menuEl = menu;
+      openControlCloser = closeMenu;
+    }
+
+    controlBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      if (menuEl) closeMenu();
+      else openMenu();
+    });
+    document.addEventListener("click", function (e) {
+      if (menuEl && !e.target.closest(".ez-sidebar-control") && !e.target.closest(".ez-sidebar-menu")) closeMenu();
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && menuEl) closeMenu();
+    });
+
+    return wrap;
+  }
+
   function buildSidebar(activeSlug) {
     var nav = document.createElement("nav");
     nav.className = "ez-sidebar";
@@ -247,61 +364,24 @@
       NAV_SECTIONS.map(function (section) {
         return '<div class="ez-sidebar-section">' + section.map(renderLink).join("") + "</div>";
       }).join("") +
-      '<span class="ez-sidebar-spacer"></span>' +
-      '<div class="ez-sidebar-control">' +
-        '<button type="button" class="ez-sidebar-control-btn" id="ezSidebarControlBtn" aria-label="Sidebar control">' +
-          '<span class="ez-sidebar-icon" aria-hidden="true"><svg viewBox="0 0 20 20">' + SIDEBAR_TOGGLE_ICON + "</svg></span>" +
-        "</button>" +
-      "</div>";
+      '<span class="ez-sidebar-spacer"></span>';
 
-    var controlWrap = nav.querySelector(".ez-sidebar-control");
-    var controlBtn = nav.querySelector("#ezSidebarControlBtn");
-    var menuEl = null;
-
-    function closeMenu() {
-      if (menuEl) { menuEl.remove(); menuEl = null; }
-    }
-
-    // Appended to <body> (not the sidebar) and positioned with fixed
-    // coordinates from the button's own rect, since the sidebar clips its
-    // children horizontally (overflow-x:hidden, for the collapse/expand
-    // width transition) and would otherwise cut the menu off when collapsed.
-    function openMenu() {
-      closeMenu();
-      var current = getSidebarMode();
-      var menu = document.createElement("div");
-      menu.className = "ez-sidebar-menu";
-      menu.innerHTML = '<div class="ez-sidebar-menu-eyebrow">Sidebar control</div>' +
-        SIDEBAR_MODES.map(function (mode) {
-          return '<button type="button" class="ez-sidebar-menu-item' + (mode === current ? " selected" : "") + '" data-mode="' + mode + '">' +
-            '<span class="dot" aria-hidden="true"></span>' + SIDEBAR_MODE_LABELS[mode] +
-          "</button>";
-        }).join("");
-      menu.querySelectorAll("[data-mode]").forEach(function (btn) {
-        btn.addEventListener("click", function (e) {
-          e.stopPropagation();
-          setSidebarMode(btn.getAttribute("data-mode"));
-          closeMenu();
-        });
-      });
-      document.body.appendChild(menu);
-      var btnRect = controlBtn.getBoundingClientRect();
-      menu.style.left = btnRect.left + "px";
-      menu.style.bottom = (window.innerHeight - btnRect.top + 8) + "px";
-      menuEl = menu;
-    }
-
-    controlBtn.addEventListener("click", function (e) {
-      e.stopPropagation();
-      if (menuEl) closeMenu();
-      else openMenu();
-    });
-    document.addEventListener("click", function (e) {
-      if (menuEl && !e.target.closest(".ez-sidebar-control") && !e.target.closest(".ez-sidebar-menu")) closeMenu();
-    });
-    document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape" && menuEl) closeMenu();
-    });
+    nav.appendChild(buildSidebarControl({
+      icon: THEME_ICON,
+      ariaLabel: "Theme",
+      eyebrow: "Theme",
+      items: THEMES.map(function (t) { return { value: t, label: THEME_LABELS[t], swatch: THEME_SWATCHES[t] }; }),
+      getActive: getTheme,
+      onSelect: setTheme
+    }));
+    nav.appendChild(buildSidebarControl({
+      icon: SIDEBAR_TOGGLE_ICON,
+      ariaLabel: "Sidebar control",
+      eyebrow: "Sidebar control",
+      items: SIDEBAR_MODES.map(function (m) { return { value: m, label: SIDEBAR_MODE_LABELS[m] }; }),
+      getActive: getSidebarMode,
+      onSelect: setSidebarMode
+    }));
 
     return nav;
   }
@@ -383,6 +463,7 @@
   }
 
   ensureStyles();
+  document.documentElement.setAttribute("data-ez-theme", getTheme());
   var activeItem = detectActiveItem();
   var isHome = window.location.pathname === "/" || window.location.pathname === "/index.html";
 
