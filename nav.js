@@ -105,9 +105,16 @@
     var style = document.createElement("style");
     style.id = "ezNavStyles";
     style.textContent = "" +
-      ":root{ --ez-header-h:60px; --ez-sidebar-w:212px; --ez-sidebar-collapsed-w:56px; }" +
-      "body{ padding-top:var(--ez-header-h); padding-left:var(--ez-sidebar-collapsed-w); transition:padding-left .18s ease; }" +
-      "body[data-sidebar-mode=\"expanded\"]{ padding-left:var(--ez-sidebar-w); }" +
+      ":root{ --ez-header-h:60px; --ez-sidebar-w:212px; --ez-sidebar-collapsed-w:56px; --ez-content-gutter:clamp(16px,4vw,48px); }" +
+      // Each page's own .wrap centers itself with margin:auto inside body's
+      // content box — but that only adds breathing room once the viewport is
+      // wider than sidebar + wrap + gutter. Below that (most real screens),
+      // the auto-margin collapses to 0 and cards sit flush against the
+      // sidebar with zero gap, while the right side keeps its own gutter.
+      // Adding the same gutter to the sidebar's width keeps a real, matching
+      // gap on both sides no matter how much leftover room there is.
+      "body{ padding-top:var(--ez-header-h); padding-left:calc(var(--ez-sidebar-collapsed-w) + var(--ez-content-gutter)); transition:padding-left .18s ease; }" +
+      "body[data-sidebar-mode=\"expanded\"]{ padding-left:calc(var(--ez-sidebar-w) + var(--ez-content-gutter)); }" +
 
       ".ez-header{ position:fixed; top:0; left:0; right:0; z-index:500; height:var(--ez-header-h);" +
       " display:flex; align-items:center; justify-content:space-between; gap:16px;" +
@@ -182,7 +189,7 @@
       ".ez-sidebar-menu-item.selected .dot{ background:var(--mint); border-color:var(--mint); box-shadow:0 0 8px 1px rgba(62,224,140,0.5); }" +
 
       "@media (max-width:760px){" +
-      "  body{ padding-left:var(--ez-sidebar-collapsed-w) !important; }" +
+      "  body{ padding-left:calc(var(--ez-sidebar-collapsed-w) + 12px) !important; }" +
       "  .ez-sidebar{ width:var(--ez-sidebar-collapsed-w) !important; box-shadow:none !important; }" +
       "  .ez-sidebar-label{ display:none !important; }" +
       "  .ez-sidebar-link{ justify-content:center !important; padding:12px 0 !important; }" +
