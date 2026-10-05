@@ -1609,6 +1609,7 @@
       var boughtTsIdx = findColumn(headers, ["bought timestamp"]);
       var soldTsIdx = findColumn(headers, ["sold timestamp"]);
       var imported = 0;
+      var updated = 0;
 
       function inferDirection(r){
         if (dirIdx !== -1) return parseCsvDirection(r[dirIdx]);
@@ -1688,27 +1689,41 @@
           return;
         }
 
+        // Re-exporting Balance/Cash History (daily batches, overlapping date
+        // ranges as new days accumulate) is the normal way to use this
+        // format, so a day that was already imported gets its total
+        // refreshed in place instead of piling up as a duplicate entry.
         Object.keys(byDay).sort().forEach(function(date){
-          trades.unshift({
-            id: "t_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8),
-            date: date,
-            symbol: accountLabel.toUpperCase(),
-            strategy: "",
-            direction: "long",
-            pnl: byDay[date],
-            title: "Daily import",
-            notes: "",
-            imageIds: [],
-            createdAt: Date.now()
-          });
-          imported++;
+          var existing = trades.find(function(t){ return t.date === date && t.title === "Daily import"; });
+          if (existing){
+            existing.pnl = byDay[date];
+            existing.symbol = accountLabel.toUpperCase();
+            updated++;
+          } else {
+            trades.unshift({
+              id: "t_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8),
+              date: date,
+              symbol: accountLabel.toUpperCase(),
+              strategy: "",
+              direction: "long",
+              pnl: byDay[date],
+              title: "Daily import",
+              notes: "",
+              imageIds: [],
+              createdAt: Date.now()
+            });
+            imported++;
+          }
         });
       }
 
       save();
       renderAll();
       csvFileInput.value = "";
-      if (imported) alert("Imported " + imported + " trade" + (imported === 1 ? "" : "s") + ".");
+      var summary = [];
+      if (imported) summary.push(imported + " new trade" + (imported === 1 ? "" : "s"));
+      if (updated) summary.push(updated + " day" + (updated === 1 ? "" : "s") + " updated");
+      if (summary.length) alert("Imported: " + summary.join(", ") + ".");
       else alert("No valid rows found in that file.");
     };
     reader.onerror = function(){ csvFileInput.value = ""; };
