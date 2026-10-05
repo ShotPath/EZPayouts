@@ -1600,10 +1600,25 @@
       if (rows.length < 2){ csvFileInput.value = ""; return; }
       var headers = rows[0];
       var dateIdx = findColumn(headers, ["date", "trade date", "entry date", "opened", "open date"]);
-      var symbolIdx = findColumn(headers, ["symbol", "ticker", "instrument", "market"]);
+      var symbolIdx = findColumn(headers, ["symbol", "ticker", "instrument", "market", "product", "contract"]);
       var dirIdx = findColumn(headers, ["side", "direction", "type", "b/s", "position"]);
       var pnlIdx = findColumn(headers, ["pnl", "p&l", "net pnl", "net p&l", "profit", "realized pnl", "p/l"]);
+      // Tradovate's Position History has no side/direction column, but it
+      // does have separate Bought/Sold timestamps per paired fill: whichever
+      // came first tells you whether the trade was entered long or short.
+      var boughtTsIdx = findColumn(headers, ["bought timestamp"]);
+      var soldTsIdx = findColumn(headers, ["sold timestamp"]);
       var imported = 0;
+
+      function inferDirection(r){
+        if (dirIdx !== -1) return parseCsvDirection(r[dirIdx]);
+        if (boughtTsIdx !== -1 && soldTsIdx !== -1 && r[boughtTsIdx] && r[soldTsIdx]){
+          var boughtAt = new Date(r[boughtTsIdx]).getTime();
+          var soldAt = new Date(r[soldTsIdx]).getTime();
+          if (!isNaN(boughtAt) && !isNaN(soldAt)) return boughtAt <= soldAt ? "long" : "short";
+        }
+        return "long";
+      }
 
       if (dateIdx !== -1 && symbolIdx !== -1 && pnlIdx !== -1){
         rows.slice(1).forEach(function(r){
@@ -1616,7 +1631,7 @@
             date: date,
             symbol: symbol.toUpperCase(),
             strategy: "",
-            direction: dirIdx !== -1 ? parseCsvDirection(r[dirIdx]) : "long",
+            direction: inferDirection(r),
             pnl: pnl,
             title: "",
             notes: "",
