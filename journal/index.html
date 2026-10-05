@@ -1576,6 +1576,20 @@
     downloadCsv("ezpayouts-journal-" + slugify(activeAccount().name) + "-" + todayStr() + ".csv", rows);
   });
 
+  // Broker exports come in two shapes. Per-trade logs have their own Date +
+  // Symbol + P&L columns and import one row per trade, same as before. Some
+  // brokers (e.g. Tradovate's Account Balance History / Cash History) only
+  // export day-level totals with no symbol at all — those get detected here
+  // too and imported as one entry per day, labeled with the account name
+  // instead of a symbol, matching how the Guide page's CSV import already
+  // reads the same exports.
+  function detectDailyCsvFormat(headers){
+    var lower = headers.map(function(h){ return h.trim().toLowerCase(); });
+    if (lower.some(function(h){ return h.indexOf("realized pnl") !== -1; })) return "balance";
+    if (lower.indexOf("delta") !== -1 || lower.indexOf("cash change type") !== -1) return "cash";
+    return "unknown";
+  }
+
   importCsvBtn.addEventListener("click", function(){ csvFileInput.click(); });
   csvFileInput.addEventListener("change", function(){
     var file = csvFileInput.files && csvFileInput.files[0];
@@ -1589,31 +1603,93 @@
       var symbolIdx = findColumn(headers, ["symbol", "ticker", "instrument", "market"]);
       var dirIdx = findColumn(headers, ["side", "direction", "type", "b/s", "position"]);
       var pnlIdx = findColumn(headers, ["pnl", "p&l", "net pnl", "net p&l", "profit", "realized pnl", "p/l"]);
-      if (dateIdx === -1 || symbolIdx === -1 || pnlIdx === -1){
-        alert("Couldn't find Date, Symbol, and P&L columns in that CSV. Try a different export or add trades manually.");
-        csvFileInput.value = "";
-        return;
-      }
       var imported = 0;
-      rows.slice(1).forEach(function(r){
-        var date = parseCsvDate(r[dateIdx]);
-        var symbol = (r[symbolIdx] || "").trim();
-        var pnl = parseAmount(r[pnlIdx]);
-        if (!date || !symbol || isNaN(pnl)) return;
-        trades.unshift({
-          id: "t_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8),
-          date: date,
-          symbol: symbol.toUpperCase(),
-          strategy: "",
-          direction: dirIdx !== -1 ? parseCsvDirection(r[dirIdx]) : "long",
-          pnl: pnl,
-          title: "",
-          notes: "",
-          imageIds: [],
-          createdAt: Date.now()
+
+      if (dateIdx !== -1 && symbolIdx !== -1 && pnlIdx !== -1){
+        rows.slice(1).forEach(function(r){
+          var date = parseCsvDate(r[dateIdx]);
+          var symbol = (r[symbolIdx] || "").trim();
+          var pnl = parseAmount(r[pnlIdx]);
+          if (!date || !symbol || isNaN(pnl)) return;
+          trades.unshift({
+            id: "t_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8),
+            date: date,
+            symbol: symbol.toUpperCase(),
+            strategy: "",
+            direction: dirIdx !== -1 ? parseCsvDirection(r[dirIdx]) : "long",
+            pnl: pnl,
+            title: "",
+            notes: "",
+            imageIds: [],
+            createdAt: Date.now()
+          });
+          imported++;
         });
-        imported++;
-      });
+      } else {
+        var dailyFormat = detectDailyCsvFormat(headers);
+        var byDay = {};
+        var accountLabel = "ACCOUNT";
+        if (dailyFormat === "balance"){
+          var balDateIdx = findColumn(headers, ["trade date"]);
+          var balPnlIdx = findColumn(headers, ["total realized pnl", "realized pnl"]);
+          var acctNameIdx = findColumn(headers, ["account name"]);
+          if (balDateIdx === -1 || balPnlIdx === -1){
+            alert("This looks like Account Balance History, but couldn't find its Trade Date / Total Realized PNL columns. Try a different export or add trades manually.");
+            csvFileInput.value = "";
+            return;
+          }
+          rows.slice(1).forEach(function(r){
+            if (!r || r.length <= balPnlIdx) return;
+            var date = parseCsvDate(r[balDateIdx]);
+            var pnl = parseAmount(r[balPnlIdx]);
+            if (!date || isNaN(pnl)) return;
+            byDay[date] = (byDay[date] || 0) + pnl;
+            if (acctNameIdx !== -1 && r[acctNameIdx]) accountLabel = r[acctNameIdx].trim();
+          });
+        } else if (dailyFormat === "cash"){
+          var cashDateIdx = findColumn(headers, ["date"]);
+          var deltaIdx = findColumn(headers, ["delta"]);
+          var typeIdx = findColumn(headers, ["cash change type", "type"]);
+          if (cashDateIdx === -1 || deltaIdx === -1){
+            alert("This looks like Cash History, but couldn't find its Date / Delta columns. Try a different export or add trades manually.");
+            csvFileInput.value = "";
+            return;
+          }
+          var excludeWords = ["fund transaction", "deposit", "funding", "transfer", "initial"];
+          rows.slice(1).forEach(function(r){
+            if (!r || r.length <= deltaIdx) return;
+            var date = parseCsvDate(r[cashDateIdx]);
+            var delta = parseAmount(r[deltaIdx]);
+            if (!date || isNaN(delta)) return;
+            if (typeIdx !== -1){
+              var typeVal = (r[typeIdx] || "").toLowerCase();
+              if (excludeWords.some(function(w){ return typeVal.indexOf(w) !== -1; })) return;
+            }
+            byDay[date] = (byDay[date] || 0) + delta;
+          });
+        } else {
+          alert("Couldn't find Date, Symbol, and P&L columns in that CSV, and it doesn't match a known Account Balance / Cash History export either. Try a different export or add trades manually.");
+          csvFileInput.value = "";
+          return;
+        }
+
+        Object.keys(byDay).sort().forEach(function(date){
+          trades.unshift({
+            id: "t_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8),
+            date: date,
+            symbol: accountLabel.toUpperCase(),
+            strategy: "",
+            direction: "long",
+            pnl: byDay[date],
+            title: "Daily import",
+            notes: "",
+            imageIds: [],
+            createdAt: Date.now()
+          });
+          imported++;
+        });
+      }
+
       save();
       renderAll();
       csvFileInput.value = "";
