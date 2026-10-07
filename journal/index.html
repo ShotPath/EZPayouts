@@ -387,29 +387,60 @@
   .share-modal{ max-width:620px; }
   .share-card-canvas{
     width:100%; aspect-ratio:16/9; border-radius:14px; border:1px solid var(--hairline-bright);
-    display:block; margin-bottom:14px; background:var(--panel); cursor:pointer;
+    display:block; margin-bottom:14px; background:var(--panel);
   }
-  .share-bg-picker{ display:flex; align-items:center; gap:10px; margin-bottom:16px; }
-  .share-bg-swatch{
-    width:34px; height:34px; border-radius:50%; padding:0; cursor:pointer;
-    border:2px solid transparent; box-shadow:0 0 0 1px var(--hairline-bright);
-    transition:box-shadow .15s, transform .15s;
+  .share-bg-section{ margin-bottom:16px; }
+  .share-bg-grid{ display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; }
+  .share-bg-tile{
+    position:relative; aspect-ratio:4/3; border-radius:10px; overflow:hidden; padding:0;
+    background:var(--panel-hi); border:2px solid transparent; box-shadow:0 0 0 1px var(--hairline-bright);
+    cursor:pointer; transition:box-shadow .15s, border-color .15s;
   }
-  .share-bg-swatch:hover{ transform:scale(1.08); }
-  .share-bg-swatch.active{ box-shadow:0 0 0 2px var(--panel-raised), 0 0 0 4px var(--phosphor); }
-  .share-bg-swatch.bg-phosphor{ background:radial-gradient(circle at 35% 30%, #8fe6b6, #0c1310 72%); }
-  .share-bg-swatch.bg-ember{ background:radial-gradient(circle at 35% 30%, #ffb15c, #4a1405 72%); }
-  .share-bg-swatch.bg-violet{ background:radial-gradient(circle at 35% 30%, #c49bff, #1b0c3d 72%); }
-  .share-bg-swatch.bg-ice{ background:radial-gradient(circle at 35% 30%, #9fe3ff, #06202e 72%); }
-  .share-bg-swatch.bg-mono{ background:radial-gradient(circle at 35% 30%, #5a6b61, #05100a 72%); }
-  .share-bg-upload{
-    width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  .share-bg-tile.extra{ display:none; }
+  .share-bg-grid.expanded .share-bg-tile.extra{ display:block; }
+  .share-bg-tile img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .share-bg-tile.active{ box-shadow:0 0 0 1px var(--panel-raised), 0 0 0 3px var(--phosphor); }
+  .share-bg-tile-label{
+    position:absolute; left:6px; bottom:5px; font-family:var(--font-mono); font-size:9px; font-weight:700;
+    color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.85); text-transform:uppercase; letter-spacing:0.04em;
+  }
+  .share-bg-more{
+    display:flex; align-items:center; justify-content:center; gap:6px; width:100%; margin-top:10px;
+    padding:8px; background:transparent; border:none; border-top:1px solid var(--hairline);
+    color:var(--muted); font-family:var(--font-mono); font-size:11px; cursor:pointer;
+  }
+  .share-bg-more[hidden]{ display:none; }
+  .share-bg-more:hover{ color:var(--ice); }
+  .share-bg-more svg{ width:12px; height:12px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; transition:transform .15s; }
+  .share-bg-more.expanded svg{ transform:rotate(180deg); }
+  .share-bg-upload-row{ display:flex; align-items:center; gap:8px; margin-top:12px; }
+  .share-bg-upload-btn{
+    flex:1; display:flex; align-items:center; justify-content:center; gap:8px; padding:9px 14px;
+    border-radius:12px; background:var(--panel-hi); border:1px solid var(--hairline-bright); color:var(--muted);
+    font-family:var(--font-mono); font-size:11.5px; font-weight:700; cursor:pointer;
+    transition:border-color .15s, color .15s;
+  }
+  .share-bg-upload-btn:hover{ border-color:var(--phosphor-dim); color:var(--ice); }
+  .share-bg-upload-btn svg{ width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .share-bg-remove-btn{
+    padding:9px 16px; border-radius:12px; background:var(--panel-hi); border:1px solid var(--hairline-bright);
+    color:var(--muted); font-family:var(--font-mono); font-size:11.5px; font-weight:700; cursor:pointer;
+    transition:border-color .15s, color .15s;
+  }
+  .share-bg-remove-btn:hover{ border-color:var(--red); color:var(--red); }
+  .share-export-row{ display:flex; gap:10px; }
+  .share-export-btn{
+    flex:1; display:flex; align-items:center; justify-content:center; gap:7px; padding:11px 16px;
+    border-radius:12px; font-family:var(--font-display); font-weight:700; font-size:13px; cursor:pointer;
     background:var(--panel-hi); border:1px solid var(--hairline-bright); color:var(--muted);
-    cursor:pointer; transition:border-color .15s, color .15s;
+    transition:filter .15s, border-color .15s, background .15s, color .15s;
   }
-  .share-bg-upload:hover{ border-color:var(--phosphor-dim); color:var(--ice); }
-  .share-bg-upload svg{ width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
-  .share-hint{ font-size:11.5px; color:var(--muted-dim); }
+  .share-export-btn:hover{ border-color:var(--phosphor-dim); color:var(--ice); }
+  .share-export-btn.primary{ background:var(--phosphor); border-color:var(--phosphor); color:var(--mint-text); }
+  .share-export-btn.primary:hover{ filter:brightness(1.06); color:var(--mint-text); }
+  .share-export-btn svg{ width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .share-export-btn:disabled{ opacity:0.45; cursor:not-allowed; filter:none; }
+  .share-export-status{ margin:10px 2px 0; font-size:11.5px; color:var(--muted-dim); text-align:center; }
   .modal-share-btn{
     display:flex; align-items:center; gap:6px; height:28px; padding:0 12px; border-radius:999px;
     background:var(--panel-hi); border:1px solid var(--hairline-bright); color:var(--muted);
@@ -592,6 +623,7 @@
 <script src="/nav.js"></script>
 <script src="/account.js"></script>
 <script src="/coach.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
 <div class="wrap">
 
   <div class="page-head">
@@ -949,25 +981,41 @@
     </div>
 
     <canvas id="shareCardCanvas" width="1920" height="1080" class="share-card-canvas"></canvas>
+    <video id="shareBgVideoEl" muted loop playsinline hidden></video>
+    <img id="shareBgGifEl" alt="" hidden />
+    <img id="shareBgImgEl" alt="" hidden />
 
-    <div class="share-bg-picker" id="shareBgPicker">
-      <button type="button" class="share-bg-swatch bg-phosphor active" data-bg="phosphor" aria-label="Phosphor background"></button>
-      <button type="button" class="share-bg-swatch bg-ember" data-bg="ember" aria-label="Ember background"></button>
-      <button type="button" class="share-bg-swatch bg-violet" data-bg="violet" aria-label="Violet background"></button>
-      <button type="button" class="share-bg-swatch bg-ice" data-bg="ice" aria-label="Ice background"></button>
-      <button type="button" class="share-bg-swatch bg-mono" data-bg="mono" aria-label="Mono background"></button>
-      <label class="share-bg-upload" id="shareBgUploadLabel">
-        <svg viewBox="0 0 20 20"><rect x="2.5" y="4" width="15" height="12" rx="2" /><circle cx="7" cy="8.5" r="1.4" /><path d="m4 14 4-4 3 3 2-2 3 3" /></svg>
-        <input type="file" id="shareBgUpload" accept="image/*" hidden />
-      </label>
+    <div class="share-bg-section">
+      <div class="share-bg-grid" id="shareBgGrid"></div>
+      <button type="button" class="share-bg-more" id="shareBgMoreBtn" hidden>
+        <span id="shareBgMoreLabel">More</span>
+        <svg viewBox="0 0 20 20"><path d="M5 7l5 6 5-6" /></svg>
+      </button>
+      <div class="share-bg-upload-row">
+        <label class="share-bg-upload-btn" id="shareBgUploadLabel">
+          <svg viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></svg>
+          <span>Upload image, GIF or video</span>
+          <input type="file" id="shareBgUpload" accept="image/*,video/mp4,video/webm,video/quicktime,video/*" hidden />
+        </label>
+        <button type="button" class="share-bg-remove-btn" id="shareBgRemoveBtn">Remove</button>
+      </div>
     </div>
 
-    <div class="trade-modal-foot">
-      <span class="share-hint">Square image, ready for Instagram/X/Discord.</span>
-      <span class="spacer"></span>
-      <button type="button" class="ghost-btn" id="shareCopyBtn">Copy image</button>
-      <button type="button" class="primary-btn" id="shareDownloadBtn">Download PNG</button>
+    <div class="trade-modal-foot share-export-row">
+      <button type="button" class="share-export-btn" id="shareExportVideoBtn" data-export="video">
+        <svg viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" /><path d="M7 3v18" /><path d="M3 7.5h4" /><path d="M3 12h18" /><path d="M3 16.5h4" /><path d="M17 3v18" /><path d="M17 7.5h4" /><path d="M17 16.5h4" /></svg>
+        <span>Video</span>
+      </button>
+      <button type="button" class="share-export-btn" id="shareExportGifBtn" data-export="gif">
+        <svg viewBox="0 0 24 24"><path d="m12.296 3.464 3.02 3.956" /><path d="M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3z" /><path d="M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><path d="m6.18 5.276 3.1 3.899" /></svg>
+        <span>GIF</span>
+      </button>
+      <button type="button" class="share-export-btn primary" id="shareExportPhotoBtn" data-export="photo">
+        <svg viewBox="0 0 24 24"><path d="M12 15V3" /><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /></svg>
+        <span>Photo</span>
+      </button>
     </div>
+    <p class="share-export-status" id="shareExportStatus" hidden></p>
   </div>
 </div>
 
@@ -1296,39 +1344,71 @@
     }, 2200);
   }
 
-  // ---------- Share trade card: renders a square PNG card (ticker top-left,
-  // P&L below it, username bottom-left, ezpayouts.xyz bottom-right) onto a
-  // canvas that's both the live preview and the export source — one drawing
-  // path, so preview and download can never drift apart. ----------
+  // ---------- Share trade card: renders a 16:9 card (ticker top-left, P&L
+  // beneath it, username bottom-left, ezpayouts.xyz bottom-right) onto a
+  // canvas that's both the live preview and the export source. Background
+  // can be a built-in gradient, a preset image/video, or an upload; Video
+  // and GIF export both just sample frames off this same canvas over a few
+  // seconds, so whatever's previewed is exactly what gets exported. ----------
   var shareModalOverlay = document.getElementById("shareModalOverlay");
   var shareModalClose = document.getElementById("shareModalClose");
   var shareCardCanvas = document.getElementById("shareCardCanvas");
-  var shareBgPicker = document.getElementById("shareBgPicker");
+  var shareBgVideoEl = document.getElementById("shareBgVideoEl");
+  var shareBgGifEl = document.getElementById("shareBgGifEl");
+  var shareBgImgEl = document.getElementById("shareBgImgEl");
+  var shareBgGrid = document.getElementById("shareBgGrid");
+  var shareBgMoreBtn = document.getElementById("shareBgMoreBtn");
+  var shareBgMoreLabel = document.getElementById("shareBgMoreLabel");
   var shareBgUpload = document.getElementById("shareBgUpload");
-  var shareCopyBtn = document.getElementById("shareCopyBtn");
-  var shareDownloadBtn = document.getElementById("shareDownloadBtn");
+  var shareBgRemoveBtn = document.getElementById("shareBgRemoveBtn");
+  var shareExportVideoBtn = document.getElementById("shareExportVideoBtn");
+  var shareExportGifBtn = document.getElementById("shareExportGifBtn");
+  var shareExportPhotoBtn = document.getElementById("shareExportPhotoBtn");
+  var shareExportStatus = document.getElementById("shareExportStatus");
   var tradeShareBtn = document.getElementById("tradeShareBtn");
 
-  var SHARE_BG_PRESETS = {
-    phosphor: ["#8fe6b6", "#143524", "#0c1310"],
-    ember: ["#ffb15c", "#7a2a0c", "#1a0b05"],
-    violet: ["#c49bff", "#3a1f70", "#1b0c3d"],
-    ice: ["#9fe3ff", "#0d4a5c", "#06202e"],
-    mono: ["#5a6b61", "#1a241e", "#05100a"]
-  };
-  var shareCurrentTrade = null;
-  var shareBgKey = "phosphor";
-  var shareUploadedImg = null;
+  var SHARE_BG_GRADIENTS = [
+    { id: "phosphor", label: "Phosphor", type: "gradient", stops: ["#8fe6b6", "#143524", "#0c1310"] },
+    { id: "ember", label: "Ember", type: "gradient", stops: ["#ffb15c", "#7a2a0c", "#1a0b05"] },
+    { id: "violet", label: "Violet", type: "gradient", stops: ["#c49bff", "#3a1f70", "#1b0c3d"] },
+    { id: "ice", label: "Ice", type: "gradient", stops: ["#9fe3ff", "#0d4a5c", "#06202e"] },
+    { id: "mono", label: "Mono", type: "gradient", stops: ["#5a6b61", "#1a241e", "#05100a"] }
+  ];
+  // Preset media backgrounds (the picker grid like the reference screenshot).
+  // Drop files under /journal/share-presets/ and add an entry here: thumb is
+  // the small grid tile image, src is the real background. type is "image"
+  // or "video" — a .gif works fine as type "image", since <img> animates it
+  // on its own and the canvas draws whatever frame is currently showing.
+  var SHARE_BG_PRESET_MEDIA = [];
+  var SHARE_BG_LIST = SHARE_BG_GRADIENTS.concat(SHARE_BG_PRESET_MEDIA);
+  var SHARE_BG_VISIBLE_COUNT = 8;
+  var SHARE_EXPORT_DURATION_MS = 3000;
+  var SHARE_GIF_FPS = 10;
+  var SHARE_GIF_WIDTH = 768;
+  var SHARE_GIF_HEIGHT = 432;
 
-  function drawShareCardBackground(ctx, w, h){
-    if (shareUploadedImg){
-      var iw = shareUploadedImg.naturalWidth, ih = shareUploadedImg.naturalHeight;
-      var scale = Math.max(w / iw, h / ih);
-      var dw = iw * scale, dh = ih * scale;
-      ctx.drawImage(shareUploadedImg, (w - dw) / 2, (h - dh) / 2, dw, dh);
-      return;
+  var shareCurrentTrade = null;
+  var shareBg = { type: "gradient", stops: SHARE_BG_GRADIENTS[0].stops };
+  var shareBgActiveId = SHARE_BG_GRADIENTS[0].id;
+  var shareUploadedUrl = null;
+  var sharePreviewRAF = null;
+  var shareBgExpanded = false;
+
+  function isAnimatedBg(){ return shareBg.type === "video" || shareBg.type === "gif"; }
+
+  function drawBackgroundLayer(ctx, w, h){
+    var media = shareBg.type === "video" ? shareBgVideoEl : shareBg.type === "gif" ? shareBgGifEl : shareBg.type === "image" ? shareBgImgEl : null;
+    if (media){
+      var mw = media.videoWidth || media.naturalWidth || 0;
+      var mh = media.videoHeight || media.naturalHeight || 0;
+      if (mw && mh){
+        var scale = Math.max(w / mw, h / mh);
+        var dw = mw * scale, dh = mh * scale;
+        ctx.drawImage(media, (w - dw) / 2, (h - dh) / 2, dw, dh);
+        return;
+      }
     }
-    var stops = SHARE_BG_PRESETS[shareBgKey] || SHARE_BG_PRESETS.phosphor;
+    var stops = shareBg.stops || SHARE_BG_GRADIENTS[0].stops;
     var maxDim = Math.max(w, h);
     var grad = ctx.createRadialGradient(w * 0.42, h * 0.4, maxDim * 0.03, w * 0.5, h * 0.5, maxDim * 0.72);
     grad.addColorStop(0, stops[0]);
@@ -1344,7 +1424,7 @@
     var ctx = shareCardCanvas.getContext("2d");
     var w = shareCardCanvas.width, h = shareCardCanvas.height;
     ctx.clearRect(0, 0, w, h);
-    drawShareCardBackground(ctx, w, h);
+    drawBackgroundLayer(ctx, w, h);
 
     var vignette = ctx.createLinearGradient(0, 0, 0, h);
     vignette.addColorStop(0, "rgba(0,0,0,0.5)");
@@ -1403,19 +1483,129 @@
     }
   }
 
+  function previewTick(){
+    drawShareCard();
+    sharePreviewRAF = requestAnimationFrame(previewTick);
+  }
+  function startPreviewLoop(){
+    stopPreviewLoop();
+    sharePreviewRAF = requestAnimationFrame(previewTick);
+  }
+  function stopPreviewLoop(){
+    if (sharePreviewRAF){ cancelAnimationFrame(sharePreviewRAF); sharePreviewRAF = null; }
+  }
+  function applyShareBgChange(){
+    stopPreviewLoop();
+    if (shareBg.type === "video") shareBgVideoEl.play().catch(function(){});
+    if (isAnimatedBg()) startPreviewLoop();
+    else redrawShareCard();
+  }
+  shareBgImgEl.addEventListener("load", function(){ if (shareBg.type === "image") redrawShareCard(); });
+
+  function releaseUploadedBgUrl(){
+    if (shareUploadedUrl){ URL.revokeObjectURL(shareUploadedUrl); shareUploadedUrl = null; }
+  }
+
+  function renderBgGrid(){
+    shareBgGrid.innerHTML = SHARE_BG_LIST.map(function(entry, i){
+      var extraCls = i >= SHARE_BG_VISIBLE_COUNT ? " extra" : "";
+      var bgStyle = entry.type === "gradient"
+        ? ' style="background:radial-gradient(circle at 35% 30%, ' + entry.stops[0] + ', ' + entry.stops[1] + ' 55%, ' + entry.stops[2] + ' 100%);"'
+        : "";
+      var img = entry.thumb ? '<img src="' + escapeHtml(entry.thumb) + '" alt="" loading="lazy" />' : "";
+      return '<button type="button" class="share-bg-tile' + extraCls + '" data-bg-id="' + entry.id + '"' + bgStyle + '>' +
+        img +
+        '<span class="share-bg-tile-label">' + escapeHtml(entry.label) + '</span>' +
+      '</button>';
+    }).join("");
+    shareBgMoreBtn.hidden = SHARE_BG_LIST.length <= SHARE_BG_VISIBLE_COUNT;
+    shareBgGrid.classList.toggle("expanded", shareBgExpanded);
+    syncBgGridActiveState();
+  }
+  function syncBgGridActiveState(){
+    shareBgGrid.querySelectorAll(".share-bg-tile").forEach(function(b){
+      b.classList.toggle("active", b.getAttribute("data-bg-id") === shareBgActiveId);
+    });
+  }
+  shareBgMoreBtn.addEventListener("click", function(){
+    shareBgExpanded = !shareBgExpanded;
+    shareBgGrid.classList.toggle("expanded", shareBgExpanded);
+    shareBgMoreBtn.classList.toggle("expanded", shareBgExpanded);
+    shareBgMoreLabel.textContent = shareBgExpanded ? "Less" : "More";
+  });
+
+  function selectPresetBg(entry){
+    releaseUploadedBgUrl();
+    if (entry.type === "gradient"){
+      shareBg = { type: "gradient", stops: entry.stops };
+    } else if (entry.type === "video"){
+      shareBgVideoEl.src = entry.src;
+      shareBgVideoEl.load();
+      shareBg = { type: "video" };
+    } else if (/\.gif($|\?)/i.test(entry.src)){
+      shareBgGifEl.src = entry.src;
+      shareBg = { type: "gif" };
+    } else {
+      shareBgImgEl.src = entry.src;
+      shareBg = { type: "image" };
+    }
+    shareBgActiveId = entry.id;
+    syncBgGridActiveState();
+    applyShareBgChange();
+  }
+  shareBgGrid.addEventListener("click", function(e){
+    var btn = e.target.closest(".share-bg-tile[data-bg-id]");
+    if (!btn) return;
+    var entry = SHARE_BG_LIST.filter(function(x){ return x.id === btn.getAttribute("data-bg-id"); })[0];
+    if (entry) selectPresetBg(entry);
+  });
+
+  shareBgUpload.addEventListener("change", function(){
+    var file = shareBgUpload.files && shareBgUpload.files[0];
+    if (!file) return;
+    releaseUploadedBgUrl();
+    var url = URL.createObjectURL(file);
+    shareUploadedUrl = url;
+    if (file.type.indexOf("video/") === 0){
+      shareBgVideoEl.src = url;
+      shareBgVideoEl.load();
+      shareBg = { type: "video" };
+    } else if (file.type === "image/gif"){
+      shareBgGifEl.src = url;
+      shareBg = { type: "gif" };
+    } else {
+      shareBgImgEl.src = url;
+      shareBg = { type: "image" };
+    }
+    shareBgActiveId = null;
+    syncBgGridActiveState();
+    applyShareBgChange();
+    shareBgUpload.value = "";
+  });
+  shareBgRemoveBtn.addEventListener("click", function(){
+    releaseUploadedBgUrl();
+    shareBgVideoEl.pause();
+    shareBgVideoEl.removeAttribute("src");
+    shareBgGifEl.removeAttribute("src");
+    shareBgImgEl.removeAttribute("src");
+    var def = SHARE_BG_GRADIENTS[0];
+    shareBg = { type: "gradient", stops: def.stops };
+    shareBgActiveId = def.id;
+    syncBgGridActiveState();
+    applyShareBgChange();
+  });
+
   function openShareModal(trade){
     shareCurrentTrade = trade;
-    shareUploadedImg = null;
-    shareBgKey = "phosphor";
-    shareBgPicker.querySelectorAll(".share-bg-swatch").forEach(function(b){
-      b.classList.toggle("active", b.getAttribute("data-bg") === shareBgKey);
-    });
     shareModalOverlay.hidden = false;
-    redrawShareCard();
+    renderBgGrid();
+    applyShareBgChange();
   }
   function closeShareModal(){
     shareModalOverlay.hidden = true;
     shareCurrentTrade = null;
+    stopPreviewLoop();
+    shareBgVideoEl.pause();
     // Opened from inside the trade modal (tradeShareBtn hides it first) —
     // bring it back, same pattern as the strategy builder.
     if (editingTradeId) tradeModalOverlay.hidden = false;
@@ -1427,68 +1617,120 @@
     if (e.target === shareModalOverlay && shareModalMouseDownOnBackdrop) closeShareModal();
   });
 
-  shareBgPicker.addEventListener("click", function(e){
-    var btn = e.target.closest(".share-bg-swatch[data-bg]");
-    if (!btn) return;
-    shareBgKey = btn.getAttribute("data-bg");
-    shareUploadedImg = null;
-    shareBgPicker.querySelectorAll(".share-bg-swatch").forEach(function(b){ b.classList.toggle("active", b === btn); });
-    redrawShareCard();
-  });
-  shareBgUpload.addEventListener("change", function(){
-    var file = shareBgUpload.files && shareBgUpload.files[0];
-    if (!file) return;
-    var reader = new FileReader();
-    reader.onload = function(){
-      var img = new Image();
-      img.onload = function(){
-        shareUploadedImg = img;
-        shareBgPicker.querySelectorAll(".share-bg-swatch").forEach(function(b){ b.classList.remove("active"); });
-        redrawShareCard();
-      };
-      img.src = reader.result;
-    };
-    reader.readAsDataURL(file);
-    shareBgUpload.value = "";
+  function shareCardFileName(ext){
+    var t = shareCurrentTrade;
+    return "ezpayouts-" + (t && t.symbol ? t.symbol.toLowerCase() : "trade") + "-" + (t ? t.date : todayStr()) + "." + ext;
+  }
+  function downloadBlob(blob, filename){
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  }
+  function setExportBusy(busy, label){
+    [shareExportVideoBtn, shareExportGifBtn, shareExportPhotoBtn].forEach(function(b){ b.disabled = busy; });
+    if (busy){
+      shareExportStatus.hidden = false;
+      shareExportStatus.textContent = label || "Working…";
+    } else {
+      shareExportStatus.hidden = true;
+    }
+  }
+  function setExportStatus(text){
+    shareExportStatus.hidden = false;
+    shareExportStatus.textContent = text;
+  }
+
+  shareExportPhotoBtn.addEventListener("click", function(){
+    shareCardCanvas.toBlob(function(blob){
+      if (!blob) return;
+      downloadBlob(blob, shareCardFileName("png"));
+      showToast("Photo downloaded");
+    }, "image/png");
   });
 
-  function shareCardFileName(){
-    var t = shareCurrentTrade;
-    return "ezpayouts-" + (t && t.symbol ? t.symbol.toLowerCase() : "trade") + "-" + (t ? t.date : todayStr()) + ".png";
+  function pickVideoMimeType(){
+    var candidates = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm", "video/mp4"];
+    for (var i = 0; i < candidates.length; i++){
+      if (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(candidates[i])) return candidates[i];
+    }
+    return null;
   }
-  shareDownloadBtn.addEventListener("click", function(){
-    shareCardCanvas.toBlob(function(blob){
-      if (!blob) return;
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement("a");
-      a.href = url;
-      a.download = shareCardFileName();
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
-      showToast("Card downloaded");
-    }, "image/png");
+  shareExportVideoBtn.addEventListener("click", function(){
+    if (!window.MediaRecorder || !shareCardCanvas.captureStream){
+      showToast("Video export isn't supported in this browser");
+      return;
+    }
+    var mimeType = pickVideoMimeType();
+    if (!mimeType){
+      showToast("Video export isn't supported in this browser");
+      return;
+    }
+    var stream = shareCardCanvas.captureStream(30);
+    var chunks = [];
+    var recorder;
+    try {
+      recorder = new MediaRecorder(stream, { mimeType: mimeType });
+    } catch (err){
+      showToast("Video export isn't supported in this browser");
+      return;
+    }
+    setExportBusy(true, "Recording video…");
+    recorder.ondataavailable = function(e){ if (e.data && e.data.size) chunks.push(e.data); };
+    recorder.onstop = function(){
+      var blob = new Blob(chunks, { type: mimeType.split(";")[0] });
+      var ext = mimeType.indexOf("mp4") !== -1 ? "mp4" : "webm";
+      downloadBlob(blob, shareCardFileName(ext));
+      setExportBusy(false);
+      showToast("Video downloaded");
+    };
+    recorder.start();
+    setTimeout(function(){ recorder.stop(); }, SHARE_EXPORT_DURATION_MS);
   });
-  shareCopyBtn.addEventListener("click", function(){
-    shareCardCanvas.toBlob(function(blob){
-      if (!blob) return;
-      if (navigator.clipboard && window.ClipboardItem){
-        navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]).then(function(){
-          showToast("Card copied to clipboard");
-        }).catch(function(){
-          showToast("Couldn't copy — try Download instead");
-        });
-      } else if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], shareCardFileName(), { type: "image/png" })] })){
-        navigator.share({ files: [new File([blob], shareCardFileName(), { type: "image/png" })], title: "Trade card" }).catch(function(){});
-      } else {
-        showToast("Couldn't copy — try Download instead");
+
+  shareExportGifBtn.addEventListener("click", function(){
+    if (!window.GIF){
+      showToast("GIF export isn't available right now");
+      return;
+    }
+    setExportBusy(true, "Rendering GIF…");
+    var gifCanvas = document.createElement("canvas");
+    gifCanvas.width = SHARE_GIF_WIDTH;
+    gifCanvas.height = SHARE_GIF_HEIGHT;
+    var gifCtx = gifCanvas.getContext("2d");
+    var gif = new GIF({
+      workers: 2,
+      quality: 10,
+      width: SHARE_GIF_WIDTH,
+      height: SHARE_GIF_HEIGHT,
+      workerScript: "https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js"
+    });
+    var frameDelay = Math.round(1000 / SHARE_GIF_FPS);
+    var frameCount = Math.round(SHARE_EXPORT_DURATION_MS / frameDelay);
+    var captured = 0;
+    var captureTimer = setInterval(function(){
+      gifCtx.drawImage(shareCardCanvas, 0, 0, SHARE_GIF_WIDTH, SHARE_GIF_HEIGHT);
+      gif.addFrame(gifCtx, { copy: true, delay: frameDelay });
+      captured++;
+      if (captured >= frameCount){
+        clearInterval(captureTimer);
+        gif.render();
       }
-    }, "image/png");
+    }, frameDelay);
+    gif.on("progress", function(p){
+      setExportStatus("Rendering GIF… " + Math.round(p * 100) + "%");
+    });
+    gif.on("finished", function(blob){
+      downloadBlob(blob, shareCardFileName("gif"));
+      setExportBusy(false);
+      showToast("GIF downloaded");
+    });
   });
-  shareCardCanvas.addEventListener("click", function(){
-    shareCopyBtn.click();
-  });
+
   tradeShareBtn.addEventListener("click", function(){
     if (!editingTradeId) return;
     var t = trades.find(function(x){ return x.id === editingTradeId; });
