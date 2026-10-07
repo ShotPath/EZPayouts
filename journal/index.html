@@ -416,6 +416,64 @@
   .trade-card-outcome.loss{ color:var(--red); }
   .trade-card-outcome svg{ width:11px; height:11px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
 
+  /* ---------- Trade detail page ---------- */
+  #tradeDetailView[hidden]{ display:none; }
+  .trade-detail-topbar{
+    display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
+    padding-block:clamp(18px,3.4vw,32px) 18px;
+  }
+  .trade-detail-back{
+    display:flex; align-items:center; gap:6px; background:transparent; border:none; padding:0;
+    color:var(--muted); font-family:var(--font-mono); font-size:12.5px; font-weight:600; cursor:pointer;
+    transition:color .15s;
+  }
+  .trade-detail-back:hover{ color:var(--ice); }
+  .trade-detail-back svg{ width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .trade-detail-topbar-mid{ display:flex; align-items:center; gap:9px; flex-wrap:wrap; }
+  .trade-detail-symbol{ font-family:var(--font-display); font-weight:700; font-size:17px; color:var(--ice); }
+  .trade-detail-topbar-actions{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .trade-detail-pnl{ font-family:var(--font-display); font-weight:700; font-size:19px; white-space:nowrap; }
+  .trade-detail-pnl.pos{ color:var(--phosphor-soft); }
+  .trade-detail-pnl.neg{ color:var(--red); }
+  .trade-detail-summary{ margin-bottom:16px; }
+  .trade-detail-summary-top{ display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:16px; }
+  .trade-detail-summary-date{ display:flex; align-items:center; gap:10px; font-family:var(--font-display); font-weight:600; font-size:13.5px; color:var(--ice); }
+  .trade-detail-tiles{ display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; }
+  .trade-detail-tile{ background:var(--panel-raised); border:1px solid var(--hairline); border-radius:10px; padding:10px 12px; }
+  .trade-detail-tile-label{ display:block; font-family:var(--font-mono); font-size:9.5px; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted); margin-bottom:4px; }
+  .trade-detail-tile-value{ display:block; font-family:var(--font-display); font-weight:700; font-size:13.5px; color:var(--ice); text-transform:capitalize; }
+  .trade-detail-grid{ display:grid; grid-template-columns:minmax(260px,340px) 1fr; gap:16px; align-items:start; margin-bottom:16px; }
+  .trade-detail-stat-rows .agg-row{ padding:10px 2px; }
+  .trade-detail-section{ margin-top:16px; padding-top:16px; border-top:1px solid var(--hairline); }
+  .trade-detail-section-label{ font-family:var(--font-mono); font-size:10px; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); margin:0 0 10px; }
+  .trade-detail-tags{ display:flex; flex-wrap:wrap; gap:6px; }
+  .trade-detail-tags .tag-pill{ cursor:default; }
+  .trade-detail-tags .tag-pill:hover{ color:var(--muted); border-color:var(--hairline-bright); }
+  .trade-detail-media .image-thumbs{ margin-bottom:0; }
+  .trade-detail-hint{ font-size:11.5px; color:var(--muted-dim); margin:10px 0 0; }
+  .trade-detail-hint:first-of-type{ margin-top:0; }
+  .trade-detail-notes{ margin-bottom:16px; }
+  .trade-detail-notes-body{ font-size:13.5px; color:var(--muted); line-height:1.65; white-space:pre-wrap; margin:0; }
+  .trade-detail-stat-row{ display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid rgba(35,51,42,0.4); font-size:13px; }
+  .trade-detail-stat-row:last-child{ border-bottom:none; }
+  .stat-label{ color:var(--muted); font-family:var(--font-mono); font-size:11.5px; text-transform:uppercase; letter-spacing:0.05em; }
+  .stat-value{ font-family:var(--font-display); font-weight:600; color:var(--ice); text-align:right; }
+  .stat-value.pos{ color:var(--phosphor-soft); }
+  .stat-value.neg{ color:var(--red); }
+  .trade-detail-stat-divider{ height:1px; background:var(--hairline); margin:8px 0; }
+  .detail-thumb{ width:100%; height:auto; border-radius:8px; margin-bottom:8px; cursor:pointer; transition:opacity .15s; }
+  .detail-thumb:hover{ opacity:0.85; }
+  .detail-thumb:last-child{ margin-bottom:0; }
+  .trade-detail-delete{
+    display:block; margin:0 auto 20px; background:transparent; border:none; cursor:pointer;
+    font-family:var(--font-mono); font-size:11.5px; color:rgba(239,90,90,0.55); transition:color .15s;
+  }
+  .trade-detail-delete:hover{ color:var(--red); }
+  @media (max-width:760px){
+    .trade-detail-tiles{ grid-template-columns:repeat(2, 1fr); }
+    .trade-detail-grid{ grid-template-columns:1fr; }
+  }
+
   /* ---------- Modals ---------- */
   .modal-overlay{
     position:fixed; inset:0; z-index:700; background:rgba(4,7,6,0.72);
@@ -542,6 +600,7 @@
     display:inline-flex; align-items:stretch; margin-bottom:16px;
     border-radius:999px; overflow:hidden; border:1px solid var(--hairline-bright); background:var(--panel);
   }
+  .log-mode-toggle[hidden]{ display:none; }
   .log-mode-toggle .seg-thumb{ border-radius:inherit; }
   .log-mode-toggle button{
     flex:1; font-family:var(--font-mono); font-size:12px; font-weight:700; padding:9px 16px;
@@ -688,6 +747,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
 <div class="wrap">
 
+<div id="journalListView">
   <div class="page-head">
     <div class="page-head-title-group">
       <span class="page-head-icon" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M3 16.5V4M3 16.5H17" /><path d="m5.5 13 3-3.5 2.5 2 4-5" /></svg></span>
@@ -893,6 +953,73 @@
   <footer>
     <p>Trade data is stored in this browser and syncs across devices when signed in. Screenshots stay on this device only. For self-tracking purposes only &mdash; not trading or financial advice.</p>
   </footer>
+</div>
+
+<div id="tradeDetailView" hidden>
+  <div class="trade-detail-topbar">
+    <button type="button" class="trade-detail-back" id="tdBackBtn">
+      <svg viewBox="0 0 20 20"><path d="M12 4l-6 6 6 6" /></svg>
+      Journal
+    </button>
+    <div class="trade-detail-topbar-mid">
+      <span class="trade-card-icon">EZ</span>
+      <span class="trade-detail-symbol" id="tdSymbol">&mdash;</span>
+      <span class="trade-card-grade" id="tdGrade" hidden></span>
+      <span class="trade-dir" id="tdSide">&mdash;</span>
+    </div>
+    <div class="trade-detail-topbar-actions">
+      <button type="button" class="ghost-btn" id="tdShareBtn">
+        <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
+        Share
+      </button>
+      <button type="button" class="ghost-btn" id="tdEditBtn">
+        <svg viewBox="0 0 20 20"><path d="M13.5 3.5l3 3L7 16l-4 1 1-4z" /></svg>
+        Edit
+      </button>
+      <span class="trade-detail-pnl mono" id="tdPnlTop">&mdash;</span>
+    </div>
+  </div>
+
+  <div class="journal-card trade-detail-summary">
+    <div class="trade-detail-summary-top">
+      <div class="trade-detail-summary-date">
+        <span class="stat-card-icon" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M3 16.5V4M3 16.5H17" /><path d="m5.5 13 3-3.5 2.5 2 4-5" /></svg></span>
+        <span id="tdDateFull">&mdash;</span>
+      </div>
+      <span class="trade-detail-pnl mono" id="tdPnlSummary">&mdash;</span>
+    </div>
+    <div class="trade-detail-tiles">
+      <div class="trade-detail-tile"><span class="trade-detail-tile-label">Market</span><span class="trade-detail-tile-value" id="tdMarket">&mdash;</span></div>
+      <div class="trade-detail-tile"><span class="trade-detail-tile-label">Strategy</span><span class="trade-detail-tile-value" id="tdStrategy">&mdash;</span></div>
+      <div class="trade-detail-tile"><span class="trade-detail-tile-label">Direction</span><span class="trade-detail-tile-value" id="tdDirection">&mdash;</span></div>
+      <div class="trade-detail-tile"><span class="trade-detail-tile-label">R:R</span><span class="trade-detail-tile-value" id="tdRR">&mdash;</span></div>
+    </div>
+  </div>
+
+  <div class="trade-detail-grid">
+    <div class="journal-card trade-detail-stats">
+      <div class="journal-card-head"><h2>Stats</h2></div>
+      <div class="trade-detail-stat-rows" id="tdStatRows"></div>
+      <div class="trade-detail-section" id="tdEmotionsSection" hidden>
+        <p class="trade-detail-section-label">How I Felt</p>
+        <div class="trade-detail-tags" id="tdEmotionTags"></div>
+      </div>
+    </div>
+    <div class="journal-card trade-detail-media">
+      <div class="journal-card-head"><h2>Screenshots</h2></div>
+      <div class="image-thumbs" id="tdImageThumbs"></div>
+      <p class="trade-detail-hint" id="tdMediaEmpty">No screenshots on this trade.</p>
+      <p class="trade-detail-hint">Add or remove screenshots from <b>Edit</b>.</p>
+    </div>
+  </div>
+
+  <div class="journal-card trade-detail-notes">
+    <div class="journal-card-head"><h2 id="tdNotesTitle">Notes</h2></div>
+    <p class="trade-detail-notes-body" id="tdNotesBody">No notes on this trade yet.</p>
+  </div>
+
+  <button type="button" class="trade-detail-delete" id="tdDeleteBtn">Delete this trade</button>
+</div>
 
 </div>
 
@@ -1211,6 +1338,31 @@
   }
 
   // ---------- DOM refs ----------
+  var journalListView = document.getElementById("journalListView");
+  var tradeDetailView = document.getElementById("tradeDetailView");
+  var tdBackBtn = document.getElementById("tdBackBtn");
+  var tdShareBtn = document.getElementById("tdShareBtn");
+  var tdEditBtn = document.getElementById("tdEditBtn");
+  var tdDeleteBtn = document.getElementById("tdDeleteBtn");
+  var tdSymbol = document.getElementById("tdSymbol");
+  var tdGrade = document.getElementById("tdGrade");
+  var tdSide = document.getElementById("tdSide");
+  var tdPnlTop = document.getElementById("tdPnlTop");
+  var tdPnlSummary = document.getElementById("tdPnlSummary");
+  var tdDateFull = document.getElementById("tdDateFull");
+  var tdMarket = document.getElementById("tdMarket");
+  var tdStrategy = document.getElementById("tdStrategy");
+  var tdDirection = document.getElementById("tdDirection");
+  var tdRR = document.getElementById("tdRR");
+  var tdStatRows = document.getElementById("tdStatRows");
+  var tdEmotionsSection = document.getElementById("tdEmotionsSection");
+  var tdEmotionTags = document.getElementById("tdEmotionTags");
+  var tdImageThumbs = document.getElementById("tdImageThumbs");
+  var tdMediaEmpty = document.getElementById("tdMediaEmpty");
+  var tdNotesTitle = document.getElementById("tdNotesTitle");
+  var tdNotesBody = document.getElementById("tdNotesBody");
+  var currentDetailTradeId = null;
+
   var journalTabsEl = document.getElementById("journalTabs");
   var panels = {
     trades: document.getElementById("panelTrades"),
@@ -2595,8 +2747,7 @@
     }
     var card = e.target.closest(".trade-card[data-id]");
     if (card){
-      var t = trades.find(function(x){ return x.id === card.getAttribute("data-id"); });
-      if (t) openTradeModal(t);
+      showTradeDetail(card.getAttribute("data-id"));
     }
   });
 
@@ -3016,6 +3167,140 @@
     };
   }
 
+  var currentDetailTradeId = null;
+  var journalListView = document.getElementById("journalListView");
+  var tradeDetailView = document.getElementById("tradeDetailView");
+  var tdBackBtn = document.getElementById("tdBackBtn");
+  var tdShareBtn = document.getElementById("tdShareBtn");
+  var tdEditBtn = document.getElementById("tdEditBtn");
+  var tdDeleteBtn = document.getElementById("tdDeleteBtn");
+  var tdSymbol = document.getElementById("tdSymbol");
+  var tdGrade = document.getElementById("tdGrade");
+  var tdSide = document.getElementById("tdSide");
+  var tdPnlTop = document.getElementById("tdPnlTop");
+  var tdPnlSummary = document.getElementById("tdPnlSummary");
+  var tdDateFull = document.getElementById("tdDateFull");
+  var tdMarket = document.getElementById("tdMarket");
+  var tdStrategy = document.getElementById("tdStrategy");
+  var tdDirection = document.getElementById("tdDirection");
+  var tdRR = document.getElementById("tdRR");
+  var tdStatRows = document.getElementById("tdStatRows");
+  var tdEmotionsSection = document.getElementById("tdEmotionsSection");
+  var tdEmotionTags = document.getElementById("tdEmotionTags");
+  var tdImageThumbs = document.getElementById("tdImageThumbs");
+  var tdMediaEmpty = document.getElementById("tdMediaEmpty");
+  var tdNotesBody = document.getElementById("tdNotesBody");
+
+  function populateDetailView(trade){
+    if (!trade) return;
+    var rr = computeTradeRR(trade);
+    var hasEntryExit = hasVal(trade.entry) || hasVal(trade.exit);
+    tdSymbol.textContent = escapeHtml(trade.symbol);
+    if (trade.grade){
+      tdGrade.textContent = escapeHtml(trade.grade);
+      tdGrade.className = "trade-card-grade grade-" + trade.grade.toLowerCase().replace("+", "plus");
+      tdGrade.hidden = false;
+    } else {
+      tdGrade.hidden = true;
+    }
+    tdSide.textContent = trade.direction === "long" ? "Long" : "Short";
+    tdSide.className = "trade-dir " + trade.direction;
+    var pnlClass = trade.pnl >= 0 ? "pos" : "neg";
+    tdPnlTop.textContent = fmtMoneySigned(trade.pnl);
+    tdPnlTop.className = pnlClass + " mono";
+    tdPnlSummary.textContent = fmtMoneySigned(trade.pnl);
+    tdPnlSummary.className = pnlClass + " mono";
+    tdDateFull.textContent = fmtDateFull(trade.date);
+    tdMarket.textContent = escapeHtml(trade.market || "—");
+    tdStrategy.textContent = escapeHtml(trade.strategy || "—");
+    tdDirection.textContent = trade.direction === "long" ? "Long" : "Short";
+    tdRR.textContent = rr !== null ? rr.toFixed(2) + "R" : "—";
+
+    var statRowsHtml = "";
+    if (hasVal(trade.entry)) statRowsHtml += '<div class="trade-detail-stat-row"><span class="stat-label">Entry</span><span class="stat-value">' + Number(trade.entry).toLocaleString(undefined, { maximumFractionDigits: 5 }) + '</span></div>';
+    if (hasVal(trade.exit)) statRowsHtml += '<div class="trade-detail-stat-row"><span class="stat-label">Exit</span><span class="stat-value">' + Number(trade.exit).toLocaleString(undefined, { maximumFractionDigits: 5 }) + '</span></div>';
+    if (hasVal(trade.stop)) statRowsHtml += '<div class="trade-detail-stat-row"><span class="stat-label">Stop</span><span class="stat-value">' + Number(trade.stop).toLocaleString(undefined, { maximumFractionDigits: 5 }) + '</span></div>';
+    if (hasVal(trade.target)) statRowsHtml += '<div class="trade-detail-stat-row"><span class="stat-label">Target</span><span class="stat-value">' + Number(trade.target).toLocaleString(undefined, { maximumFractionDigits: 5 }) + '</span></div>';
+    if (hasVal(trade.lots)) statRowsHtml += '<div class="trade-detail-stat-row"><span class="stat-label">Lots</span><span class="stat-value">' + trade.lots + '</span></div>';
+    if (statRowsHtml) statRowsHtml += '<div class="trade-detail-stat-divider"></div>';
+    if (hasVal(trade.pnl)) statRowsHtml += '<div class="trade-detail-stat-row"><span class="stat-label">P&L</span><span class="stat-value ' + pnlClass + '">' + fmtMoneySigned(trade.pnl) + '</span></div>';
+    if (rr !== null) statRowsHtml += '<div class="trade-detail-stat-row"><span class="stat-label">R:R</span><span class="stat-value">' + rr.toFixed(2) + 'R</span></div>';
+    tdStatRows.innerHTML = statRowsHtml;
+
+    if (Array.isArray(trade.emotions) && trade.emotions.length){
+      tdEmotionsSection.hidden = false;
+      tdEmotionTags.innerHTML = trade.emotions.map(function(e){
+        return '<span class="tag-pill">' + escapeHtml(e) + '</span>';
+      }).join("");
+    } else {
+      tdEmotionsSection.hidden = true;
+    }
+
+    if (Array.isArray(trade.imageIds) && trade.imageIds.length){
+      tdMediaEmpty.hidden = true;
+      tdImageThumbs.innerHTML = trade.imageIds.map(function(imgId){
+        var imgUrl = getImageDataUrl(imgId);
+        return imgUrl ? '<img src="' + imgUrl + '" alt="Trade screenshot" class="detail-thumb" />' : '';
+      }).join("");
+    } else {
+      tdMediaEmpty.hidden = false;
+      tdImageThumbs.innerHTML = '';
+    }
+
+    if (trade.notes){
+      tdNotesBody.textContent = trade.notes;
+      tdNotesBody.className = "trade-detail-notes-body";
+    } else {
+      tdNotesBody.textContent = "No notes on this trade yet.";
+      tdNotesBody.className = "trade-detail-notes-body dim";
+    }
+  }
+
+  function showTradeDetail(tradeId){
+    var trade = trades.find(function(t){ return t.id === tradeId; });
+    if (!trade) return;
+    currentDetailTradeId = tradeId;
+    populateDetailView(trade);
+    journalListView.hidden = true;
+    tradeDetailView.hidden = false;
+    window.history.pushState({ view: "detail", tradeId: tradeId }, "", "?trade=" + tradeId);
+  }
+
+  function backToList(){
+    currentDetailTradeId = null;
+    journalListView.hidden = false;
+    tradeDetailView.hidden = true;
+    window.history.pushState({ view: "list" }, "", "");
+  }
+
+  tdBackBtn.addEventListener("click", backToList);
+  tdEditBtn.addEventListener("click", function(){
+    if (currentDetailTradeId){
+      var trade = trades.find(function(t){ return t.id === currentDetailTradeId; });
+      if (trade) openTradeModal(trade);
+    }
+  });
+  tdShareBtn.addEventListener("click", function(){
+    if (currentDetailTradeId){
+      var trade = trades.find(function(t){ return t.id === currentDetailTradeId; });
+      if (trade) shareTrade(trade);
+    }
+  });
+  tdDeleteBtn.addEventListener("click", function(){
+    if (!currentDetailTradeId) return;
+    if (!window.confirm("Delete this trade? This can't be undone.")) return;
+    removeTradesByIds([currentDetailTradeId]);
+    backToList();
+  });
+
+  window.addEventListener("popstate", function(e){
+    if (e.state && e.state.view === "detail" && e.state.tradeId){
+      showTradeDetail(e.state.tradeId);
+    } else {
+      backToList();
+    }
+  });
+
   function openTradeModal(trade){
     editingTradeId = trade ? trade.id : null;
     originalImageIds = trade && Array.isArray(trade.imageIds) ? trade.imageIds.slice() : [];
@@ -3045,22 +3330,19 @@
     renderImageThumbs();
     var hasDetails = hasVal(source.entry) || hasVal(source.exit) || hasVal(source.lots) || hasVal(source.stop) || hasVal(source.target);
     setDetailsOpen(!!hasDetails);
-    // New trades always start in Quick Log; editing one that already has
-    // data only Full Log exposes (market override, advanced fields,
-    // emotions, title, notes) opens there instead, so nothing looks like it
-    // silently vanished.
-    var wantsFull = !!trade && (
-      (source.market && source.market !== "Futures") || hasDetails ||
-      (source.emotions && source.emotions.length) || source.title || source.notes
-    );
     deleteTradeBtn.hidden = !trade;
     tradeShareBtn.hidden = !trade;
+    // New trades start in Quick Log, with the toggle visible so you can
+    // switch to Full. An existing trade always opens straight into Full —
+    // there's nothing to "quickly" log about one that's already saved — so
+    // the toggle is hidden rather than just defaulted away from.
+    logModeToggle.hidden = !!trade;
     // Show the modal before measuring the Quick Log/Log thumb — while
     // hidden, the toggle's buttons report zero width/position, which bakes
     // a zero-size thumb in as an inline style that a hidden "Quick Log"
     // active-text color then has nothing to sit on top of.
     tradeModalOverlay.hidden = false;
-    setLogMode(wantsFull ? "full" : "quick");
+    setLogMode(trade ? "full" : "quick");
   }
   function closeTradeModal(){
     tradeModalOverlay.hidden = true;
