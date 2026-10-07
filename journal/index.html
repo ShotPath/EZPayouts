@@ -1706,22 +1706,34 @@
     ctx.textAlign = "left";
     ctx.textBaseline = "alphabetic";
     ctx.fillStyle = "#ffffff";
-    ctx.font = "800 42px 'Chakra Petch', sans-serif";
-    ctx.fillText((t.symbol || "").toUpperCase(), pad + 66, pad + 20);
+    ctx.font = "800 56px 'Chakra Petch', sans-serif";
+    ctx.fillText((t.symbol || "").toUpperCase(), pad + 70, pad + 30);
 
-    ctx.fillStyle = "rgba(255,255,255,0.72)";
-    ctx.font = "600 20px 'IBM Plex Mono', monospace";
+    ctx.fillStyle = "rgba(255,255,255,0.78)";
+    ctx.font = "700 27px 'IBM Plex Mono', monospace";
     var metaText = (t.direction === "long" ? "LONG" : "SHORT") + " · " + fmtDateShort(t.date).toUpperCase();
-    ctx.fillText(metaText, pad + 66, pad + 48);
+    ctx.fillText(metaText, pad + 70, pad + 68);
 
-    // Big P&L
-    ctx.fillStyle = t.pnl >= 0 ? "#3ee08c" : "#ef5a5a";
-    ctx.font = "900 130px 'Chakra Petch', sans-serif";
-    ctx.fillText(fmtMoneySigned(t.pnl), pad - 2, pad + 250);
+    // Big P&L — glowing to stand out as the card's hero stat
+    var pnlColor = t.pnl >= 0 ? "#3ee08c" : "#ef5a5a";
+    var pnlText = fmtMoneySigned(t.pnl);
+    var pnlX = pad - 2, pnlY = pad + 265;
+    ctx.font = "900 150px 'Chakra Petch', sans-serif";
+    ctx.save();
+    ctx.shadowColor = pnlColor;
+    ctx.shadowBlur = 60;
+    ctx.fillStyle = pnlColor;
+    ctx.fillText(pnlText, pnlX, pnlY);
+    ctx.shadowBlur = 90;
+    ctx.fillText(pnlText, pnlX, pnlY);
+    ctx.restore();
+    // Crisp top layer so the glow doesn't wash out the glyph edges
+    ctx.fillStyle = pnlColor;
+    ctx.fillText(pnlText, pnlX, pnlY);
 
     // Footer: username bottom-left, brand bottom-right
     var username = (window.EZAuth && EZAuth.getUsername()) || "trader";
-    ctx.font = "700 24px 'IBM Plex Mono', monospace";
+    ctx.font = "700 32px 'IBM Plex Mono', monospace";
     ctx.fillStyle = "rgba(255,255,255,0.88)";
     ctx.textAlign = "left";
     ctx.fillText("@" + username, pad, h - pad);
