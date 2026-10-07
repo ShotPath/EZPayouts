@@ -828,13 +828,6 @@
       </div>
       <div class="field"><label>Title <span style="text-transform:none;">(optional)</span></label><input type="text" id="tfTitle" placeholder="e.g. Morning breakout, clean entry" /></div>
       <div class="field"><label>Notes <span style="text-transform:none;">(optional)</span></label><textarea id="tfNotes" placeholder="What was your reasoning? What did you notice?"></textarea></div>
-      <div class="field">
-        <label>Screenshots <span style="text-transform:none;">(optional, up to 4)</span></label>
-        <div class="image-thumbs" id="imageThumbs"></div>
-        <button type="button" class="ghost-btn" id="addImageBtn">+ Add image</button>
-        <input type="file" id="imageFileInput" accept="image/*" multiple hidden />
-        <p class="field-hint">Stored only on this device/browser &mdash; screenshots don't sync across devices.</p>
-      </div>
     </div>
 
     <!-- Shared field blocks: live inside #quickLogFields in source order
@@ -874,6 +867,13 @@
         <span id="strategyPickerLabel">None yet, add one</span>
         <span class="strategy-picker-arrow">&rarr;</span>
       </button>
+    </div>
+    <div class="field" id="screenshotsField">
+      <label>Screenshots <span style="text-transform:none;">(optional, up to 4)</span></label>
+      <div class="image-thumbs" id="imageThumbs"></div>
+      <button type="button" class="ghost-btn" id="addImageBtn">+ Add image</button>
+      <input type="file" id="imageFileInput" accept="image/*" multiple hidden />
+      <p class="field-hint">Stored only on this device/browser &mdash; screenshots don't sync across devices.</p>
     </div>
 
     <div class="trade-modal-foot">
@@ -950,7 +950,7 @@
       <p>Log your <b>actual</b> trades here &mdash; symbol, side, and real dollar P&amp;L &mdash; separate from the Backtest page, which is for testing a strategy's edge with model/R:R/win-loss data.</p>
       <p>Use the account switcher at the top to keep separate journals for separate funded accounts or prop firms. Each account has its own trade list, stats, and CSV export &mdash; switch any time, and <b>+ New account</b> to add another.</p>
       <p>Click <b>+ Add Trade</b> to log one manually, or <b>Import CSV</b> to bulk-import from a broker export into the active account. P&amp;L is always the number you (or your broker export) enter &mdash; it's never auto-calculated from entry/exit, since that would need a per-instrument point value this page doesn't have.</p>
-      <p>The trade form opens in <b>Quick Log</b> &mdash; Symbol, Date, Side, P&amp;L, Grade, and Strategy, with keyboard shortcuts (<span class="mono">L</span>/<span class="mono">S</span> for side, <span class="mono">1&ndash;5</span> for grade). Switch to <b>Log</b> for Market, Entry/Exit/Lots/Stop/Target, emotion tags, a title, notes, and screenshots.</p>
+      <p>The trade form opens in <b>Quick Log</b> &mdash; Symbol, Date, Side, P&amp;L, Grade, Strategy, and screenshots, with keyboard shortcuts (<span class="mono">L</span>/<span class="mono">S</span> for side, <span class="mono">1&ndash;5</span> for grade). Switch to <b>Log</b> for Market, Entry/Exit/Lots/Stop/Target, emotion tags, a title, and notes.</p>
       <p>The <b>Strategy</b> field is a picker, not free text: describe a setup once (entry conditions, invalidation rules, min R:R) and quickly tag trades to it afterward, instead of retyping an inconsistent name each time. <b>+ New strategy</b> from the picker to create one.</p>
       <p>Click <b>Show trade details</b> in Log mode to add Entry, Exit, Lots, Stop loss, and Take profit. Stop + Target feed the <b>Avg R:R</b> stat; P&amp;L feeds everything else, including <b>Profit Factor</b> (gross wins &divide; gross losses).</p>
       <p>Click any row in All Trades to open it back up, tag how you felt, write notes, and attach up to 4 screenshots. Use the search box and <b>Filters</b> to narrow the list by symbol, side, market, outcome, or date, and the checkboxes to bulk-delete.</p>
@@ -1099,6 +1099,7 @@
   var strategyField = document.getElementById("strategyField");
   var strategyPickerBtn = document.getElementById("strategyPickerBtn");
   var strategyPickerLabel = document.getElementById("strategyPickerLabel");
+  var screenshotsField = document.getElementById("screenshotsField");
   var emotionsField = document.getElementById("emotionsField");
 
   var strategyPopover = document.getElementById("strategyPopover");
@@ -1935,11 +1936,11 @@
     setGrade(btn.getAttribute("data-grade"));
   });
 
-  // ---------- Quick Log / Log mode: Symbol/Date/Side/P&L/Grade/Strategy are
-  // single shared elements physically moved between the two layouts (never
-  // duplicated), so there's exactly one source of truth regardless of which
-  // mode is showing. Market/Entry-Exit-Lots-Stop-Target/Emotions/Title/
-  // Notes/Screenshots only ever live in Full Log.
+  // ---------- Quick Log / Log mode: Symbol/Date/Side/P&L/Grade/Strategy/
+  // Screenshots are single shared elements physically moved between the two
+  // layouts (never duplicated), so there's exactly one source of truth
+  // regardless of which mode is showing. Market/Entry-Exit-Lots-Stop-Target/
+  // Emotions/Title/Notes only ever live in Full Log.
   function layoutQuickMode(){
     quickRow1.appendChild(symbolField);
     quickRow1.appendChild(dateField);
@@ -1947,6 +1948,7 @@
     quickLogFields.appendChild(pnlField);
     quickLogFields.appendChild(gradeField);
     quickLogFields.appendChild(strategyField);
+    quickLogFields.appendChild(screenshotsField);
   }
   function layoutFullMode(){
     fullRow1.appendChild(symbolField);
@@ -1955,6 +1957,7 @@
     fullRow2.appendChild(pnlField);
     fullLogFields.insertBefore(gradeField, emotionsField);
     fullLogFields.insertBefore(strategyField, emotionsField);
+    fullLogFields.appendChild(screenshotsField);
   }
   function setLogMode(mode){
     logMode = mode === "full" ? "full" : "quick";
@@ -2260,12 +2263,11 @@
     setDetailsOpen(!!hasDetails);
     // New trades always start in Quick Log; editing one that already has
     // data only Full Log exposes (market override, advanced fields,
-    // emotions, title, notes, images) opens there instead, so nothing
-    // looks like it silently vanished.
+    // emotions, title, notes) opens there instead, so nothing looks like it
+    // silently vanished.
     var wantsFull = !!trade && (
       (source.market && source.market !== "Futures") || hasDetails ||
-      (source.emotions && source.emotions.length) || source.title || source.notes ||
-      (source.imageIds && source.imageIds.length)
+      (source.emotions && source.emotions.length) || source.title || source.notes
     );
     deleteTradeBtn.hidden = !trade;
     // Show the modal before measuring the Quick Log/Log thumb — while
