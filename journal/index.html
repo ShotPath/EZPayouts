@@ -506,6 +506,16 @@
   .modal-head-right{ display:flex; align-items:center; gap:8px; flex:none; }
 
   .share-modal{ max-width:620px; }
+  .share-period-tabs{
+    display:inline-flex; align-items:stretch; width:100%; margin-bottom:14px;
+    border-radius:999px; overflow:hidden; border:1px solid var(--hairline-bright); background:var(--panel);
+  }
+  .share-period-tabs .seg-thumb{ border-radius:inherit; }
+  .share-period-tabs button{
+    flex:1; font-family:var(--font-mono); font-size:11.5px; font-weight:700; padding:9px 8px;
+    background:transparent; border:none; color:var(--muted); cursor:pointer; transition:color .15s; white-space:nowrap;
+  }
+  .share-period-tabs button.active{ color:var(--mint-text); }
   .share-card-canvas{
     width:100%; aspect-ratio:16/9; border-radius:14px; border:1px solid var(--hairline-bright);
     display:block; margin-bottom:14px; background:var(--panel);
@@ -1163,10 +1173,18 @@
         <span class="modal-head-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg></span>
         <div>
           <span class="modal-title">Share trade</span>
-          <p class="modal-sub">Download a card for this trade to post anywhere.</p>
+          <p class="modal-sub" id="shareModalSub">Download a card for this trade to post anywhere.</p>
         </div>
       </div>
       <button type="button" class="modal-close" id="shareModalClose" aria-label="Close">&times;</button>
+    </div>
+
+    <div class="share-period-tabs seg-track" id="sharePeriodTabs">
+      <span class="seg-thumb" aria-hidden="true"></span>
+      <button type="button" class="active" data-period="trade">Trade</button>
+      <button type="button" data-period="daily">Daily</button>
+      <button type="button" data-period="weekly">Weekly</button>
+      <button type="button" data-period="monthly">Monthly</button>
     </div>
 
     <canvas id="shareCardCanvas" width="1920" height="1080" class="share-card-canvas"></canvas>
@@ -1570,6 +1588,8 @@
   // seconds, so whatever's previewed is exactly what gets exported. ----------
   var shareModalOverlay = document.getElementById("shareModalOverlay");
   var shareModalClose = document.getElementById("shareModalClose");
+  var shareModalSub = document.getElementById("shareModalSub");
+  var sharePeriodTabs = document.getElementById("sharePeriodTabs");
   var shareCardCanvas = document.getElementById("shareCardCanvas");
   var shareBgVideoEl = document.getElementById("shareBgVideoEl");
   var shareBgGifEl = document.getElementById("shareBgGifEl");
@@ -1643,12 +1663,32 @@
   }
 
   var shareCurrentTrade = null;
+  var sharePeriod = "trade";
+  var SHARE_PERIOD_SUB_TEXT = {
+    trade: "Download a card for this trade to post anywhere.",
+    daily: "Download a card for this day to post anywhere.",
+    weekly: "Download a card for this week to post anywhere.",
+    monthly: "Download a card for this month to post anywhere."
+  };
   var shareBg = { type: "gradient", stops: SHARE_BG_GRADIENTS[0].stops };
   var shareBgActiveId = SHARE_BG_GRADIENTS[0].id;
   var shareBgVideoDuration = null;
   var shareUploadedUrl = null;
   var sharePreviewRAF = null;
   var shareBgExpanded = false;
+
+  function updateShareModalSub(){
+    if (shareModalSub) shareModalSub.textContent = SHARE_PERIOD_SUB_TEXT[sharePeriod] || SHARE_PERIOD_SUB_TEXT.trade;
+  }
+  sharePeriodTabs.addEventListener("click", function(e){
+    var btn = e.target.closest("button[data-period]");
+    if (!btn || btn.classList.contains("active")) return;
+    sharePeriod = btn.getAttribute("data-period");
+    sharePeriodTabs.querySelectorAll("button[data-period]").forEach(function(b){ b.classList.toggle("active", b === btn); });
+    layoutSegThumb(sharePeriodTabs);
+    updateShareModalSub();
+    redrawShareCard();
+  });
 
   function isAnimatedBg(){ return shareBg.type === "video" || shareBg.type === "gif"; }
 
@@ -1674,14 +1714,82 @@
     ctx.fillRect(0, 0, w, h);
   }
 
-  function drawShareCard(){
-    if (!shareCurrentTrade || !shareCardCanvas.getContext) return;
-    var t = shareCurrentTrade;
-    var ctx = shareCardCanvas.getContext("2d");
-    var w = shareCardCanvas.width, h = shareCardCanvas.height;
+  // ---------- Share card: period aggregates (Daily/Weekly/Monthly) ----------
+  function pad2(n){ return String(n).padStart(2, "0"); }
+  function dateStrFromDate(d){ return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()); }
+  function fmtMoneyCompactSigned(n){
+    var sign = n < 0 ? "-" : "+";
+    var abs = Math.abs(n);
+    if (abs >= 1000000) return sign + "$" + (abs / 1000000).toFixed(abs % 1000000 === 0 ? 0 : 1) + "M";
+    if (abs >= 1000) return sign + "$" + (abs / 1000).toFixed(abs % 1000 === 0 ? 0 : 1) + "K";
+    return fmtMoneySigned(n);
+  }
+  function winRateOf(list){
+    var wins = list.filter(function(t){ return t.pnl > 0; }).length;
+    var losses = list.filter(function(t){ return t.pnl < 0; }).length;
+    return (wins + losses) ? Math.round((wins / (wins + losses)) * 100) : 0;
+  }
+  function bestOf(list){
+    return list.length ? list.slice().sort(function(a, b){ return b.pnl - a.pnl; })[0] : null;
+  }
+  function computeDayAgg(dateStr){
+    var list = trades.filter(function(t){ return t.date === dateStr; });
+    var pnl = list.reduce(function(s, t){ return s + t.pnl; }, 0);
+    return { date: dateStr, list: list, pnl: pnl, count: list.length, winRate: winRateOf(list), best: bestOf(list) };
+  }
+  function computeWeekAgg(dateStr){
+    var start = weekStart(dateStr);
+    var end = weekEnd(start);
+    var list = trades.filter(function(t){ return t.date >= start && t.date <= end; });
+    var pnl = list.reduce(function(s, t){ return s + t.pnl; }, 0);
+    var days = [];
+    for (var i = 1; i <= 5; i++){
+      var d = new Date(start + "T00:00:00");
+      d.setDate(d.getDate() + i);
+      var ds = dateStrFromDate(d);
+      var dayList = list.filter(function(t){ return t.date === ds; });
+      days.push({
+        date: ds,
+        label: d.toLocaleDateString(undefined, { weekday: "short" }),
+        pnl: dayList.reduce(function(s, t){ return s + t.pnl; }, 0),
+        hasTrades: dayList.length > 0
+      });
+    }
+    var tradedDays = days.filter(function(d){ return d.hasTrades; });
+    var bestDay = tradedDays.length ? tradedDays.slice().sort(function(a, b){ return b.pnl - a.pnl; })[0] : null;
+    return {
+      start: start, end: end, list: list, pnl: pnl, count: list.length, winRate: winRateOf(list),
+      days: days, greenDays: tradedDays.filter(function(d){ return d.pnl > 0; }).length,
+      tradedDaysCount: tradedDays.length, bestDay: bestDay
+    };
+  }
+  function computeMonthAgg(dateStr){
+    var d0 = new Date(dateStr + "T00:00:00");
+    var year = d0.getFullYear(), month = d0.getMonth();
+    var prefix = year + "-" + pad2(month + 1) + "-";
+    var list = trades.filter(function(t){ return t.date.indexOf(prefix) === 0; });
+    var pnl = list.reduce(function(s, t){ return s + t.pnl; }, 0);
+    var byDate = {};
+    list.forEach(function(t){ byDate[t.date] = (byDate[t.date] || 0) + t.pnl; });
+    var tradedDates = Object.keys(byDate).sort();
+    var cum = 0;
+    var curve = tradedDates.map(function(ds){
+      cum += byDate[ds];
+      return { date: ds, value: cum };
+    });
+    var greenDates = tradedDates.filter(function(ds){ return byDate[ds] > 0; });
+    var bestDate = tradedDates.length ? tradedDates.slice().sort(function(a, b){ return byDate[b] - byDate[a]; })[0] : null;
+    return {
+      year: year, month: month, list: list, pnl: pnl, count: list.length, winRate: winRateOf(list),
+      curve: curve, greenDays: greenDates.length, tradedDaysCount: tradedDates.length,
+      bestDate: bestDate, bestPnl: bestDate ? byDate[bestDate] : 0
+    };
+  }
+
+  // ---------- Share card: drawing helpers shared by all period layouts ----------
+  function drawCardBase(ctx, w, h){
     ctx.clearRect(0, 0, w, h);
     drawBackgroundLayer(ctx, w, h);
-
     var vignette = ctx.createLinearGradient(0, 0, 0, h);
     vignette.addColorStop(0, "rgba(0,0,0,0.5)");
     vignette.addColorStop(0.22, "rgba(0,0,0,0.05)");
@@ -1689,7 +1797,120 @@
     vignette.addColorStop(1, "rgba(0,0,0,0.6)");
     ctx.fillStyle = vignette;
     ctx.fillRect(0, 0, w, h);
+  }
+  // Glowing hero amount: a soft double-shadow pass, then a crisp top layer
+  // so the glow doesn't wash out the glyph edges.
+  function drawGlowAmount(ctx, text, color, x, y, fontSize){
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    ctx.font = "900 " + fontSize + "px 'Chakra Petch', sans-serif";
+    ctx.save();
+    ctx.shadowColor = color;
+    ctx.shadowBlur = fontSize * 0.4;
+    ctx.fillStyle = color;
+    ctx.fillText(text, x, y);
+    ctx.shadowBlur = fontSize * 0.6;
+    ctx.fillText(text, x, y);
+    ctx.restore();
+    ctx.fillStyle = color;
+    ctx.fillText(text, x, y);
+  }
+  function drawPeriodHeader(ctx, pad, label, title){
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillStyle = "rgba(255,255,255,0.55)";
+    ctx.font = "700 20px 'IBM Plex Mono', monospace";
+    ctx.fillText(label, pad, pad + 10);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "800 46px 'Chakra Petch', sans-serif";
+    ctx.fillText(title, pad, pad + 62);
+  }
+  function drawStatRows(ctx, rows, x, y, width, rowH){
+    rows.forEach(function(r, i){
+      var ry = y + i * rowH;
+      ctx.textAlign = "left";
+      ctx.fillStyle = "rgba(255,255,255,0.55)";
+      ctx.font = "600 21px 'IBM Plex Mono', monospace";
+      ctx.fillText(r.label, x, ry);
+      ctx.textAlign = "right";
+      ctx.fillStyle = r.color || "#ffffff";
+      ctx.font = "700 23px 'IBM Plex Mono', monospace";
+      ctx.fillText(r.value, x + width, ry);
+    });
+  }
+  function drawCardFooter(ctx, w, h, pad){
+    var username = (window.EZAuth && EZAuth.getUsername()) || "trader";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    ctx.font = "700 32px 'IBM Plex Mono', monospace";
+    ctx.fillStyle = "rgba(255,255,255,0.88)";
+    ctx.fillText("@" + username, pad, h - pad);
+    ctx.textAlign = "right";
+    ctx.fillText("ezpayouts.xyz", w - pad, h - pad);
+  }
+  // Mini equity-curve line: points[0] is always the implicit $0 start.
+  function drawEquityLine(ctx, points, x, y, w, h, color){
+    if (!points.length) return;
+    var values = points.map(function(p){ return p.value; });
+    var minV = Math.min(0, Math.min.apply(null, values));
+    var maxV = Math.max(0, Math.max.apply(null, values));
+    if (maxV === minV) maxV = minV + Math.max(1, Math.abs(minV) * 0.1 + 1);
+    function px(i){ return points.length <= 1 ? x : x + (i / (points.length - 1)) * w; }
+    function py(v){ return y + h - ((v - minV) / (maxV - minV)) * h; }
+    var zeroY = py(0);
 
+    ctx.strokeStyle = "rgba(255,255,255,0.18)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, zeroY);
+    ctx.lineTo(x + w, zeroY);
+    ctx.stroke();
+
+    ctx.beginPath();
+    points.forEach(function(p, i){
+      var xx = px(i), yy = py(p.value);
+      if (i === 0) ctx.moveTo(xx, yy); else ctx.lineTo(xx, yy);
+    });
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.save();
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 16;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    ctx.restore();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    var last = points[points.length - 1];
+    var lastX = px(points.length - 1), lastY = py(last.value);
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(lastX, lastY, 6, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(px(0), py(points[0].value), 6, 0, Math.PI * 2); ctx.fill();
+
+    ctx.textAlign = "right";
+    ctx.textBaseline = "alphabetic";
+    ctx.font = "700 26px 'IBM Plex Mono', monospace";
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(fmtMoneyCompactSigned(last.value), x + w - 10, Math.max(lastY - 20, 30));
+
+    ctx.font = "600 17px 'IBM Plex Mono', monospace";
+    ctx.fillStyle = "rgba(255,255,255,0.5)";
+    if (points[0].label){
+      ctx.textAlign = "left";
+      ctx.fillText(points[0].label, x, y + h + 26);
+    }
+    ctx.textAlign = "right";
+    ctx.fillText("$0", x + w, zeroY - 8);
+  }
+
+  function drawTradeCard(){
+    var t = shareCurrentTrade;
+    var ctx = shareCardCanvas.getContext("2d");
+    var w = shareCardCanvas.width, h = shareCardCanvas.height;
+    drawCardBase(ctx, w, h);
     var pad = 64;
 
     // Ticker badge + symbol, top-left
@@ -1714,33 +1935,113 @@
     var metaText = (t.direction === "long" ? "LONG" : "SHORT") + " · " + fmtDateShort(t.date).toUpperCase();
     ctx.fillText(metaText, pad + 70, pad + 68);
 
-    // Big P&L — glowing to stand out as the card's hero stat
     var pnlColor = t.pnl >= 0 ? "#3ee08c" : "#ef5a5a";
-    var pnlText = fmtMoneySigned(t.pnl);
-    var pnlX = pad - 2, pnlY = pad + 265;
-    ctx.font = "900 150px 'Chakra Petch', sans-serif";
-    ctx.save();
-    ctx.shadowColor = pnlColor;
-    ctx.shadowBlur = 60;
-    ctx.fillStyle = pnlColor;
-    ctx.fillText(pnlText, pnlX, pnlY);
-    ctx.shadowBlur = 90;
-    ctx.fillText(pnlText, pnlX, pnlY);
-    ctx.restore();
-    // Crisp top layer so the glow doesn't wash out the glyph edges
-    ctx.fillStyle = pnlColor;
-    ctx.fillText(pnlText, pnlX, pnlY);
+    drawGlowAmount(ctx, fmtMoneySigned(t.pnl), pnlColor, pad - 2, pad + 265, 150);
 
-    // Footer: username bottom-left, brand bottom-right
-    var username = (window.EZAuth && EZAuth.getUsername()) || "trader";
-    ctx.font = "700 32px 'IBM Plex Mono', monospace";
-    ctx.fillStyle = "rgba(255,255,255,0.88)";
-    ctx.textAlign = "left";
-    ctx.fillText("@" + username, pad, h - pad);
+    drawCardFooter(ctx, w, h, pad);
+  }
 
-    ctx.textAlign = "right";
-    ctx.fillStyle = "rgba(255,255,255,0.88)";
-    ctx.fillText("ezpayouts.xyz", w - pad, h - pad);
+  function drawDailyCard(){
+    var t = shareCurrentTrade;
+    var ctx = shareCardCanvas.getContext("2d");
+    var w = shareCardCanvas.width, h = shareCardCanvas.height;
+    drawCardBase(ctx, w, h);
+    var pad = 64;
+    var agg = computeDayAgg(t.date);
+    var d = new Date(t.date + "T00:00:00");
+    var title = d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+    drawPeriodHeader(ctx, pad, "DAILY", title);
+
+    var pnlColor = agg.pnl >= 0 ? "#3ee08c" : "#ef5a5a";
+    drawGlowAmount(ctx, fmtMoneySigned(agg.pnl), pnlColor, pad - 2, pad + 250, 110);
+
+    var rows = [
+      { label: "Trades", value: String(agg.count) },
+      { label: "Win rate", value: agg.winRate + "%" }
+    ];
+    if (agg.best) rows.push({ label: "Best trade", value: fmtMoneySigned(agg.best.pnl) + " " + (agg.best.symbol || "").toUpperCase() });
+    drawStatRows(ctx, rows, pad, pad + 330, 760, 54);
+
+    drawCardFooter(ctx, w, h, pad);
+  }
+
+  function drawWeeklyCard(){
+    var t = shareCurrentTrade;
+    var ctx = shareCardCanvas.getContext("2d");
+    var w = shareCardCanvas.width, h = shareCardCanvas.height;
+    drawCardBase(ctx, w, h);
+    var pad = 64;
+    var agg = computeWeekAgg(t.date);
+    drawPeriodHeader(ctx, pad, "WEEKLY", "Week of " + fmtDateShort(agg.start));
+
+    var pnlColor = agg.pnl >= 0 ? "#3ee08c" : "#ef5a5a";
+    drawGlowAmount(ctx, fmtMoneySigned(agg.pnl), pnlColor, pad - 2, pad + 235, 96);
+
+    var rows = [
+      { label: "Trades", value: String(agg.count) },
+      { label: "Win rate", value: agg.winRate + "%" },
+      { label: "Green days", value: agg.greenDays + " of " + agg.tradedDaysCount }
+    ];
+    if (agg.bestDay) rows.push({ label: "Best day", value: fmtMoneySigned(agg.bestDay.pnl) + " " + agg.bestDay.label });
+    drawStatRows(ctx, rows, pad, pad + 310, 640, 50);
+
+    var rightX = w * 0.62, rightY = pad + 40;
+    agg.days.forEach(function(d, i){
+      var ry = rightY + i * 48;
+      ctx.textAlign = "left";
+      ctx.fillStyle = "rgba(255,255,255,0.6)";
+      ctx.font = "600 23px 'IBM Plex Mono', monospace";
+      ctx.fillText(d.label, rightX, ry);
+      ctx.textAlign = "right";
+      ctx.font = "700 23px 'IBM Plex Mono', monospace";
+      if (d.hasTrades){
+        ctx.fillStyle = d.pnl >= 0 ? "#3ee08c" : "#ef5a5a";
+        ctx.fillText(fmtMoneySigned(d.pnl), rightX + 260, ry);
+      } else {
+        ctx.fillStyle = "rgba(255,255,255,0.35)";
+        ctx.fillText("No trades", rightX + 260, ry);
+      }
+    });
+
+    drawCardFooter(ctx, w, h, pad);
+  }
+
+  function drawMonthlyCard(){
+    var t = shareCurrentTrade;
+    var ctx = shareCardCanvas.getContext("2d");
+    var w = shareCardCanvas.width, h = shareCardCanvas.height;
+    drawCardBase(ctx, w, h);
+    var pad = 64;
+    var agg = computeMonthAgg(t.date);
+    var title = new Date(agg.year, agg.month, 1).toLocaleDateString(undefined, { month: "long", year: "numeric" });
+    drawPeriodHeader(ctx, pad, "MONTHLY", title);
+
+    var pnlColor = agg.pnl >= 0 ? "#3ee08c" : "#ef5a5a";
+    drawGlowAmount(ctx, fmtMoneySigned(agg.pnl), pnlColor, pad - 2, pad + 235, 96);
+
+    var rows = [
+      { label: "Win rate", value: agg.winRate + "%" },
+      { label: "Green days", value: agg.greenDays + " of " + agg.tradedDaysCount },
+      { label: "Best day", value: agg.bestDate ? (fmtMoneySigned(agg.bestPnl) + " " + fmtDateShort(agg.bestDate)) : "–" },
+      { label: "Trades", value: String(agg.count) }
+    ];
+    drawStatRows(ctx, rows, pad, pad + 310, 640, 50);
+
+    var curvePoints = [{ date: null, label: "", value: 0 }].concat(
+      agg.curve.map(function(p){ return { date: p.date, label: fmtDateShort(p.date), value: p.value }; })
+    );
+    var chartX = w * 0.60, chartY = pad + 40, chartW = w - chartX - pad, chartH = 260;
+    drawEquityLine(ctx, curvePoints, chartX, chartY, chartW, chartH, pnlColor);
+
+    drawCardFooter(ctx, w, h, pad);
+  }
+
+  function drawShareCard(){
+    if (!shareCurrentTrade || !shareCardCanvas.getContext) return;
+    if (sharePeriod === "daily") drawDailyCard();
+    else if (sharePeriod === "weekly") drawWeeklyCard();
+    else if (sharePeriod === "monthly") drawMonthlyCard();
+    else drawTradeCard();
   }
 
   function redrawShareCard(){
@@ -1870,7 +2171,15 @@
 
   function openShareModal(trade){
     shareCurrentTrade = trade;
+    sharePeriod = "trade";
+    sharePeriodTabs.querySelectorAll("button[data-period]").forEach(function(b){
+      b.classList.toggle("active", b.getAttribute("data-period") === "trade");
+    });
+    updateShareModalSub();
+    // Show the modal before measuring the tab thumb — while hidden, the
+    // tabs report zero width/position, same issue as the log mode toggle.
     shareModalOverlay.hidden = false;
+    layoutSegThumb(sharePeriodTabs, true);
     renderBgGrid();
     applyShareBgChange();
   }
@@ -1892,7 +2201,8 @@
 
   function shareCardFileName(ext){
     var t = shareCurrentTrade;
-    return "ezpayouts-" + (t && t.symbol ? t.symbol.toLowerCase() : "trade") + "-" + (t ? t.date : todayStr()) + "." + ext;
+    var periodPart = sharePeriod !== "trade" ? "-" + sharePeriod : "";
+    return "ezpayouts-" + (t && t.symbol ? t.symbol.toLowerCase() : "trade") + periodPart + "-" + (t ? t.date : todayStr()) + "." + ext;
   }
   function downloadBlob(blob, filename){
     var url = URL.createObjectURL(blob);
