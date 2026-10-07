@@ -353,6 +353,69 @@
   .agg-row-value.pos{ color:var(--phosphor-soft); }
   .agg-row-value.neg{ color:var(--red); }
 
+  /* ---------- Daily trade cards ---------- */
+  .day-group{ margin-bottom:22px; }
+  .day-group:last-child{ margin-bottom:0; }
+  .day-group-head{
+    display:flex; align-items:baseline; justify-content:space-between; gap:10px;
+    padding:0 2px 10px; border-bottom:1px solid var(--hairline); margin-bottom:12px;
+  }
+  .day-group-date{ font-family:var(--font-display); font-weight:700; font-size:13.5px; color:var(--ice); }
+  .day-group-count{ font-family:var(--font-mono); font-size:10.5px; color:var(--muted); margin-left:8px; }
+  .trade-card{
+    background:var(--panel-hi); border:1px solid var(--hairline-bright); border-radius:14px;
+    padding:14px; margin-bottom:10px; cursor:pointer; transition:border-color .15s, background .15s;
+  }
+  .trade-card:last-child{ margin-bottom:0; }
+  .trade-card:hover{ border-color:var(--phosphor-dim); background:var(--panel-raised); }
+  .trade-card-top{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+  .trade-card-top-left{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; min-width:0; }
+  .trade-card-icon{
+    flex:none; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    background:var(--phosphor-dim); color:var(--phosphor-soft); font-family:var(--font-display); font-weight:700; font-size:9.5px;
+  }
+  .trade-card-grade{
+    font-family:var(--font-display); font-weight:700; font-size:11px; padding:2px 7px; border-radius:6px;
+    border:1px solid var(--hairline-bright); color:var(--muted);
+  }
+  .trade-card-grade.grade-aplus{ border-color:var(--phosphor); background:rgba(62,224,140,0.14); color:var(--phosphor-soft); }
+  .trade-card-grade.grade-a{ border-color:var(--phosphor-dim); background:rgba(62,224,140,0.09); color:var(--phosphor-soft); }
+  .trade-card-grade.grade-b{ border-color:var(--ice); background:rgba(220,239,226,0.08); color:var(--ice); }
+  .trade-card-grade.grade-c{ border-color:var(--amber); background:rgba(232,195,74,0.14); color:var(--amber); }
+  .trade-card-grade.grade-f{ border-color:var(--red); background:rgba(239,90,90,0.12); color:var(--red); }
+  .trade-card-symbol{ font-family:var(--font-display); font-weight:700; font-size:15px; color:var(--ice); }
+  .trade-card-top-right{ display:flex; align-items:center; gap:10px; flex:none; }
+  .trade-card-share-btn{
+    display:flex; align-items:center; gap:5px; padding:4px 10px; border-radius:999px;
+    background:var(--panel-raised); border:1px solid var(--hairline-bright); color:var(--muted);
+    font-family:var(--font-mono); font-size:10.5px; font-weight:700; cursor:pointer;
+    transition:border-color .15s, color .15s;
+  }
+  .trade-card-share-btn:hover{ border-color:var(--phosphor-dim); color:var(--ice); }
+  .trade-card-share-btn svg{ width:11px; height:11px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .trade-card-pnl{ font-family:var(--font-display); font-weight:700; font-size:16px; white-space:nowrap; }
+  .trade-card-pnl.pos{ color:var(--phosphor-soft); }
+  .trade-card-pnl.neg{ color:var(--red); }
+  .trade-card-tags{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  .trade-card-tags:empty{ display:none; }
+  .trade-card-media{
+    margin-top:12px; border-radius:10px; overflow:hidden; background:var(--panel); border:1px solid var(--hairline);
+    min-height:110px; display:flex; align-items:center; justify-content:center;
+  }
+  .trade-card-media img{ width:100%; max-height:280px; object-fit:contain; display:block; }
+  .trade-card-media-empty{
+    font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.08em; text-transform:uppercase;
+    color:var(--muted-dim); padding:38px 0;
+  }
+  .trade-card-foot{
+    display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:12px;
+    font-family:var(--font-mono); font-size:11px; color:var(--muted); flex-wrap:wrap;
+  }
+  .trade-card-outcome{ display:flex; align-items:center; gap:4px; font-weight:700; white-space:nowrap; }
+  .trade-card-outcome.win{ color:var(--phosphor-soft); }
+  .trade-card-outcome.loss{ color:var(--red); }
+  .trade-card-outcome svg{ width:11px; height:11px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+
   /* ---------- Modals ---------- */
   .modal-overlay{
     position:fixed; inset:0; z-index:700; background:rgba(4,7,6,0.72);
@@ -1087,7 +1150,7 @@
       <p>Click <b>Show trade details</b> in Log mode to add Entry, Exit, Lots, Stop loss, and Take profit. Stop + Target feed the <b>Avg R:R</b> stat; P&amp;L feeds everything else, including <b>Profit Factor</b> (gross wins &divide; gross losses).</p>
       <p>Click any row in All Trades to open it back up, tag how you felt, write notes, and attach up to 4 screenshots. Use the search box and <b>Filters</b> to narrow the list by symbol, side, market, outcome, or date, and the checkboxes to bulk-delete.</p>
       <p>Trade numbers sync across devices when you're signed in. Screenshots are kept only in this browser and won't follow you to another device.</p>
-      <p>Use the <b>Daily</b>, <b>Weekly</b>, and <b>Strategy</b> tabs to see P&amp;L rolled up by day, by week, or by the strategy tag you gave each trade.</p>
+      <p><b>Daily</b> shows each day's trades as cards &mdash; grade, side, P&amp;L, screenshot, and a <b>Share</b> button, right in the list. <b>Weekly</b> and <b>Strategy</b> roll P&amp;L up by week or by the strategy tag you gave each trade.</p>
     </div>
   </div>
 </div>
@@ -1273,6 +1336,11 @@
     var d = new Date(dateStr + "T00:00:00");
     if (isNaN(d.getTime())) return dateStr;
     return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  }
+  function fmtDateFull(dateStr){
+    var d = new Date(dateStr + "T00:00:00");
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
   }
   function fmtMoneySigned(n){
     var sign = n < 0 ? "-" : "+";
@@ -2445,16 +2513,92 @@
     }).join("");
   }
 
-  function renderDaily(){
-    var groups = {};
-    filteredTrades().forEach(function(t){
-      if (!groups[t.date]) groups[t.date] = { label: fmtDateShort(t.date), pnl: 0, count: 0, wins: 0, losses: 0, sortKey: t.date };
-      var g = groups[t.date];
-      g.pnl += t.pnl; g.count++;
-      if (t.pnl > 0) g.wins++; else if (t.pnl < 0) g.losses++;
-    });
-    renderAgg(dailyListEl, groups, "No trades yet to roll up by day.");
+  function renderTradeCard(t){
+    var rr = computeTradeRR(t);
+    var hasEntryExit = hasVal(t.entry) || hasVal(t.exit);
+    var gradeCls = t.grade ? "grade-" + t.grade.toLowerCase().replace("+", "plus") : "";
+    var imgUrl = Array.isArray(t.imageIds) && t.imageIds.length ? getImageDataUrl(t.imageIds[0]) : null;
+    var media = imgUrl
+      ? '<div class="trade-card-media"><img src="' + imgUrl + '" alt="Trade screenshot" /></div>'
+      : '<div class="trade-card-media"><span class="trade-card-media-empty">No screenshot</span></div>';
+    var isWin = t.pnl >= 0;
+    var outcomeIcon = isWin
+      ? '<svg viewBox="0 0 20 20"><path d="M7 7h10v10" /><path d="M7 17 17 7" /></svg>'
+      : '<svg viewBox="0 0 20 20"><path d="M7 13h10V3" /><path d="M7 3l10 10" /></svg>';
+    return '<div class="trade-card" data-id="' + t.id + '">' +
+      '<div class="trade-card-top">' +
+        '<div class="trade-card-top-left">' +
+          '<span class="trade-card-icon">EZ</span>' +
+          (t.grade ? '<span class="trade-card-grade ' + gradeCls + '">' + escapeHtml(t.grade) + '</span>' : '') +
+          '<span class="trade-card-symbol">' + escapeHtml(t.symbol) + '</span>' +
+          '<span class="trade-dir ' + t.direction + '">' + (t.direction === "long" ? "Long" : "Short") + '</span>' +
+        '</div>' +
+        '<div class="trade-card-top-right">' +
+          '<button type="button" class="trade-card-share-btn" data-id="' + t.id + '" aria-label="Share">' +
+            '<svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>' +
+            '<span>Share</span>' +
+          '</button>' +
+          '<span class="trade-card-pnl ' + (isWin ? "pos" : "neg") + ' mono">' + fmtMoneySigned(t.pnl) + '</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="trade-card-tags">' +
+        (t.market ? '<span class="market-badge">' + escapeHtml(t.market) + '</span>' : '') +
+        (t.strategy ? '<span class="market-badge">' + escapeHtml(t.strategy) + '</span>' : '') +
+      '</div>' +
+      media +
+      '<div class="trade-card-foot">' +
+        '<span class="trade-card-foot-left">' +
+          (hasEntryExit
+            ? (hasVal(t.entry) ? Number(t.entry).toLocaleString(undefined, { maximumFractionDigits: 5 }) : "–") +
+              ' → ' +
+              (hasVal(t.exit) ? Number(t.exit).toLocaleString(undefined, { maximumFractionDigits: 5 }) : "–")
+            : escapeHtml(t.market || "")) +
+        '</span>' +
+        '<span class="trade-card-outcome ' + (isWin ? "win" : "loss") + '">' + outcomeIcon +
+          (isWin ? "Win" : "Loss") + (rr !== null ? ' · ' + rr.toFixed(2) + 'R' : '') +
+        '</span>' +
+      '</div>' +
+    '</div>';
   }
+  function renderDaily(){
+    var list = filteredTrades();
+    if (!list.length){
+      dailyListEl.innerHTML = '<div class="journal-empty"><p>No trades yet.</p><p>Add your first trade to see it rolled up by day.</p></div>';
+      return;
+    }
+    var groups = {};
+    list.forEach(function(t){
+      if (!groups[t.date]) groups[t.date] = [];
+      groups[t.date].push(t);
+    });
+    var dates = Object.keys(groups).sort().reverse();
+    dailyListEl.innerHTML = dates.map(function(date){
+      var dayTrades = groups[date];
+      var dayPnl = dayTrades.reduce(function(sum, t){ return sum + t.pnl; }, 0);
+      return '<div class="day-group">' +
+        '<div class="day-group-head">' +
+          '<span><span class="day-group-date">' + escapeHtml(fmtDateFull(date)) + '</span>' +
+          '<span class="day-group-count">' + dayTrades.length + ' trade' + (dayTrades.length === 1 ? '' : 's') + '</span></span>' +
+          '<span class="trade-card-pnl ' + (dayPnl >= 0 ? "pos" : "neg") + ' mono">' + fmtMoneySigned(dayPnl) + '</span>' +
+        '</div>' +
+        dayTrades.map(renderTradeCard).join('') +
+      '</div>';
+    }).join('');
+  }
+  dailyListEl.addEventListener("click", function(e){
+    var shareBtn = e.target.closest(".trade-card-share-btn");
+    if (shareBtn){
+      e.stopPropagation();
+      var st = trades.find(function(x){ return x.id === shareBtn.getAttribute("data-id"); });
+      if (st) shareTrade(st);
+      return;
+    }
+    var card = e.target.closest(".trade-card[data-id]");
+    if (card){
+      var t = trades.find(function(x){ return x.id === card.getAttribute("data-id"); });
+      if (t) openTradeModal(t);
+    }
+  });
 
   function renderWeekly(){
     var groups = {};
