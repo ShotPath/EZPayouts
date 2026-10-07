@@ -1655,19 +1655,24 @@
   var SHARE_BG_LIST = SHARE_BG_PRESET_MEDIA;
   var SHARE_BG_VISIBLE_COUNT = 8;
   var SHARE_EXPORT_DURATION_MS = 3000;
-  var SHARE_MAX_VIDEO_EXPORT_MS = 20000;
-  var SHARE_MAX_GIF_EXPORT_MS = 6000;
+  var SHARE_MAX_VIDEO_EXPORT_MS = 30000;
+  var SHARE_MAX_GIF_EXPORT_MS = 22000;
   var SHARE_GIF_FPS = 10;
-  var SHARE_GIF_WIDTH = 768;
-  var SHARE_GIF_HEIGHT = 432;
+  var SHARE_GIF_WIDTH = 1280;
+  var SHARE_GIF_HEIGHT = 720;
 
-  // When the background is an uploaded/preset video, export the whole clip
-  // (capped so files stay sane) instead of a fixed few seconds from wherever
-  // the loop happened to be — that's what was clipping exports to ~2-3s of
-  // an uploaded video regardless of how long it actually was.
+  // A custom-uploaded video exports its whole clip (capped so files stay
+  // sane) instead of a fixed few seconds from wherever the loop happened to
+  // be. A preset video is a short loop by design (the <video> element has
+  // loop set) — it should keep looping to fill the whole requested export
+  // window, not stop after one play-through of its own short clip. We tell
+  // the two apart by shareBgActiveId: set for a preset selection, null for
+  // an upload.
   function getExportDurationMs(cap){
-    if (shareBg.type === "video" && shareBgVideoDuration){
-      return Math.min(shareBgVideoDuration * 1000, cap);
+    if (shareBg.type === "video"){
+      var isCustomUpload = !shareBgActiveId;
+      if (isCustomUpload && shareBgVideoDuration) return Math.min(shareBgVideoDuration * 1000, cap);
+      return cap;
     }
     return SHARE_EXPORT_DURATION_MS;
   }
@@ -1835,12 +1840,19 @@
     ctx.fillStyle = vignette;
     ctx.fillRect(0, 0, w, h);
   }
-  // Glowing hero amount: a soft double-shadow pass, then a crisp top layer
-  // so the glow doesn't wash out the glyph edges.
+  // Glowing hero amount: a dark outline first (so it stays legible over a
+  // bright/busy video frame regardless of the glow color's own contrast),
+  // then a soft double-shadow pass, then a crisp top layer so the glow
+  // doesn't wash out the glyph edges.
   function drawGlowAmount(ctx, text, color, x, y, fontSize){
     ctx.textAlign = "left";
     ctx.textBaseline = "alphabetic";
     ctx.font = "900 " + fontSize + "px 'Chakra Petch', sans-serif";
+    ctx.lineJoin = "round";
+    ctx.miterLimit = 2;
+    ctx.lineWidth = fontSize * 0.12;
+    ctx.strokeStyle = "rgba(0,0,0,0.8)";
+    ctx.strokeText(text, x, y);
     ctx.save();
     ctx.shadowColor = color;
     ctx.shadowBlur = fontSize * 0.4;
@@ -1852,40 +1864,58 @@
     ctx.fillStyle = color;
     ctx.fillText(text, x, y);
   }
+  // Every label/value/caption on the card gets a subtle dark drop-shadow —
+  // these all draw directly over whatever the background video is showing
+  // at that moment, and a bright/busy frame can wash out plain white text.
+  function withLegibilityShadow(ctx, fn){
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,0.7)";
+    ctx.shadowBlur = 6;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 1;
+    fn();
+    ctx.restore();
+  }
   function drawPeriodHeader(ctx, pad, label, title){
-    ctx.textAlign = "left";
-    ctx.textBaseline = "alphabetic";
-    ctx.fillStyle = "rgba(255,255,255,0.55)";
-    ctx.font = "700 20px 'IBM Plex Mono', monospace";
-    ctx.fillText(label, pad, pad + 10);
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "800 46px 'Chakra Petch', sans-serif";
-    ctx.fillText(title, pad, pad + 62);
+    withLegibilityShadow(ctx, function(){
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
+      ctx.fillStyle = "rgba(255,255,255,0.55)";
+      ctx.font = "700 20px 'IBM Plex Mono', monospace";
+      ctx.fillText(label, pad, pad + 10);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "800 46px 'Chakra Petch', sans-serif";
+      ctx.fillText(title, pad, pad + 62);
+    });
   }
   function drawStatRows(ctx, rows, x, y, width, rowH, labelSize, valueSize){
     labelSize = labelSize || 21;
     valueSize = valueSize || 23;
-    rows.forEach(function(r, i){
-      var ry = y + i * rowH;
-      ctx.textAlign = "left";
-      ctx.fillStyle = "rgba(255,255,255,0.55)";
-      ctx.font = "600 " + labelSize + "px 'IBM Plex Mono', monospace";
-      ctx.fillText(r.label, x, ry);
-      ctx.textAlign = "right";
-      ctx.fillStyle = r.color || "#ffffff";
-      ctx.font = "700 " + valueSize + "px 'IBM Plex Mono', monospace";
-      ctx.fillText(r.value, x + width, ry);
+    withLegibilityShadow(ctx, function(){
+      rows.forEach(function(r, i){
+        var ry = y + i * rowH;
+        ctx.textAlign = "left";
+        ctx.fillStyle = "rgba(255,255,255,0.55)";
+        ctx.font = "600 " + labelSize + "px 'IBM Plex Mono', monospace";
+        ctx.fillText(r.label, x, ry);
+        ctx.textAlign = "right";
+        ctx.fillStyle = r.color || "#ffffff";
+        ctx.font = "700 " + valueSize + "px 'IBM Plex Mono', monospace";
+        ctx.fillText(r.value, x + width, ry);
+      });
     });
   }
   function drawCardFooter(ctx, w, h, pad){
-    var username = (window.EZAuth && EZAuth.getUsername()) || "trader";
-    ctx.textAlign = "left";
-    ctx.textBaseline = "alphabetic";
-    ctx.font = "700 32px 'IBM Plex Mono', monospace";
-    ctx.fillStyle = "rgba(255,255,255,0.88)";
-    ctx.fillText("@" + username, pad, h - pad);
-    ctx.textAlign = "right";
-    ctx.fillText("ezpayouts.xyz", w - pad, h - pad);
+    withLegibilityShadow(ctx, function(){
+      var username = (window.EZAuth && EZAuth.getUsername()) || "trader";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
+      ctx.font = "700 32px 'IBM Plex Mono', monospace";
+      ctx.fillStyle = "rgba(255,255,255,0.88)";
+      ctx.fillText("@" + username, pad, h - pad);
+      ctx.textAlign = "right";
+      ctx.fillText("ezpayouts.xyz", w - pad, h - pad);
+    });
   }
   // Mini equity-curve line: points[0] is always the implicit $0 start.
   function drawEquityLine(ctx, points, x, y, w, h, color){
@@ -1929,20 +1959,22 @@
     ctx.beginPath(); ctx.arc(lastX, lastY, 6, 0, Math.PI * 2); ctx.fill();
     ctx.beginPath(); ctx.arc(px(0), py(points[0].value), 6, 0, Math.PI * 2); ctx.fill();
 
-    ctx.textAlign = "right";
-    ctx.textBaseline = "alphabetic";
-    ctx.font = "700 26px 'IBM Plex Mono', monospace";
-    ctx.fillStyle = "#ffffff";
-    ctx.fillText(fmtMoneyCompactSigned(last.value), x + w - 10, Math.max(lastY - 20, 30));
+    withLegibilityShadow(ctx, function(){
+      ctx.textAlign = "right";
+      ctx.textBaseline = "alphabetic";
+      ctx.font = "700 26px 'IBM Plex Mono', monospace";
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(fmtMoneyCompactSigned(last.value), x + w - 10, Math.max(lastY - 20, 30));
 
-    ctx.font = "600 17px 'IBM Plex Mono', monospace";
-    ctx.fillStyle = "rgba(255,255,255,0.5)";
-    if (points[0].label){
-      ctx.textAlign = "left";
-      ctx.fillText(points[0].label, x, y + h + 26);
-    }
-    ctx.textAlign = "right";
-    ctx.fillText("$0", x + w, zeroY - 8);
+      ctx.font = "600 17px 'IBM Plex Mono', monospace";
+      ctx.fillStyle = "rgba(255,255,255,0.5)";
+      if (points[0].label){
+        ctx.textAlign = "left";
+        ctx.fillText(points[0].label, x, y + h + 26);
+      }
+      ctx.textAlign = "right";
+      ctx.fillText("$0", x + w, zeroY - 8);
+    });
   }
 
   function drawTradeCard(){
@@ -1953,26 +1985,28 @@
     var pad = 64;
 
     // Ticker badge + symbol, top-left
-    ctx.beginPath();
-    ctx.arc(pad + 26, pad + 30, 26, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(0,0,0,0.4)";
-    ctx.fill();
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "700 22px 'Chakra Petch', sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText((t.symbol || "?").slice(0, 2).toUpperCase(), pad + 26, pad + 32);
+    withLegibilityShadow(ctx, function(){
+      ctx.beginPath();
+      ctx.arc(pad + 26, pad + 30, 26, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(0,0,0,0.4)";
+      ctx.fill();
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "700 22px 'Chakra Petch', sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText((t.symbol || "?").slice(0, 2).toUpperCase(), pad + 26, pad + 32);
 
-    ctx.textAlign = "left";
-    ctx.textBaseline = "alphabetic";
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "800 56px 'Chakra Petch', sans-serif";
-    ctx.fillText((t.symbol || "").toUpperCase(), pad + 70, pad + 30);
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "800 56px 'Chakra Petch', sans-serif";
+      ctx.fillText((t.symbol || "").toUpperCase(), pad + 70, pad + 30);
 
-    ctx.fillStyle = "rgba(255,255,255,0.78)";
-    ctx.font = "700 27px 'IBM Plex Mono', monospace";
-    var metaText = (t.direction === "long" ? "LONG" : "SHORT") + " · " + fmtDateShort(t.date).toUpperCase();
-    ctx.fillText(metaText, pad + 70, pad + 68);
+      ctx.fillStyle = "rgba(255,255,255,0.78)";
+      ctx.font = "700 27px 'IBM Plex Mono', monospace";
+      var metaText = (t.direction === "long" ? "LONG" : "SHORT") + " · " + fmtDateShort(t.date).toUpperCase();
+      ctx.fillText(metaText, pad + 70, pad + 68);
+    });
 
     var pnlColor = t.pnl >= 0 ? "#3ee08c" : "#ef5a5a";
     drawGlowAmount(ctx, fmtMoneySigned(t.pnl), pnlColor, pad - 2, pad + 265, 150);
@@ -1999,7 +2033,7 @@
       { label: "Win rate", value: agg.winRate + "%" }
     ];
     if (agg.best) rows.push({ label: "Best trade", value: fmtMoneySigned(agg.best.pnl) + " " + (agg.best.symbol || "").toUpperCase() });
-    drawStatRows(ctx, rows, pad, pad + 345, 560, 72, 28, 34);
+    drawStatRows(ctx, rows, pad, pad + 355, 640, 82, 32, 40);
 
     drawCardFooter(ctx, w, h, pad);
   }
@@ -2022,24 +2056,26 @@
       { label: "Green days", value: agg.greenDays + " of " + agg.tradedDaysCount }
     ];
     if (agg.bestDay) rows.push({ label: "Best day", value: fmtMoneySigned(agg.bestDay.pnl) + " " + agg.bestDay.label });
-    drawStatRows(ctx, rows, pad, pad + 335, 480, 70, 28, 34);
+    drawStatRows(ctx, rows, pad, pad + 335, 560, 82, 32, 40);
 
     var rightX = w * 0.62, rightY = pad + 335;
-    agg.days.forEach(function(d, i){
-      var ry = rightY + i * 56;
-      ctx.textAlign = "left";
-      ctx.fillStyle = "rgba(255,255,255,0.6)";
-      ctx.font = "600 26px 'IBM Plex Mono', monospace";
-      ctx.fillText(d.label, rightX, ry);
-      ctx.textAlign = "right";
-      ctx.font = "700 28px 'IBM Plex Mono', monospace";
-      if (d.hasTrades){
-        ctx.fillStyle = d.pnl >= 0 ? "#3ee08c" : "#ef5a5a";
-        ctx.fillText(fmtMoneySigned(d.pnl), rightX + 250, ry);
-      } else {
-        ctx.fillStyle = "rgba(255,255,255,0.35)";
-        ctx.fillText("No trades", rightX + 250, ry);
-      }
+    withLegibilityShadow(ctx, function(){
+      agg.days.forEach(function(d, i){
+        var ry = rightY + i * 60;
+        ctx.textAlign = "left";
+        ctx.fillStyle = "rgba(255,255,255,0.6)";
+        ctx.font = "600 28px 'IBM Plex Mono', monospace";
+        ctx.fillText(d.label, rightX, ry);
+        ctx.textAlign = "right";
+        ctx.font = "700 30px 'IBM Plex Mono', monospace";
+        if (d.hasTrades){
+          ctx.fillStyle = d.pnl >= 0 ? "#3ee08c" : "#ef5a5a";
+          ctx.fillText(fmtMoneySigned(d.pnl), rightX + 260, ry);
+        } else {
+          ctx.fillStyle = "rgba(255,255,255,0.35)";
+          ctx.fillText("No trades", rightX + 260, ry);
+        }
+      });
     });
 
     drawCardFooter(ctx, w, h, pad);
@@ -2064,7 +2100,7 @@
       { label: "Best day", value: agg.bestDate ? (fmtMoneySigned(agg.bestPnl) + " " + fmtDateShort(agg.bestDate)) : "–" },
       { label: "Trades", value: String(agg.count) }
     ];
-    drawStatRows(ctx, rows, pad, pad + 335, 500, 70, 28, 34);
+    drawStatRows(ctx, rows, pad, pad + 335, 580, 82, 32, 40);
 
     var curvePoints = [{ date: null, label: "", value: 0 }].concat(
       agg.curve.map(function(p){ return { date: p.date, label: fmtDateShort(p.date), value: p.value }; })
