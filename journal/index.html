@@ -516,10 +516,20 @@
     background:transparent; border:none; color:var(--muted); cursor:pointer; transition:color .15s; white-space:nowrap;
   }
   .share-period-tabs button.active{ color:var(--mint-text); }
+  .share-card-wrap{ position:relative; margin-bottom:14px; }
   .share-card-canvas{
     width:100%; aspect-ratio:16/9; border-radius:14px; border:1px solid var(--hairline-bright);
-    display:block; margin-bottom:14px; background:var(--panel);
+    display:block; background:var(--panel);
   }
+  .share-mute-btn{
+    position:absolute; top:12px; right:12px; width:34px; height:34px; border-radius:50%;
+    background:rgba(0,0,0,0.55); border:1px solid rgba(255,255,255,0.25); color:#fff;
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+    backdrop-filter:blur(4px); transition:background .15s;
+  }
+  .share-mute-btn:hover{ background:rgba(0,0,0,0.75); }
+  .share-mute-btn[hidden]{ display:none; }
+  .share-mute-btn svg{ width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
   .share-bg-section{ margin-bottom:16px; }
   .share-bg-grid{ display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; }
   .share-bg-tile{
@@ -1187,11 +1197,20 @@
       <button type="button" data-period="monthly">Monthly</button>
     </div>
 
-    <canvas id="shareCardCanvas" width="1920" height="1080" class="share-card-canvas"></canvas>
+    <div class="share-card-wrap">
+      <canvas id="shareCardCanvas" width="1920" height="1080" class="share-card-canvas"></canvas>
+      <button type="button" class="share-mute-btn" id="shareMuteBtn" hidden aria-label="Unmute preview">
+        <svg class="icon-muted" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><line x1="23" y1="9" x2="17" y2="15" /><line x1="17" y1="9" x2="23" y2="15" /></svg>
+        <svg class="icon-unmuted" viewBox="0 0 24 24" hidden><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14" /></svg>
+      </button>
+    </div>
     <!-- crossorigin="anonymous": harmless for same-origin preset files, but
          required for remotely-hosted presets (e.g. a GitHub/jsDelivr URL) —
          without it, drawing a cross-origin video/image onto the canvas taints
-         it and Photo/GIF/Video export throws a SecurityError. -->
+         it and Photo/GIF/Video export throws a SecurityError. Preview starts
+         muted so autoplay is never blocked by the browser; captureStream()
+         below for Video export captures the real decoded audio regardless
+         of this element's muted flag, so exports always have sound. -->
     <video id="shareBgVideoEl" muted loop playsinline crossorigin="anonymous" hidden></video>
     <img id="shareBgGifEl" alt="" crossorigin="anonymous" hidden />
     <img id="shareBgImgEl" alt="" crossorigin="anonymous" hidden />
@@ -1595,6 +1614,7 @@
   var shareModalSub = document.getElementById("shareModalSub");
   var sharePeriodTabs = document.getElementById("sharePeriodTabs");
   var shareCardCanvas = document.getElementById("shareCardCanvas");
+  var shareMuteBtn = document.getElementById("shareMuteBtn");
   var shareBgVideoEl = document.getElementById("shareBgVideoEl");
   var shareBgGifEl = document.getElementById("shareBgGifEl");
   var shareBgImgEl = document.getElementById("shareBgImgEl");
@@ -1717,6 +1737,10 @@
   var shareBgVideoDuration = null;
   var shareUploadedUrl = null;
   var sharePreviewRAF = null;
+  // Preview always starts muted so autoplay is never blocked by the
+  // browser; this only affects local playback — captureStream() for
+  // Video export reads the real decoded audio regardless of this flag.
+  var shareIsMuted = true;
   var shareBgExpanded = false;
 
   function updateShareModalSub(){
@@ -1840,29 +1864,31 @@
     ctx.fillStyle = vignette;
     ctx.fillRect(0, 0, w, h);
   }
-  // Glowing hero amount: a dark outline first (so it stays legible over a
-  // bright/busy video frame regardless of the glow color's own contrast),
-  // then a soft double-shadow pass, then a crisp top layer so the glow
-  // doesn't wash out the glyph edges.
+  // Glowing hero amount. Chakra Petch only ships up to weight 700 (no
+  // 900/Black cut is actually loaded), so declaring "900" below renders no
+  // bolder than 700 on its own — a same-color stroke fattens the glyph
+  // edges for real extra weight, then the soft double-shadow glow, then a
+  // crisp top layer so the glow doesn't wash out the edges.
   function drawGlowAmount(ctx, text, color, x, y, fontSize){
     ctx.textAlign = "left";
     ctx.textBaseline = "alphabetic";
     ctx.font = "900 " + fontSize + "px 'Chakra Petch', sans-serif";
     ctx.lineJoin = "round";
     ctx.miterLimit = 2;
-    ctx.lineWidth = fontSize * 0.12;
-    ctx.strokeStyle = "rgba(0,0,0,0.8)";
-    ctx.strokeText(text, x, y);
+    ctx.lineWidth = fontSize * 0.045;
+    ctx.strokeStyle = color;
     ctx.save();
     ctx.shadowColor = color;
     ctx.shadowBlur = fontSize * 0.4;
     ctx.fillStyle = color;
     ctx.fillText(text, x, y);
+    ctx.strokeText(text, x, y);
     ctx.shadowBlur = fontSize * 0.6;
     ctx.fillText(text, x, y);
     ctx.restore();
     ctx.fillStyle = color;
     ctx.fillText(text, x, y);
+    ctx.strokeText(text, x, y);
   }
   // Every label/value/caption on the card gets a subtle dark drop-shadow —
   // these all draw directly over whatever the background video is showing
@@ -2009,7 +2035,7 @@
     });
 
     var pnlColor = t.pnl >= 0 ? "#3ee08c" : "#ef5a5a";
-    drawGlowAmount(ctx, fmtMoneySigned(t.pnl), pnlColor, pad - 2, pad + 265, 150);
+    drawGlowAmount(ctx, fmtMoneySigned(t.pnl), pnlColor, pad - 2, pad + 265, 165);
 
     drawCardFooter(ctx, w, h, pad);
   }
@@ -2026,7 +2052,7 @@
     drawPeriodHeader(ctx, pad, "DAILY", title);
 
     var pnlColor = agg.pnl >= 0 ? "#3ee08c" : "#ef5a5a";
-    drawGlowAmount(ctx, fmtMoneySigned(agg.pnl), pnlColor, pad - 2, pad + 265, 130);
+    drawGlowAmount(ctx, fmtMoneySigned(agg.pnl), pnlColor, pad - 2, pad + 265, 145);
 
     var rows = [
       { label: "Trades", value: String(agg.count) },
@@ -2048,7 +2074,7 @@
     drawPeriodHeader(ctx, pad, "WEEKLY", "Week of " + fmtDateShort(agg.start));
 
     var pnlColor = agg.pnl >= 0 ? "#3ee08c" : "#ef5a5a";
-    drawGlowAmount(ctx, fmtMoneySigned(agg.pnl), pnlColor, pad - 2, pad + 250, 115);
+    drawGlowAmount(ctx, fmtMoneySigned(agg.pnl), pnlColor, pad - 2, pad + 250, 125);
 
     var rows = [
       { label: "Trades", value: String(agg.count) },
@@ -2092,7 +2118,7 @@
     drawPeriodHeader(ctx, pad, "MONTHLY", title);
 
     var pnlColor = agg.pnl >= 0 ? "#3ee08c" : "#ef5a5a";
-    drawGlowAmount(ctx, fmtMoneySigned(agg.pnl), pnlColor, pad - 2, pad + 250, 115);
+    drawGlowAmount(ctx, fmtMoneySigned(agg.pnl), pnlColor, pad - 2, pad + 250, 125);
 
     var rows = [
       { label: "Win rate", value: agg.winRate + "%" },
@@ -2138,9 +2164,21 @@
   function stopPreviewLoop(){
     if (sharePreviewRAF){ cancelAnimationFrame(sharePreviewRAF); sharePreviewRAF = null; }
   }
+  function updateMuteBtnUI(){
+    shareMuteBtn.hidden = shareBg.type !== "video";
+    shareMuteBtn.querySelector(".icon-muted").hidden = !shareIsMuted;
+    shareMuteBtn.querySelector(".icon-unmuted").hidden = shareIsMuted;
+    shareMuteBtn.setAttribute("aria-label", shareIsMuted ? "Unmute preview" : "Mute preview");
+  }
+  shareMuteBtn.addEventListener("click", function(){
+    shareIsMuted = !shareIsMuted;
+    shareBgVideoEl.muted = shareIsMuted;
+    updateMuteBtnUI();
+  });
   function applyShareBgChange(){
     stopPreviewLoop();
     if (shareBg.type === "video") shareBgVideoEl.play().catch(function(){});
+    updateMuteBtnUI();
     if (isAnimatedBg()) startPreviewLoop();
     else redrawShareCard();
   }
@@ -2321,6 +2359,15 @@
       return;
     }
     var stream = shareCardCanvas.captureStream(30);
+    // The canvas stream is video-only — pull the background video's real
+    // decoded audio in alongside it (captureStream() ignores the preview's
+    // muted flag, so this works even while the preview itself is silent).
+    if (shareBg.type === "video" && shareBgVideoEl.captureStream){
+      try {
+        var bgStream = shareBgVideoEl.captureStream();
+        bgStream.getAudioTracks().forEach(function(track){ stream.addTrack(track); });
+      } catch (err) {}
+    }
     var chunks = [];
     var recorder;
     try {
