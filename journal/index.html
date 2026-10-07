@@ -1978,14 +1978,14 @@
     drawPeriodHeader(ctx, pad, "DAILY", title);
 
     var pnlColor = agg.pnl >= 0 ? "#3ee08c" : "#ef5a5a";
-    drawGlowAmount(ctx, fmtMoneySigned(agg.pnl), pnlColor, pad - 2, pad + 250, 110);
+    drawGlowAmount(ctx, fmtMoneySigned(agg.pnl), pnlColor, pad - 2, pad + 265, 130);
 
     var rows = [
       { label: "Trades", value: String(agg.count) },
       { label: "Win rate", value: agg.winRate + "%" }
     ];
     if (agg.best) rows.push({ label: "Best trade", value: fmtMoneySigned(agg.best.pnl) + " " + (agg.best.symbol || "").toUpperCase() });
-    drawStatRows(ctx, rows, pad, pad + 330, 420, 62, 26, 30);
+    drawStatRows(ctx, rows, pad, pad + 345, 560, 72, 28, 34);
 
     drawCardFooter(ctx, w, h, pad);
   }
@@ -2000,7 +2000,7 @@
     drawPeriodHeader(ctx, pad, "WEEKLY", "Week of " + fmtDateShort(agg.start));
 
     var pnlColor = agg.pnl >= 0 ? "#3ee08c" : "#ef5a5a";
-    drawGlowAmount(ctx, fmtMoneySigned(agg.pnl), pnlColor, pad - 2, pad + 235, 96);
+    drawGlowAmount(ctx, fmtMoneySigned(agg.pnl), pnlColor, pad - 2, pad + 250, 115);
 
     var rows = [
       { label: "Trades", value: String(agg.count) },
@@ -2008,23 +2008,23 @@
       { label: "Green days", value: agg.greenDays + " of " + agg.tradedDaysCount }
     ];
     if (agg.bestDay) rows.push({ label: "Best day", value: fmtMoneySigned(agg.bestDay.pnl) + " " + agg.bestDay.label });
-    drawStatRows(ctx, rows, pad, pad + 310, 320, 50);
+    drawStatRows(ctx, rows, pad, pad + 335, 480, 70, 28, 34);
 
-    var rightX = w * 0.62, rightY = pad + 310;
+    var rightX = w * 0.62, rightY = pad + 335;
     agg.days.forEach(function(d, i){
-      var ry = rightY + i * 48;
+      var ry = rightY + i * 56;
       ctx.textAlign = "left";
       ctx.fillStyle = "rgba(255,255,255,0.6)";
-      ctx.font = "600 23px 'IBM Plex Mono', monospace";
+      ctx.font = "600 26px 'IBM Plex Mono', monospace";
       ctx.fillText(d.label, rightX, ry);
       ctx.textAlign = "right";
-      ctx.font = "700 23px 'IBM Plex Mono', monospace";
+      ctx.font = "700 28px 'IBM Plex Mono', monospace";
       if (d.hasTrades){
         ctx.fillStyle = d.pnl >= 0 ? "#3ee08c" : "#ef5a5a";
-        ctx.fillText(fmtMoneySigned(d.pnl), rightX + 260, ry);
+        ctx.fillText(fmtMoneySigned(d.pnl), rightX + 250, ry);
       } else {
         ctx.fillStyle = "rgba(255,255,255,0.35)";
-        ctx.fillText("No trades", rightX + 260, ry);
+        ctx.fillText("No trades", rightX + 250, ry);
       }
     });
 
@@ -2042,7 +2042,7 @@
     drawPeriodHeader(ctx, pad, "MONTHLY", title);
 
     var pnlColor = agg.pnl >= 0 ? "#3ee08c" : "#ef5a5a";
-    drawGlowAmount(ctx, fmtMoneySigned(agg.pnl), pnlColor, pad - 2, pad + 235, 96);
+    drawGlowAmount(ctx, fmtMoneySigned(agg.pnl), pnlColor, pad - 2, pad + 250, 115);
 
     var rows = [
       { label: "Win rate", value: agg.winRate + "%" },
@@ -2050,7 +2050,7 @@
       { label: "Best day", value: agg.bestDate ? (fmtMoneySigned(agg.bestPnl) + " " + fmtDateShort(agg.bestDate)) : "–" },
       { label: "Trades", value: String(agg.count) }
     ];
-    drawStatRows(ctx, rows, pad, pad + 310, 350, 50);
+    drawStatRows(ctx, rows, pad, pad + 335, 500, 70, 28, 34);
 
     var curvePoints = [{ date: null, label: "", value: 0 }].concat(
       agg.curve.map(function(p){ return { date: p.date, label: fmtDateShort(p.date), value: p.value }; })
