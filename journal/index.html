@@ -432,7 +432,7 @@
   .share-export-btn{
     flex:1; display:flex; align-items:center; justify-content:center; gap:7px; padding:11px 16px;
     border-radius:12px; font-family:var(--font-display); font-weight:700; font-size:13px; cursor:pointer;
-    background:var(--panel-hi); border:1px solid var(--hairline-bright); color:var(--muted);
+    background:var(--panel-hi); border:1px solid var(--hairline-bright); color:var(--muted); white-space:nowrap;
     transition:filter .15s, border-color .15s, background .15s, color .15s;
   }
   .share-export-btn:hover{ border-color:var(--phosphor-dim); color:var(--ice); }
@@ -440,7 +440,6 @@
   .share-export-btn.primary:hover{ filter:brightness(1.06); color:var(--mint-text); }
   .share-export-btn svg{ width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
   .share-export-btn:disabled{ opacity:0.45; cursor:not-allowed; filter:none; }
-  .share-export-status{ margin:10px 2px 0; font-size:11.5px; color:var(--muted-dim); text-align:center; }
   .modal-share-btn{
     display:flex; align-items:center; gap:6px; height:28px; padding:0 12px; border-radius:999px;
     background:var(--panel-hi); border:1px solid var(--hairline-bright); color:var(--muted);
@@ -1015,7 +1014,6 @@
         <span>Photo</span>
       </button>
     </div>
-    <p class="share-export-status" id="shareExportStatus" hidden></p>
   </div>
 </div>
 
@@ -1364,7 +1362,6 @@
   var shareExportVideoBtn = document.getElementById("shareExportVideoBtn");
   var shareExportGifBtn = document.getElementById("shareExportGifBtn");
   var shareExportPhotoBtn = document.getElementById("shareExportPhotoBtn");
-  var shareExportStatus = document.getElementById("shareExportStatus");
   var tradeShareBtn = document.getElementById("tradeShareBtn");
 
   var SHARE_BG_GRADIENTS = [
@@ -1675,18 +1672,12 @@
     a.remove();
     setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
   }
-  function setExportBusy(busy, label){
+  function setExportBusy(busy){
     [shareExportVideoBtn, shareExportGifBtn, shareExportPhotoBtn].forEach(function(b){ b.disabled = busy; });
-    if (busy){
-      shareExportStatus.hidden = false;
-      shareExportStatus.textContent = label || "Working…";
-    } else {
-      shareExportStatus.hidden = true;
-    }
   }
-  function setExportStatus(text){
-    shareExportStatus.hidden = false;
-    shareExportStatus.textContent = text;
+  function setButtonLabel(btn, text){
+    var span = btn.querySelector("span");
+    if (span) span.textContent = text;
   }
 
   shareExportPhotoBtn.addEventListener("click", function(){
@@ -1723,7 +1714,7 @@
       showToast("Video export isn't supported in this browser");
       return;
     }
-    setExportBusy(true, "Recording video…");
+    setExportBusy(true);
     // Force a continuous redraw loop for the whole capture window, even over
     // a static background — captureStream()'s fixed-rate mode is unreliable
     // in practice when the canvas never actually changes, which was cutting
@@ -1736,13 +1727,21 @@
     // the start for the capture window.
     if (shareBg.type === "video") shareBgVideoEl.currentTime = 0;
     var durationMs = getExportDurationMs(SHARE_MAX_VIDEO_EXPORT_MS);
+    var recordStartedAt = Date.now();
+    setButtonLabel(shareExportVideoBtn, "Recording 0%");
+    var progressTimer = setInterval(function(){
+      var pct = Math.min(99, Math.round(((Date.now() - recordStartedAt) / durationMs) * 100));
+      setButtonLabel(shareExportVideoBtn, "Recording " + pct + "%");
+    }, 150);
     recorder.ondataavailable = function(e){ if (e.data && e.data.size) chunks.push(e.data); };
     recorder.onstop = function(){
+      clearInterval(progressTimer);
       if (!wasAnimated) stopPreviewLoop();
       var blob = new Blob(chunks, { type: mimeType.split(";")[0] });
       var ext = mimeType.indexOf("mp4") !== -1 ? "mp4" : "webm";
       downloadBlob(blob, shareCardFileName(ext));
       setExportBusy(false);
+      setButtonLabel(shareExportVideoBtn, "Video");
       showToast("Video downloaded");
     };
     recorder.start(250);
@@ -1774,9 +1773,9 @@
       showToast("GIF export isn't available right now");
       return;
     }
-    setExportBusy(true, "Preparing GIF encoder…");
+    setExportBusy(true);
+    setButtonLabel(shareExportGifBtn, "Preparing…");
     getGifWorkerUrl().then(function(workerUrl){
-      setExportStatus("Rendering GIF…");
       var gifCanvas = document.createElement("canvas");
       gifCanvas.width = SHARE_GIF_WIDTH;
       gifCanvas.height = SHARE_GIF_HEIGHT;
@@ -1796,21 +1795,24 @@
         gifCtx.drawImage(shareCardCanvas, 0, 0, SHARE_GIF_WIDTH, SHARE_GIF_HEIGHT);
         gif.addFrame(gifCtx, { copy: true, delay: frameDelay });
         captured++;
+        setButtonLabel(shareExportGifBtn, "Capturing " + Math.round((captured / frameCount) * 100) + "%");
         if (captured >= frameCount){
           clearInterval(captureTimer);
           gif.render();
         }
       }, frameDelay);
       gif.on("progress", function(p){
-        setExportStatus("Rendering GIF… " + Math.round(p * 100) + "%");
+        setButtonLabel(shareExportGifBtn, "Building " + Math.round(p * 100) + "%");
       });
       gif.on("finished", function(blob){
         downloadBlob(blob, shareCardFileName("gif"));
         setExportBusy(false);
+        setButtonLabel(shareExportGifBtn, "GIF");
         showToast("GIF downloaded");
       });
     }).catch(function(){
       setExportBusy(false);
+      setButtonLabel(shareExportGifBtn, "GIF");
       showToast("GIF export isn't available right now");
     });
   });
