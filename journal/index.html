@@ -1848,16 +1848,18 @@
     ctx.font = "800 46px 'Chakra Petch', sans-serif";
     ctx.fillText(title, pad, pad + 62);
   }
-  function drawStatRows(ctx, rows, x, y, width, rowH){
+  function drawStatRows(ctx, rows, x, y, width, rowH, labelSize, valueSize){
+    labelSize = labelSize || 21;
+    valueSize = valueSize || 23;
     rows.forEach(function(r, i){
       var ry = y + i * rowH;
       ctx.textAlign = "left";
       ctx.fillStyle = "rgba(255,255,255,0.55)";
-      ctx.font = "600 21px 'IBM Plex Mono', monospace";
+      ctx.font = "600 " + labelSize + "px 'IBM Plex Mono', monospace";
       ctx.fillText(r.label, x, ry);
       ctx.textAlign = "right";
       ctx.fillStyle = r.color || "#ffffff";
-      ctx.font = "700 23px 'IBM Plex Mono', monospace";
+      ctx.font = "700 " + valueSize + "px 'IBM Plex Mono', monospace";
       ctx.fillText(r.value, x + width, ry);
     });
   }
@@ -1983,7 +1985,7 @@
       { label: "Win rate", value: agg.winRate + "%" }
     ];
     if (agg.best) rows.push({ label: "Best trade", value: fmtMoneySigned(agg.best.pnl) + " " + (agg.best.symbol || "").toUpperCase() });
-    drawStatRows(ctx, rows, pad, pad + 330, 760, 54);
+    drawStatRows(ctx, rows, pad, pad + 330, 420, 62, 26, 30);
 
     drawCardFooter(ctx, w, h, pad);
   }
@@ -2006,9 +2008,9 @@
       { label: "Green days", value: agg.greenDays + " of " + agg.tradedDaysCount }
     ];
     if (agg.bestDay) rows.push({ label: "Best day", value: fmtMoneySigned(agg.bestDay.pnl) + " " + agg.bestDay.label });
-    drawStatRows(ctx, rows, pad, pad + 310, 640, 50);
+    drawStatRows(ctx, rows, pad, pad + 310, 320, 50);
 
-    var rightX = w * 0.62, rightY = pad + 40;
+    var rightX = w * 0.62, rightY = pad + 310;
     agg.days.forEach(function(d, i){
       var ry = rightY + i * 48;
       ctx.textAlign = "left";
@@ -2048,7 +2050,7 @@
       { label: "Best day", value: agg.bestDate ? (fmtMoneySigned(agg.bestPnl) + " " + fmtDateShort(agg.bestDate)) : "–" },
       { label: "Trades", value: String(agg.count) }
     ];
-    drawStatRows(ctx, rows, pad, pad + 310, 640, 50);
+    drawStatRows(ctx, rows, pad, pad + 310, 350, 50);
 
     var curvePoints = [{ date: null, label: "", value: 0 }].concat(
       agg.curve.map(function(p){ return { date: p.date, label: fmtDateShort(p.date), value: p.value }; })
