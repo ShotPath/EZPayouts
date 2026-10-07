@@ -1639,8 +1639,21 @@
   // thumb is the small grid tile image, src is the real background. type is
   // "image" or "video" — a .gif works fine as type "image", since <img>
   // animates it on its own and the canvas draws whatever frame is showing.
-  var SHARE_BG_PRESET_MEDIA = [];
-  var SHARE_BG_LIST = SHARE_BG_GRADIENTS.concat(SHARE_BG_PRESET_MEDIA);
+  var SHARE_BG_PRESET_MEDIA = [
+    { id: "japanese", label: "Japanese", type: "video", thumb: "share-presets/japanese-thumb.jpg", src: "share-presets/japanese.webm" },
+    { id: "jjk-1", label: "JJK I", type: "video", thumb: "share-presets/jjk-1-thumb.jpg", src: "share-presets/jjk-1.webm" },
+    { id: "jjk-2", label: "JJK II", type: "video", thumb: "share-presets/jjk-2-thumb.jpg", src: "share-presets/jjk-2.webm" },
+    { id: "porsche", label: "Porsche", type: "video", thumb: "share-presets/porsche-thumb.jpg", src: "share-presets/porsche.webm" },
+    { id: "bleach", label: "Bleach", type: "video", thumb: "share-presets/bleach-thumb.jpg", src: "share-presets/bleach.webm" },
+    { id: "bruce-wayne", label: "Bruce Wayne", type: "video", thumb: "share-presets/bruce-wayne-thumb.jpg", src: "share-presets/bruce-wayne.webm" },
+    { id: "one-piece", label: "One Piece", type: "video", thumb: "share-presets/one-piece-thumb.jpg", src: "share-presets/one-piece.webm" },
+    { id: "pain", label: "Pain", type: "video", thumb: "share-presets/pain-thumb.jpg", src: "share-presets/pain.webm" },
+    { id: "porsche-2", label: "Porsche II", type: "video", thumb: "share-presets/porsche-2-thumb.jpg", src: "share-presets/porsche-2.webm" }
+  ];
+  // The picker only shows the video/image presets now — SHARE_BG_GRADIENTS
+  // stays defined as an internal fallback color (see drawBackgroundLayer)
+  // for the moment before a preset's media has finished loading.
+  var SHARE_BG_LIST = SHARE_BG_PRESET_MEDIA;
   var SHARE_BG_VISIBLE_COUNT = 8;
   var SHARE_EXPORT_DURATION_MS = 3000;
   var SHARE_MAX_VIDEO_EXPORT_MS = 20000;
@@ -1693,8 +1706,10 @@
     weekly: "Download a card for this week to post anywhere.",
     monthly: "Download a card for this month to post anywhere."
   };
+  // Placeholder until openShareModal picks SHARE_BG_LIST[0] on first open
+  // (shareBgActiveId won't match any real preset id, so it always does).
   var shareBg = { type: "gradient", stops: SHARE_BG_GRADIENTS[0].stops };
-  var shareBgActiveId = SHARE_BG_GRADIENTS[0].id;
+  var shareBgActiveId = null;
   var shareBgVideoDuration = null;
   var shareUploadedUrl = null;
   var sharePreviewRAF = null;
@@ -2187,11 +2202,7 @@
     shareBgGifEl.removeAttribute("src");
     shareBgImgEl.removeAttribute("src");
     shareBgVideoDuration = null;
-    var def = SHARE_BG_GRADIENTS[0];
-    shareBg = { type: "gradient", stops: def.stops };
-    shareBgActiveId = def.id;
-    syncBgGridActiveState();
-    applyShareBgChange();
+    if (SHARE_BG_LIST.length) selectPresetBg(SHARE_BG_LIST[0]);
   });
 
   function openShareModal(trade){
@@ -2206,7 +2217,9 @@
     shareModalOverlay.hidden = false;
     layoutSegThumb(sharePeriodTabs, true);
     renderBgGrid();
-    applyShareBgChange();
+    var isKnownPreset = SHARE_BG_LIST.some(function(e){ return e.id === shareBgActiveId; });
+    if (!isKnownPreset && SHARE_BG_LIST.length) selectPresetBg(SHARE_BG_LIST[0]);
+    else applyShareBgChange();
   }
   function closeShareModal(){
     shareModalOverlay.hidden = true;
