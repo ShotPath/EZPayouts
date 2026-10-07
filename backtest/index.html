@@ -217,6 +217,63 @@
   }
   .field input[type="text"]::placeholder{ color:var(--muted-dim); }
   .field input[type="text"]:focus{ border-color:var(--phosphor-dim); }
+  .field textarea{
+    width:100%; min-height:72px; resize:vertical; font-family:var(--font-body); font-size:13.5px;
+    color:var(--ice); background:var(--panel-raised); border:1px solid var(--hairline); border-radius:10px;
+    padding:10px 12px; outline:none; transition:border-color .15s;
+  }
+  .field textarea::placeholder{ color:var(--muted-dim); }
+  .field textarea:focus{ border-color:var(--phosphor-dim); }
+
+  /* ---------- Quick Log / Log mode toggle ---------- */
+  .log-mode-toggle{
+    display:inline-flex; align-items:stretch; margin-bottom:16px;
+    border-radius:999px; overflow:hidden; border:1px solid var(--hairline-bright); background:var(--panel);
+  }
+  .log-mode-toggle .seg-thumb{ border-radius:inherit; }
+  .log-mode-toggle button{
+    flex:1; font-family:var(--font-mono); font-size:12px; font-weight:700; padding:9px 16px;
+    background:transparent; border:none; color:var(--muted); cursor:pointer; transition:color .15s; white-space:nowrap;
+  }
+  .log-mode-toggle button.active{ color:var(--mint-text); }
+
+  .bt-form-row{ display:flex; gap:14px; flex-wrap:wrap; margin-bottom:14px; }
+  .bt-form-row .field{ flex:1; min-width:140px; margin-bottom:0; }
+  #modelField, #rrField, #resultField, #gradeField, #notesField{ margin-bottom:14px; }
+
+  .field-label-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:6px; }
+  .field-hint-inline{ font-family:var(--font-mono); font-size:10px; color:var(--muted-dim); }
+
+  /* ---------- Result tiles (Win/BE/Loss) ---------- */
+  .result-tiles{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .result-tile{
+    display:flex; flex-direction:column; align-items:center; gap:6px; padding:14px 10px;
+    border-radius:14px; border:1px solid var(--hairline); background:var(--panel-raised); color:var(--muted);
+    cursor:pointer; transition:border-color .15s, background .15s, color .15s;
+  }
+  .result-tile svg{ width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .result-tile-label{ font-family:var(--font-display); font-weight:700; font-size:13px; letter-spacing:0.02em; }
+  .result-tile-hint{ font-family:var(--font-mono); font-size:10px; color:var(--muted-dim); }
+  .result-tile:hover:not(.active){ border-color:var(--hairline-bright); color:var(--ice); }
+  .result-tile.win.active{ border-color:var(--phosphor); background:rgba(62,224,140,0.1); color:var(--phosphor-soft); box-shadow:0 0 0 1px var(--phosphor) inset; }
+  .result-tile.be.active{ border-color:var(--amber); background:rgba(232,195,74,0.12); color:var(--amber); box-shadow:0 0 0 1px var(--amber) inset; }
+  .result-tile.loss.active{ border-color:var(--red); background:rgba(239,90,90,0.08); color:var(--red); box-shadow:0 0 0 1px var(--red) inset; }
+
+  /* ---------- Grade tiles ---------- */
+  .grade-tiles{ display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
+  .grade-tile{
+    padding:10px 4px; border-radius:10px; border:1px solid var(--hairline); background:var(--panel-raised);
+    color:var(--muted); font-family:var(--font-display); font-weight:700; font-size:14px; text-align:center;
+    cursor:pointer; transition:border-color .15s, background .15s, color .15s;
+  }
+  .grade-tile:hover:not(.active){ border-color:var(--hairline-bright); color:var(--ice); }
+  .grade-tile.grade-aplus.active{ border-color:var(--phosphor); background:rgba(62,224,140,0.14); color:var(--phosphor-soft); }
+  .grade-tile.grade-a.active{ border-color:var(--phosphor-dim); background:rgba(62,224,140,0.09); color:var(--phosphor-soft); }
+  .grade-tile.grade-b.active{ border-color:var(--ice); background:rgba(220,239,226,0.08); color:var(--ice); }
+  .grade-tile.grade-c.active{ border-color:var(--amber); background:rgba(232,195,74,0.14); color:var(--amber); }
+  .grade-tile.grade-f.active{ border-color:var(--red); background:rgba(239,90,90,0.12); color:var(--red); }
+
+  .grade-badge{ font-family:var(--font-display); font-weight:700; font-size:12px; text-align:center; color:var(--muted-dim); }
 
   .seg-track{ position:relative; }
   .seg-thumb{
@@ -224,26 +281,6 @@
     background:var(--mint); transition:transform .22s cubic-bezier(.4,0,.2,1), width .22s cubic-bezier(.4,0,.2,1), background .22s ease;
   }
   .seg-track button{ position:relative; z-index:1; }
-
-  .wl-toggle{
-    display:inline-flex; align-items:stretch;
-    border-radius:9px; overflow:hidden; border:1px solid var(--hairline-bright); background:var(--panel-raised);
-  }
-  .wl-toggle .seg-thumb{ border-radius:inherit; }
-  .wl-toggle.is-loss .seg-thumb{ background:var(--red); }
-  .wl-toggle.is-be .seg-thumb{ background:var(--amber); }
-  .wl-toggle button{
-    font-family:var(--font-mono); font-size:12px; font-weight:700; padding:10px 14px;
-    background:transparent; border:none; color:var(--muted); cursor:pointer;
-    transition:color .15s; white-space:nowrap;
-  }
-  .wl-toggle button:hover{ color:var(--ice); }
-  .wl-toggle button.active{ color:var(--mint-text); }
-  .wl-toggle button.active:hover{ color:var(--mint-text); }
-  .wl-toggle.is-loss button.active{ color:#2b0808; }
-  .wl-toggle.is-loss button.active:hover{ color:#2b0808; }
-  .wl-toggle.is-be button.active{ color:#2b1f05; }
-  .wl-toggle.is-be button.active:hover{ color:#2b1f05; }
 
   .log-btn{
     font-family:var(--font-display); font-weight:600; font-size:13.5px; padding:11px 22px;
@@ -341,9 +378,9 @@
   .bulk-bar .danger-btn:hover{ border-color:var(--red); background:rgba(239,90,90,0.1); }
 
   .bt-table-wrap{ overflow-x:auto; }
-  .bt-table{ min-width:640px; }
+  .bt-table{ min-width:700px; }
   .bt-table-row{
-    display:grid; grid-template-columns:26px 1fr 100px 84px 1.3fr 76px;
+    display:grid; grid-template-columns:26px 1fr 100px 84px 60px 1.3fr 76px;
     align-items:center; gap:10px; padding:11px 6px; border-bottom:1px solid var(--hairline); border-radius:8px;
   }
   .bt-table-row:hover:not(.bt-table-row-head){ background:var(--panel-hi); }
@@ -442,8 +479,9 @@
   .help-body b{ color:var(--ice); }
 
   @media (max-width:480px){
-    .bt-table-row{ grid-template-columns:22px minmax(0,1fr) 60px 60px 0 56px; gap:6px; padding:10px 2px; }
+    .bt-table-row{ grid-template-columns:22px minmax(0,1fr) 60px 60px 0 0 56px; gap:6px; padding:10px 2px; }
     .bt-note-preview-cell{ display:none; }
+    .bt-grade-cell{ display:none; }
     .bt-model{ white-space:normal; overflow-wrap:break-word; font-size:13.5px; }
     .bt-rr{ font-size:11px; }
     .bt-badge{ font-size:9px; padding:3px 6px; }
@@ -556,29 +594,66 @@
 
   <div class="journal-card">
     <p class="bt-card-title">Log a Trade</p>
-    <div class="bt-form">
-      <label class="field">
-        <span class="field-label">Model</span>
-        <input type="text" id="btModel" placeholder="e.g. ICT breaker" maxlength="60" />
-      </label>
-      <label class="field">
-        <span class="field-label">Risk:Reward</span>
-        <input type="text" id="btRR" placeholder="e.g. 1:2" maxlength="16" />
-      </label>
-      <div class="field">
-        <span class="field-label">Result</span>
-        <div class="wl-toggle seg-track" id="wlToggle">
-          <span class="seg-thumb" aria-hidden="true"></span>
-          <button type="button" class="active" data-result="win">Win</button>
-          <button type="button" data-result="breakeven" aria-label="Breakeven">BE</button>
-          <button type="button" data-result="loss">Loss</button>
-        </div>
-      </div>
-      <div class="field">
-        <span class="field-label" aria-hidden="true">&nbsp;</span>
-        <button class="log-btn" id="logBtn" type="button" disabled>+ Log Trade</button>
+
+    <div class="log-mode-toggle seg-track" id="logModeToggle">
+      <span class="seg-thumb" aria-hidden="true"></span>
+      <button type="button" class="active" data-mode="quick">Quick Log</button>
+      <button type="button" data-mode="full">Log</button>
+    </div>
+
+    <!-- Model/Risk:Reward/Result/Grade are single shared elements, moved
+         between this container and #fullLogFields by setLogMode() below. -->
+    <div id="quickLogFields">
+      <div class="bt-form-row" id="quickRow1"></div>
+    </div>
+    <div id="fullLogFields" hidden>
+      <div class="bt-form-row" id="fullRow1"></div>
+    </div>
+
+    <div class="field" id="modelField">
+      <span class="field-label">Model</span>
+      <input type="text" id="btModel" placeholder="e.g. ICT breaker" maxlength="60" />
+    </div>
+    <div class="field" id="rrField">
+      <span class="field-label">Risk:Reward</span>
+      <input type="text" id="btRR" placeholder="e.g. 1:2" maxlength="16" />
+    </div>
+    <div class="field" id="resultField">
+      <span class="field-label">Result</span>
+      <div class="result-tiles" id="resultTiles">
+        <button type="button" class="result-tile win active" data-result="win">
+          <svg viewBox="0 0 20 20"><path d="M4 13l4-4 3 3 5-6" /><path d="M13 5h3v3" /></svg>
+          <span class="result-tile-label">Win</span>
+          <span class="result-tile-hint">Press W</span>
+        </button>
+        <button type="button" class="result-tile be" data-result="breakeven">
+          <svg viewBox="0 0 20 20"><path d="M4 10h12" /></svg>
+          <span class="result-tile-label">BE</span>
+          <span class="result-tile-hint">Press B</span>
+        </button>
+        <button type="button" class="result-tile loss" data-result="loss">
+          <svg viewBox="0 0 20 20"><path d="M4 7l4 4 3-3 5 6" /><path d="M13 11h3v-3" /></svg>
+          <span class="result-tile-label">Loss</span>
+          <span class="result-tile-hint">Press L</span>
+        </button>
       </div>
     </div>
+    <div class="field" id="gradeField">
+      <div class="field-label-row"><span class="field-label">Grade</span><span class="field-hint-inline">optional &middot; press 1&ndash;5</span></div>
+      <div class="grade-tiles" id="gradeTiles">
+        <button type="button" class="grade-tile grade-aplus" data-grade="A+">A+</button>
+        <button type="button" class="grade-tile grade-a" data-grade="A">A</button>
+        <button type="button" class="grade-tile grade-b" data-grade="B">B</button>
+        <button type="button" class="grade-tile grade-c" data-grade="C">C</button>
+        <button type="button" class="grade-tile grade-f" data-grade="F">F</button>
+      </div>
+    </div>
+    <div class="field" id="notesField" hidden>
+      <span class="field-label">Notes <span style="text-transform:none;">(optional)</span></span>
+      <textarea id="btQuickNotes" placeholder="What happened on this trade? Entry logic, mistakes, what you'd do differently..."></textarea>
+    </div>
+
+    <button class="log-btn" id="logBtn" type="button" disabled>+ Log Trade</button>
     <p class="bt-hint">Risk:Reward accepts either format &mdash; <span class="mono">1:2</span> or just <span class="mono">2</span>.</p>
     <div class="bt-shot">
       <input type="file" id="btShotInput" accept="image/png,image/jpeg,image/webp,image/gif" hidden />
@@ -651,6 +726,7 @@
     <div class="help-body">
       <p>This is for testing a strategy's theoretical edge &mdash; <b>Model</b> (your setup name), <b>Risk:Reward</b>, and <b>Win/BE/Loss</b> &mdash; separate from the Journal, which logs your actual trades with real dollar P&amp;L.</p>
       <p>Risk:Reward accepts <span class="mono">1:2</span> or just <span class="mono">2</span>. A loss always counts as exactly &minus;1R; a win counts as whatever R you entered; breakeven counts as 0R.</p>
+      <p>The form opens in <b>Quick Log</b> &mdash; Model, Risk:Reward, Result, and an optional Grade, with keyboard shortcuts (<span class="mono">W</span>/<span class="mono">B</span>/<span class="mono">L</span> for the result, <span class="mono">1&ndash;5</span> for grade). Switch to <b>Log</b> to also jot a note at the same time you log the trade.</p>
       <p>Use the strategy tabs at the top to keep separate backtests for separate setups &mdash; up to 5. Double-click a tab to rename or delete it, or drag to reorder. <b>+ Strategy</b> adds another.</p>
       <p><b>Analyze a chart screenshot</b> uses AI to read a chart image and fill in Model/Risk:Reward/Result for you to review and confirm &mdash; sign in to use it.</p>
       <p><b>Net R</b> is your total R across all logged trades; <b>Avg R</b> is that divided by trade count (your expectancy per trade); <b>Profit Factor</b> is R won on wins &divide; R lost on losses.</p>
@@ -670,7 +746,19 @@
   var modelInput = document.getElementById("btModel");
   var rrInput = document.getElementById("btRR");
   var logBtn = document.getElementById("logBtn");
-  var wlToggle = document.getElementById("wlToggle");
+  var logModeToggle = document.getElementById("logModeToggle");
+  var quickLogFields = document.getElementById("quickLogFields");
+  var fullLogFields = document.getElementById("fullLogFields");
+  var quickRow1 = document.getElementById("quickRow1");
+  var fullRow1 = document.getElementById("fullRow1");
+  var modelField = document.getElementById("modelField");
+  var rrField = document.getElementById("rrField");
+  var resultField = document.getElementById("resultField");
+  var resultTiles = document.getElementById("resultTiles");
+  var gradeField = document.getElementById("gradeField");
+  var gradeTiles = document.getElementById("gradeTiles");
+  var notesField = document.getElementById("notesField");
+  var btQuickNotes = document.getElementById("btQuickNotes");
   var tableEl = document.getElementById("btTable");
   var clearBtn = document.getElementById("clearBtn");
   var exportCsvBtn = document.getElementById("exportCsvBtn");
@@ -698,6 +786,8 @@
   var SCREENSHOT_API_BASE = window.EZ_COACH_BASE || "https://ezpayouts-coach.ezpayouts.workers.dev";
 
   var currentResult = "win";
+  var currentGrade = "";
+  var logMode = "quick";
   var currentFilter = "all";
   var searchQuery = "";
   var sortKey = null;
@@ -823,12 +913,11 @@
     entriesByStrategy = { s1: [] };
     entries = entriesByStrategy.s1;
     try { localStorage.removeItem(STORAGE_KEY); } catch (err) {}
-    currentResult = "win";
-    wlToggle.querySelectorAll("button").forEach(function(b){
-      b.classList.toggle("active", b.getAttribute("data-result") === "win");
-    });
-    wlToggle.classList.remove("is-loss", "is-be");
-    layoutSegThumb(wlToggle, true);
+    setResult("win");
+    currentGrade = "";
+    gradeTiles.querySelectorAll(".grade-tile").forEach(function(b){ b.classList.remove("active"); });
+    btQuickNotes.value = "";
+    setLogMode("quick");
     resetFilterAndFormUI();
     renderStrategyTabs(true);
     renderAll();
@@ -1332,16 +1421,73 @@
     });
   });
 
-  wlToggle.addEventListener("click", function(e){
-    var btn = e.target.closest("button[data-result]");
-    if (!btn) return;
-    currentResult = btn.getAttribute("data-result");
-    wlToggle.querySelectorAll("button").forEach(function(b){
-      b.classList.toggle("active", b === btn);
+  function setResult(result){
+    currentResult = (result === "loss" || result === "breakeven") ? result : "win";
+    resultTiles.querySelectorAll(".result-tile").forEach(function(b){
+      b.classList.toggle("active", b.getAttribute("data-result") === currentResult);
     });
-    wlToggle.classList.toggle("is-loss", currentResult === "loss");
-    wlToggle.classList.toggle("is-be", currentResult === "breakeven");
-    layoutSegThumb(wlToggle);
+  }
+  resultTiles.addEventListener("click", function(e){
+    var btn = e.target.closest(".result-tile[data-result]");
+    if (!btn) return;
+    setResult(btn.getAttribute("data-result"));
+  });
+
+  function setGrade(grade){
+    currentGrade = (currentGrade === grade) ? "" : grade;
+    gradeTiles.querySelectorAll(".grade-tile").forEach(function(b){ b.classList.toggle("active", b.getAttribute("data-grade") === currentGrade); });
+  }
+  gradeTiles.addEventListener("click", function(e){
+    var btn = e.target.closest(".grade-tile[data-grade]");
+    if (!btn) return;
+    setGrade(btn.getAttribute("data-grade"));
+  });
+
+  // Model/Risk:Reward/Result/Grade are single shared elements, moved between
+  // #quickLogFields and #fullLogFields by setLogMode() below. Notes is Full-only.
+  function layoutQuickMode(){
+    quickRow1.appendChild(modelField);
+    quickRow1.appendChild(rrField);
+    quickLogFields.appendChild(resultField);
+    quickLogFields.appendChild(gradeField);
+    notesField.hidden = true;
+  }
+  function layoutFullMode(){
+    fullRow1.appendChild(modelField);
+    fullRow1.appendChild(rrField);
+    fullLogFields.appendChild(resultField);
+    fullLogFields.appendChild(gradeField);
+    fullLogFields.appendChild(notesField);
+    notesField.hidden = false;
+  }
+  function setLogMode(mode){
+    logMode = mode === "full" ? "full" : "quick";
+    logModeToggle.querySelectorAll("button").forEach(function(b){
+      b.classList.toggle("active", b.getAttribute("data-mode") === logMode);
+    });
+    layoutSegThumb(logModeToggle, true);
+    quickLogFields.hidden = logMode !== "quick";
+    fullLogFields.hidden = logMode !== "full";
+    if (logMode === "quick") layoutQuickMode(); else layoutFullMode();
+  }
+  logModeToggle.addEventListener("click", function(e){
+    var btn = e.target.closest("button[data-mode]");
+    if (!btn) return;
+    setLogMode(btn.getAttribute("data-mode"));
+  });
+
+  // W/B/L select a result, 1-5 select a grade — only while focus isn't inside
+  // a text field and no modal is open, so typing "Loss" in Notes never fires it.
+  document.addEventListener("keydown", function(e){
+    if (!noteModalOverlay.hidden || !helpModalOverlay.hidden) return;
+    var tag = e.target.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+    var key = e.key.toLowerCase();
+    if (key === "w"){ setResult("win"); return; }
+    if (key === "b"){ setResult("breakeven"); return; }
+    if (key === "l"){ setResult("loss"); return; }
+    var gradeIdx = ["1","2","3","4","5"].indexOf(e.key);
+    if (gradeIdx !== -1) setGrade(["A+","A","B","C","F"][gradeIdx]);
   });
 
   btFilter.addEventListener("click", function(e){
@@ -1372,10 +1518,13 @@
       rrDisplay: rrInput.value.trim(),
       rrMultiple: rrMultiple,
       result: currentResult,
-      note: ""
+      grade: currentGrade || undefined,
+      note: btQuickNotes.value.trim()
     });
     save();
     rrInput.value = "";
+    setGrade("");
+    btQuickNotes.value = "";
     updateValidity();
     rrInput.focus();
     renderAll();
@@ -1498,13 +1647,7 @@
       if (suggestion.model) modelInput.value = String(suggestion.model).slice(0, 60);
       if (suggestion.rrDisplay) rrInput.value = String(suggestion.rrDisplay).slice(0, 16);
       if (suggestion.result === "win" || suggestion.result === "loss" || suggestion.result === "breakeven"){
-        currentResult = suggestion.result;
-        wlToggle.querySelectorAll("button").forEach(function(b){
-          b.classList.toggle("active", b.getAttribute("data-result") === currentResult);
-        });
-        wlToggle.classList.toggle("is-loss", currentResult === "loss");
-        wlToggle.classList.toggle("is-be", currentResult === "breakeven");
-        layoutSegThumb(wlToggle);
+        setResult(suggestion.result);
       }
       updateValidity();
       setShotStatus("Filled in below, review and confirm" + (suggestion.notes ? ": " + suggestion.notes : "."), "success");
@@ -1559,7 +1702,7 @@
   exportCsvBtn.addEventListener("click", function(){
     if (!entries.length) return;
     var strategy = state.strategies.filter(function(s){ return s.id === state.activeId; })[0];
-    var rows = [["Strategy", "Model", "Risk:Reward", "R Multiple", "Result", "Note"]];
+    var rows = [["Strategy", "Model", "Risk:Reward", "R Multiple", "Result", "Grade", "Note"]];
     entries.forEach(function(en){
       rows.push([
         strategy ? strategy.name : "",
@@ -1567,6 +1710,7 @@
         en.rrDisplay,
         en.rrMultiple,
         en.result,
+        en.grade || "",
         en.note || ""
       ]);
     });
@@ -1611,6 +1755,7 @@
       '<span class="sortable" data-sort="model">Model' + sortArrow("model") + '</span>' +
       '<span class="sortable" data-sort="rr"><span class="rr-full">Risk:Reward</span><span class="rr-short">R:R</span>' + sortArrow("rr") + '</span>' +
       '<span class="sortable" data-sort="result">Result' + sortArrow("result") + '</span>' +
+      '<span>Grade</span>' +
       '<span>Note</span>' +
       '<span style="text-align:right;">Actions</span>' +
     '</div>';
@@ -1623,6 +1768,7 @@
       '<span class="bt-model" title="' + escapeHtml(en.model) + '">' + escapeHtml(en.model) + '</span>' +
       '<span class="bt-rr mono">' + escapeHtml(en.rrDisplay) + '</span>' +
       '<span class="bt-badge ' + badge.cls + '">' + badge.label + '</span>' +
+      '<span class="grade-badge bt-grade-cell">' + (en.grade ? escapeHtml(en.grade) : "–") + '</span>' +
       '<span class="bt-note-preview-cell' + (hasNote ? "" : " dim") + '" title="' + (hasNote ? escapeHtml(en.note) : "") + '">' + (hasNote ? escapeHtml(en.note) : "–") + '</span>' +
       '<span class="row-actions">' +
         '<button type="button" class="row-action note' + (hasNote ? " has-note" : "") + '" data-id="' + en.id + '" aria-label="' + (hasNote ? "Edit note" : "Add note") + '"><svg viewBox="0 0 20 20"><path d="M13.5 3.5l3 3L7 16l-4 1 1-4z" /></svg></button>' +
@@ -1714,7 +1860,7 @@
   window.addEventListener("resize", function(){
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(function(){
-      layoutSegThumb(wlToggle, true);
+      layoutSegThumb(logModeToggle, true);
       layoutSegThumb(btFilter, true);
       layoutSegThumb(strategyTabs, true);
     }, 100);
@@ -1724,7 +1870,7 @@
   renderStrategyTabs(true);
   renderAll();
   updateValidity();
-  layoutSegThumb(wlToggle, true);
+  setLogMode("quick");
   layoutSegThumb(btFilter, true);
   syncFromAccount();
   if (window.EZAuth) {
