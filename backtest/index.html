@@ -225,18 +225,6 @@
   .field textarea::placeholder{ color:var(--muted-dim); }
   .field textarea:focus{ border-color:var(--phosphor-dim); }
 
-  /* ---------- Quick Log / Log mode toggle ---------- */
-  .log-mode-toggle{
-    display:inline-flex; align-items:stretch; margin-bottom:16px;
-    border-radius:999px; overflow:hidden; border:1px solid var(--hairline-bright); background:var(--panel);
-  }
-  .log-mode-toggle .seg-thumb{ border-radius:inherit; }
-  .log-mode-toggle button{
-    flex:1; font-family:var(--font-mono); font-size:12px; font-weight:700; padding:9px 16px;
-    background:transparent; border:none; color:var(--muted); cursor:pointer; transition:color .15s; white-space:nowrap;
-  }
-  .log-mode-toggle button.active{ color:var(--mint-text); }
-
   .bt-form-row{ display:flex; gap:14px; flex-wrap:wrap; margin-bottom:14px; }
   .bt-form-row .field{ flex:1; min-width:140px; margin-bottom:0; }
   #modelField, #rrField, #resultField, #gradeField, #notesField{ margin-bottom:14px; }
@@ -595,43 +583,15 @@
   <div class="journal-card">
     <p class="bt-card-title">Log a Trade</p>
 
-    <div class="log-mode-toggle seg-track" id="logModeToggle">
-      <span class="seg-thumb" aria-hidden="true"></span>
-      <button type="button" class="active" data-mode="quick">Quick Log</button>
-      <button type="button" data-mode="full">Log</button>
-    </div>
-    <script>
-      // Position the thumb the instant this markup exists, so the browser
-      // never gets a chance to paint "Quick Log" in its active (dark-on-mint)
-      // text color before the mint pill is actually drawn behind it — the
-      // bottom-of-page script runs too late to rule that paint out on its own.
-      (function(){
-        var track = document.getElementById("logModeToggle");
-        var thumb = track.querySelector(".seg-thumb");
-        var active = track.querySelector("button.active");
-        if (!thumb || !active) return;
-        thumb.style.transition = "none";
-        thumb.style.width = active.offsetWidth + "px";
-        thumb.style.transform = "translateX(" + active.offsetLeft + "px)";
-      })();
-    </script>
-
-    <!-- Model/Risk:Reward/Result/Grade are single shared elements, moved
-         between this container and #fullLogFields by setLogMode() below. -->
-    <div id="quickLogFields">
-      <div class="bt-form-row" id="quickRow1"></div>
-    </div>
-    <div id="fullLogFields" hidden>
-      <div class="bt-form-row" id="fullRow1"></div>
-    </div>
-
-    <div class="field" id="modelField">
-      <span class="field-label">Model</span>
-      <input type="text" id="btModel" placeholder="e.g. ICT breaker" maxlength="60" />
-    </div>
-    <div class="field" id="rrField">
-      <span class="field-label">Risk:Reward</span>
-      <input type="text" id="btRR" placeholder="e.g. 1:2" maxlength="16" />
+    <div class="bt-form-row">
+      <div class="field" id="modelField">
+        <span class="field-label">Model</span>
+        <input type="text" id="btModel" placeholder="e.g. ICT breaker" maxlength="60" />
+      </div>
+      <div class="field" id="rrField">
+        <span class="field-label">Risk:Reward</span>
+        <input type="text" id="btRR" placeholder="e.g. 1:2" maxlength="16" />
+      </div>
     </div>
     <div class="field" id="resultField">
       <span class="field-label">Result</span>
@@ -663,7 +623,7 @@
         <button type="button" class="grade-tile grade-f" data-grade="F">F</button>
       </div>
     </div>
-    <div class="field" id="notesField" hidden>
+    <div class="field" id="notesField">
       <span class="field-label">Notes <span style="text-transform:none;">(optional)</span></span>
       <textarea id="btQuickNotes" placeholder="What happened on this trade? Entry logic, mistakes, what you'd do differently..."></textarea>
     </div>
@@ -741,7 +701,7 @@
     <div class="help-body">
       <p>This is for testing a strategy's theoretical edge &mdash; <b>Model</b> (your setup name), <b>Risk:Reward</b>, and <b>Win/BE/Loss</b> &mdash; separate from the Journal, which logs your actual trades with real dollar P&amp;L.</p>
       <p>Risk:Reward accepts <span class="mono">1:2</span> or just <span class="mono">2</span>. A loss always counts as exactly &minus;1R; a win counts as whatever R you entered; breakeven counts as 0R.</p>
-      <p>The form opens in <b>Quick Log</b> &mdash; Model, Risk:Reward, Result, and an optional Grade, with keyboard shortcuts (<span class="mono">W</span>/<span class="mono">B</span>/<span class="mono">L</span> for the result, <span class="mono">1&ndash;5</span> for grade). Switch to <b>Log</b> to also jot a note at the same time you log the trade.</p>
+      <p>Model, Risk:Reward, Result, an optional Grade, and an optional Note &mdash; with keyboard shortcuts (<span class="mono">W</span>/<span class="mono">B</span>/<span class="mono">L</span> for the result, <span class="mono">1&ndash;5</span> for grade).</p>
       <p>Use the strategy tabs at the top to keep separate backtests for separate setups &mdash; up to 5. Double-click a tab to rename or delete it, or drag to reorder. <b>+ Strategy</b> adds another.</p>
       <p><b>Analyze a chart screenshot</b> uses AI to read a chart image and fill in Model/Risk:Reward/Result for you to review and confirm &mdash; sign in to use it.</p>
       <p><b>Net R</b> is your total R across all logged trades; <b>Avg R</b> is that divided by trade count (your expectancy per trade); <b>Profit Factor</b> is R won on wins &divide; R lost on losses.</p>
@@ -761,18 +721,8 @@
   var modelInput = document.getElementById("btModel");
   var rrInput = document.getElementById("btRR");
   var logBtn = document.getElementById("logBtn");
-  var logModeToggle = document.getElementById("logModeToggle");
-  var quickLogFields = document.getElementById("quickLogFields");
-  var fullLogFields = document.getElementById("fullLogFields");
-  var quickRow1 = document.getElementById("quickRow1");
-  var fullRow1 = document.getElementById("fullRow1");
-  var modelField = document.getElementById("modelField");
-  var rrField = document.getElementById("rrField");
-  var resultField = document.getElementById("resultField");
   var resultTiles = document.getElementById("resultTiles");
-  var gradeField = document.getElementById("gradeField");
   var gradeTiles = document.getElementById("gradeTiles");
-  var notesField = document.getElementById("notesField");
   var btQuickNotes = document.getElementById("btQuickNotes");
   var tableEl = document.getElementById("btTable");
   var clearBtn = document.getElementById("clearBtn");
@@ -802,7 +752,6 @@
 
   var currentResult = "win";
   var currentGrade = "";
-  var logMode = "quick";
   var currentFilter = "all";
   var searchQuery = "";
   var sortKey = null;
@@ -932,7 +881,6 @@
     currentGrade = "";
     gradeTiles.querySelectorAll(".grade-tile").forEach(function(b){ b.classList.remove("active"); });
     btQuickNotes.value = "";
-    setLogMode("quick");
     resetFilterAndFormUI();
     renderStrategyTabs(true);
     renderAll();
@@ -1458,39 +1406,6 @@
     setGrade(btn.getAttribute("data-grade"));
   });
 
-  // Model/Risk:Reward/Result/Grade are single shared elements, moved between
-  // #quickLogFields and #fullLogFields by setLogMode() below. Notes is Full-only.
-  function layoutQuickMode(){
-    quickRow1.appendChild(modelField);
-    quickRow1.appendChild(rrField);
-    quickLogFields.appendChild(resultField);
-    quickLogFields.appendChild(gradeField);
-    notesField.hidden = true;
-  }
-  function layoutFullMode(){
-    fullRow1.appendChild(modelField);
-    fullRow1.appendChild(rrField);
-    fullLogFields.appendChild(resultField);
-    fullLogFields.appendChild(gradeField);
-    fullLogFields.appendChild(notesField);
-    notesField.hidden = false;
-  }
-  function setLogMode(mode){
-    logMode = mode === "full" ? "full" : "quick";
-    logModeToggle.querySelectorAll("button").forEach(function(b){
-      b.classList.toggle("active", b.getAttribute("data-mode") === logMode);
-    });
-    layoutSegThumb(logModeToggle, true);
-    quickLogFields.hidden = logMode !== "quick";
-    fullLogFields.hidden = logMode !== "full";
-    if (logMode === "quick") layoutQuickMode(); else layoutFullMode();
-  }
-  logModeToggle.addEventListener("click", function(e){
-    var btn = e.target.closest("button[data-mode]");
-    if (!btn) return;
-    setLogMode(btn.getAttribute("data-mode"));
-  });
-
   // W/B/L select a result, 1-5 select a grade — only while focus isn't inside
   // a text field and no modal is open, so typing "Loss" in Notes never fires it.
   document.addEventListener("keydown", function(e){
@@ -1875,7 +1790,6 @@
   window.addEventListener("resize", function(){
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(function(){
-      layoutSegThumb(logModeToggle, true);
       layoutSegThumb(btFilter, true);
       layoutSegThumb(strategyTabs, true);
     }, 100);
@@ -1885,24 +1799,19 @@
   renderStrategyTabs(true);
   renderAll();
   updateValidity();
-  setLogMode("quick");
   layoutSegThumb(btFilter, true);
   syncFromAccount();
 
   // The seg-thumbs above are measured as soon as this script runs, which can
-  // land before webfonts finish swapping in and shift button widths slightly
-  // (most visible on #logModeToggle, which — unlike the trade modal's own
-  // toggle — is on screen from first paint). Re-measure once everything has
-  // actually finished loading so the thumb never gets stuck under slightly
-  // wrong (or zero) dimensions.
+  // land before webfonts finish swapping in and shift button widths slightly.
+  // Re-measure once everything has actually finished loading so the thumb
+  // never gets stuck under slightly wrong (or zero) dimensions.
   window.addEventListener("load", function(){
-    layoutSegThumb(logModeToggle, true);
     layoutSegThumb(btFilter, true);
     layoutSegThumb(strategyTabs, true);
   });
   if (window.document.fonts && document.fonts.ready){
     document.fonts.ready.then(function(){
-      layoutSegThumb(logModeToggle, true);
       layoutSegThumb(btFilter, true);
       layoutSegThumb(strategyTabs, true);
     });
