@@ -600,6 +600,21 @@
       <button type="button" class="active" data-mode="quick">Quick Log</button>
       <button type="button" data-mode="full">Log</button>
     </div>
+    <script>
+      // Position the thumb the instant this markup exists, so the browser
+      // never gets a chance to paint "Quick Log" in its active (dark-on-mint)
+      // text color before the mint pill is actually drawn behind it — the
+      // bottom-of-page script runs too late to rule that paint out on its own.
+      (function(){
+        var track = document.getElementById("logModeToggle");
+        var thumb = track.querySelector(".seg-thumb");
+        var active = track.querySelector("button.active");
+        if (!thumb || !active) return;
+        thumb.style.transition = "none";
+        thumb.style.width = active.offsetWidth + "px";
+        thumb.style.transform = "translateX(" + active.offsetLeft + "px)";
+      })();
+    </script>
 
     <!-- Model/Risk:Reward/Result/Grade are single shared elements, moved
          between this container and #fullLogFields by setLogMode() below. -->
@@ -1873,6 +1888,25 @@
   setLogMode("quick");
   layoutSegThumb(btFilter, true);
   syncFromAccount();
+
+  // The seg-thumbs above are measured as soon as this script runs, which can
+  // land before webfonts finish swapping in and shift button widths slightly
+  // (most visible on #logModeToggle, which — unlike the trade modal's own
+  // toggle — is on screen from first paint). Re-measure once everything has
+  // actually finished loading so the thumb never gets stuck under slightly
+  // wrong (or zero) dimensions.
+  window.addEventListener("load", function(){
+    layoutSegThumb(logModeToggle, true);
+    layoutSegThumb(btFilter, true);
+    layoutSegThumb(strategyTabs, true);
+  });
+  if (window.document.fonts && document.fonts.ready){
+    document.fonts.ready.then(function(){
+      layoutSegThumb(logModeToggle, true);
+      layoutSegThumb(btFilter, true);
+      layoutSegThumb(strategyTabs, true);
+    });
+  }
   if (window.EZAuth) {
     EZAuth.onChange(function(loggedIn){
       if (loggedIn) syncFromAccount();
