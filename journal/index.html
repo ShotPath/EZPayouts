@@ -279,10 +279,14 @@
   .search-input:focus{ border-color:var(--phosphor-dim); }
 
   .trades-table-wrap{ overflow-x:auto; }
-  .trades-table{ min-width:980px; }
+  .trades-table{ min-width:1030px; }
   .trades-row{
-    display:grid; grid-template-columns:26px 76px 88px 82px 62px 108px 48px 86px 62px 1fr 88px;
+    display:grid; grid-template-columns:26px 76px 88px 82px 62px 40px 108px 48px 86px 62px 1fr 88px;
     align-items:center; gap:10px; padding:11px 8px; border-bottom:1px solid var(--hairline); border-radius:8px;
+  }
+  .grade-badge{
+    font-family:var(--font-display); font-weight:700; font-size:12px; text-align:center;
+    color:var(--muted-dim);
   }
   .trades-row:hover:not(.trades-row-head){ background:var(--panel-hi); cursor:pointer; }
   .trades-row:last-child{ border-bottom:none; }
@@ -396,18 +400,100 @@
   }
   .select:focus{ border-color:var(--phosphor-dim); }
 
-  .dir-toggle{
-    display:inline-flex; align-items:stretch; width:100%;
-    border-radius:10px; overflow:hidden; border:1px solid var(--hairline); background:var(--panel);
+  /* ---------- Quick Log / Log mode toggle ---------- */
+  .log-mode-toggle{
+    display:inline-flex; align-items:stretch; margin-bottom:16px;
+    border-radius:999px; overflow:hidden; border:1px solid var(--hairline-bright); background:var(--panel);
   }
-  .dir-toggle .seg-thumb{ border-radius:inherit; }
-  .dir-toggle.is-short .seg-thumb{ background:var(--red); }
-  .dir-toggle button{
-    flex:1; font-family:var(--font-mono); font-size:12.5px; font-weight:700; padding:10px 12px;
-    background:transparent; border:none; color:var(--muted); cursor:pointer; transition:color .15s;
+  .log-mode-toggle .seg-thumb{ border-radius:inherit; }
+  .log-mode-toggle button{
+    flex:1; font-family:var(--font-mono); font-size:12px; font-weight:700; padding:9px 16px;
+    background:transparent; border:none; color:var(--muted); cursor:pointer; transition:color .15s; white-space:nowrap;
   }
-  .dir-toggle button.active{ color:var(--mint-text); }
-  .dir-toggle.is-short button.active{ color:#2b0808; }
+  .log-mode-toggle button.active{ color:var(--mint-text); }
+
+  .field-label-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:6px; }
+  .field-label-row label{ margin-bottom:0; }
+  .field-hint-inline{ font-family:var(--font-mono); font-size:10px; color:var(--muted-dim); text-transform:none; letter-spacing:0; }
+
+  /* ---------- Direction tiles (Long/Short) ---------- */
+  .dir-tiles{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .dir-tile{
+    display:flex; flex-direction:column; align-items:center; gap:6px; padding:16px 12px;
+    border-radius:14px; border:1px solid var(--hairline); background:var(--panel); color:var(--muted);
+    cursor:pointer; transition:border-color .15s, background .15s, color .15s;
+  }
+  .dir-tile svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .dir-tile-label{ font-family:var(--font-display); font-weight:700; font-size:13.5px; letter-spacing:0.02em; }
+  .dir-tile-hint{ font-family:var(--font-mono); font-size:10px; color:var(--muted-dim); }
+  .dir-tile.long.active{ border-color:var(--phosphor); background:rgba(62,224,140,0.1); color:var(--phosphor-soft); box-shadow:0 0 0 1px var(--phosphor) inset; }
+  .dir-tile.short.active{ border-color:var(--red); background:rgba(239,90,90,0.08); color:var(--red); box-shadow:0 0 0 1px var(--red) inset; }
+  .dir-tile:hover:not(.active){ border-color:var(--hairline-bright); color:var(--ice); }
+
+  /* ---------- Grade tiles ---------- */
+  .grade-tiles{ display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
+  .grade-tile{
+    padding:10px 4px; border-radius:10px; border:1px solid var(--hairline); background:var(--panel);
+    color:var(--muted); font-family:var(--font-display); font-weight:700; font-size:14px; text-align:center;
+    cursor:pointer; transition:border-color .15s, background .15s, color .15s;
+  }
+  .grade-tile:hover:not(.active){ border-color:var(--hairline-bright); color:var(--ice); }
+  .grade-tile.grade-aplus.active{ border-color:var(--phosphor); background:rgba(62,224,140,0.14); color:var(--phosphor-soft); }
+  .grade-tile.grade-a.active{ border-color:var(--phosphor-dim); background:rgba(62,224,140,0.09); color:var(--phosphor-soft); }
+  .grade-tile.grade-b.active{ border-color:var(--ice); background:rgba(220,239,226,0.08); color:var(--ice); }
+  .grade-tile.grade-c.active{ border-color:var(--amber); background:rgba(232,195,74,0.14); color:var(--amber); }
+  .grade-tile.grade-f.active{ border-color:var(--red); background:rgba(239,90,90,0.12); color:var(--red); }
+
+  /* ---------- Strategy picker ---------- */
+  .strategy-picker-btn{
+    display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%;
+    padding:10px 12px; border-radius:10px; border:1px solid var(--hairline); background:var(--panel);
+    color:var(--muted-dim); font-family:var(--font-body); font-size:13.5px; cursor:pointer; text-align:left;
+    transition:border-color .15s, color .15s;
+  }
+  .strategy-picker-btn:hover{ border-color:var(--phosphor-dim); }
+  .strategy-picker-btn.has-value{ color:var(--ice); }
+  .strategy-picker-arrow{ flex:none; color:var(--phosphor-soft); font-family:var(--font-mono); }
+  .strategy-shortcut-badge{
+    font-family:var(--font-mono); font-size:10px; font-weight:700; padding:1px 6px; border-radius:5px;
+    background:var(--panel-hi); color:var(--muted); margin-left:8px;
+  }
+  .strategy-popover{
+    position:fixed; z-index:760; width:300px; max-width:calc(100vw - 32px);
+    background:var(--panel-raised); border:1px solid var(--hairline-bright); border-radius:14px;
+    padding:10px; box-shadow:0 20px 44px -18px rgba(0,0,0,0.65);
+  }
+  .strategy-popover[hidden]{ display:none; }
+  .strategy-popover-search input{
+    width:100%; padding:9px 11px; border-radius:9px; border:1px solid var(--hairline);
+    background:var(--panel); color:var(--ice); font-family:var(--font-body); font-size:13px;
+    outline:none; transition:border-color .15s; margin-bottom:8px;
+  }
+  .strategy-popover-search input:focus{ border-color:var(--phosphor-dim); }
+  .strategy-popover-list{ max-height:220px; overflow-y:auto; }
+  .strategy-popover-empty{ padding:10px 6px; font-family:var(--font-mono); font-size:11.5px; color:var(--muted-dim); }
+  .strategy-row{ display:flex; align-items:stretch; gap:4px; border-radius:9px; }
+  .strategy-row + .strategy-row{ margin-top:2px; }
+  .strategy-row-main{
+    flex:1; min-width:0; display:flex; flex-direction:column; align-items:flex-start; gap:2px;
+    background:transparent; border:none; padding:8px 9px; cursor:pointer; text-align:left; border-radius:8px;
+  }
+  .strategy-row-main:hover{ background:var(--panel-hi); }
+  .strategy-row-name{ font-family:var(--font-display); font-weight:600; font-size:13px; color:var(--ice); }
+  .strategy-row-sub{ font-family:var(--font-mono); font-size:10px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:220px; }
+  .strategy-row-edit{
+    flex:none; width:28px; border-radius:8px; padding:0; margin:4px 0; cursor:pointer;
+    background:transparent; border:none; color:var(--muted); display:flex; align-items:center; justify-content:center;
+    transition:background .12s, color .12s;
+  }
+  .strategy-row-edit svg{ width:13px; height:13px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+  .strategy-row-edit:hover{ background:var(--panel-hi); color:var(--ice); }
+  .strategy-popover-new{
+    display:flex; align-items:center; justify-content:center; width:100%; margin-top:8px; padding:9px;
+    border-radius:9px; border:1px dashed var(--hairline-bright); background:transparent; color:var(--muted);
+    font-family:var(--font-mono); font-size:11.5px; font-weight:700; cursor:pointer; transition:border-color .15s, color .15s;
+  }
+  .strategy-popover-new:hover{ border-color:var(--phosphor-dim); color:var(--ice); }
 
   .details-toggle{
     display:inline-flex; align-items:center; gap:6px; background:transparent; border:none;
@@ -685,79 +771,109 @@
       <button type="button" class="modal-close" id="tradeModalClose" aria-label="Close">&times;</button>
     </div>
 
-    <div class="field-row">
-      <div class="field">
-        <label>Market</label>
-        <select id="tfMarket" class="select"></select>
-      </div>
-      <div class="field"><label>Symbol</label><input type="text" id="tfSymbol" placeholder="e.g. NQ, EURUSD" /></div>
-      <div class="field">
-        <label>Side</label>
-        <div class="dir-toggle seg-track" id="dirToggle">
-          <span class="seg-thumb" aria-hidden="true"></span>
-          <button type="button" class="active" data-dir="long">Long</button>
-          <button type="button" data-dir="short">Short</button>
+    <div class="log-mode-toggle seg-track" id="logModeToggle">
+      <span class="seg-thumb" aria-hidden="true"></span>
+      <button type="button" class="active" data-mode="quick">Quick Log</button>
+      <button type="button" data-mode="full">Log</button>
+    </div>
+
+    <!-- Symbol/Date/Side/P&L/Grade/Strategy are single shared elements, moved
+         between this container and #fullLogFields by setLogMode() below —
+         never duplicated, so there's exactly one source of truth per field
+         regardless of which layout currently shows it. -->
+    <div id="quickLogFields">
+      <div class="field-row" id="quickRow1"></div>
+    </div>
+
+    <div id="fullLogFields" hidden>
+      <div class="field-row" id="fullRow1">
+        <div class="field">
+          <label>Market</label>
+          <select id="tfMarket" class="select"></select>
         </div>
       </div>
-    </div>
-    <div class="field-row">
-      <div class="field"><label>Date</label><input type="date" id="tfDate" /></div>
+      <div class="field-row" id="fullRow2"></div>
+
+      <button type="button" class="details-toggle" id="detailsToggleBtn">
+        <svg viewBox="0 0 20 20"><path d="M5 7l5 6 5-6" /></svg>
+        <span id="detailsToggleLabel">Show trade details</span>
+      </button>
+      <p class="details-hint">Optional &mdash; entry/exit/lots for your records, stop/target to calculate planned R:R.</p>
+      <div id="tfDetails" hidden>
+        <div class="field-row">
+          <div class="field"><label>Entry</label><input type="number" step="any" id="tfEntry" placeholder="e.g. 1.08450" /></div>
+          <div class="field"><label>Exit</label><input type="number" step="any" id="tfExit" placeholder="e.g. 1.08650" /></div>
+          <div class="field"><label>Lots / Contracts</label><input type="number" step="any" id="tfLots" placeholder="e.g. 1" /></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Stop loss</label><input type="number" step="any" id="tfStop" placeholder="e.g. 1.08300" /></div>
+          <div class="field"><label>Take profit</label><input type="number" step="any" id="tfTarget" placeholder="e.g. 1.08900" /></div>
+        </div>
+      </div>
+
+      <div class="field" id="emotionsField">
+        <label>How did you feel? <span style="text-transform:none;">(optional)</span></label>
+        <div class="tag-select" id="tfEmotions">
+          <button type="button" class="tag-pill" data-tag="Confident">Confident</button>
+          <button type="button" class="tag-pill" data-tag="Disciplined">Disciplined</button>
+          <button type="button" class="tag-pill" data-tag="Patient">Patient</button>
+          <button type="button" class="tag-pill" data-tag="Anxious">Anxious</button>
+          <button type="button" class="tag-pill" data-tag="Fearful">Fearful</button>
+          <button type="button" class="tag-pill" data-tag="FOMO">FOMO</button>
+          <button type="button" class="tag-pill" data-tag="Greedy">Greedy</button>
+          <button type="button" class="tag-pill" data-tag="Revenge">Revenge</button>
+          <button type="button" class="tag-pill" data-tag="Frustrated">Frustrated</button>
+          <button type="button" class="tag-pill" data-tag="Uncertain">Uncertain</button>
+        </div>
+      </div>
+      <div class="field"><label>Title <span style="text-transform:none;">(optional)</span></label><input type="text" id="tfTitle" placeholder="e.g. Morning breakout, clean entry" /></div>
+      <div class="field"><label>Notes <span style="text-transform:none;">(optional)</span></label><textarea id="tfNotes" placeholder="What was your reasoning? What did you notice?"></textarea></div>
       <div class="field">
-        <label>P&amp;L ($)</label>
-        <input type="text" id="tfPnl" inputmode="decimal" placeholder="e.g. 240 or -85" />
+        <label>Screenshots <span style="text-transform:none;">(optional, up to 4)</span></label>
+        <div class="image-thumbs" id="imageThumbs"></div>
+        <button type="button" class="ghost-btn" id="addImageBtn">+ Add image</button>
+        <input type="file" id="imageFileInput" accept="image/*" multiple hidden />
+        <p class="field-hint">Stored only on this device/browser &mdash; screenshots don't sync across devices.</p>
       </div>
     </div>
 
-    <button type="button" class="details-toggle" id="detailsToggleBtn">
-      <svg viewBox="0 0 20 20"><path d="M5 7l5 6 5-6" /></svg>
-      <span id="detailsToggleLabel">Show trade details</span>
-    </button>
-    <p class="details-hint">Optional &mdash; entry/exit/lots for your records, stop/target to calculate planned R:R.</p>
-    <div id="tfDetails" hidden>
-      <div class="field-row">
-        <div class="field"><label>Entry</label><input type="number" step="any" id="tfEntry" placeholder="e.g. 1.08450" /></div>
-        <div class="field"><label>Exit</label><input type="number" step="any" id="tfExit" placeholder="e.g. 1.08650" /></div>
-        <div class="field"><label>Lots / Contracts</label><input type="number" step="any" id="tfLots" placeholder="e.g. 1" /></div>
-      </div>
-      <div class="field-row">
-        <div class="field"><label>Stop loss</label><input type="number" step="any" id="tfStop" placeholder="e.g. 1.08300" /></div>
-        <div class="field"><label>Take profit</label><input type="number" step="any" id="tfTarget" placeholder="e.g. 1.08900" /></div>
-      </div>
-    </div>
-
-    <div class="field">
-      <label>Strategy / setup <span style="text-transform:none;">(optional)</span></label>
-      <input type="text" id="tfStrategy" placeholder="e.g. ICT breaker" />
-    </div>
-    <div class="field">
-      <label>How did you feel? <span style="text-transform:none;">(optional)</span></label>
-      <div class="tag-select" id="tfEmotions">
-        <button type="button" class="tag-pill" data-tag="Confident">Confident</button>
-        <button type="button" class="tag-pill" data-tag="Disciplined">Disciplined</button>
-        <button type="button" class="tag-pill" data-tag="Patient">Patient</button>
-        <button type="button" class="tag-pill" data-tag="Anxious">Anxious</button>
-        <button type="button" class="tag-pill" data-tag="Fearful">Fearful</button>
-        <button type="button" class="tag-pill" data-tag="FOMO">FOMO</button>
-        <button type="button" class="tag-pill" data-tag="Greedy">Greedy</button>
-        <button type="button" class="tag-pill" data-tag="Revenge">Revenge</button>
-        <button type="button" class="tag-pill" data-tag="Frustrated">Frustrated</button>
-        <button type="button" class="tag-pill" data-tag="Uncertain">Uncertain</button>
+    <!-- Shared field blocks: live inside #quickLogFields in source order
+         (so the page works before JS runs), relocated by layoutQuickMode()/
+         layoutFullMode(). -->
+    <div class="field" id="symbolField"><label>Symbol</label><input type="text" id="tfSymbol" placeholder="e.g. NQ, EURUSD" /></div>
+    <div class="field" id="dateField"><label>Date</label><input type="date" id="tfDate" /></div>
+    <div class="field" id="dirField">
+      <label>Side</label>
+      <div class="dir-tiles" id="dirTiles">
+        <button type="button" class="dir-tile long active" data-dir="long">
+          <svg viewBox="0 0 20 20"><path d="M4 13l4-4 3 3 5-6" /><path d="M13 5h3v3" /></svg>
+          <span class="dir-tile-label">Long</span>
+          <span class="dir-tile-hint">Press L</span>
+        </button>
+        <button type="button" class="dir-tile short" data-dir="short">
+          <svg viewBox="0 0 20 20"><path d="M4 7l4 4 3-3 5 6" /><path d="M13 11h3v-3" /></svg>
+          <span class="dir-tile-label">Short</span>
+          <span class="dir-tile-hint">Press S</span>
+        </button>
       </div>
     </div>
-    <div class="field">
-      <label>Title <span style="text-transform:none;">(optional)</span></label>
-      <input type="text" id="tfTitle" placeholder="e.g. Morning breakout, clean entry" />
+    <div class="field" id="pnlField"><label>P&amp;L ($)</label><input type="text" id="tfPnl" inputmode="decimal" placeholder="e.g. 240 or -85" /></div>
+    <div class="field" id="gradeField">
+      <div class="field-label-row"><label>Grade</label><span class="field-hint-inline">optional &middot; press 1&ndash;5</span></div>
+      <div class="grade-tiles" id="gradeTiles">
+        <button type="button" class="grade-tile grade-aplus" data-grade="A+">A+</button>
+        <button type="button" class="grade-tile grade-a" data-grade="A">A</button>
+        <button type="button" class="grade-tile grade-b" data-grade="B">B</button>
+        <button type="button" class="grade-tile grade-c" data-grade="C">C</button>
+        <button type="button" class="grade-tile grade-f" data-grade="F">F</button>
+      </div>
     </div>
-    <div class="field">
-      <label>Notes <span style="text-transform:none;">(optional)</span></label>
-      <textarea id="tfNotes" placeholder="What was your reasoning? What did you notice?"></textarea>
-    </div>
-    <div class="field">
-      <label>Screenshots <span style="text-transform:none;">(optional, up to 4)</span></label>
-      <div class="image-thumbs" id="imageThumbs"></div>
-      <button type="button" class="ghost-btn" id="addImageBtn">+ Add image</button>
-      <input type="file" id="imageFileInput" accept="image/*" multiple hidden />
-      <p class="field-hint">Stored only on this device/browser &mdash; screenshots don't sync across devices.</p>
+    <div class="field" id="strategyField">
+      <div class="field-label-row"><label>Strategy</label><span class="field-hint-inline">optional</span></div>
+      <button type="button" class="strategy-picker-btn" id="strategyPickerBtn">
+        <span id="strategyPickerLabel">None yet, add one</span>
+        <span class="strategy-picker-arrow">&rarr;</span>
+      </button>
     </div>
 
     <div class="trade-modal-foot">
@@ -765,6 +881,57 @@
       <span class="spacer"></span>
       <button type="button" class="ghost-btn" id="cancelTradeBtn">Cancel</button>
       <button type="button" class="primary-btn" id="saveTradeBtn">Save trade</button>
+    </div>
+  </div>
+</div>
+
+<div class="strategy-popover" id="strategyPopover" hidden>
+  <div class="strategy-popover-search">
+    <input type="text" id="strategySearchInput" placeholder="Search or create a strategy..." />
+  </div>
+  <div class="strategy-popover-list" id="strategyPopoverList"></div>
+  <button type="button" class="strategy-popover-new" id="strategyPopoverNewBtn">+ New strategy</button>
+</div>
+
+<div class="modal-overlay" id="strategyModalOverlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-head">
+      <div class="modal-head-left">
+        <span class="modal-head-icon" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M3 16.5V4M3 16.5H17" /><path d="m5.5 13 3-3.5 2.5 2 4-5" /></svg></span>
+        <div>
+          <span class="modal-title" id="strategyModalTitle">New Strategy</span>
+          <p class="modal-sub">Describe the setup so you can log trades to it quickly next time.</p>
+        </div>
+      </div>
+      <button type="button" class="modal-close" id="strategyModalClose" aria-label="Close">&times;</button>
+    </div>
+
+    <div class="field-row">
+      <div class="field"><label>Name</label><input type="text" id="stName" placeholder="e.g. ICT Order Block Reversal" maxlength="60" /></div>
+      <div class="field"><label>Shortcut <span style="text-transform:none;">(optional)</span></label><input type="text" id="stShortcut" placeholder="e.g. OBR" maxlength="12" /></div>
+    </div>
+    <div class="field">
+      <label>Entry Conditions <span style="text-transform:none;">(optional)</span></label>
+      <textarea id="stEntry" placeholder="Describe your entry conditions in detail..."></textarea>
+    </div>
+    <div class="field">
+      <label>Invalidation Rules <span style="text-transform:none;">(optional)</span></label>
+      <textarea id="stInvalidation" placeholder="What invalidates this setup? When do you walk away..."></textarea>
+    </div>
+    <div class="field">
+      <label>Min R:R Target <span style="text-transform:none;">(optional)</span></label>
+      <input type="number" step="any" id="stMinRR" placeholder="e.g. 2" />
+    </div>
+    <div class="field">
+      <label>Notes <span style="text-transform:none;">(optional)</span></label>
+      <textarea id="stNotes" placeholder="Additional notes, context, market conditions..."></textarea>
+    </div>
+
+    <div class="trade-modal-foot">
+      <button type="button" class="danger-btn" id="deleteStrategyBtn" hidden>Delete</button>
+      <span class="spacer"></span>
+      <button type="button" class="ghost-btn" id="cancelStrategyBtn">Cancel</button>
+      <button type="button" class="primary-btn" id="saveStrategyBtn">Save Strategy</button>
     </div>
   </div>
 </div>
@@ -783,7 +950,9 @@
       <p>Log your <b>actual</b> trades here &mdash; symbol, side, and real dollar P&amp;L &mdash; separate from the Backtest page, which is for testing a strategy's edge with model/R:R/win-loss data.</p>
       <p>Use the account switcher at the top to keep separate journals for separate funded accounts or prop firms. Each account has its own trade list, stats, and CSV export &mdash; switch any time, and <b>+ New account</b> to add another.</p>
       <p>Click <b>+ Add Trade</b> to log one manually, or <b>Import CSV</b> to bulk-import from a broker export into the active account. P&amp;L is always the number you (or your broker export) enter &mdash; it's never auto-calculated from entry/exit, since that would need a per-instrument point value this page doesn't have.</p>
-      <p>Click <b>Show trade details</b> in the trade form to add Entry, Exit, Lots, Stop loss, and Take profit. Stop + Target feed the <b>Avg R:R</b> stat; P&amp;L feeds everything else, including <b>Profit Factor</b> (gross wins &divide; gross losses).</p>
+      <p>The trade form opens in <b>Quick Log</b> &mdash; Symbol, Date, Side, P&amp;L, Grade, and Strategy, with keyboard shortcuts (<span class="mono">L</span>/<span class="mono">S</span> for side, <span class="mono">1&ndash;5</span> for grade). Switch to <b>Log</b> for Market, Entry/Exit/Lots/Stop/Target, emotion tags, a title, notes, and screenshots.</p>
+      <p>The <b>Strategy</b> field is a picker, not free text: describe a setup once (entry conditions, invalidation rules, min R:R) and quickly tag trades to it afterward, instead of retyping an inconsistent name each time. <b>+ New strategy</b> from the picker to create one.</p>
+      <p>Click <b>Show trade details</b> in Log mode to add Entry, Exit, Lots, Stop loss, and Take profit. Stop + Target feed the <b>Avg R:R</b> stat; P&amp;L feeds everything else, including <b>Profit Factor</b> (gross wins &divide; gross losses).</p>
       <p>Click any row in All Trades to open it back up, tag how you felt, write notes, and attach up to 4 screenshots. Use the search box and <b>Filters</b> to narrow the list by symbol, side, market, outcome, or date, and the checkboxes to bulk-delete.</p>
       <p>Trade numbers sync across devices when you're signed in. Screenshots are kept only in this browser and won't follow you to another device.</p>
       <p>Use the <b>Daily</b>, <b>Weekly</b>, and <b>Strategy</b> tabs to see P&amp;L rolled up by day, by week, or by the strategy tag you gave each trade.</p>
@@ -801,6 +970,7 @@
   var MAX_IMAGE_WIDTH = 900;
   var MARKET_OPTIONS = ["Futures", "Forex", "Stocks", "Crypto", "Options", "Other"];
   var EMOTION_TAGS = ["Confident", "Disciplined", "Patient", "Anxious", "Fearful", "FOMO", "Greedy", "Revenge", "Frustrated", "Uncertain"];
+  var GRADES = ["A+", "A", "B", "C", "F"];
 
   var accounts = [];
   var activeAccountId = null;
@@ -816,6 +986,11 @@
   var originalImageIds = [];
   var currentDirection = "long";
   var currentEmotions = [];
+  var currentGrade = "";
+  var currentStrategyId = null;
+  var currentStrategyName = "";
+  var logMode = "quick";
+  var editingStrategyId = null;
 
   var TRADE_DRAFT_KEY = "ezpayouts.journal.drafts.v1";
   function draftKeyFor(editId){ return editId ? ("edit:" + editId) : "new"; }
@@ -891,7 +1066,6 @@
   var tfMarket = document.getElementById("tfMarket");
   var tfDate = document.getElementById("tfDate");
   var tfSymbol = document.getElementById("tfSymbol");
-  var tfStrategy = document.getElementById("tfStrategy");
   var tfPnl = document.getElementById("tfPnl");
   var tfEntry = document.getElementById("tfEntry");
   var tfExit = document.getElementById("tfExit");
@@ -901,13 +1075,49 @@
   var tfTitle = document.getElementById("tfTitle");
   var tfNotes = document.getElementById("tfNotes");
   var tfEmotions = document.getElementById("tfEmotions");
-  var dirToggleEl = document.getElementById("dirToggle");
   var detailsToggleBtn = document.getElementById("detailsToggleBtn");
   var detailsToggleLabel = document.getElementById("detailsToggleLabel");
   var tfDetails = document.getElementById("tfDetails");
   var imageThumbsEl = document.getElementById("imageThumbs");
   var addImageBtn = document.getElementById("addImageBtn");
   var imageFileInput = document.getElementById("imageFileInput");
+
+  // ---------- Quick Log / Log mode + shared field elements ----------
+  var logModeToggle = document.getElementById("logModeToggle");
+  var quickLogFields = document.getElementById("quickLogFields");
+  var fullLogFields = document.getElementById("fullLogFields");
+  var quickRow1 = document.getElementById("quickRow1");
+  var fullRow1 = document.getElementById("fullRow1");
+  var fullRow2 = document.getElementById("fullRow2");
+  var symbolField = document.getElementById("symbolField");
+  var dateField = document.getElementById("dateField");
+  var dirField = document.getElementById("dirField");
+  var dirTiles = document.getElementById("dirTiles");
+  var pnlField = document.getElementById("pnlField");
+  var gradeField = document.getElementById("gradeField");
+  var gradeTiles = document.getElementById("gradeTiles");
+  var strategyField = document.getElementById("strategyField");
+  var strategyPickerBtn = document.getElementById("strategyPickerBtn");
+  var strategyPickerLabel = document.getElementById("strategyPickerLabel");
+  var emotionsField = document.getElementById("emotionsField");
+
+  var strategyPopover = document.getElementById("strategyPopover");
+  var strategySearchInput = document.getElementById("strategySearchInput");
+  var strategyPopoverList = document.getElementById("strategyPopoverList");
+  var strategyPopoverNewBtn = document.getElementById("strategyPopoverNewBtn");
+
+  var strategyModalOverlay = document.getElementById("strategyModalOverlay");
+  var strategyModalTitle = document.getElementById("strategyModalTitle");
+  var strategyModalClose = document.getElementById("strategyModalClose");
+  var cancelStrategyBtn = document.getElementById("cancelStrategyBtn");
+  var saveStrategyBtn = document.getElementById("saveStrategyBtn");
+  var deleteStrategyBtn = document.getElementById("deleteStrategyBtn");
+  var stName = document.getElementById("stName");
+  var stShortcut = document.getElementById("stShortcut");
+  var stEntry = document.getElementById("stEntry");
+  var stInvalidation = document.getElementById("stInvalidation");
+  var stMinRR = document.getElementById("stMinRR");
+  var stNotes = document.getElementById("stNotes");
 
   var lightboxOverlay = document.getElementById("lightboxOverlay");
   var lightboxImg = document.getElementById("lightboxImg");
@@ -988,7 +1198,12 @@
   // ---------- Accounts: separate journals, each with its own trade list ----------
   function newAccountId(){ return "acc_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8); }
   function activeAccount(){
-    return accounts.find(function(a){ return a.id === activeAccountId; }) || accounts[0];
+    var acc = accounts.find(function(a){ return a.id === activeAccountId; }) || accounts[0];
+    // Lazily backfill .strategies for accounts created/synced before the
+    // strategy library existed, regardless of which code path produced
+    // them, instead of patching every account-creation site separately.
+    if (acc && !Array.isArray(acc.strategies)) acc.strategies = [];
+    return acc;
   }
   // Legacy saves stored a single flat { trades: [...] } with no account
   // concept — fold that into one "Main" account under a stable id so a
@@ -1444,6 +1659,7 @@
       '<span class="sortable" data-sort="symbol">Symbol' + sortArrow("symbol") + '</span>' +
       '<span>Market</span>' +
       '<span>Side</span>' +
+      '<span>Grade</span>' +
       '<span>Entry/Exit</span>' +
       '<span>Lots</span>' +
       '<span class="sortable" data-sort="pnl">P&amp;L' + sortArrow("pnl") + '</span>' +
@@ -1464,6 +1680,7 @@
       '<span class="trade-symbol-cell">' + escapeHtml(t.symbol) + '</span>' +
       '<span class="market-badge">' + escapeHtml(t.market || "—") + '</span>' +
       '<span class="trade-dir ' + t.direction + '">' + (t.direction === "long" ? "Long" : "Short") + '</span>' +
+      '<span class="grade-badge">' + (t.grade ? escapeHtml(t.grade) : "–") + '</span>' +
       '<span class="entry-exit-cell' + (hasEntryExit ? "" : " dim") + '"><span>' + entryTxt + '</span><span class="sub">' + exitTxt + '</span></span>' +
       '<span class="mono">' + lotsTxt + '</span>' +
       '<span class="trade-pnl ' + (t.pnl >= 0 ? "pos" : "neg") + ' mono">' + fmtMoneySigned(t.pnl) + '</span>' +
@@ -1700,14 +1917,222 @@
   });
   function setDirection(dir){
     currentDirection = dir === "short" ? "short" : "long";
-    dirToggleEl.classList.toggle("is-short", currentDirection === "short");
-    dirToggleEl.querySelectorAll("button").forEach(function(b){ b.classList.toggle("active", b.getAttribute("data-dir") === currentDirection); });
-    layoutSegThumb(dirToggleEl, true);
+    dirTiles.querySelectorAll(".dir-tile").forEach(function(b){ b.classList.toggle("active", b.getAttribute("data-dir") === currentDirection); });
   }
-  dirToggleEl.addEventListener("click", function(e){
-    var btn = e.target.closest("button[data-dir]");
+  dirTiles.addEventListener("click", function(e){
+    var btn = e.target.closest(".dir-tile[data-dir]");
     if (!btn) return;
     setDirection(btn.getAttribute("data-dir"));
+  });
+
+  function setGrade(grade){
+    currentGrade = (currentGrade === grade) ? "" : grade;
+    gradeTiles.querySelectorAll(".grade-tile").forEach(function(b){ b.classList.toggle("active", b.getAttribute("data-grade") === currentGrade); });
+  }
+  gradeTiles.addEventListener("click", function(e){
+    var btn = e.target.closest(".grade-tile[data-grade]");
+    if (!btn) return;
+    setGrade(btn.getAttribute("data-grade"));
+  });
+
+  // ---------- Quick Log / Log mode: Symbol/Date/Side/P&L/Grade/Strategy are
+  // single shared elements physically moved between the two layouts (never
+  // duplicated), so there's exactly one source of truth regardless of which
+  // mode is showing. Market/Entry-Exit-Lots-Stop-Target/Emotions/Title/
+  // Notes/Screenshots only ever live in Full Log.
+  function layoutQuickMode(){
+    quickRow1.appendChild(symbolField);
+    quickRow1.appendChild(dateField);
+    quickLogFields.appendChild(dirField);
+    quickLogFields.appendChild(pnlField);
+    quickLogFields.appendChild(gradeField);
+    quickLogFields.appendChild(strategyField);
+  }
+  function layoutFullMode(){
+    fullRow1.appendChild(symbolField);
+    fullLogFields.insertBefore(dirField, fullRow2);
+    fullRow2.appendChild(dateField);
+    fullRow2.appendChild(pnlField);
+    fullLogFields.insertBefore(gradeField, emotionsField);
+    fullLogFields.insertBefore(strategyField, emotionsField);
+  }
+  function setLogMode(mode){
+    logMode = mode === "full" ? "full" : "quick";
+    logModeToggle.querySelectorAll("button").forEach(function(b){
+      b.classList.toggle("active", b.getAttribute("data-mode") === logMode);
+    });
+    layoutSegThumb(logModeToggle, true);
+    quickLogFields.hidden = logMode !== "quick";
+    fullLogFields.hidden = logMode !== "full";
+    if (logMode === "quick") layoutQuickMode(); else layoutFullMode();
+  }
+  logModeToggle.addEventListener("click", function(e){
+    var btn = e.target.closest("button[data-mode]");
+    if (!btn) return;
+    setLogMode(btn.getAttribute("data-mode"));
+  });
+
+  // L/S select direction, 1-5 select a grade — only while the trade modal is
+  // the frontmost thing open and focus isn't inside a text field (so typing
+  // "Loss" in Notes doesn't fire the Short shortcut).
+  document.addEventListener("keydown", function(e){
+    if (tradeModalOverlay.hidden || !strategyModalOverlay.hidden || !strategyPopover.hidden) return;
+    var tag = e.target.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+    var key = e.key.toLowerCase();
+    if (key === "l"){ setDirection("long"); return; }
+    if (key === "s"){ setDirection("short"); return; }
+    var gradeIdx = ["1", "2", "3", "4", "5"].indexOf(e.key);
+    if (gradeIdx !== -1) setGrade(GRADES[gradeIdx]);
+  });
+
+  // ---------- Strategy library: named, reusable setups you describe once
+  // and pick from the Quick/Full Log strategy field, instead of retyping a
+  // free-text name on every trade. ----------
+  function renderStrategyPickerLabel(){
+    if (currentStrategyName){
+      strategyPickerLabel.textContent = currentStrategyName;
+      strategyPickerBtn.classList.add("has-value");
+    } else {
+      strategyPickerLabel.textContent = "None yet, add one";
+      strategyPickerBtn.classList.remove("has-value");
+    }
+  }
+  function selectStrategy(strategy){
+    currentStrategyId = strategy.id;
+    currentStrategyName = strategy.name;
+    renderStrategyPickerLabel();
+    closeStrategyPopover();
+  }
+  function renderStrategyPopoverList(){
+    var query = strategySearchInput.value.trim().toLowerCase();
+    var list = activeAccount().strategies.filter(function(s){
+      return !query || s.name.toLowerCase().indexOf(query) !== -1 || (s.shortcut || "").toLowerCase().indexOf(query) !== -1;
+    });
+    if (!list.length){
+      strategyPopoverList.innerHTML = '<p class="strategy-popover-empty">' + (activeAccount().strategies.length ? "No matches." : "No strategies yet.") + '</p>';
+      return;
+    }
+    strategyPopoverList.innerHTML = list.map(function(s){
+      return '<div class="strategy-row">' +
+        '<button type="button" class="strategy-row-main" data-id="' + s.id + '">' +
+          '<span class="strategy-row-name">' + escapeHtml(s.name) + (s.shortcut ? '<span class="strategy-shortcut-badge">' + escapeHtml(s.shortcut) + '</span>' : "") + '</span>' +
+          (s.entryConditions ? '<span class="strategy-row-sub">' + escapeHtml(s.entryConditions) + '</span>' : "") +
+        '</button>' +
+        '<button type="button" class="strategy-row-edit" data-id="' + s.id + '" aria-label="Edit strategy"><svg viewBox="0 0 20 20"><path d="M13.5 3.5l3 3L7 16l-4 1 1-4z" /></svg></button>' +
+      '</div>';
+    }).join("");
+  }
+  function openStrategyPopover(){
+    strategySearchInput.value = "";
+    renderStrategyPopoverList();
+    strategyPopover.hidden = false;
+    var btnRect = strategyPickerBtn.getBoundingClientRect();
+    var popWidth = 300;
+    var left = Math.min(btnRect.left, window.innerWidth - popWidth - 16);
+    strategyPopover.style.left = Math.max(16, left) + "px";
+    strategyPopover.style.top = Math.min(btnRect.bottom + 6, window.innerHeight - 60) + "px";
+    strategySearchInput.focus();
+  }
+  function closeStrategyPopover(){
+    strategyPopover.hidden = true;
+  }
+  strategyPickerBtn.addEventListener("click", function(e){
+    e.stopPropagation();
+    if (strategyPopover.hidden) openStrategyPopover(); else closeStrategyPopover();
+  });
+  document.addEventListener("click", function(e){
+    if (!strategyPopover.hidden && !e.target.closest(".strategy-popover") && !e.target.closest("#strategyPickerBtn")) closeStrategyPopover();
+  });
+  strategySearchInput.addEventListener("input", renderStrategyPopoverList);
+  strategyPopoverList.addEventListener("click", function(e){
+    var editBtn = e.target.closest(".strategy-row-edit");
+    if (editBtn){
+      var s = activeAccount().strategies.find(function(x){ return x.id === editBtn.getAttribute("data-id"); });
+      closeStrategyPopover();
+      if (s) openStrategyBuilder(s);
+      return;
+    }
+    var mainBtn = e.target.closest(".strategy-row-main");
+    if (mainBtn){
+      var strat = activeAccount().strategies.find(function(x){ return x.id === mainBtn.getAttribute("data-id"); });
+      if (strat) selectStrategy(strat);
+    }
+  });
+  strategyPopoverNewBtn.addEventListener("click", function(){
+    var prefill = strategySearchInput.value.trim();
+    closeStrategyPopover();
+    openStrategyBuilder(null, prefill);
+  });
+
+  function openStrategyBuilder(strategy, prefillName){
+    editingStrategyId = strategy ? strategy.id : null;
+    strategyModalTitle.textContent = strategy ? "Edit Strategy" : "New Strategy";
+    stName.value = strategy ? strategy.name : (prefillName || "");
+    stShortcut.value = (strategy && strategy.shortcut) || "";
+    stEntry.value = (strategy && strategy.entryConditions) || "";
+    stInvalidation.value = (strategy && strategy.invalidationRules) || "";
+    stMinRR.value = strategy && hasVal(strategy.minRR) ? String(strategy.minRR) : "";
+    stNotes.value = (strategy && strategy.notes) || "";
+    deleteStrategyBtn.hidden = !strategy;
+    tradeModalOverlay.hidden = true;
+    strategyModalOverlay.hidden = false;
+    stName.focus();
+  }
+  function closeStrategyBuilder(){
+    strategyModalOverlay.hidden = true;
+    editingStrategyId = null;
+    tradeModalOverlay.hidden = false;
+  }
+  strategyModalClose.addEventListener("click", closeStrategyBuilder);
+  cancelStrategyBtn.addEventListener("click", closeStrategyBuilder);
+  var strategyModalMouseDownOnBackdrop = false;
+  strategyModalOverlay.addEventListener("mousedown", function(e){ strategyModalMouseDownOnBackdrop = e.target === strategyModalOverlay; });
+  strategyModalOverlay.addEventListener("click", function(e){
+    if (e.target === strategyModalOverlay && strategyModalMouseDownOnBackdrop) closeStrategyBuilder();
+    strategyModalMouseDownOnBackdrop = false;
+  });
+  saveStrategyBtn.addEventListener("click", function(){
+    var name = stName.value.trim();
+    if (!name){
+      stName.style.borderColor = "var(--red)";
+      return;
+    }
+    stName.style.borderColor = "";
+    var minRR = stMinRR.value.trim() === "" ? undefined : parseFloat(stMinRR.value);
+    var strat = {
+      id: editingStrategyId || ("strat_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8)),
+      name: name,
+      shortcut: stShortcut.value.trim(),
+      entryConditions: stEntry.value.trim(),
+      invalidationRules: stInvalidation.value.trim(),
+      minRR: (minRR !== undefined && !isNaN(minRR)) ? minRR : undefined,
+      notes: stNotes.value.trim(),
+      createdAt: Date.now()
+    };
+    var acc = activeAccount();
+    if (editingStrategyId) acc.strategies = acc.strategies.map(function(s){ return s.id === editingStrategyId ? strat : s; });
+    else acc.strategies.push(strat);
+    save();
+    selectStrategy(strat);
+    closeStrategyBuilder();
+  });
+  deleteStrategyBtn.addEventListener("click", function(){
+    if (!editingStrategyId) return;
+    if (!window.confirm("Delete this strategy? Trades already logged with it keep their strategy name as plain text.")) return;
+    var acc = activeAccount();
+    acc.strategies = acc.strategies.filter(function(s){ return s.id !== editingStrategyId; });
+    if (currentStrategyId === editingStrategyId){
+      currentStrategyId = null;
+      currentStrategyName = "";
+      renderStrategyPickerLabel();
+    }
+    save();
+    closeStrategyBuilder();
+  });
+  document.addEventListener("keydown", function(e){
+    if (e.key === "Escape" && !strategyPopover.hidden) closeStrategyPopover();
+    if (e.key === "Escape" && !strategyModalOverlay.hidden) closeStrategyBuilder();
   });
 
   function setDetailsOpen(open){
@@ -1787,7 +2212,8 @@
       market: tfMarket.value,
       date: tfDate.value,
       symbol: tfSymbol.value,
-      strategy: tfStrategy.value,
+      strategy: currentStrategyName,
+      strategyId: currentStrategyId,
       direction: currentDirection,
       pnl: tfPnl.value,
       entry: tfEntry.value,
@@ -1795,6 +2221,7 @@
       lots: tfLots.value,
       stop: tfStop.value,
       target: tfTarget.value,
+      grade: currentGrade,
       emotions: currentEmotions.slice(),
       title: tfTitle.value,
       notes: tfNotes.value,
@@ -1813,7 +2240,9 @@
     tfMarket.value = MARKET_OPTIONS.indexOf(source.market) !== -1 ? source.market : "Futures";
     tfDate.value = source.date || todayStr();
     tfSymbol.value = source.symbol || "";
-    tfStrategy.value = source.strategy || "";
+    currentStrategyId = source.strategyId || null;
+    currentStrategyName = source.strategy || "";
+    renderStrategyPickerLabel();
     setDirection(source.direction || "long");
     tfPnl.value = hasVal(source.pnl) ? String(source.pnl) : "";
     tfEntry.value = hasVal(source.entry) ? String(source.entry) : "";
@@ -1821,12 +2250,24 @@
     tfLots.value = hasVal(source.lots) ? String(source.lots) : "";
     tfStop.value = hasVal(source.stop) ? String(source.stop) : "";
     tfTarget.value = hasVal(source.target) ? String(source.target) : "";
+    currentGrade = "";
+    setGrade(source.grade || "");
     tfTitle.value = source.title || "";
     tfNotes.value = source.notes || "";
     renderEmotionTags();
     renderImageThumbs();
     var hasDetails = hasVal(source.entry) || hasVal(source.exit) || hasVal(source.lots) || hasVal(source.stop) || hasVal(source.target);
     setDetailsOpen(!!hasDetails);
+    // New trades always start in Quick Log; editing one that already has
+    // data only Full Log exposes (market override, advanced fields,
+    // emotions, title, notes, images) opens there instead, so nothing
+    // looks like it silently vanished.
+    var wantsFull = !!trade && (
+      (source.market && source.market !== "Futures") || hasDetails ||
+      (source.emotions && source.emotions.length) || source.title || source.notes ||
+      (source.imageIds && source.imageIds.length)
+    );
+    setLogMode(wantsFull ? "full" : "quick");
     deleteTradeBtn.hidden = !trade;
     tradeModalOverlay.hidden = false;
   }
@@ -1836,6 +2277,8 @@
     pendingImageIds = [];
     originalImageIds = [];
     currentEmotions = [];
+    currentStrategyId = null;
+    currentStrategyName = "";
   }
   // Backdrop click: save as a draft, don't add/commit.
   function softCloseTradeModal(){
@@ -1891,7 +2334,8 @@
       market: tfMarket.value,
       date: tfDate.value || todayStr(),
       symbol: tfSymbol.value.trim().toUpperCase(),
-      strategy: tfStrategy.value.trim(),
+      strategy: currentStrategyName,
+      strategyId: currentStrategyId || undefined,
       direction: currentDirection,
       pnl: pnl,
       entry: numOrUndef(tfEntry.value),
@@ -1899,6 +2343,7 @@
       lots: numOrUndef(tfLots.value),
       stop: numOrUndef(tfStop.value),
       target: numOrUndef(tfTarget.value),
+      grade: currentGrade || undefined,
       emotions: currentEmotions.slice(),
       title: tfTitle.value.trim(),
       notes: tfNotes.value.trim(),
@@ -1989,11 +2434,11 @@
   exportCsvBtn.addEventListener("click", function(){
     var list = filteredTrades();
     if (!list.length) return;
-    var rows = [["Date", "Symbol", "Market", "Side", "Entry", "Exit", "Lots", "Stop", "Target", "P&L", "R:R", "Strategy", "Emotions", "Title", "Notes"]];
+    var rows = [["Date", "Symbol", "Market", "Side", "Grade", "Entry", "Exit", "Lots", "Stop", "Target", "P&L", "R:R", "Strategy", "Emotions", "Title", "Notes"]];
     list.slice().reverse().forEach(function(t){
       var rr = computeTradeRR(t);
       rows.push([
-        t.date, t.symbol, t.market || "", t.direction,
+        t.date, t.symbol, t.market || "", t.direction, t.grade || "",
         hasVal(t.entry) ? t.entry : "", hasVal(t.exit) ? t.exit : "", hasVal(t.lots) ? t.lots : "",
         hasVal(t.stop) ? t.stop : "", hasVal(t.target) ? t.target : "",
         t.pnl, rr !== null ? rr.toFixed(2) : "",
@@ -2215,7 +2660,7 @@
   renderAccountSwitcher();
   updateFilterCount();
   layoutSegThumb(journalTabsEl, true);
-  layoutSegThumb(dirToggleEl, true);
+  setLogMode("quick");
   if (window.EZAuth){
     if (EZAuth.isLoggedIn()) syncFromAccount();
     EZAuth.onChange(function(loggedIn){ if (loggedIn) syncFromAccount(); });
