@@ -2267,9 +2267,13 @@
       (source.emotions && source.emotions.length) || source.title || source.notes ||
       (source.imageIds && source.imageIds.length)
     );
-    setLogMode(wantsFull ? "full" : "quick");
     deleteTradeBtn.hidden = !trade;
+    // Show the modal before measuring the Quick Log/Log thumb — while
+    // hidden, the toggle's buttons report zero width/position, which bakes
+    // a zero-size thumb in as an inline style that a hidden "Quick Log"
+    // active-text color then has nothing to sit on top of.
     tradeModalOverlay.hidden = false;
+    setLogMode(wantsFull ? "full" : "quick");
   }
   function closeTradeModal(){
     tradeModalOverlay.hidden = true;
