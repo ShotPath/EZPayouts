@@ -1383,13 +1383,52 @@
   var SHARE_BG_LIST = SHARE_BG_GRADIENTS.concat(SHARE_BG_PRESET_MEDIA);
   var SHARE_BG_VISIBLE_COUNT = 8;
   var SHARE_EXPORT_DURATION_MS = 3000;
+  var SHARE_MAX_VIDEO_EXPORT_MS = 20000;
+  var SHARE_MAX_GIF_EXPORT_MS = 6000;
   var SHARE_GIF_FPS = 10;
   var SHARE_GIF_WIDTH = 768;
   var SHARE_GIF_HEIGHT = 432;
 
+  // When the background is an uploaded/preset video, export the whole clip
+  // (capped so files stay sane) instead of a fixed few seconds from wherever
+  // the loop happened to be — that's what was clipping exports to ~2-3s of
+  // an uploaded video regardless of how long it actually was.
+  function getExportDurationMs(cap){
+    if (shareBg.type === "video" && shareBgVideoDuration){
+      return Math.min(shareBgVideoDuration * 1000, cap);
+    }
+    return SHARE_EXPORT_DURATION_MS;
+  }
+  // video.duration reads as Infinity for a lot of real-world webm/mp4 files
+  // (screen recordings, re-muxed clips, anything without a proper duration
+  // header) until the browser is forced to resolve it — which is also why
+  // the export above was silently falling back to the 3s default even for
+  // an 8-minute upload. Seeking far past the end forces that resolution.
+  function resolveVideoDuration(videoEl){
+    return new Promise(function(resolve){
+      if (isFinite(videoEl.duration) && videoEl.duration > 0){
+        resolve(videoEl.duration);
+        return;
+      }
+      function finish(){
+        videoEl.removeEventListener("durationchange", onDurationChange);
+        var d = videoEl.duration;
+        videoEl.currentTime = 0;
+        resolve(isFinite(d) && d > 0 ? d : null);
+      }
+      function onDurationChange(){
+        if (isFinite(videoEl.duration) && videoEl.duration > 0) finish();
+      }
+      videoEl.addEventListener("durationchange", onDurationChange);
+      try { videoEl.currentTime = 1e9; } catch (err) {}
+      setTimeout(finish, 2000);
+    });
+  }
+
   var shareCurrentTrade = null;
   var shareBg = { type: "gradient", stops: SHARE_BG_GRADIENTS[0].stops };
   var shareBgActiveId = SHARE_BG_GRADIENTS[0].id;
+  var shareBgVideoDuration = null;
   var shareUploadedUrl = null;
   var sharePreviewRAF = null;
   var shareBgExpanded = false;
@@ -1542,6 +1581,8 @@
       shareBgVideoEl.src = entry.src;
       shareBgVideoEl.load();
       shareBg = { type: "video" };
+      shareBgVideoDuration = null;
+      resolveVideoDuration(shareBgVideoEl).then(function(d){ shareBgVideoDuration = d; });
     } else if (/\.gif($|\?)/i.test(entry.src)){
       shareBgGifEl.src = entry.src;
       shareBg = { type: "gif" };
@@ -1570,6 +1611,8 @@
       shareBgVideoEl.src = url;
       shareBgVideoEl.load();
       shareBg = { type: "video" };
+      shareBgVideoDuration = null;
+      resolveVideoDuration(shareBgVideoEl).then(function(d){ shareBgVideoDuration = d; });
     } else if (file.type === "image/gif"){
       shareBgGifEl.src = url;
       shareBg = { type: "gif" };
@@ -1588,6 +1631,7 @@
     shareBgVideoEl.removeAttribute("src");
     shareBgGifEl.removeAttribute("src");
     shareBgImgEl.removeAttribute("src");
+    shareBgVideoDuration = null;
     var def = SHARE_BG_GRADIENTS[0];
     shareBg = { type: "gradient", stops: def.stops };
     shareBgActiveId = def.id;
@@ -1687,6 +1731,11 @@
     // steadily instead of relying on one blob at the very end.
     var wasAnimated = isAnimatedBg();
     if (!wasAnimated) startPreviewLoop();
+    // An uploaded/preset video background should export its whole clip, not
+    // whatever few seconds it happened to be mid-loop on — replay it from
+    // the start for the capture window.
+    if (shareBg.type === "video") shareBgVideoEl.currentTime = 0;
+    var durationMs = getExportDurationMs(SHARE_MAX_VIDEO_EXPORT_MS);
     recorder.ondataavailable = function(e){ if (e.data && e.data.size) chunks.push(e.data); };
     recorder.onstop = function(){
       if (!wasAnimated) stopPreviewLoop();
@@ -1697,7 +1746,7 @@
       showToast("Video downloaded");
     };
     recorder.start(250);
-    setTimeout(function(){ recorder.stop(); }, SHARE_EXPORT_DURATION_MS + 200);
+    setTimeout(function(){ recorder.stop(); }, durationMs + 200);
   });
 
   // Browsers refuse to construct a Worker straight from a cross-origin URL,
@@ -1739,8 +1788,9 @@
         height: SHARE_GIF_HEIGHT,
         workerScript: workerUrl
       });
+      if (shareBg.type === "video") shareBgVideoEl.currentTime = 0;
       var frameDelay = Math.round(1000 / SHARE_GIF_FPS);
-      var frameCount = Math.round(SHARE_EXPORT_DURATION_MS / frameDelay);
+      var frameCount = Math.round(getExportDurationMs(SHARE_MAX_GIF_EXPORT_MS) / frameDelay);
       var captured = 0;
       var captureTimer = setInterval(function(){
         gifCtx.drawImage(shareCardCanvas, 0, 0, SHARE_GIF_WIDTH, SHARE_GIF_HEIGHT);
