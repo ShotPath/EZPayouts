@@ -1680,54 +1680,88 @@
       return;
     }
     setExportBusy(true, "Recording video…");
+    // Force a continuous redraw loop for the whole capture window, even over
+    // a static background — captureStream()'s fixed-rate mode is unreliable
+    // in practice when the canvas never actually changes, which was cutting
+    // the recorded clip short. Request a timeslice too, so chunks flush
+    // steadily instead of relying on one blob at the very end.
+    var wasAnimated = isAnimatedBg();
+    if (!wasAnimated) startPreviewLoop();
     recorder.ondataavailable = function(e){ if (e.data && e.data.size) chunks.push(e.data); };
     recorder.onstop = function(){
+      if (!wasAnimated) stopPreviewLoop();
       var blob = new Blob(chunks, { type: mimeType.split(";")[0] });
       var ext = mimeType.indexOf("mp4") !== -1 ? "mp4" : "webm";
       downloadBlob(blob, shareCardFileName(ext));
       setExportBusy(false);
       showToast("Video downloaded");
     };
-    recorder.start();
-    setTimeout(function(){ recorder.stop(); }, SHARE_EXPORT_DURATION_MS);
+    recorder.start(250);
+    setTimeout(function(){ recorder.stop(); }, SHARE_EXPORT_DURATION_MS + 200);
   });
+
+  // Browsers refuse to construct a Worker straight from a cross-origin URL,
+  // so pointing gif.js's workerScript directly at the cdnjs URL fails
+  // silently inside the library — render() just hangs forever with no error.
+  // Fetch the worker script once and hand gif.js a same-origin blob URL
+  // instead.
+  var shareGifWorkerUrlPromise = null;
+  function getGifWorkerUrl(){
+    if (!shareGifWorkerUrlPromise){
+      shareGifWorkerUrlPromise = fetch("https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js")
+        .then(function(res){
+          if (!res.ok) throw new Error("gif.worker.js fetch failed");
+          return res.text();
+        })
+        .then(function(text){
+          return URL.createObjectURL(new Blob([text], { type: "application/javascript" }));
+        });
+    }
+    return shareGifWorkerUrlPromise;
+  }
 
   shareExportGifBtn.addEventListener("click", function(){
     if (!window.GIF){
       showToast("GIF export isn't available right now");
       return;
     }
-    setExportBusy(true, "Rendering GIF…");
-    var gifCanvas = document.createElement("canvas");
-    gifCanvas.width = SHARE_GIF_WIDTH;
-    gifCanvas.height = SHARE_GIF_HEIGHT;
-    var gifCtx = gifCanvas.getContext("2d");
-    var gif = new GIF({
-      workers: 2,
-      quality: 10,
-      width: SHARE_GIF_WIDTH,
-      height: SHARE_GIF_HEIGHT,
-      workerScript: "https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js"
-    });
-    var frameDelay = Math.round(1000 / SHARE_GIF_FPS);
-    var frameCount = Math.round(SHARE_EXPORT_DURATION_MS / frameDelay);
-    var captured = 0;
-    var captureTimer = setInterval(function(){
-      gifCtx.drawImage(shareCardCanvas, 0, 0, SHARE_GIF_WIDTH, SHARE_GIF_HEIGHT);
-      gif.addFrame(gifCtx, { copy: true, delay: frameDelay });
-      captured++;
-      if (captured >= frameCount){
-        clearInterval(captureTimer);
-        gif.render();
-      }
-    }, frameDelay);
-    gif.on("progress", function(p){
-      setExportStatus("Rendering GIF… " + Math.round(p * 100) + "%");
-    });
-    gif.on("finished", function(blob){
-      downloadBlob(blob, shareCardFileName("gif"));
+    setExportBusy(true, "Preparing GIF encoder…");
+    getGifWorkerUrl().then(function(workerUrl){
+      setExportStatus("Rendering GIF…");
+      var gifCanvas = document.createElement("canvas");
+      gifCanvas.width = SHARE_GIF_WIDTH;
+      gifCanvas.height = SHARE_GIF_HEIGHT;
+      var gifCtx = gifCanvas.getContext("2d");
+      var gif = new GIF({
+        workers: 2,
+        quality: 10,
+        width: SHARE_GIF_WIDTH,
+        height: SHARE_GIF_HEIGHT,
+        workerScript: workerUrl
+      });
+      var frameDelay = Math.round(1000 / SHARE_GIF_FPS);
+      var frameCount = Math.round(SHARE_EXPORT_DURATION_MS / frameDelay);
+      var captured = 0;
+      var captureTimer = setInterval(function(){
+        gifCtx.drawImage(shareCardCanvas, 0, 0, SHARE_GIF_WIDTH, SHARE_GIF_HEIGHT);
+        gif.addFrame(gifCtx, { copy: true, delay: frameDelay });
+        captured++;
+        if (captured >= frameCount){
+          clearInterval(captureTimer);
+          gif.render();
+        }
+      }, frameDelay);
+      gif.on("progress", function(p){
+        setExportStatus("Rendering GIF… " + Math.round(p * 100) + "%");
+      });
+      gif.on("finished", function(blob){
+        downloadBlob(blob, shareCardFileName("gif"));
+        setExportBusy(false);
+        showToast("GIF downloaded");
+      });
+    }).catch(function(){
       setExportBusy(false);
-      showToast("GIF downloaded");
+      showToast("GIF export isn't available right now");
     });
   });
 
