@@ -1743,6 +1743,25 @@
   var shareIsMuted = true;
   var shareBgExpanded = false;
 
+  // Count-up animation for the hero P&L amount: it starts at $0 and eases
+  // up (or down, for a loss) to the real figure. shareAnimStartTime resets
+  // whenever the modal opens or the period tab changes, so switching from
+  // Daily to Weekly replays the count-up for that period's own total. The
+  // preview's continuous RAF loop (it's always running — every background
+  // is a video now) picks the new value up automatically each frame.
+  // Video/GIF export reset it again right as recording starts, so the
+  // exported clip opens on its own fresh count-up. Photo export forces
+  // the final value (shareForceFinalFrame) since a single still showing a
+  // half-finished count would look broken.
+  var SHARE_PNL_ANIM_MS = 1800;
+  var shareAnimStartTime = 0;
+  var shareForceFinalFrame = false;
+  function pnlAnimProgress(){
+    if (shareForceFinalFrame) return 1;
+    var t = Math.min(1, (Date.now() - shareAnimStartTime) / SHARE_PNL_ANIM_MS);
+    return 1 - Math.pow(1 - t, 3); // ease-out cubic
+  }
+
   function updateShareModalSub(){
     if (shareModalSub) shareModalSub.textContent = SHARE_PERIOD_SUB_TEXT[sharePeriod] || SHARE_PERIOD_SUB_TEXT.trade;
   }
@@ -1753,6 +1772,7 @@
     sharePeriodTabs.querySelectorAll("button[data-period]").forEach(function(b){ b.classList.toggle("active", b === btn); });
     layoutSegThumb(sharePeriodTabs);
     updateShareModalSub();
+    shareAnimStartTime = Date.now();
     redrawShareCard();
   });
 
@@ -2035,7 +2055,8 @@
     });
 
     var pnlColor = t.pnl >= 0 ? "#3ee08c" : "#ef5a5a";
-    drawGlowAmount(ctx, fmtMoneySigned(t.pnl), pnlColor, pad - 2, pad + 265, 165);
+    var pnlShown = Math.round(t.pnl * pnlAnimProgress());
+    drawGlowAmount(ctx, fmtMoneySigned(pnlShown), pnlColor, pad - 2, pad + 265, 165);
 
     drawCardFooter(ctx, w, h, pad);
   }
@@ -2052,7 +2073,7 @@
     drawPeriodHeader(ctx, pad, "DAILY", title);
 
     var pnlColor = agg.pnl >= 0 ? "#3ee08c" : "#ef5a5a";
-    drawGlowAmount(ctx, fmtMoneySigned(agg.pnl), pnlColor, pad - 2, pad + 265, 145);
+    drawGlowAmount(ctx, fmtMoneySigned(Math.round(agg.pnl * pnlAnimProgress())), pnlColor, pad - 2, pad + 265, 145);
 
     var rows = [
       { label: "Trades", value: String(agg.count) },
@@ -2074,7 +2095,7 @@
     drawPeriodHeader(ctx, pad, "WEEKLY", "Week of " + fmtDateShort(agg.start));
 
     var pnlColor = agg.pnl >= 0 ? "#3ee08c" : "#ef5a5a";
-    drawGlowAmount(ctx, fmtMoneySigned(agg.pnl), pnlColor, pad - 2, pad + 250, 125);
+    drawGlowAmount(ctx, fmtMoneySigned(Math.round(agg.pnl * pnlAnimProgress())), pnlColor, pad - 2, pad + 250, 125);
 
     var rows = [
       { label: "Trades", value: String(agg.count) },
@@ -2118,7 +2139,7 @@
     drawPeriodHeader(ctx, pad, "MONTHLY", title);
 
     var pnlColor = agg.pnl >= 0 ? "#3ee08c" : "#ef5a5a";
-    drawGlowAmount(ctx, fmtMoneySigned(agg.pnl), pnlColor, pad - 2, pad + 250, 125);
+    drawGlowAmount(ctx, fmtMoneySigned(Math.round(agg.pnl * pnlAnimProgress())), pnlColor, pad - 2, pad + 250, 125);
 
     var rows = [
       { label: "Win rate", value: agg.winRate + "%" },
@@ -2281,6 +2302,7 @@
   function openShareModal(trade){
     shareCurrentTrade = trade;
     sharePeriod = "trade";
+    shareAnimStartTime = Date.now();
     sharePeriodTabs.querySelectorAll("button[data-period]").forEach(function(b){
       b.classList.toggle("active", b.getAttribute("data-period") === "trade");
     });
@@ -2334,6 +2356,12 @@
   }
 
   shareExportPhotoBtn.addEventListener("click", function(){
+    // A still frame showing the P&L mid-count-up would look broken — force
+    // the finished value for this one draw, then let the preview's RAF
+    // loop (already running) carry on animating as normal afterward.
+    shareForceFinalFrame = true;
+    drawShareCard();
+    shareForceFinalFrame = false;
     shareCardCanvas.toBlob(function(blob){
       if (!blob) return;
       downloadBlob(blob, shareCardFileName("png"));
@@ -2386,8 +2414,11 @@
     if (!wasAnimated) startPreviewLoop();
     // An uploaded/preset video background should export its whole clip, not
     // whatever few seconds it happened to be mid-loop on — replay it from
-    // the start for the capture window.
+    // the start for the capture window. Restart the P&L count-up in the
+    // same breath, so the exported clip opens on its own fresh animation
+    // rather than whatever point the live preview happened to be at.
     if (shareBg.type === "video") shareBgVideoEl.currentTime = 0;
+    shareAnimStartTime = Date.now();
     var durationMs = getExportDurationMs(SHARE_MAX_VIDEO_EXPORT_MS);
     var recordStartedAt = Date.now();
     setButtonLabel(shareExportVideoBtn, "Recording 0%");
@@ -2450,6 +2481,7 @@
         workerScript: workerUrl
       });
       if (shareBg.type === "video") shareBgVideoEl.currentTime = 0;
+      shareAnimStartTime = Date.now();
       var frameDelay = Math.round(1000 / SHARE_GIF_FPS);
       var frameCount = Math.round(getExportDurationMs(SHARE_MAX_GIF_EXPORT_MS) / frameDelay);
       var captured = 0;
