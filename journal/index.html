@@ -1188,9 +1188,13 @@
     </div>
 
     <canvas id="shareCardCanvas" width="1920" height="1080" class="share-card-canvas"></canvas>
-    <video id="shareBgVideoEl" muted loop playsinline hidden></video>
-    <img id="shareBgGifEl" alt="" hidden />
-    <img id="shareBgImgEl" alt="" hidden />
+    <!-- crossorigin="anonymous": harmless for same-origin preset files, but
+         required for remotely-hosted presets (e.g. a GitHub/jsDelivr URL) —
+         without it, drawing a cross-origin video/image onto the canvas taints
+         it and Photo/GIF/Video export throws a SecurityError. -->
+    <video id="shareBgVideoEl" muted loop playsinline crossorigin="anonymous" hidden></video>
+    <img id="shareBgGifEl" alt="" crossorigin="anonymous" hidden />
+    <img id="shareBgImgEl" alt="" crossorigin="anonymous" hidden />
 
     <div class="share-bg-section">
       <div class="share-bg-grid" id="shareBgGrid"></div>
@@ -1612,10 +1616,29 @@
     { id: "mono", label: "Mono", type: "gradient", stops: ["#5a6b61", "#1a241e", "#05100a"] }
   ];
   // Preset media backgrounds (the picker grid like the reference screenshot).
-  // Drop files under /journal/share-presets/ and add an entry here: thumb is
-  // the small grid tile image, src is the real background. type is "image"
-  // or "video" — a .gif works fine as type "image", since <img> animates it
-  // on its own and the canvas draws whatever frame is currently showing.
+  // Two ways to add one:
+  //
+  // 1) Self-hosted (simplest): drop the files under /journal/share-presets/
+  //    in this repo and reference them with a relative src, e.g.:
+  //      { id: "neon-city", label: "Neon City", type: "video",
+  //        thumb: "share-presets/neon-city-thumb.jpg", src: "share-presets/neon-city.mp4" }
+  //    Keep clips short (a 3-6s loop is plenty — exports only sample a few
+  //    seconds) and under a couple MB so the page stays light.
+  //
+  // 2) Shared pack on GitHub, so other EZPayouts instances/forks can point
+  //    at the same files instead of re-uploading them: host the videos in a
+  //    public repo and use a CDN URL (raw.githubusercontent.com works, but
+  //    jsDelivr is the recommended way to serve files out of GitHub — fast,
+  //    cached, and meant for this): https://cdn.jsdelivr.net/gh/<owner>/<repo>@<tag-or-commit>/<path>
+  //    Pin to a tag or commit SHA (not a moving branch) so a preset never
+  //    changes out from under someone using it. The <video>/<img> elements
+  //    already set crossorigin="anonymous" for exactly this case — without
+  //    it, drawing a cross-origin asset onto the canvas taints it and
+  //    Photo/GIF/Video export throws a SecurityError.
+  //
+  // thumb is the small grid tile image, src is the real background. type is
+  // "image" or "video" — a .gif works fine as type "image", since <img>
+  // animates it on its own and the canvas draws whatever frame is showing.
   var SHARE_BG_PRESET_MEDIA = [];
   var SHARE_BG_LIST = SHARE_BG_GRADIENTS.concat(SHARE_BG_PRESET_MEDIA);
   var SHARE_BG_VISIBLE_COUNT = 8;
