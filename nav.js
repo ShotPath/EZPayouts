@@ -36,23 +36,24 @@
     try { localStorage.setItem(THEME_KEY, theme); } catch (err) {}
   }
 
-  // Main flat nav group, rendered first.
+  // The public marketing page. Deliberately NOT in NAV_ITEMS/NAV_SECTIONS —
+  // it's reachable only by visiting "/" directly (or the brand logo while
+  // already on the marketing page itself), never from inside the app. It's
+  // kept here as its own item so detectActiveItem() can still resolve "/"
+  // to it correctly (see the explicit fallback below) even though it won't
+  // render as a sidebar link.
+  var HOME_ITEM = {
+    slug: "home", href: "/", label: "Home",
+    icon: '<path d="M3 9.5 10 3l7 6.5" /><path d="M5 8v8.5a.5.5 0 0 0 .5.5H8v-5h4v5h2.5a.5.5 0 0 0 .5-.5V8" />'
+  };
+
+  // Main flat nav group, rendered first, no divider above it — the app's
+  // home base once you're inside the workspace (the brand logo links here
+  // too, not back out to the marketing page — see buildHeader).
   var NAV_ITEMS = [
     {
-      slug: "home", href: "/", label: "Home",
-      icon: '<path d="M3 9.5 10 3l7 6.5" /><path d="M5 8v8.5a.5.5 0 0 0 .5.5H8v-5h4v5h2.5a.5.5 0 0 0 .5-.5V8" />'
-    },
-    {
-      slug: "lucid", href: "/lucid/", label: "Guide",
-      icon: '<circle cx="10" cy="10" r="7" /><path d="M12.6 7.4 8.8 8.8l-1.4 3.8 3.8-1.4z" />'
-    },
-    {
-      slug: "compare", href: "/compare/", label: "Compare",
-      icon: '<rect x="3.5" y="9" width="4.5" height="7.5" rx="1" /><rect x="12" y="4.5" width="4.5" height="12" rx="1" />'
-    },
-    {
-      slug: "calendar", href: "/calendar/", label: "Calendar",
-      icon: '<rect x="3" y="4.5" width="14" height="12.5" rx="1.5" /><path d="M3 8h14M6.5 2.5v4M13.5 2.5v4" /><circle cx="10" cy="12" r="1.4" fill="currentColor" stroke="none" />'
+      slug: "dashboard", href: "/dashboard/", label: "Dashboard",
+      icon: '<rect x="3" y="3" width="6.5" height="8" rx="1.3" /><rect x="10.5" y="3" width="6.5" height="5" rx="1.3" /><rect x="10.5" y="9.5" width="6.5" height="7.5" rx="1.3" /><rect x="3" y="12.5" width="6.5" height="4.5" rx="1.3" />'
     }
   ];
 
@@ -62,14 +63,39 @@
   var NAV_SECTIONS = [
     [
       {
-        slug: "backtest", href: "/backtest/", label: "Backtest",
-        icon: '<path d="M3.5 16.5V4M3.5 16.5H17" /><path d="m5.5 13 3-3.5 2.5 2 4-5" />'
-      },
-      {
         slug: "journal", href: "/journal/", label: "Journal",
         icon: '<path d="M5.5 3.5A1.5 1.5 0 0 1 7 2h7a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H7a1.5 1.5 0 0 1-1.5-1.5z" /><path d="M8 6.5h5M8 9.5h5M8 12.5h3" />'
+      },
+      {
+        slug: "backtest", href: "/backtest/", label: "Backtest",
+        icon: '<path d="M3.5 16.5V4M3.5 16.5H17" /><path d="m5.5 13 3-3.5 2.5 2 4-5" />'
+      }
+    ],
+    [
+      {
+        slug: "lucid", href: "/lucid/", label: "Guide",
+        icon: '<circle cx="10" cy="10" r="7" /><path d="M12.6 7.4 8.8 8.8l-1.4 3.8 3.8-1.4z" />'
+      },
+      {
+        slug: "compare", href: "/compare/", label: "Compare",
+        icon: '<rect x="3.5" y="9" width="4.5" height="7.5" rx="1" /><rect x="12" y="4.5" width="4.5" height="12" rx="1" />'
+      },
+      {
+        slug: "calendar", href: "/calendar/", label: "Calendar",
+        icon: '<rect x="3" y="4.5" width="14" height="12.5" rx="1.5" /><path d="M3 8h14M6.5 2.5v4M13.5 2.5v4" /><circle cx="10" cy="12" r="1.4" fill="currentColor" stroke="none" />'
       }
     ]
+  ];
+
+  // Not yet built — rendered in their own visually-muted section at the
+  // bottom of the sidebar (non-interactive, no href) so the intended final
+  // nav order is visible today without any dead links pretending to be
+  // real pages.
+  var COMING_SOON_ITEMS = [
+    { label: "Accounts", icon: '<path d="M3 6h14v9a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 3 15z" /><path d="M3 6l1.8-2.5h10.4L17 6" /><path d="M8 10h4" />' },
+    { label: "Analytics", icon: '<path d="M3.5 16.5V4M3.5 16.5H17" /><rect x="6" y="11" width="2.2" height="4" /><rect x="9.9" y="7.5" width="2.2" height="7.5" /><rect x="13.8" y="9.5" width="2.2" height="5.5" />' },
+    { label: "Risk Management", icon: '<path d="M10 2.5 16.5 5.5v4.5c0 4-2.8 6.7-6.5 7.5-3.7-.8-6.5-3.5-6.5-7.5V5.5z" /><path d="m7.5 10 1.8 1.8 3.2-3.6" />' },
+    { label: "Mentorship", icon: '<circle cx="10" cy="7" r="3" /><path d="M4 16.5c0-3 2.7-5 6-5s6 2 6 5" />' }
   ];
 
   var ALL_NAV_ITEMS = NAV_ITEMS.concat(NAV_SECTIONS.reduce(function (acc, section) { return acc.concat(section); }, []));
@@ -80,10 +106,9 @@
     var path = window.location.pathname;
     for (var i = 0; i < ALL_NAV_ITEMS.length; i++) {
       var slug = ALL_NAV_ITEMS[i].slug;
-      if (slug === "home") continue;
       if (path.indexOf("/" + slug) === 0 || path.indexOf("/" + slug + "/") !== -1) return ALL_NAV_ITEMS[i];
     }
-    return ALL_NAV_ITEMS[0];
+    return HOME_ITEM;
   }
 
   function getSidebarMode() {
@@ -154,6 +179,13 @@
       " white-space:nowrap; overflow:hidden; transition:background .15s, color .15s; }" +
       ".ez-sidebar-link:hover{ color:var(--ice); background:var(--panel); }" +
       ".ez-sidebar-link.active{ color:var(--mint-text); background:var(--mint); }" +
+      ".ez-sidebar-link-soon{ color:var(--muted-dim); cursor:default; opacity:0.6; }" +
+      ".ez-sidebar-link-soon:hover{ color:var(--muted-dim); background:transparent; }" +
+      ".ez-sidebar-link-soon .ez-sidebar-label{ display:flex; align-items:center; gap:7px; }" +
+      "body:not([data-sidebar-mode=\"expanded\"]) .ez-sidebar-link-soon .ez-sidebar-label{ display:none; }" +
+      ".ez-sidebar-soon-tag{ font-family:var(--font-mono); font-size:8.5px; font-weight:700; letter-spacing:0.05em;" +
+      " text-transform:uppercase; color:var(--muted-dim); border:1px solid var(--hairline-bright); border-radius:999px;" +
+      " padding:1.5px 6px; flex:none; }" +
       ".ez-sidebar-icon{ flex:none; width:20px; height:20px; }" +
       ".ez-sidebar-icon svg{ width:100%; height:100%; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }" +
       ".ez-sidebar-label{ overflow:hidden; text-overflow:ellipsis; }" +
@@ -248,7 +280,7 @@
         '<img src="/ezpayouts-icon-only.png" alt="EZ" />' +
       "</a>" +
       '<nav class="ez-topbar-links" aria-label="Primary">' +
-        ALL_NAV_ITEMS.map(function (item) {
+        [HOME_ITEM].concat(ALL_NAV_ITEMS).map(function (item) {
           return '<a href="' + item.href + '"' + (item.slug === activeSlug ? ' class="active"' : "") + ">" + item.label + "</a>";
         }).join("") +
       "</nav>" +
@@ -268,7 +300,9 @@
     header.className = "ez-header";
     header.innerHTML = "" +
       '<div class="ez-brand-group">' +
-        '<a class="ez-brand" href="/" aria-label="EZPayouts home">' +
+        // Inside the app the logo stays inside the app — it goes to the
+        // Dashboard, not back out to the public marketing page.
+        '<a class="ez-brand" href="/dashboard/" aria-label="EZPayouts dashboard">' +
           '<img src="/ezpayouts-icon-only.png" alt="EZ" />' +
         "</a>" +
         '<span class="ez-page-sep" aria-hidden="true">|</span>' +
@@ -366,11 +400,20 @@
         '<span class="ez-sidebar-label">' + item.label + "</span>" +
       "</a>";
     }
+    // Not a real page yet — rendered inert (no href, reduced opacity, a
+    // "Soon" tag) rather than a link that would 404 or silently go nowhere.
+    function renderComingSoon(item) {
+      return '<span class="ez-sidebar-link ez-sidebar-link-soon" aria-disabled="true">' +
+        '<span class="ez-sidebar-icon" aria-hidden="true"><svg viewBox="0 0 20 20">' + item.icon + "</svg></span>" +
+        '<span class="ez-sidebar-label">' + item.label + '<span class="ez-sidebar-soon-tag">Soon</span></span>' +
+      "</span>";
+    }
 
     nav.innerHTML = NAV_ITEMS.map(renderLink).join("") +
       NAV_SECTIONS.map(function (section) {
         return '<div class="ez-sidebar-section">' + section.map(renderLink).join("") + "</div>";
       }).join("") +
+      '<div class="ez-sidebar-section">' + COMING_SOON_ITEMS.map(renderComingSoon).join("") + "</div>" +
       '<span class="ez-sidebar-spacer"></span>';
 
     nav.appendChild(buildSidebarControl({
