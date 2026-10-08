@@ -631,6 +631,15 @@
   .adjust-color::-webkit-color-swatch{ border-radius:4px; border:none; }
   .adjust-color::-moz-color-swatch{ border-radius:4px; border:none; }
   .adjust-hint{ font-family:var(--font-mono); font-size:10px; line-height:1.5; color:var(--muted-dim); margin:0; }
+  .adjust-seg{ display:flex; gap:6px; }
+  .adjust-seg button{
+    flex:1; font-family:var(--font-mono); font-size:10.5px; font-weight:700; padding:7px 6px;
+    border-radius:8px; border:1px solid var(--hairline-bright); background:var(--panel-raised);
+    color:var(--muted); cursor:pointer; transition:border-color .15s, background .15s, color .15s;
+    text-align:center; white-space:nowrap;
+  }
+  .adjust-seg button:hover{ color:var(--ice); }
+  .adjust-seg button.active{ background:var(--phosphor); border-color:var(--phosphor); color:var(--mint-text); }
 
   .share-export-row{ display:flex; gap:10px; }
   .share-export-btn{
@@ -1359,6 +1368,32 @@
             <input type="range" class="adjust-slider" id="adjExportScale" min="1" max="3" step="1" value="2">
           </div>
           <p class="adjust-hint">Renders the downloaded Photo at up to 3× the preview's pixel density for sharper text and edges. Video/GIF stay at their normal resolution — this only affects the still Photo export.</p>
+
+          <div class="adjust-divider"></div>
+          <div class="adjust-section-label">Video quality</div>
+          <div class="adjust-seg" id="adjVideoQualitySeg">
+            <button type="button" data-val="standard">Standard</button>
+            <button type="button" data-val="high">High</button>
+            <button type="button" data-val="max">Max</button>
+          </div>
+          <p class="adjust-hint" id="adjVideoQualityHint">&nbsp;</p>
+
+          <div class="adjust-row">
+            <div class="adjust-row-head"><span>Video length</span></div>
+            <div class="adjust-seg" id="adjVideoLengthSeg">
+              <button type="button" data-val="match">Match clip</button>
+              <button type="button" data-val="fill">Fill 60s</button>
+            </div>
+          </div>
+          <p class="adjust-hint" id="adjVideoLengthHint">&nbsp;</p>
+
+          <div class="adjust-divider"></div>
+          <div class="adjust-section-label">GIF quality</div>
+          <div class="adjust-seg" id="adjGifQualitySeg">
+            <button type="button" data-val="fast">Fast &amp; small</button>
+            <button type="button" data-val="quality">Higher quality</button>
+          </div>
+          <p class="adjust-hint" id="adjGifQualityHint">&nbsp;</p>
         </div>
       </div>
     </div>
@@ -1807,27 +1842,48 @@
   var SHARE_BG_LIST = SHARE_BG_PRESET_MEDIA;
   var SHARE_BG_VISIBLE_COUNT = 8;
   var SHARE_EXPORT_DURATION_MS = 3000;
-  var SHARE_MAX_VIDEO_EXPORT_MS = 30000;
-  // GIF duration is capped lower than video: gif.js is pure-JS/no hardware
-  // acceleration, and frame count (duration × fps) drives both encode time
-  // and memory directly — 15s × 15fps × 1280×720 is already a lot of work
-  // for a browser tab. Push past this and exports get slow or crash rather
-  // than just taking longer.
-  var SHARE_MAX_GIF_EXPORT_MS = 15000;
-  var SHARE_GIF_FPS = 15;
-  var SHARE_GIF_WIDTH = 1280;
-  var SHARE_GIF_HEIGHT = 720;
+  // "Fill" length mode always records this full window, looping short clips
+  // to fit it (old always-30s behavior, just with the cap raised).
+  var SHARE_VIDEO_LENGTH_FILL_MS = 60000;
+  // "Match" length mode records the background clip's own natural duration
+  // once through — this is just a safety ceiling in case a clip is
+  // unexpectedly long.
+  var SHARE_VIDEO_LENGTH_MATCH_MAX_MS = 90000;
+  // MediaRecorder needs an explicit bitrate or the browser falls back to a
+  // conservative default (measured well under 1 Mbps for 1080p30 in
+  // testing) that visibly blurs anything with real motion — busy video
+  // backgrounds especially. "max" roughly matches typical source footage;
+  // "standard" trades sharpness for a much smaller download.
+  var SHARE_VIDEO_BITRATE_TIERS = {
+    standard: { bps: 3000000, label: "~3 Mbps — smaller file, soft on busy motion." },
+    high:     { bps: 5000000, label: "~5 Mbps — clearly sharper, moderate file size." },
+    max:      { bps: 8000000, label: "~8 Mbps — matches typical source footage. Largest file." }
+  };
+  // GIF is a palette-based format with a hard quality/size ceiling on
+  // photographic/video content no matter how it's tuned — these two tiers
+  // are "smaller & faster" vs. "looks better, costs more" rather than a
+  // free lunch. gif.js is pure-JS/no hardware acceleration, and frame count
+  // (duration × fps) drives both encode time and memory directly, so both
+  // tiers stay well short of the old 15s/1280×720 ceiling.
+  var SHARE_GIF_QUALITY_TIERS = {
+    fast:    { width: 854,  height: 480, fps: 10, durationMs: 8000,  quality: 20, label: "854×480 · 8s · fastest, smallest file." },
+    quality: { width: 1280, height: 720, fps: 15, durationMs: 12000, quality: 3,  label: "1280×720 · 12s · better palette, bigger & slower." }
+  };
 
   // Every video background loops (the <video> element has loop set, and
-  // the preview plays it continuously) — exports should too, filling the
-  // whole requested window instead of recording just one play-through of
-  // a short clip and stopping. That one-play-through-then-stop behavior
-  // was the "cuts off midway" bug: a 5s preset loop or a short upload
-  // would end the recording at its own natural length even when a much
-  // longer export had been requested.
-  function getExportDurationMs(cap){
-    if (shareBg.type === "video") return cap;
-    return SHARE_EXPORT_DURATION_MS;
+  // the preview plays it continuously). "Fill" length mode keeps the old
+  // behavior of always recording the full fixed window, looping short clips
+  // to fit it rather than stopping at their own natural length. "Match"
+  // length mode instead records the clip's own real duration exactly once —
+  // no loop, no cutoff — capped only as a safety ceiling for unexpectedly
+  // long clips.
+  function getVideoExportDurationMs(){
+    if (shareBg.type !== "video") return SHARE_EXPORT_DURATION_MS;
+    if (shareAdjust.videoLengthMode === "match"){
+      var natural = (shareBgVideoEl.duration && isFinite(shareBgVideoEl.duration)) ? shareBgVideoEl.duration * 1000 : SHARE_VIDEO_LENGTH_FILL_MS;
+      return Math.max(1000, Math.min(natural, SHARE_VIDEO_LENGTH_MATCH_MAX_MS));
+    }
+    return SHARE_VIDEO_LENGTH_FILL_MS;
   }
 
   var shareCurrentTrade = null;
@@ -1879,7 +1935,18 @@
     dim: 35, leftShade: 45, zoom: 100, panX: 50, panY: 50,
     glowRadius: 18, glowOpacity: 70, matchColor: true,
     pnlColor: "#ffffff", labelColor: "#8da093", valueColor: "#ffffff",
-    exportScale: 2
+    exportScale: 2,
+    // "standard" keeps exports small by default; "high"/"max" trade file
+    // size for sharpness on busy video backgrounds (see SHARE_VIDEO_BITRATE_TIERS).
+    videoQuality: "standard",
+    // "match" records the background clip's own natural length once through,
+    // no looping or cutoff; "fill" always fills a fixed window like before,
+    // looping short clips to fit (see SHARE_VIDEO_LENGTH_FILL_MS).
+    videoLengthMode: "match",
+    // "fast" favors small/quick GIFs; "quality" favors a better-looking (but
+    // bigger, slower) GIF. GIF is a palette format with a hard quality/size
+    // ceiling on photographic backgrounds either way — see SHARE_GIF_QUALITY_TIERS.
+    gifQuality: "fast"
   };
   var SHARE_ADJUST_STORAGE_KEY = "ezpayouts.shareAdjust";
   function loadShareAdjust(){
@@ -1918,6 +1985,18 @@
   var adjMatchColorEl = document.getElementById("adjMatchColor");
   var adjResetBtn = document.getElementById("adjResetBtn");
 
+  // Three-way (well, two/three-option) segmented pickers for export quality
+  // tradeoffs — same shareAdjust-backed persistence pattern as the sliders
+  // above, just a button group instead of a range input.
+  var SHARE_ADJUST_SEGMENTS = [
+    { key: "videoQuality", el: document.getElementById("adjVideoQualitySeg"), hint: document.getElementById("adjVideoQualityHint"), tiers: SHARE_VIDEO_BITRATE_TIERS },
+    { key: "videoLengthMode", el: document.getElementById("adjVideoLengthSeg"), hint: document.getElementById("adjVideoLengthHint"), tiers: {
+        match: { label: "Records the clip's real length once through — no looping, no cutoff." },
+        fill:  { label: "Always fills a fixed " + (SHARE_VIDEO_LENGTH_FILL_MS / 1000) + "s window, looping short clips to fit." }
+      } },
+    { key: "gifQuality", el: document.getElementById("adjGifQualitySeg"), hint: document.getElementById("adjGifQualityHint"), tiers: SHARE_GIF_QUALITY_TIERS }
+  ];
+
   function syncAdjustUI(){
     SHARE_ADJUST_SLIDERS.forEach(function(s){
       s.input.value = shareAdjust[s.key];
@@ -1925,7 +2004,25 @@
     });
     SHARE_ADJUST_COLORS.forEach(function(c){ c.input.value = shareAdjust[c.key]; });
     adjMatchColorEl.checked = shareAdjust.matchColor;
+    SHARE_ADJUST_SEGMENTS.forEach(function(seg){
+      var val = shareAdjust[seg.key];
+      seg.el.querySelectorAll("button[data-val]").forEach(function(b){
+        b.classList.toggle("active", b.getAttribute("data-val") === val);
+      });
+      if (seg.hint && seg.tiers[val]) seg.hint.textContent = seg.tiers[val].label;
+    });
   }
+  SHARE_ADJUST_SEGMENTS.forEach(function(seg){
+    seg.el.addEventListener("click", function(e){
+      var btn = e.target.closest("button[data-val]");
+      if (!btn) return;
+      var val = btn.getAttribute("data-val");
+      if (shareAdjust[seg.key] === val) return;
+      shareAdjust[seg.key] = val;
+      saveShareAdjust();
+      syncAdjustUI();
+    });
+  });
   // No manual redraw needed on input: every background is a video, so the
   // preview's RAF loop is always running and picks up the new state on its
   // very next frame — same path an export reads from.
@@ -2649,11 +2746,21 @@
     }
     var chunks = [];
     var recorder;
+    // Without an explicit bitrate, MediaRecorder falls back to a low
+    // browser default that visibly blurs any real motion in the
+    // background — this is the fix for exports looking soft compared to
+    // the source footage. videoBitsPerSecond is ignored harmlessly by
+    // browsers that don't support tuning it.
+    var bitrateTier = SHARE_VIDEO_BITRATE_TIERS[shareAdjust.videoQuality] || SHARE_VIDEO_BITRATE_TIERS.standard;
     try {
-      recorder = new MediaRecorder(stream, { mimeType: mimeType });
+      recorder = new MediaRecorder(stream, { mimeType: mimeType, videoBitsPerSecond: bitrateTier.bps });
     } catch (err){
-      showToast("Video export isn't supported in this browser");
-      return;
+      try {
+        recorder = new MediaRecorder(stream, { mimeType: mimeType });
+      } catch (err2){
+        showToast("Video export isn't supported in this browser");
+        return;
+      }
     }
     setExportBusy(true);
     // Force a continuous redraw loop for the whole capture window, even over
@@ -2670,7 +2777,7 @@
     // rather than whatever point the live preview happened to be at.
     if (shareBg.type === "video") shareBgVideoEl.currentTime = 0;
     shareAnimStartTime = Date.now();
-    var durationMs = getExportDurationMs(SHARE_MAX_VIDEO_EXPORT_MS);
+    var durationMs = getVideoExportDurationMs();
     var recordStartedAt = Date.now();
     setButtonLabel(shareExportVideoBtn, "Recording 0%");
     var progressTimer = setInterval(function(){
@@ -2719,33 +2826,35 @@
     }
     setExportBusy(true);
     setButtonLabel(shareExportGifBtn, "Preparing…");
+    var gifTier = SHARE_GIF_QUALITY_TIERS[shareAdjust.gifQuality] || SHARE_GIF_QUALITY_TIERS.fast;
     getGifWorkerUrl().then(function(workerUrl){
       var gifCanvas = document.createElement("canvas");
-      gifCanvas.width = SHARE_GIF_WIDTH;
-      gifCanvas.height = SHARE_GIF_HEIGHT;
+      gifCanvas.width = gifTier.width;
+      gifCanvas.height = gifTier.height;
       var gifCtx = gifCanvas.getContext("2d");
       // High-quality downscale: we're always shrinking the 1920×1080 source
-      // canvas down to SHARE_GIF_WIDTH×HEIGHT here, and the default nearest-
-      // neighbor-ish sampling is what made GIF text look jagged — this is
-      // the one spot imageSmoothingQuality actually matters, since there's
-      // no DPI upscaling happening anywhere else in this pipeline.
+      // canvas down to the tier's width/height here, and the default
+      // nearest-neighbor-ish sampling is what made GIF text look jagged —
+      // this is the one spot imageSmoothingQuality actually matters, since
+      // there's no DPI upscaling happening anywhere else in this pipeline.
       gifCtx.imageSmoothingEnabled = true;
       gifCtx.imageSmoothingQuality = "high";
       var gif = new GIF({
         workers: 2,
-        quality: 10, // gif.js's "quality" is literally the NeuQuant sample interval
+        quality: gifTier.quality, // gif.js's "quality" is literally the NeuQuant sample interval
         globalPalette: true, // one shared palette for all frames: faster encode, smaller file
-        width: SHARE_GIF_WIDTH,
-        height: SHARE_GIF_HEIGHT,
+        width: gifTier.width,
+        height: gifTier.height,
         workerScript: workerUrl
       });
       if (shareBg.type === "video") shareBgVideoEl.currentTime = 0;
       shareAnimStartTime = Date.now();
-      var frameDelay = Math.round(1000 / SHARE_GIF_FPS);
-      var frameCount = Math.round(getExportDurationMs(SHARE_MAX_GIF_EXPORT_MS) / frameDelay);
+      var frameDelay = Math.round(1000 / gifTier.fps);
+      var gifDurationMs = shareBg.type === "video" ? gifTier.durationMs : SHARE_EXPORT_DURATION_MS;
+      var frameCount = Math.round(gifDurationMs / frameDelay);
       var captured = 0;
       var captureTimer = setInterval(function(){
-        gifCtx.drawImage(shareCardCanvas, 0, 0, SHARE_GIF_WIDTH, SHARE_GIF_HEIGHT);
+        gifCtx.drawImage(shareCardCanvas, 0, 0, gifTier.width, gifTier.height);
         gif.addFrame(gifCtx, { copy: true, delay: frameDelay });
         captured++;
         setButtonLabel(shareExportGifBtn, "Capturing " + Math.round((captured / frameCount) * 100) + "%");
