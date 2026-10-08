@@ -613,6 +613,24 @@
     font-size:11.5px; color:var(--muted); cursor:pointer; user-select:none; padding-top:2px; border-top:1px solid var(--hairline);
   }
   .adjust-toggle input{ accent-color:var(--phosphor); width:15px; height:15px; cursor:pointer; flex:none; }
+  .adjust-divider{ height:1px; background:var(--hairline); margin:2px 0; }
+  .adjust-section-label{
+    font-family:var(--font-mono); font-size:10px; letter-spacing:0.06em; text-transform:uppercase;
+    color:var(--muted-dim); margin-top:-6px;
+  }
+  .adjust-color-row{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    font-family:var(--font-mono); font-size:11px; color:var(--muted);
+  }
+  .adjust-color-row small{ color:var(--muted-dim); font-size:9.5px; }
+  .adjust-color{
+    -webkit-appearance:none; appearance:none; width:30px; height:22px; border-radius:6px;
+    border:1px solid var(--hairline-bright); background:none; padding:0; cursor:pointer; flex:none;
+  }
+  .adjust-color::-webkit-color-swatch-wrapper{ padding:2px; }
+  .adjust-color::-webkit-color-swatch{ border-radius:4px; border:none; }
+  .adjust-color::-moz-color-swatch{ border-radius:4px; border:none; }
+  .adjust-hint{ font-family:var(--font-mono); font-size:10px; line-height:1.5; color:var(--muted-dim); margin:0; }
 
   .share-export-row{ display:flex; gap:10px; }
   .share-export-btn{
@@ -1307,13 +1325,40 @@
             <input type="range" class="adjust-slider" id="adjPanY" min="0" max="100" value="50">
           </div>
           <div class="adjust-row">
-            <div class="adjust-row-head"><span>P&amp;L glow</span><span class="adjust-value" id="adjGlowValue">100%</span></div>
-            <input type="range" class="adjust-slider" id="adjGlow" min="0" max="150" value="100">
+            <div class="adjust-row-head"><span>Glow radius</span><span class="adjust-value" id="adjGlowRadiusValue">18px</span></div>
+            <input type="range" class="adjust-slider" id="adjGlowRadius" min="0" max="50" value="18">
+          </div>
+          <div class="adjust-row">
+            <div class="adjust-row-head"><span>Glow opacity</span><span class="adjust-value" id="adjGlowOpacityValue">70%</span></div>
+            <input type="range" class="adjust-slider" id="adjGlowOpacity" min="0" max="100" value="70">
           </div>
           <label class="adjust-toggle">
             <input type="checkbox" id="adjMatchColor" checked>
             <span>Match glow to P&amp;L color</span>
           </label>
+
+          <div class="adjust-divider"></div>
+          <div class="adjust-section-label">Text colors</div>
+          <div class="adjust-color-row">
+            <span>P&amp;L text <small>(when not matched)</small></span>
+            <input type="color" class="adjust-color" id="adjPnlColor" value="#ffffff">
+          </div>
+          <div class="adjust-color-row">
+            <span>Label headers</span>
+            <input type="color" class="adjust-color" id="adjLabelColor" value="#8da093">
+          </div>
+          <div class="adjust-color-row">
+            <span>Value metrics</span>
+            <input type="color" class="adjust-color" id="adjValueColor" value="#ffffff">
+          </div>
+
+          <div class="adjust-divider"></div>
+          <div class="adjust-section-label">Photo quality</div>
+          <div class="adjust-row">
+            <div class="adjust-row-head"><span>Export scale</span><span class="adjust-value" id="adjExportScaleValue">2×</span></div>
+            <input type="range" class="adjust-slider" id="adjExportScale" min="1" max="3" step="1" value="2">
+          </div>
+          <p class="adjust-hint">Renders the downloaded Photo at up to 3× the preview's pixel density for sharper text and edges. Video/GIF stay at their normal resolution — this only affects the still Photo export.</p>
         </div>
       </div>
     </div>
@@ -1830,16 +1875,28 @@
   // renders the card (preview and every export all call drawShareCard),
   // so a slider change is guaranteed to look identical in the live
   // preview and in Photo/Video/GIF output with no separate sync step.
-  var SHARE_ADJUST_DEFAULTS = { dim: 35, leftShade: 45, zoom: 100, panX: 50, panY: 50, glow: 100, matchColor: true };
+  var SHARE_ADJUST_DEFAULTS = {
+    dim: 35, leftShade: 45, zoom: 100, panX: 50, panY: 50,
+    glowRadius: 18, glowOpacity: 70, matchColor: true,
+    pnlColor: "#ffffff", labelColor: "#8da093", valueColor: "#ffffff",
+    exportScale: 2
+  };
   var shareAdjust = Object.assign({}, SHARE_ADJUST_DEFAULTS);
 
   var SHARE_ADJUST_SLIDERS = [
-    { key: "dim", input: document.getElementById("adjDim"), value: document.getElementById("adjDimValue") },
-    { key: "leftShade", input: document.getElementById("adjShade"), value: document.getElementById("adjShadeValue") },
-    { key: "zoom", input: document.getElementById("adjZoom"), value: document.getElementById("adjZoomValue") },
-    { key: "panX", input: document.getElementById("adjPanX"), value: document.getElementById("adjPanXValue") },
-    { key: "panY", input: document.getElementById("adjPanY"), value: document.getElementById("adjPanYValue") },
-    { key: "glow", input: document.getElementById("adjGlow"), value: document.getElementById("adjGlowValue") }
+    { key: "dim", input: document.getElementById("adjDim"), value: document.getElementById("adjDimValue"), suffix: "%" },
+    { key: "leftShade", input: document.getElementById("adjShade"), value: document.getElementById("adjShadeValue"), suffix: "%" },
+    { key: "zoom", input: document.getElementById("adjZoom"), value: document.getElementById("adjZoomValue"), suffix: "%" },
+    { key: "panX", input: document.getElementById("adjPanX"), value: document.getElementById("adjPanXValue"), suffix: "%" },
+    { key: "panY", input: document.getElementById("adjPanY"), value: document.getElementById("adjPanYValue"), suffix: "%" },
+    { key: "glowRadius", input: document.getElementById("adjGlowRadius"), value: document.getElementById("adjGlowRadiusValue"), suffix: "px" },
+    { key: "glowOpacity", input: document.getElementById("adjGlowOpacity"), value: document.getElementById("adjGlowOpacityValue"), suffix: "%" },
+    { key: "exportScale", input: document.getElementById("adjExportScale"), value: document.getElementById("adjExportScaleValue"), suffix: "×" }
+  ];
+  var SHARE_ADJUST_COLORS = [
+    { key: "pnlColor", input: document.getElementById("adjPnlColor") },
+    { key: "labelColor", input: document.getElementById("adjLabelColor") },
+    { key: "valueColor", input: document.getElementById("adjValueColor") }
   ];
   var adjMatchColorEl = document.getElementById("adjMatchColor");
   var adjResetBtn = document.getElementById("adjResetBtn");
@@ -1847,8 +1904,9 @@
   function syncAdjustUI(){
     SHARE_ADJUST_SLIDERS.forEach(function(s){
       s.input.value = shareAdjust[s.key];
-      s.value.textContent = shareAdjust[s.key] + "%";
+      s.value.textContent = shareAdjust[s.key] + s.suffix;
     });
+    SHARE_ADJUST_COLORS.forEach(function(c){ c.input.value = shareAdjust[c.key]; });
     adjMatchColorEl.checked = shareAdjust.matchColor;
   }
   // No manual redraw needed on input: every background is a video, so the
@@ -1857,8 +1915,11 @@
   SHARE_ADJUST_SLIDERS.forEach(function(s){
     s.input.addEventListener("input", function(){
       shareAdjust[s.key] = Number(s.input.value);
-      s.value.textContent = s.input.value + "%";
+      s.value.textContent = s.input.value + s.suffix;
     });
+  });
+  SHARE_ADJUST_COLORS.forEach(function(c){
+    c.input.addEventListener("input", function(){ shareAdjust[c.key] = c.input.value; });
   });
   adjMatchColorEl.addEventListener("change", function(){
     shareAdjust.matchColor = adjMatchColorEl.checked;
@@ -1990,6 +2051,8 @@
   // ---------- Share card: drawing helpers shared by all period layouts ----------
   function drawCardBase(ctx, w, h){
     ctx.clearRect(0, 0, w, h);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
     drawBackgroundLayer(ctx, w, h);
     var vignette = ctx.createLinearGradient(0, 0, 0, h);
     vignette.addColorStop(0, "rgba(0,0,0,0.5)");
@@ -2015,16 +2078,25 @@
       ctx.fillRect(0, 0, w, h);
     }
   }
+  function hexToRgba(hex, alpha){
+    hex = (hex || "#ffffff").replace("#", "");
+    if (hex.length === 3) hex = hex.split("").map(function(c){ return c + c; }).join("");
+    var r = parseInt(hex.substr(0, 2), 16), g = parseInt(hex.substr(2, 2), 16), b = parseInt(hex.substr(4, 2), 16);
+    return "rgba(" + r + "," + g + "," + b + "," + alpha + ")";
+  }
   // Glowing hero amount. Chakra Petch only ships up to weight 700 (no
   // 900/Black cut is actually loaded), so declaring "900" below renders no
   // bolder than 700 on its own — a same-color stroke fattens the glyph
   // edges for real extra weight, then the soft double-shadow glow, then a
-  // crisp top layer so the glow doesn't wash out the edges.
+  // crisp top layer so the glow doesn't wash out the edges. Glow radius is
+  // an absolute pixel blur (shareAdjust.glowRadius), independent of font
+  // size; glow opacity controls the shadow color's own alpha.
   function drawGlowAmount(ctx, text, color, x, y, fontSize){
-    // shareAdjust.matchColor off: the hero amount renders in a neutral
-    // white instead of tracking the win/loss green or red.
-    if (!shareAdjust.matchColor) color = "#ffffff";
-    var glowMul = shareAdjust.glow / 100;
+    // shareAdjust.matchColor off: the hero amount renders in the chosen
+    // override color instead of tracking the win/loss green or red.
+    if (!shareAdjust.matchColor) color = shareAdjust.pnlColor;
+    var radius = shareAdjust.glowRadius;
+    var glowColor = hexToRgba(color, shareAdjust.glowOpacity / 100);
     ctx.textAlign = "left";
     ctx.textBaseline = "alphabetic";
     ctx.font = "900 " + fontSize + "px 'Chakra Petch', sans-serif";
@@ -2032,14 +2104,14 @@
     ctx.miterLimit = 2;
     ctx.lineWidth = fontSize * 0.045;
     ctx.strokeStyle = color;
-    if (glowMul > 0){
+    if (radius > 0 && shareAdjust.glowOpacity > 0){
       ctx.save();
-      ctx.shadowColor = color;
-      ctx.shadowBlur = fontSize * 0.4 * glowMul;
+      ctx.shadowColor = glowColor;
+      ctx.shadowBlur = radius;
       ctx.fillStyle = color;
       ctx.fillText(text, x, y);
       ctx.strokeText(text, x, y);
-      ctx.shadowBlur = fontSize * 0.6 * glowMul;
+      ctx.shadowBlur = radius * 1.6;
       ctx.fillText(text, x, y);
       ctx.restore();
     }
@@ -2078,11 +2150,11 @@
       rows.forEach(function(r, i){
         var ry = y + i * rowH;
         ctx.textAlign = "left";
-        ctx.fillStyle = "rgba(255,255,255,0.55)";
+        ctx.fillStyle = shareAdjust.labelColor;
         ctx.font = "600 " + labelSize + "px 'IBM Plex Mono', monospace";
         ctx.fillText(r.label, x, ry);
         ctx.textAlign = "right";
-        ctx.fillStyle = r.color || "#ffffff";
+        ctx.fillStyle = r.color || shareAdjust.valueColor;
         ctx.font = "700 " + valueSize + "px 'IBM Plex Mono', monospace";
         ctx.fillText(r.value, x + width, ry);
       });
@@ -2160,10 +2232,8 @@
     });
   }
 
-  function drawTradeCard(){
+  function drawTradeCard(ctx, w, h){
     var t = shareCurrentTrade;
-    var ctx = shareCardCanvas.getContext("2d");
-    var w = shareCardCanvas.width, h = shareCardCanvas.height;
     drawCardBase(ctx, w, h);
     var pad = 64;
 
@@ -2198,10 +2268,8 @@
     drawCardFooter(ctx, w, h, pad);
   }
 
-  function drawDailyCard(){
+  function drawDailyCard(ctx, w, h){
     var t = shareCurrentTrade;
-    var ctx = shareCardCanvas.getContext("2d");
-    var w = shareCardCanvas.width, h = shareCardCanvas.height;
     drawCardBase(ctx, w, h);
     var pad = 64;
     var agg = computeDayAgg(t.date);
@@ -2222,10 +2290,8 @@
     drawCardFooter(ctx, w, h, pad);
   }
 
-  function drawWeeklyCard(){
+  function drawWeeklyCard(ctx, w, h){
     var t = shareCurrentTrade;
-    var ctx = shareCardCanvas.getContext("2d");
-    var w = shareCardCanvas.width, h = shareCardCanvas.height;
     drawCardBase(ctx, w, h);
     var pad = 64;
     var agg = computeWeekAgg(t.date);
@@ -2265,10 +2331,8 @@
     drawCardFooter(ctx, w, h, pad);
   }
 
-  function drawMonthlyCard(){
+  function drawMonthlyCard(ctx, w, h){
     var t = shareCurrentTrade;
-    var ctx = shareCardCanvas.getContext("2d");
-    var w = shareCardCanvas.width, h = shareCardCanvas.height;
     drawCardBase(ctx, w, h);
     var pad = 64;
     var agg = computeMonthAgg(t.date);
@@ -2295,17 +2359,29 @@
     drawCardFooter(ctx, w, h, pad);
   }
 
-  function drawShareCard(){
+  // ctx/w/h are optional — omitted, this draws into the live preview
+  // canvas as always. Passed explicitly (an offscreen canvas's context,
+  // plus its logical width/height), this renders the exact same card at
+  // whatever resolution that canvas was created at, which is how high-DPI
+  // Photo export works: an offscreen canvas N times larger, pre-scaled
+  // with ctx.scale(N,N), run through this same function unmodified.
+  function drawShareCard(ctx, w, h){
     if (!shareCurrentTrade || !shareCardCanvas.getContext) return;
-    if (sharePeriod === "daily") drawDailyCard();
-    else if (sharePeriod === "weekly") drawWeeklyCard();
-    else if (sharePeriod === "monthly") drawMonthlyCard();
-    else drawTradeCard();
+    ctx = ctx || shareCardCanvas.getContext("2d");
+    w = w || shareCardCanvas.width;
+    h = h || shareCardCanvas.height;
+    if (sharePeriod === "daily") drawDailyCard(ctx, w, h);
+    else if (sharePeriod === "weekly") drawWeeklyCard(ctx, w, h);
+    else if (sharePeriod === "monthly") drawMonthlyCard(ctx, w, h);
+    else drawTradeCard(ctx, w, h);
   }
 
   function redrawShareCard(){
+    // Not document.fonts.ready.then(drawShareCard) — that would pass the
+    // resolved FontFaceSet as drawShareCard's first argument (ctx), which
+    // now genuinely matters since drawShareCard takes real parameters.
     if (document.fonts && document.fonts.ready){
-      document.fonts.ready.then(drawShareCard);
+      document.fonts.ready.then(function(){ drawShareCard(); });
     } else {
       drawShareCard();
     }
@@ -2488,16 +2564,32 @@
   }
 
   shareExportPhotoBtn.addEventListener("click", function(){
+    // High-DPI export: draw the exact same card into an offscreen canvas
+    // that's N times larger (shareAdjust.exportScale), pre-scaled with
+    // ctx.scale(N,N) so every draw call's logical 1920×1080 coordinates
+    // land N× denser in physical pixels — classic supersampling. The live
+    // preview canvas itself stays at 1920×1080 (no reason to pay that
+    // render cost every animation frame just for a one-shot export).
+    var scale = shareAdjust.exportScale || 1;
+    var w = shareCardCanvas.width, h = shareCardCanvas.height;
+    var exportCanvas = document.createElement("canvas");
+    exportCanvas.width = w * scale;
+    exportCanvas.height = h * scale;
+    var ctx = exportCanvas.getContext("2d");
+    ctx.scale(scale, scale);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
     // A still frame showing the P&L mid-count-up would look broken — force
     // the finished value for this one draw, then let the preview's RAF
-    // loop (already running) carry on animating as normal afterward.
+    // loop (already running, drawing into the separate live canvas) carry
+    // on animating as normal afterward.
     shareForceFinalFrame = true;
-    drawShareCard();
+    drawShareCard(ctx, w, h);
     shareForceFinalFrame = false;
-    shareCardCanvas.toBlob(function(blob){
+    exportCanvas.toBlob(function(blob){
       if (!blob) return;
       downloadBlob(blob, shareCardFileName("png"));
-      showToast("Photo downloaded");
+      showToast("Photo downloaded (" + exportCanvas.width + "×" + exportCanvas.height + ")");
     }, "image/png");
   });
 
@@ -2605,9 +2697,17 @@
       gifCanvas.width = SHARE_GIF_WIDTH;
       gifCanvas.height = SHARE_GIF_HEIGHT;
       var gifCtx = gifCanvas.getContext("2d");
+      // High-quality downscale: we're always shrinking the 1920×1080 source
+      // canvas down to SHARE_GIF_WIDTH×HEIGHT here, and the default nearest-
+      // neighbor-ish sampling is what made GIF text look jagged — this is
+      // the one spot imageSmoothingQuality actually matters, since there's
+      // no DPI upscaling happening anywhere else in this pipeline.
+      gifCtx.imageSmoothingEnabled = true;
+      gifCtx.imageSmoothingQuality = "high";
       var gif = new GIF({
         workers: 2,
-        quality: 10,
+        quality: 10, // gif.js's "quality" is literally the NeuQuant sample interval
+        globalPalette: true, // one shared palette for all frames: faster encode, smaller file
         width: SHARE_GIF_WIDTH,
         height: SHARE_GIF_HEIGHT,
         workerScript: workerUrl
