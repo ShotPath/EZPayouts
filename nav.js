@@ -17,9 +17,9 @@
   // financial meaning the reskin shouldn't touch — only the background
   // undertone, accent/brand color, and main text tones change.
   var THEME_KEY = "ezpayouts.theme";
-  var THEMES = ["green", "ink", "red", "magenta"];
+  var THEMES = ["ink", "green", "red", "magenta"];
   var THEME_LABELS = { green: "Green", ink: "Inked Japan", red: "Red", magenta: "Magenta" };
-  var THEME_SWATCHES = { green: "#3ee08c", ink: "#7b86d9", red: "#d4323f", magenta: "#d63f9d" };
+  var THEME_SWATCHES = { green: "#3ee08c", ink: "#3b82f6", red: "#d4323f", magenta: "#d63f9d" };
   var THEME_ICON = '<path d="M10 3.2c-3.9 0-7 2.9-7 6.5 0 3.4 2.9 6.3 6.6 6.3.6 0 1.1-.4 1.1-1 0-.3-.1-.5-.3-.7-.2-.2-.3-.4-.3-.7 0-.5.5-1 1.1-1H13c2.2 0 4-1.6 4-3.6 0-3.2-3.1-5.8-7-5.8z" /><circle cx="7.3" cy="8.3" r=".9" fill="currentColor" stroke="none" /><circle cx="10" cy="6.3" r=".9" fill="currentColor" stroke="none" /><circle cx="12.7" cy="8.3" r=".9" fill="currentColor" stroke="none" />';
 
   function getTheme() {
@@ -27,7 +27,7 @@
       var stored = localStorage.getItem(THEME_KEY);
       if (THEMES.indexOf(stored) !== -1) return stored;
     } catch (err) {}
-    return "green";
+    return "ink";
   }
 
   function setTheme(theme) {
@@ -274,12 +274,16 @@
       // Theme overrides. html[data-ez-theme] beats a bare :root on
       // specificity, so these win over each page's own default (green)
       // tokens without touching --red/--amber (loss/warning stay fixed).
+      // "ink" = the site's default theme (see getTheme()'s fallback) — a
+      // cyber-luminescent blue/cyan reskin matching a specific reference
+      // app's palette exactly (deep sumi-ink backgrounds, blue-500/600
+      // accent, white-on-blue buttons instead of dark-on-mint).
       "html[data-ez-theme=\"ink\"]{" +
-      " --void:#07080c; --panel:#0e1118; --panel-raised:#151926; --panel-hi:#1d2233;" +
-      " --hairline:#262b3d; --hairline-bright:#3d4566;" +
-      " --phosphor:#7b86d9; --phosphor-soft:#a8b0ec; --phosphor-dim:#363f6e; --phosphor-glow:rgba(123,134,217,0.35);" +
-      " --mint:#8d93e0; --mint-text:#0b0d1a;" +
-      " --ice:#e4e3f0; --muted:#8a8ca6; --muted-dim:#585a73; }" +
+      " --void:#050811; --panel:#0d1425; --panel-raised:#121a2e; --panel-hi:#1a243d;" +
+      " --hairline:#1c2742; --hairline-bright:#243153;" +
+      " --phosphor:#3b82f6; --phosphor-soft:#38bdf8; --phosphor-dim:#1d3a6e; --phosphor-glow:rgba(59,130,246,0.35);" +
+      " --mint:#2563eb; --mint-text:#f8fafc;" +
+      " --ice:#e2e8f0; --muted:#94a3b8; --muted-dim:#64748b; }" +
       "html[data-ez-theme=\"red\"]{" +
       " --void:#0a0707; --panel:#150c0c; --panel-raised:#1f1313; --panel-hi:#2a1818;" +
       " --hairline:#3a2020; --hairline-bright:#612c2c;" +
