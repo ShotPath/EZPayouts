@@ -596,8 +596,19 @@
   .share-mute-btn:hover{ background:rgba(0,0,0,0.75); }
   .share-mute-btn[hidden]{ display:none; }
   .share-mute-btn svg{ width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .share-sub-tabs{
+    display:inline-flex; align-items:stretch; width:100%; margin-bottom:12px;
+    border-radius:999px; overflow:hidden; border:1px solid var(--hairline-bright); background:var(--panel);
+  }
+  .share-sub-tabs .seg-thumb{ border-radius:inherit; }
+  .share-sub-tabs button{
+    flex:1; font-family:var(--font-mono); font-size:11px; font-weight:700; padding:8px 6px;
+    background:transparent; border:none; color:var(--muted); cursor:pointer; transition:color .15s; white-space:nowrap;
+  }
+  .share-sub-tabs button.active{ color:var(--mint-text); }
+  .share-subpanel[hidden]{ display:none; }
   .share-bg-section{ margin-bottom:16px; }
-  .share-bg-grid{ display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; }
+  .share-bg-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; }
   .share-bg-tile{
     position:relative; aspect-ratio:4/3; border-radius:10px; overflow:hidden; padding:0;
     background:var(--panel-hi); border:2px solid transparent; box-shadow:0 0 0 1px var(--hairline-bright);
@@ -1349,26 +1360,34 @@
         <video id="shareBgVideoEl" muted loop playsinline crossorigin="anonymous" hidden></video>
         <img id="shareBgGifEl" alt="" crossorigin="anonymous" hidden />
         <img id="shareBgImgEl" alt="" crossorigin="anonymous" hidden />
-
-        <div class="share-bg-section">
-          <div class="share-bg-grid" id="shareBgGrid"></div>
-          <button type="button" class="share-bg-more" id="shareBgMoreBtn" hidden>
-            <span id="shareBgMoreLabel">More</span>
-            <svg viewBox="0 0 20 20"><path d="M5 7l5 6 5-6" /></svg>
-          </button>
-          <div class="share-bg-upload-row">
-            <label class="share-bg-upload-btn" id="shareBgUploadLabel">
-              <svg viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></svg>
-              <span>Upload image, GIF or video</span>
-              <input type="file" id="shareBgUpload" accept="image/*,video/mp4,video/webm,video/quicktime,video/*" hidden />
-            </label>
-            <button type="button" class="share-bg-remove-btn" id="shareBgRemoveBtn">Remove</button>
-          </div>
-        </div>
       </div>
 
       <div class="share-workspace-aside">
-        <div class="share-adjust-panel">
+        <div class="share-sub-tabs seg-track" id="shareSubTabs">
+          <span class="seg-thumb" aria-hidden="true"></span>
+          <button type="button" class="active" data-subtab="background">Background</button>
+          <button type="button" data-subtab="adjust">Adjust</button>
+        </div>
+
+        <div class="share-subpanel" id="shareBgPanel" data-subpanel="background">
+          <div class="share-bg-section">
+            <div class="share-bg-grid" id="shareBgGrid"></div>
+            <button type="button" class="share-bg-more" id="shareBgMoreBtn" hidden>
+              <span id="shareBgMoreLabel">More</span>
+              <svg viewBox="0 0 20 20"><path d="M5 7l5 6 5-6" /></svg>
+            </button>
+            <div class="share-bg-upload-row">
+              <label class="share-bg-upload-btn" id="shareBgUploadLabel">
+                <svg viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></svg>
+                <span>Upload image, GIF or video</span>
+                <input type="file" id="shareBgUpload" accept="image/*,video/mp4,video/webm,video/quicktime,video/*" hidden />
+              </label>
+              <button type="button" class="share-bg-remove-btn" id="shareBgRemoveBtn">Remove</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="share-subpanel share-adjust-panel" id="shareAdjustPanel" data-subpanel="adjust" hidden>
           <div class="share-adjust-head">
             <span>Adjustments</span>
             <button type="button" class="share-adjust-reset" id="adjResetBtn">Reset</button>
@@ -1842,6 +1861,9 @@
   var shareModalClose = document.getElementById("shareModalClose");
   var shareModalSub = document.getElementById("shareModalSub");
   var sharePeriodTabs = document.getElementById("sharePeriodTabs");
+  var shareSubTabs = document.getElementById("shareSubTabs");
+  var shareBgPanel = document.getElementById("shareBgPanel");
+  var shareAdjustPanel = document.getElementById("shareAdjustPanel");
   var shareCardCanvas = document.getElementById("shareCardCanvas");
   var shareMuteBtn = document.getElementById("shareMuteBtn");
   var shareBgVideoEl = document.getElementById("shareBgVideoEl");
@@ -2139,6 +2161,16 @@
     updateShareModalSub();
     shareAnimStartTime = Date.now();
     redrawShareCard();
+  });
+
+  shareSubTabs.addEventListener("click", function(e){
+    var btn = e.target.closest("button[data-subtab]");
+    if (!btn || btn.classList.contains("active")) return;
+    var tab = btn.getAttribute("data-subtab");
+    shareSubTabs.querySelectorAll("button[data-subtab]").forEach(function(b){ b.classList.toggle("active", b === btn); });
+    layoutSegThumb(shareSubTabs);
+    shareBgPanel.hidden = tab !== "background";
+    shareAdjustPanel.hidden = tab !== "adjust";
   });
 
   function isAnimatedBg(){ return shareBg.type === "video" || shareBg.type === "gif"; }
@@ -2753,10 +2785,16 @@
       b.classList.toggle("active", b.getAttribute("data-period") === "trade");
     });
     updateShareModalSub();
+    shareSubTabs.querySelectorAll("button[data-subtab]").forEach(function(b){
+      b.classList.toggle("active", b.getAttribute("data-subtab") === "background");
+    });
+    shareBgPanel.hidden = false;
+    shareAdjustPanel.hidden = true;
     // Show the modal before measuring the tab thumb — while hidden, the
     // tabs report zero width/position, same issue as the log mode toggle.
     shareModalOverlay.hidden = false;
     layoutSegThumb(sharePeriodTabs, true);
+    layoutSegThumb(shareSubTabs, true);
     renderBgGrid();
     var isKnownPreset = SHARE_BG_LIST.some(function(e){ return e.id === shareBgActiveId; });
     if (!isKnownPreset && SHARE_BG_LIST.length) selectPresetBg(SHARE_BG_LIST[0]);
