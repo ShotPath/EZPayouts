@@ -505,7 +505,12 @@
   .modal-close:hover{ border-color:var(--phosphor-dim); color:var(--ice); }
   .modal-head-right{ display:flex; align-items:center; gap:8px; flex:none; }
 
-  .share-modal{ max-width:620px; }
+  .share-modal{ max-width:980px; }
+  .share-workspace{ display:grid; grid-template-columns:1fr 260px; gap:18px; align-items:start; }
+  .share-workspace-main{ min-width:0; }
+  @media (max-width:760px){
+    .share-workspace{ grid-template-columns:1fr; }
+  }
   .share-period-tabs{
     display:inline-flex; align-items:stretch; width:100%; margin-bottom:14px;
     border-radius:999px; overflow:hidden; border:1px solid var(--hairline-bright); background:var(--panel);
@@ -569,6 +574,46 @@
     transition:border-color .15s, color .15s;
   }
   .share-bg-remove-btn:hover{ border-color:var(--red); color:var(--red); }
+
+  .share-adjust-panel{
+    background:var(--panel-hi); border:1px solid var(--hairline-bright); border-radius:14px;
+    padding:14px; display:flex; flex-direction:column; gap:14px;
+  }
+  .share-adjust-head{
+    display:flex; align-items:center; justify-content:space-between;
+    font-family:var(--font-display); font-weight:700; font-size:13px; color:var(--ice);
+  }
+  .share-adjust-reset{
+    background:transparent; border:none; color:var(--muted); font-family:var(--font-mono);
+    font-size:10.5px; font-weight:700; cursor:pointer; text-transform:uppercase; letter-spacing:0.04em;
+    padding:2px 0; transition:color .15s;
+  }
+  .share-adjust-reset:hover{ color:var(--ice); }
+  .adjust-row{ display:flex; flex-direction:column; gap:6px; }
+  .adjust-row-head{
+    display:flex; align-items:center; justify-content:space-between;
+    font-family:var(--font-mono); font-size:11px; color:var(--muted);
+  }
+  .adjust-value{ color:var(--ice); font-weight:700; }
+  .adjust-slider{
+    -webkit-appearance:none; appearance:none; width:100%; height:4px; border-radius:999px;
+    background:var(--hairline-bright); outline:none; cursor:pointer; margin:0;
+  }
+  .adjust-slider::-webkit-slider-thumb{
+    -webkit-appearance:none; appearance:none; width:15px; height:15px; border-radius:50%;
+    background:var(--phosphor); border:2px solid var(--panel-hi); box-shadow:0 0 0 1px var(--phosphor);
+    cursor:pointer;
+  }
+  .adjust-slider::-moz-range-thumb{
+    width:15px; height:15px; border-radius:50%; background:var(--phosphor);
+    border:2px solid var(--panel-hi); box-shadow:0 0 0 1px var(--phosphor); cursor:pointer;
+  }
+  .adjust-toggle{
+    display:flex; align-items:center; gap:9px; font-family:var(--font-mono), monospace;
+    font-size:11.5px; color:var(--muted); cursor:pointer; user-select:none; padding-top:2px; border-top:1px solid var(--hairline);
+  }
+  .adjust-toggle input{ accent-color:var(--phosphor); width:15px; height:15px; cursor:pointer; flex:none; }
+
   .share-export-row{ display:flex; gap:10px; }
   .share-export-btn{
     flex:1; display:flex; align-items:center; justify-content:center; gap:7px; padding:11px 16px;
@@ -1197,37 +1242,79 @@
       <button type="button" data-period="monthly">Monthly</button>
     </div>
 
-    <div class="share-card-wrap">
-      <canvas id="shareCardCanvas" width="1920" height="1080" class="share-card-canvas"></canvas>
-      <button type="button" class="share-mute-btn" id="shareMuteBtn" hidden aria-label="Unmute preview">
-        <svg class="icon-muted" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><line x1="23" y1="9" x2="17" y2="15" /><line x1="17" y1="9" x2="23" y2="15" /></svg>
-        <svg class="icon-unmuted" viewBox="0 0 24 24" hidden><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14" /></svg>
-      </button>
-    </div>
-    <!-- crossorigin="anonymous": harmless for same-origin preset files, but
-         required for remotely-hosted presets (e.g. a GitHub/jsDelivr URL) —
-         without it, drawing a cross-origin video/image onto the canvas taints
-         it and Photo/GIF/Video export throws a SecurityError. Preview starts
-         muted so autoplay is never blocked by the browser; captureStream()
-         below for Video export captures the real decoded audio regardless
-         of this element's muted flag, so exports always have sound. -->
-    <video id="shareBgVideoEl" muted loop playsinline crossorigin="anonymous" hidden></video>
-    <img id="shareBgGifEl" alt="" crossorigin="anonymous" hidden />
-    <img id="shareBgImgEl" alt="" crossorigin="anonymous" hidden />
+    <div class="share-workspace">
+      <div class="share-workspace-main">
+        <div class="share-card-wrap">
+          <canvas id="shareCardCanvas" width="1920" height="1080" class="share-card-canvas"></canvas>
+          <button type="button" class="share-mute-btn" id="shareMuteBtn" hidden aria-label="Unmute preview">
+            <svg class="icon-muted" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><line x1="23" y1="9" x2="17" y2="15" /><line x1="17" y1="9" x2="23" y2="15" /></svg>
+            <svg class="icon-unmuted" viewBox="0 0 24 24" hidden><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14" /></svg>
+          </button>
+        </div>
+        <!-- crossorigin="anonymous": harmless for same-origin preset files, but
+             required for remotely-hosted presets (e.g. a GitHub/jsDelivr URL) —
+             without it, drawing a cross-origin video/image onto the canvas taints
+             it and Photo/GIF/Video export throws a SecurityError. Preview starts
+             muted so autoplay is never blocked by the browser; captureStream()
+             below for Video export captures the real decoded audio regardless
+             of this element's muted flag, so exports always have sound. -->
+        <video id="shareBgVideoEl" muted loop playsinline crossorigin="anonymous" hidden></video>
+        <img id="shareBgGifEl" alt="" crossorigin="anonymous" hidden />
+        <img id="shareBgImgEl" alt="" crossorigin="anonymous" hidden />
 
-    <div class="share-bg-section">
-      <div class="share-bg-grid" id="shareBgGrid"></div>
-      <button type="button" class="share-bg-more" id="shareBgMoreBtn" hidden>
-        <span id="shareBgMoreLabel">More</span>
-        <svg viewBox="0 0 20 20"><path d="M5 7l5 6 5-6" /></svg>
-      </button>
-      <div class="share-bg-upload-row">
-        <label class="share-bg-upload-btn" id="shareBgUploadLabel">
-          <svg viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></svg>
-          <span>Upload image, GIF or video</span>
-          <input type="file" id="shareBgUpload" accept="image/*,video/mp4,video/webm,video/quicktime,video/*" hidden />
-        </label>
-        <button type="button" class="share-bg-remove-btn" id="shareBgRemoveBtn">Remove</button>
+        <div class="share-bg-section">
+          <div class="share-bg-grid" id="shareBgGrid"></div>
+          <button type="button" class="share-bg-more" id="shareBgMoreBtn" hidden>
+            <span id="shareBgMoreLabel">More</span>
+            <svg viewBox="0 0 20 20"><path d="M5 7l5 6 5-6" /></svg>
+          </button>
+          <div class="share-bg-upload-row">
+            <label class="share-bg-upload-btn" id="shareBgUploadLabel">
+              <svg viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></svg>
+              <span>Upload image, GIF or video</span>
+              <input type="file" id="shareBgUpload" accept="image/*,video/mp4,video/webm,video/quicktime,video/*" hidden />
+            </label>
+            <button type="button" class="share-bg-remove-btn" id="shareBgRemoveBtn">Remove</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="share-workspace-aside">
+        <div class="share-adjust-panel">
+          <div class="share-adjust-head">
+            <span>Adjustments</span>
+            <button type="button" class="share-adjust-reset" id="adjResetBtn">Reset</button>
+          </div>
+
+          <div class="adjust-row">
+            <div class="adjust-row-head"><span>Dim</span><span class="adjust-value" id="adjDimValue">35%</span></div>
+            <input type="range" class="adjust-slider" id="adjDim" min="0" max="100" value="35">
+          </div>
+          <div class="adjust-row">
+            <div class="adjust-row-head"><span>Left shade</span><span class="adjust-value" id="adjShadeValue">45%</span></div>
+            <input type="range" class="adjust-slider" id="adjShade" min="0" max="100" value="45">
+          </div>
+          <div class="adjust-row">
+            <div class="adjust-row-head"><span>Zoom</span><span class="adjust-value" id="adjZoomValue">100%</span></div>
+            <input type="range" class="adjust-slider" id="adjZoom" min="100" max="220" value="100">
+          </div>
+          <div class="adjust-row">
+            <div class="adjust-row-head"><span>Pan X</span><span class="adjust-value" id="adjPanXValue">50%</span></div>
+            <input type="range" class="adjust-slider" id="adjPanX" min="0" max="100" value="50">
+          </div>
+          <div class="adjust-row">
+            <div class="adjust-row-head"><span>Pan Y</span><span class="adjust-value" id="adjPanYValue">50%</span></div>
+            <input type="range" class="adjust-slider" id="adjPanY" min="0" max="100" value="50">
+          </div>
+          <div class="adjust-row">
+            <div class="adjust-row-head"><span>P&amp;L glow</span><span class="adjust-value" id="adjGlowValue">100%</span></div>
+            <input type="range" class="adjust-slider" id="adjGlow" min="0" max="150" value="100">
+          </div>
+          <label class="adjust-toggle">
+            <input type="checkbox" id="adjMatchColor" checked>
+            <span>Match glow to P&amp;L color</span>
+          </label>
+        </div>
       </div>
     </div>
 
@@ -1676,50 +1763,26 @@
   var SHARE_BG_VISIBLE_COUNT = 8;
   var SHARE_EXPORT_DURATION_MS = 3000;
   var SHARE_MAX_VIDEO_EXPORT_MS = 30000;
-  var SHARE_MAX_GIF_EXPORT_MS = 22000;
-  var SHARE_GIF_FPS = 10;
+  // GIF duration is capped lower than video: gif.js is pure-JS/no hardware
+  // acceleration, and frame count (duration × fps) drives both encode time
+  // and memory directly — 15s × 15fps × 1280×720 is already a lot of work
+  // for a browser tab. Push past this and exports get slow or crash rather
+  // than just taking longer.
+  var SHARE_MAX_GIF_EXPORT_MS = 15000;
+  var SHARE_GIF_FPS = 15;
   var SHARE_GIF_WIDTH = 1280;
   var SHARE_GIF_HEIGHT = 720;
 
-  // A custom-uploaded video exports its whole clip (capped so files stay
-  // sane) instead of a fixed few seconds from wherever the loop happened to
-  // be. A preset video is a short loop by design (the <video> element has
-  // loop set) — it should keep looping to fill the whole requested export
-  // window, not stop after one play-through of its own short clip. We tell
-  // the two apart by shareBgActiveId: set for a preset selection, null for
-  // an upload.
+  // Every video background loops (the <video> element has loop set, and
+  // the preview plays it continuously) — exports should too, filling the
+  // whole requested window instead of recording just one play-through of
+  // a short clip and stopping. That one-play-through-then-stop behavior
+  // was the "cuts off midway" bug: a 5s preset loop or a short upload
+  // would end the recording at its own natural length even when a much
+  // longer export had been requested.
   function getExportDurationMs(cap){
-    if (shareBg.type === "video"){
-      var isCustomUpload = !shareBgActiveId;
-      if (isCustomUpload && shareBgVideoDuration) return Math.min(shareBgVideoDuration * 1000, cap);
-      return cap;
-    }
+    if (shareBg.type === "video") return cap;
     return SHARE_EXPORT_DURATION_MS;
-  }
-  // video.duration reads as Infinity for a lot of real-world webm/mp4 files
-  // (screen recordings, re-muxed clips, anything without a proper duration
-  // header) until the browser is forced to resolve it — which is also why
-  // the export above was silently falling back to the 3s default even for
-  // an 8-minute upload. Seeking far past the end forces that resolution.
-  function resolveVideoDuration(videoEl){
-    return new Promise(function(resolve){
-      if (isFinite(videoEl.duration) && videoEl.duration > 0){
-        resolve(videoEl.duration);
-        return;
-      }
-      function finish(){
-        videoEl.removeEventListener("durationchange", onDurationChange);
-        var d = videoEl.duration;
-        videoEl.currentTime = 0;
-        resolve(isFinite(d) && d > 0 ? d : null);
-      }
-      function onDurationChange(){
-        if (isFinite(videoEl.duration) && videoEl.duration > 0) finish();
-      }
-      videoEl.addEventListener("durationchange", onDurationChange);
-      try { videoEl.currentTime = 1e9; } catch (err) {}
-      setTimeout(finish, 2000);
-    });
   }
 
   var shareCurrentTrade = null;
@@ -1734,7 +1797,6 @@
   // (shareBgActiveId won't match any real preset id, so it always does).
   var shareBg = { type: "gradient", stops: SHARE_BG_GRADIENTS[0].stops };
   var shareBgActiveId = null;
-  var shareBgVideoDuration = null;
   var shareUploadedUrl = null;
   var sharePreviewRAF = null;
   // Preview always starts muted so autoplay is never blocked by the
@@ -1762,6 +1824,50 @@
     return 1 - Math.pow(1 - t, 3); // ease-out cubic
   }
 
+  // ---------- Background adjustment engine ----------
+  // These are pure draw-time parameters read by drawBackgroundLayer/
+  // drawCardBase/drawGlowAmount — there's exactly one code path that
+  // renders the card (preview and every export all call drawShareCard),
+  // so a slider change is guaranteed to look identical in the live
+  // preview and in Photo/Video/GIF output with no separate sync step.
+  var SHARE_ADJUST_DEFAULTS = { dim: 35, leftShade: 45, zoom: 100, panX: 50, panY: 50, glow: 100, matchColor: true };
+  var shareAdjust = Object.assign({}, SHARE_ADJUST_DEFAULTS);
+
+  var SHARE_ADJUST_SLIDERS = [
+    { key: "dim", input: document.getElementById("adjDim"), value: document.getElementById("adjDimValue") },
+    { key: "leftShade", input: document.getElementById("adjShade"), value: document.getElementById("adjShadeValue") },
+    { key: "zoom", input: document.getElementById("adjZoom"), value: document.getElementById("adjZoomValue") },
+    { key: "panX", input: document.getElementById("adjPanX"), value: document.getElementById("adjPanXValue") },
+    { key: "panY", input: document.getElementById("adjPanY"), value: document.getElementById("adjPanYValue") },
+    { key: "glow", input: document.getElementById("adjGlow"), value: document.getElementById("adjGlowValue") }
+  ];
+  var adjMatchColorEl = document.getElementById("adjMatchColor");
+  var adjResetBtn = document.getElementById("adjResetBtn");
+
+  function syncAdjustUI(){
+    SHARE_ADJUST_SLIDERS.forEach(function(s){
+      s.input.value = shareAdjust[s.key];
+      s.value.textContent = shareAdjust[s.key] + "%";
+    });
+    adjMatchColorEl.checked = shareAdjust.matchColor;
+  }
+  // No manual redraw needed on input: every background is a video, so the
+  // preview's RAF loop is always running and picks up the new state on its
+  // very next frame — same path an export reads from.
+  SHARE_ADJUST_SLIDERS.forEach(function(s){
+    s.input.addEventListener("input", function(){
+      shareAdjust[s.key] = Number(s.input.value);
+      s.value.textContent = s.input.value + "%";
+    });
+  });
+  adjMatchColorEl.addEventListener("change", function(){
+    shareAdjust.matchColor = adjMatchColorEl.checked;
+  });
+  adjResetBtn.addEventListener("click", function(){
+    shareAdjust = Object.assign({}, SHARE_ADJUST_DEFAULTS);
+    syncAdjustUI();
+  });
+
   function updateShareModalSub(){
     if (shareModalSub) shareModalSub.textContent = SHARE_PERIOD_SUB_TEXT[sharePeriod] || SHARE_PERIOD_SUB_TEXT.trade;
   }
@@ -1784,9 +1890,18 @@
       var mw = media.videoWidth || media.naturalWidth || 0;
       var mh = media.videoHeight || media.naturalHeight || 0;
       if (mw && mh){
-        var scale = Math.max(w / mw, h / mh);
+        // "Cover" fit, then an extra user zoom on top; pan slides the frame
+        // within whatever overflow that zoom creates (0% = left/top edge,
+        // 100% = right/bottom edge, 50% = centered — matching the old
+        // always-centered behavior exactly when zoom is at its 100% default).
+        var coverScale = Math.max(w / mw, h / mh);
+        var scale = coverScale * (shareAdjust.zoom / 100);
         var dw = mw * scale, dh = mh * scale;
-        ctx.drawImage(media, (w - dw) / 2, (h - dh) / 2, dw, dh);
+        var maxOffX = Math.max(0, dw - w);
+        var maxOffY = Math.max(0, dh - h);
+        var offX = (shareAdjust.panX / 100) * maxOffX;
+        var offY = (shareAdjust.panY / 100) * maxOffY;
+        ctx.drawImage(media, -offX, -offY, dw, dh);
         return;
       }
     }
@@ -1883,6 +1998,22 @@
     vignette.addColorStop(1, "rgba(0,0,0,0.6)");
     ctx.fillStyle = vignette;
     ctx.fillRect(0, 0, w, h);
+
+    // Dim: a flat overlay for an overall-too-bright background.
+    if (shareAdjust.dim > 0){
+      ctx.fillStyle = "rgba(0,0,0," + (shareAdjust.dim / 100) + ")";
+      ctx.fillRect(0, 0, w, h);
+    }
+    // Left shade: an extra directional gradient protecting the text block
+    // (which always starts at the left edge on every card) from whatever
+    // busy detail the background happens to have there.
+    if (shareAdjust.leftShade > 0){
+      var shade = ctx.createLinearGradient(0, 0, w * 0.75, 0);
+      shade.addColorStop(0, "rgba(0,0,0," + (shareAdjust.leftShade / 100) + ")");
+      shade.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = shade;
+      ctx.fillRect(0, 0, w, h);
+    }
   }
   // Glowing hero amount. Chakra Petch only ships up to weight 700 (no
   // 900/Black cut is actually loaded), so declaring "900" below renders no
@@ -1890,6 +2021,10 @@
   // edges for real extra weight, then the soft double-shadow glow, then a
   // crisp top layer so the glow doesn't wash out the edges.
   function drawGlowAmount(ctx, text, color, x, y, fontSize){
+    // shareAdjust.matchColor off: the hero amount renders in a neutral
+    // white instead of tracking the win/loss green or red.
+    if (!shareAdjust.matchColor) color = "#ffffff";
+    var glowMul = shareAdjust.glow / 100;
     ctx.textAlign = "left";
     ctx.textBaseline = "alphabetic";
     ctx.font = "900 " + fontSize + "px 'Chakra Petch', sans-serif";
@@ -1897,15 +2032,17 @@
     ctx.miterLimit = 2;
     ctx.lineWidth = fontSize * 0.045;
     ctx.strokeStyle = color;
-    ctx.save();
-    ctx.shadowColor = color;
-    ctx.shadowBlur = fontSize * 0.4;
-    ctx.fillStyle = color;
-    ctx.fillText(text, x, y);
-    ctx.strokeText(text, x, y);
-    ctx.shadowBlur = fontSize * 0.6;
-    ctx.fillText(text, x, y);
-    ctx.restore();
+    if (glowMul > 0){
+      ctx.save();
+      ctx.shadowColor = color;
+      ctx.shadowBlur = fontSize * 0.4 * glowMul;
+      ctx.fillStyle = color;
+      ctx.fillText(text, x, y);
+      ctx.strokeText(text, x, y);
+      ctx.shadowBlur = fontSize * 0.6 * glowMul;
+      ctx.fillText(text, x, y);
+      ctx.restore();
+    }
     ctx.fillStyle = color;
     ctx.fillText(text, x, y);
     ctx.strokeText(text, x, y);
@@ -2245,8 +2382,6 @@
       shareBgVideoEl.src = entry.src;
       shareBgVideoEl.load();
       shareBg = { type: "video" };
-      shareBgVideoDuration = null;
-      resolveVideoDuration(shareBgVideoEl).then(function(d){ shareBgVideoDuration = d; });
     } else if (/\.gif($|\?)/i.test(entry.src)){
       shareBgGifEl.src = entry.src;
       shareBg = { type: "gif" };
@@ -2275,8 +2410,6 @@
       shareBgVideoEl.src = url;
       shareBgVideoEl.load();
       shareBg = { type: "video" };
-      shareBgVideoDuration = null;
-      resolveVideoDuration(shareBgVideoEl).then(function(d){ shareBgVideoDuration = d; });
     } else if (file.type === "image/gif"){
       shareBgGifEl.src = url;
       shareBg = { type: "gif" };
@@ -2295,7 +2428,6 @@
     shareBgVideoEl.removeAttribute("src");
     shareBgGifEl.removeAttribute("src");
     shareBgImgEl.removeAttribute("src");
-    shareBgVideoDuration = null;
     if (SHARE_BG_LIST.length) selectPresetBg(SHARE_BG_LIST[0]);
   });
 
