@@ -85,7 +85,7 @@
         icon: '<rect x="3.5" y="9" width="4.5" height="7.5" rx="1" /><rect x="12" y="4.5" width="4.5" height="12" rx="1" />'
       },
       {
-        slug: "calendar", href: "/calendar/", label: "Economic Calendar", query: "view=econ",
+        slug: "calendar", href: "/calendar/?view=econ", label: "Economic Calendar", query: "view=econ",
         icon: '<rect x="3" y="4.5" width="14" height="12.5" rx="1.5" /><path d="M3 8h14M6.5 2.5v4M13.5 2.5v4" /><path d="M6.5 11h1.2M9.4 11h1.2M12.3 11h1.2M6.5 13.5h1.2M9.4 13.5h1.2" />'
       }
     ]
