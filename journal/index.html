@@ -566,11 +566,33 @@
   .modal-close:hover{ border-color:var(--phosphor-dim); color:var(--ice); }
   .modal-head-right{ display:flex; align-items:center; gap:8px; flex:none; }
 
-  .share-modal{ max-width:980px; }
-  .share-workspace{ display:grid; grid-template-columns:1fr 260px; gap:18px; align-items:start; }
-  .share-workspace-main{ min-width:0; }
+  /* Rigid sizing: width + height are fixed regardless of which sub-tab is
+     active (Background vs Adjust) — only the aside's own scroll panel
+     grows/scrolls internally, so the modal never stretches or jumps. */
+  .share-modal{
+    width:980px; max-width:calc(100vw - 32px);
+    height:700px; max-height:calc(100vh - 40px);
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+  .share-modal .modal-head{ flex:none; }
+  .share-modal .share-period-tabs{ flex:none; }
+  .share-workspace{ flex:1; min-height:0; display:grid; grid-template-columns:1fr 260px; gap:18px; align-items:stretch; }
+  .share-workspace-main{ min-width:0; display:flex; flex-direction:column; min-height:0; }
+  .share-workspace-aside{ min-height:0; display:flex; flex-direction:column; }
+  .share-sub-tabs{ flex:none; }
+  .share-subpanel-scroll{
+    flex:1; min-height:0; overflow-y:auto; overflow-x:hidden;
+    padding-right:6px; margin-right:-6px;
+    scrollbar-width:thin; scrollbar-color:var(--hairline-bright) transparent;
+  }
+  .share-subpanel-scroll::-webkit-scrollbar{ width:6px; }
+  .share-subpanel-scroll::-webkit-scrollbar-track{ background:transparent; }
+  .share-subpanel-scroll::-webkit-scrollbar-thumb{ background:var(--hairline-bright); border-radius:999px; }
+  .share-modal .trade-modal-foot{ flex:none; }
   @media (max-width:760px){
+    .share-modal{ width:100%; height:auto; max-height:calc(100vh - 24px); overflow-y:auto; }
     .share-workspace{ grid-template-columns:1fr; }
+    .share-subpanel-scroll{ overflow:visible; }
   }
   .share-period-tabs{
     display:inline-flex; align-items:stretch; width:100%; margin-bottom:14px;
@@ -1369,6 +1391,7 @@
           <button type="button" data-subtab="adjust">Adjust</button>
         </div>
 
+        <div class="share-subpanel-scroll">
         <div class="share-subpanel" id="shareBgPanel" data-subpanel="background">
           <div class="share-bg-section">
             <div class="share-bg-grid" id="shareBgGrid"></div>
@@ -1474,6 +1497,7 @@
             <button type="button" data-val="quality">Higher quality</button>
           </div>
           <p class="adjust-hint" id="adjGifQualityHint">&nbsp;</p>
+        </div>
         </div>
       </div>
     </div>
@@ -2308,6 +2332,48 @@
       ctx.fillRect(0, 0, w, h);
     }
   }
+  // Premium cyber-neon card frame: a glowing blue outer border plus small
+  // corner-bracket HUD accents, drawn once per frame on top of whatever card
+  // content was just rendered. Pure canvas — no DOM screenshot involved, so
+  // the glow/border always rides along into every Photo/GIF/Video export.
+  function roundRectPath(ctx, x, y, w, h, r){
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+  function drawHudFrame(ctx, w, h){
+    var inset = 10, radius = 26;
+    ctx.save();
+    ctx.shadowColor = "rgba(59,130,246,0.85)";
+    ctx.shadowBlur = 22;
+    ctx.strokeStyle = "rgba(96,165,250,0.9)";
+    ctx.lineWidth = 2.5;
+    roundRectPath(ctx, inset, inset, w - inset * 2, h - inset * 2, radius);
+    ctx.stroke();
+    ctx.restore();
+
+    var arm = 22, bracketInset = inset + 10;
+    ctx.save();
+    ctx.strokeStyle = "rgba(147,197,253,0.95)";
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    function bracket(x, y, dx, dy){
+      ctx.beginPath();
+      ctx.moveTo(x, y + dy * arm);
+      ctx.lineTo(x, y);
+      ctx.lineTo(x + dx * arm, y);
+      ctx.stroke();
+    }
+    bracket(bracketInset, bracketInset, 1, 1);
+    bracket(w - bracketInset, bracketInset, -1, 1);
+    bracket(bracketInset, h - bracketInset, 1, -1);
+    bracket(w - bracketInset, h - bracketInset, -1, -1);
+    ctx.restore();
+  }
   function hexToRgba(hex, alpha){
     hex = (hex || "#ffffff").replace("#", "");
     if (hex.length === 3) hex = hex.split("").map(function(c){ return c + c; }).join("");
@@ -2430,16 +2496,35 @@
       });
     });
   }
+  // Structural tag boxes: a thin bordered pill behind each watermark piece,
+  // instead of bare floating text — matches the HUD frame's crisp, boxed
+  // look rather than a plain caption.
+  function drawTagBox(ctx, text, x, y, align){
+    var font = "700 26px 'IBM Plex Mono', monospace";
+    ctx.font = font;
+    var textW = ctx.measureText(text).width;
+    var padX = 16, boxH = 42;
+    var boxW = textW + padX * 2;
+    var boxX = align === "right" ? x - boxW : x;
+    var boxY = y - boxH + 10;
+    ctx.save();
+    roundRectPath(ctx, boxX, boxY, boxW, boxH, 9);
+    ctx.fillStyle = "rgba(10,14,26,0.55)";
+    ctx.fill();
+    ctx.lineWidth = 1.2;
+    ctx.strokeStyle = "rgba(96,165,250,0.55)";
+    ctx.stroke();
+    ctx.restore();
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillStyle = "rgba(255,255,255,0.92)";
+    ctx.fillText(text, boxX + padX, y);
+  }
   function drawCardFooter(ctx, w, h, pad){
     withLegibilityShadow(ctx, function(){
       var username = (window.EZAuth && EZAuth.getUsername()) || "trader";
-      ctx.textAlign = "left";
-      ctx.textBaseline = "alphabetic";
-      ctx.font = "700 32px 'IBM Plex Mono', monospace";
-      ctx.fillStyle = "rgba(255,255,255,0.88)";
-      ctx.fillText("@" + username, pad, h - pad);
-      ctx.textAlign = "right";
-      ctx.fillText("ezpayouts.xyz", w - pad, h - pad);
+      drawTagBox(ctx, "@" + username, pad, h - pad, "left");
+      drawTagBox(ctx, "ezpayouts.xyz", w - pad, h - pad, "right");
     });
   }
   // Mini equity-curve line: points[0] is always the implicit $0 start.
@@ -2527,11 +2612,13 @@
 
       ctx.fillStyle = "rgba(255,255,255,0.78)";
       ctx.font = "700 27px 'IBM Plex Mono', monospace";
-      var metaText = (t.direction === "long" ? "LONG" : "SHORT") + " · " + fmtDateShort(t.date).toUpperCase();
+      if ("letterSpacing" in ctx) ctx.letterSpacing = "2px";
+      var metaText = (t.symbol || "").toUpperCase() + "  ·  " + (t.direction === "long" ? "LONG" : "SHORT") + "  ·  " + fmtDateShort(t.date).toUpperCase();
       ctx.fillText(metaText, pad + 70, pad + 68);
+      if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
     });
 
-    var pnlColor = t.pnl >= 0 ? "#3ee08c" : "#ef5a5a";
+    var pnlColor = t.pnl >= 0 ? "#53ba79" : "#ef5a5a";
     var pnlShown = Math.round(t.pnl * pnlAnimProgress());
     drawGlowAmount(ctx, fmtMoneySigned(pnlShown), pnlColor, pad - 2, pad + 265, 165);
 
@@ -2547,7 +2634,7 @@
     var title = d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
     drawPeriodHeader(ctx, pad, "DAILY", title);
 
-    var pnlColor = agg.pnl >= 0 ? "#3ee08c" : "#ef5a5a";
+    var pnlColor = agg.pnl >= 0 ? "#53ba79" : "#ef5a5a";
     drawGlowAmount(ctx, fmtMoneySigned(Math.round(agg.pnl * pnlAnimProgress())), pnlColor, pad - 2, pad + 265, 145);
 
     var rows = [
@@ -2567,7 +2654,7 @@
     var agg = computeWeekAgg(t.date);
     drawPeriodHeader(ctx, pad, "WEEKLY", "Week of " + fmtDateShort(agg.start));
 
-    var pnlColor = agg.pnl >= 0 ? "#3ee08c" : "#ef5a5a";
+    var pnlColor = agg.pnl >= 0 ? "#53ba79" : "#ef5a5a";
     drawGlowAmount(ctx, fmtMoneySigned(Math.round(agg.pnl * pnlAnimProgress())), pnlColor, pad - 2, pad + 250, 125);
 
     var rows = [
@@ -2589,7 +2676,7 @@
         ctx.textAlign = "right";
         ctx.font = "700 30px 'IBM Plex Mono', monospace";
         if (d.hasTrades){
-          ctx.fillStyle = d.pnl >= 0 ? "#3ee08c" : "#ef5a5a";
+          ctx.fillStyle = d.pnl >= 0 ? "#53ba79" : "#ef5a5a";
           ctx.fillText(fmtMoneySigned(d.pnl), rightX + 260, ry);
         } else {
           ctx.fillStyle = "rgba(255,255,255,0.35)";
@@ -2609,7 +2696,7 @@
     var title = new Date(agg.year, agg.month, 1).toLocaleDateString(undefined, { month: "long", year: "numeric" });
     drawPeriodHeader(ctx, pad, "MONTHLY", title);
 
-    var pnlColor = agg.pnl >= 0 ? "#3ee08c" : "#ef5a5a";
+    var pnlColor = agg.pnl >= 0 ? "#53ba79" : "#ef5a5a";
     drawGlowAmount(ctx, fmtMoneySigned(Math.round(agg.pnl * pnlAnimProgress())), pnlColor, pad - 2, pad + 250, 125);
 
     var rows = [
@@ -2644,6 +2731,7 @@
     else if (sharePeriod === "weekly") drawWeeklyCard(ctx, w, h);
     else if (sharePeriod === "monthly") drawMonthlyCard(ctx, w, h);
     else drawTradeCard(ctx, w, h);
+    drawHudFrame(ctx, w, h);
   }
 
   function redrawShareCard(){
@@ -2888,7 +2976,7 @@
       showToast("Video export isn't supported in this browser");
       return;
     }
-    var stream = shareCardCanvas.captureStream(30);
+    var stream = shareCardCanvas.captureStream(60);
     // The canvas stream is video-only — pull the background video's real
     // decoded audio in alongside it (captureStream() ignores the preview's
     // muted flag, so this works even while the preview itself is silent).
