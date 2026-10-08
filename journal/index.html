@@ -1881,7 +1881,24 @@
     pnlColor: "#ffffff", labelColor: "#8da093", valueColor: "#ffffff",
     exportScale: 2
   };
-  var shareAdjust = Object.assign({}, SHARE_ADJUST_DEFAULTS);
+  var SHARE_ADJUST_STORAGE_KEY = "ezpayouts.shareAdjust";
+  function loadShareAdjust(){
+    try {
+      var saved = JSON.parse(localStorage.getItem(SHARE_ADJUST_STORAGE_KEY));
+      // Merge over the defaults rather than using saved wholesale — if a
+      // future version adds a new slider, an older saved blob just won't
+      // have that key, and it should fall back to its default instead of
+      // rendering as undefined.
+      if (saved && typeof saved === "object") return Object.assign({}, SHARE_ADJUST_DEFAULTS, saved);
+    } catch (err) {}
+    return Object.assign({}, SHARE_ADJUST_DEFAULTS);
+  }
+  function saveShareAdjust(){
+    try { localStorage.setItem(SHARE_ADJUST_STORAGE_KEY, JSON.stringify(shareAdjust)); } catch (err) {}
+  }
+  // Last-used settings, not the hardcoded defaults — so nobody has to
+  // redo their dim/glow/color setup each time they open the share modal.
+  var shareAdjust = loadShareAdjust();
 
   var SHARE_ADJUST_SLIDERS = [
     { key: "dim", input: document.getElementById("adjDim"), value: document.getElementById("adjDimValue"), suffix: "%" },
@@ -1916,18 +1933,28 @@
     s.input.addEventListener("input", function(){
       shareAdjust[s.key] = Number(s.input.value);
       s.value.textContent = s.input.value + s.suffix;
+      saveShareAdjust();
     });
   });
   SHARE_ADJUST_COLORS.forEach(function(c){
-    c.input.addEventListener("input", function(){ shareAdjust[c.key] = c.input.value; });
+    c.input.addEventListener("input", function(){
+      shareAdjust[c.key] = c.input.value;
+      saveShareAdjust();
+    });
   });
   adjMatchColorEl.addEventListener("change", function(){
     shareAdjust.matchColor = adjMatchColorEl.checked;
+    saveShareAdjust();
   });
   adjResetBtn.addEventListener("click", function(){
     shareAdjust = Object.assign({}, SHARE_ADJUST_DEFAULTS);
     syncAdjustUI();
+    saveShareAdjust();
   });
+  // Reflect whatever was loaded (saved from last time, or defaults) in the
+  // slider/color-picker UI immediately — otherwise the inputs would show
+  // their hardcoded HTML attribute values until the user touched one.
+  syncAdjustUI();
 
   function updateShareModalSub(){
     if (shareModalSub) shareModalSub.textContent = SHARE_PERIOD_SUB_TEXT[sharePeriod] || SHARE_PERIOD_SUB_TEXT.trade;
