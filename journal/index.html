@@ -4471,6 +4471,30 @@
     if (EZAuth.isLoggedIn()) syncFromAccount();
     EZAuth.onChange(function(loggedIn){ if (loggedIn) syncFromAccount(); });
   }
+
+  // ---------- Deep link: ?share=monthly&date=YYYY-MM-DD opens the Share
+  // modal straight into the Monthly Layout View, bypassing the single-trade
+  // view entirely. Used by the P&L Calendar's "Open Card Editor" action.
+  (function handleShareDeepLink(){
+    var params = new URLSearchParams(window.location.search);
+    var sharePeriodParam = params.get("share");
+    if (!sharePeriodParam) return;
+    var validPeriods = ["trade", "daily", "weekly", "monthly"];
+    if (validPeriods.indexOf(sharePeriodParam) === -1) return;
+    var dateParam = params.get("date") || todayStr();
+    openShareModal({ date: dateParam });
+    sharePeriod = sharePeriodParam;
+    sharePeriodTabs.querySelectorAll("button[data-period]").forEach(function(b){
+      b.classList.toggle("active", b.getAttribute("data-period") === sharePeriodParam);
+    });
+    layoutSegThumb(sharePeriodTabs, true);
+    updateShareModalSub();
+    shareAnimStartTime = Date.now();
+    redrawShareCard();
+    // Clean the URL so a reload/share doesn't keep reopening the modal.
+    var cleanUrl = window.location.pathname + window.location.hash;
+    window.history.replaceState(null, "", cleanUrl);
+  })();
 })();
 </script>
 </body>
