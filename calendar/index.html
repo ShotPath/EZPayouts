@@ -212,69 +212,65 @@
     .cal-head h1{ font-size:17px; }
   }
 
-  /* ---------- View tabs (P&L Calendar / Economic Calendar) ---------- */
-  .cal-view-tabs{
-    flex:none; display:inline-flex; align-items:stretch; width:fit-content; margin-bottom:14px;
-    border-radius:999px; border:1px solid var(--hairline-bright); background:var(--panel-raised);
-  }
-  .cal-view-tab{
-    font-family:var(--font-mono); font-size:12px; font-weight:700; padding:9px 18px;
-    background:transparent; border:none; border-radius:999px; color:var(--muted); cursor:pointer;
-    white-space:nowrap; transition:color .15s, background .15s;
-  }
-  .cal-view-tab:hover{ color:var(--ice); }
-  .cal-view-tab.active{ color:var(--mint-text); background:var(--mint); }
-
   .cal-view-panel{ flex:1; min-height:0; display:flex; flex-direction:column; }
   .cal-view-panel[hidden]{ display:none; }
 
   /* ---------- P&L Calendar ----------
-     Deliberately its own accent (blue) rather than the site's green —
-     matches a specific reference design the rest of the chrome (sidebar,
-     tabs, camera menu) stays on-brand around. */
+     Its own exact palette per spec — a solid card-grid aesthetic, not
+     the site's usual flat/transparent panel language. Scoped to #pnlView
+     so the rest of the chrome (sidebar, camera menu) stays on-brand. */
   #pnlView{
-    --pnl-accent:#3b82f6; --pnl-accent-soft:#8fb8fb; --pnl-accent-dim:#1d3a6e;
-    --pnl-accent-glow:rgba(59,130,246,0.35);
+    --pnl-accent:#2d5bff; --pnl-accent-soft:#8fa8ff; --pnl-accent-glow:rgba(45,91,255,0.18);
+    --pnl-bg:#0d0f1a; --pnl-border:#22253f;
+    --pnl-cell-bg:#131527; --pnl-cell-border:#1c1f35;
+    --pnl-cell-active-bg:#191c32;
+    --pnl-text-muted:#6b7280; --pnl-text-dim:#3a3d52;
+    --pnl-pnl-color:#53ba79;
   }
   .pnl-toolbar{
     flex:none; display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:14px;
     margin-bottom:20px;
   }
   .pnl-mode-switch{
-    justify-self:start; display:inline-flex; align-items:stretch; border-radius:12px; padding:3px; gap:2px;
-    background:var(--panel-raised); border:1px solid var(--hairline-bright);
+    justify-self:start; display:inline-flex; align-items:stretch; border-radius:12px; padding:4px; gap:2px;
+    background:var(--pnl-bg); border:1px solid var(--pnl-border);
   }
   .pnl-mode-switch button{
-    font-family:var(--font-body); font-size:13px; font-weight:600; padding:8px 16px;
-    background:transparent; border:none; border-radius:9px; color:var(--ice); cursor:pointer; transition:color .15s, background .15s;
+    font-family:var(--font-body); font-size:12.5px; font-weight:600; padding:7px 16px;
+    background:transparent; border:none; border-radius:9px; color:var(--pnl-text-muted); cursor:pointer; transition:color .15s, background .15s;
     white-space:nowrap;
   }
-  .pnl-mode-switch button.active{ color:#fff; background:var(--pnl-accent); font-weight:700; }
+  .pnl-mode-switch button:hover{ color:#fff; }
+  .pnl-mode-switch button.active{
+    color:#fff; background:var(--pnl-accent); font-weight:700;
+    box-shadow:0 4px 14px -4px var(--pnl-accent-glow);
+  }
+  .pnl-mode-switch button.active:hover{ color:#fff; }
   .pnl-nav{ justify-self:center; display:flex; align-items:center; gap:22px; }
   .pnl-nav-btn{
     width:24px; height:24px; padding:0; cursor:pointer; flex:none;
-    background:transparent; border:none; color:var(--muted);
+    background:transparent; border:none; color:var(--pnl-text-muted);
     display:flex; align-items:center; justify-content:center; transition:color .15s;
   }
-  .pnl-nav-btn:hover{ color:var(--ice); }
-  .pnl-nav-btn svg{ width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2.3; stroke-linecap:round; stroke-linejoin:round; }
+  .pnl-nav-btn:hover{ color:#fff; }
+  .pnl-nav-btn svg{ width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round; }
   .pnl-period-label{
-    font-family:var(--font-display); font-weight:700; font-size:19px; color:var(--ice);
-    min-width:190px; text-align:center; cursor:pointer; border-radius:8px; padding:4px 8px; transition:color .15s;
+    font-family:var(--font-display); font-weight:700; font-size:15px; letter-spacing:0.02em; color:#fff;
+    min-width:150px; text-align:center; cursor:pointer; border-radius:8px; padding:4px 8px; transition:color .15s;
   }
   .pnl-period-label:hover{ color:var(--pnl-accent-soft); }
 
   .pnl-camera-wrap{ justify-self:end; position:relative; }
   .pnl-camera-btn{
-    width:36px; height:36px; border-radius:10px; padding:0; cursor:pointer;
-    background:var(--panel-raised); border:1px solid var(--hairline-bright); color:var(--ice);
-    display:flex; align-items:center; justify-content:center; transition:border-color .15s, background .15s;
+    width:32px; height:32px; border-radius:10px; padding:0; cursor:pointer;
+    background:var(--pnl-bg); border:1px solid var(--pnl-border); color:var(--pnl-text-muted);
+    display:flex; align-items:center; justify-content:center; transition:border-color .15s, color .15s;
   }
-  .pnl-camera-btn:hover{ border-color:var(--pnl-accent-dim); background:var(--panel-hi); }
+  .pnl-camera-btn:hover{ color:#fff; }
   .pnl-camera-btn svg{ width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
   .pnl-camera-menu{
     position:absolute; top:calc(100% + 8px); right:0; z-index:60; width:228px;
-    background:var(--panel-raised); border:1px solid var(--hairline-bright); border-radius:14px;
+    background:var(--pnl-bg); border:1px solid var(--pnl-border); border-radius:14px;
     padding:6px; box-shadow:0 20px 44px -18px rgba(0,0,0,0.65);
   }
   .pnl-camera-menu[hidden]{ display:none; }
@@ -283,80 +279,76 @@
     background:transparent; border:none; border-radius:9px; padding:10px 11px; cursor:pointer;
     font-family:var(--font-body); font-size:13px; color:var(--ice); transition:background .12s;
   }
-  .pnl-camera-menu button:hover{ background:var(--panel-hi); }
+  .pnl-camera-menu button:hover{ background:var(--pnl-cell-bg); }
   .pnl-camera-menu button svg{ width:16px; height:16px; flex:none; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; color:var(--pnl-accent-soft); }
   .pnl-camera-menu .pnl-menu-sub{ display:block; font-family:var(--font-mono); font-size:10.5px; color:var(--muted); margin-top:2px; }
   .pnl-camera-toast{
     position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(0); z-index:900;
-    background:var(--panel-raised); border:1px solid var(--pnl-accent-dim); border-radius:12px;
+    background:var(--pnl-bg); border:1px solid var(--pnl-accent); border-radius:12px;
     padding:11px 18px; font-family:var(--font-mono); font-size:12.5px; color:var(--pnl-accent-soft);
     box-shadow:0 20px 44px -18px rgba(0,0,0,0.7); opacity:0; pointer-events:none; transition:opacity .2s, transform .2s;
   }
   .pnl-camera-toast.show{ opacity:1; transform:translateX(-50%) translateY(-6px); }
 
-  /* ---------- Month view: minimal grid, cells blend in except today ---------- */
-  .pnl-grid{
-    flex:1; min-height:0; display:grid; grid-template-columns:repeat(7, 1fr); gap:8px; overflow-y:auto; align-content:start;
-    position:relative; border-radius:16px; padding:14px;
-    background:
-      repeating-linear-gradient(135deg, rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1px, transparent 1px, transparent 18px),
-      var(--panel);
-    border:1px solid var(--hairline);
+  /* ---------- Solid container card ---------- */
+  .pnl-body{
+    flex:1; min-height:0; display:flex; flex-direction:column;
+    background:var(--pnl-bg); border:1px solid var(--pnl-border); border-radius:16px;
+    padding:24px; box-shadow:0 20px 50px -30px rgba(0,0,0,0.6);
   }
+
+  /* ---------- Month view: isolated card modules, not flat grid lines ---------- */
+  .pnl-grid{ flex:1; min-height:0; display:grid; grid-template-columns:repeat(7, 1fr); gap:10px; overflow-y:auto; align-content:start; }
   .pnl-grid[hidden], .pnl-weekday-head[hidden], .pnl-week-list[hidden]{ display:none; }
   .pnl-weekday-head{
-    display:grid; grid-template-columns:repeat(7, 1fr); gap:8px; flex:none; margin-bottom:10px; padding:0 14px;
+    display:grid; grid-template-columns:repeat(7, 1fr); gap:10px; flex:none; margin-bottom:14px;
   }
   .pnl-weekday-head span{
-    font-family:var(--font-body); font-size:12.5px; font-weight:500;
-    color:var(--muted); text-align:center; padding-bottom:4px;
+    font-family:var(--font-body); font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.06em;
+    color:var(--pnl-text-muted); text-align:center;
   }
   .pnl-day{
-    min-width:0; min-height:92px; display:flex; flex-direction:column;
-    background:transparent; border:1px solid transparent; border-radius:12px; padding:10px 12px;
-    transition:background .15s, border-color .15s;
+    min-width:0; min-height:92px; display:flex; flex-direction:column; justify-content:space-between;
+    background:var(--pnl-cell-bg); border:1px solid var(--pnl-cell-border); border-radius:12px; padding:10px 12px;
+    transition:background .2s, border-color .2s, box-shadow .2s;
   }
-  .pnl-day:hover{ background:rgba(255,255,255,0.03); }
-  .pnl-day.outside{ opacity:0.28; }
+  .pnl-day.outside{ opacity:0.4; }
   .pnl-day.today{
-    background:rgba(59,130,246,0.14); border-color:var(--pnl-accent);
-    box-shadow:0 10px 24px -20px var(--pnl-accent-glow);
+    background:var(--pnl-cell-active-bg); border-color:var(--pnl-accent);
+    box-shadow:0 4px 20px -4px var(--pnl-accent-glow);
   }
-  .pnl-day-num{ font-family:var(--font-display); font-weight:700; font-size:13px; color:var(--muted); }
-  .pnl-day.today .pnl-day-num{ color:#fff; }
-  .pnl-day-pnl{ font-family:var(--font-display); font-weight:700; font-size:16px; line-height:1.2; margin-top:8px; }
-  .pnl-day-pnl.pos{ color:var(--phosphor-soft); }
+  .pnl-day-num{ font-family:var(--font-body); font-weight:700; font-size:12px; color:var(--pnl-text-muted); }
+  .pnl-day.outside .pnl-day-num{ color:var(--pnl-text-dim); }
+  .pnl-day.today .pnl-day-num{ color:var(--pnl-accent-soft); }
+  .pnl-day-pnl{ font-family:var(--font-display); font-weight:700; font-size:14px; line-height:1.2; margin-top:auto; color:var(--pnl-pnl-color); }
   .pnl-day-pnl.neg{ color:var(--red); }
-  .pnl-day.today .pnl-day-pnl{ color:#fff; }
-  .pnl-day-count{ font-family:var(--font-mono); font-size:10.5px; color:var(--muted); margin-top:2px; }
-  .pnl-day.today .pnl-day-count{ color:rgba(255,255,255,0.75); }
+  .pnl-day-count{ font-family:var(--font-body); font-weight:500; font-size:10px; color:var(--pnl-text-muted); margin-top:2px; }
   @media (max-width:820px){
     .pnl-grid, .pnl-weekday-head{ grid-template-columns:repeat(7, minmax(92px,1fr)); overflow-x:auto; }
   }
 
   /* ---------- Week view: a compact agenda list reads far better than 7
      narrow, mostly-empty columns for only 7 data points. ---------- */
-  .pnl-week-list{ flex:1; min-height:0; overflow-y:auto; display:flex; flex-direction:column; gap:8px; }
+  .pnl-week-list{ flex:1; min-height:0; overflow-y:auto; display:flex; flex-direction:column; gap:10px; }
   .pnl-week-row{
     flex:none; display:flex; align-items:center; gap:16px; padding:14px 18px;
-    background:var(--panel); border:1px solid var(--hairline-bright); border-radius:14px;
+    background:var(--pnl-cell-bg); border:1px solid var(--pnl-cell-border); border-radius:14px;
     transition:border-color .15s, background .15s;
   }
-  .pnl-week-row:hover{ border-color:var(--hairline-bright); background:var(--panel-hi); }
-  .pnl-week-row.today{ border-color:var(--pnl-accent); background:rgba(59,130,246,0.1); }
-  .pnl-week-row.has-win{ border-left:3px solid var(--phosphor-dim); }
-  .pnl-week-row.has-loss{ border-left:3px solid rgba(239,90,90,0.5); }
+  .pnl-week-row:hover{ border-color:var(--pnl-border); }
+  .pnl-week-row.today{ background:var(--pnl-cell-active-bg); border-color:var(--pnl-accent); box-shadow:0 4px 20px -4px var(--pnl-accent-glow); }
+  .pnl-week-row.has-win{ border-left:3px solid var(--pnl-pnl-color); }
+  .pnl-week-row.has-loss{ border-left:3px solid var(--red); }
   .pnl-week-date{ flex:none; width:66px; display:flex; flex-direction:column; align-items:center; gap:2px; }
-  .pnl-week-date-day{ font-family:var(--font-mono); font-size:10px; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); }
-  .pnl-week-date-num{ font-family:var(--font-display); font-weight:700; font-size:22px; color:var(--ice); line-height:1; }
+  .pnl-week-date-day{ font-family:var(--font-body); font-size:10px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--pnl-text-muted); }
+  .pnl-week-date-num{ font-family:var(--font-display); font-weight:700; font-size:22px; color:#fff; line-height:1; }
   .pnl-week-row.today .pnl-week-date-num{ color:var(--pnl-accent-soft); }
-  .pnl-week-sep{ width:1px; align-self:stretch; background:var(--hairline); flex:none; }
+  .pnl-week-sep{ width:1px; align-self:stretch; background:var(--pnl-cell-border); flex:none; }
   .pnl-week-body{ flex:1; min-width:0; display:flex; align-items:center; justify-content:space-between; gap:12px; }
-  .pnl-week-empty{ font-family:var(--font-mono); font-size:12.5px; color:var(--muted-dim); }
-  .pnl-week-pnl{ font-family:var(--font-display); font-weight:700; font-size:22px; }
-  .pnl-week-pnl.pos{ color:var(--phosphor-soft); }
+  .pnl-week-empty{ font-family:var(--font-body); font-size:12.5px; color:var(--pnl-text-dim); }
+  .pnl-week-pnl{ font-family:var(--font-display); font-weight:700; font-size:20px; color:var(--pnl-pnl-color); }
   .pnl-week-pnl.neg{ color:var(--red); }
-  .pnl-week-count{ font-family:var(--font-mono); font-size:11.5px; color:var(--muted); white-space:nowrap; }
+  .pnl-week-count{ font-family:var(--font-body); font-size:11.5px; color:var(--pnl-text-muted); white-space:nowrap; }
 </style>
 </head>
 <body>
@@ -367,12 +359,7 @@
 <div class="wrap">
 
   <div class="cal-head">
-    <h1>Calendar</h1>
-  </div>
-
-  <div class="cal-view-tabs" id="calViewTabs">
-    <button type="button" class="cal-view-tab active" data-view="pnl">P&amp;L Calendar</button>
-    <button type="button" class="cal-view-tab" data-view="econ">Economic Calendar</button>
+    <h1 id="calPageTitle">Calendar</h1>
   </div>
 
   <div class="cal-view-panel" id="pnlView">
@@ -403,11 +390,13 @@
       </div>
     </div>
 
-    <div class="pnl-weekday-head" id="pnlWeekdayHead">
-      <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+    <div class="pnl-body" id="pnlCaptureArea">
+      <div class="pnl-weekday-head" id="pnlWeekdayHead">
+        <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+      </div>
+      <div class="pnl-grid" id="pnlGrid"></div>
+      <div class="pnl-week-list" id="pnlWeekList" hidden></div>
     </div>
-    <div class="pnl-grid" id="pnlGrid"></div>
-    <div class="pnl-week-list" id="pnlWeekList" hidden></div>
   </div>
   <div class="pnl-camera-toast" id="pnlCameraToast"></div>
 
@@ -691,31 +680,20 @@
 (function(){
   "use strict";
 
-  // ---------- Tab switching between P&L Calendar and Economic Calendar ----------
-  var tabsEl = document.getElementById("calViewTabs");
+  // ---------- View selection: P&L Calendar vs Economic Calendar ----------
+  // No in-page tabs — the sidebar is the only way to switch between them
+  // now (Calendar -> plain /calendar/, Economic Calendar -> ?view=econ),
+  // so this just picks which panel to show once at load.
   var pnlViewEl = document.getElementById("pnlView");
   var econViewEl = document.getElementById("econView");
   var cameraToastEl = document.getElementById("pnlCameraToast");
-  // The sidebar's "Economic Calendar" entry links here with ?view=econ so
-  // it lands on that tab directly, instead of always opening on P&L.
+  var calPageTitleEl = document.getElementById("calPageTitle");
   var requestedView = new URLSearchParams(window.location.search).get("view");
   var activeView = requestedView === "econ" ? "econ" : "pnl";
 
-  function setActiveView(view){
-    activeView = view;
-    tabsEl.querySelectorAll(".cal-view-tab").forEach(function(b){ b.classList.toggle("active", b.getAttribute("data-view") === view); });
-    pnlViewEl.hidden = view !== "pnl";
-    econViewEl.hidden = view !== "econ";
-  }
-  setActiveView(activeView);
-
-  tabsEl.addEventListener("click", function(e){
-    var btn = e.target.closest(".cal-view-tab");
-    if (!btn) return;
-    var view = btn.getAttribute("data-view");
-    if (view === activeView) return;
-    setActiveView(view);
-  });
+  pnlViewEl.hidden = activeView !== "pnl";
+  econViewEl.hidden = activeView !== "econ";
+  calPageTitleEl.textContent = activeView === "econ" ? "Economic Calendar" : "Calendar";
 
   // ---------- Read-only journal data (same storage shape as Journal/Dashboard) ----------
   var JOURNAL_STORAGE_KEY = "ezpayouts.journal.v1";
