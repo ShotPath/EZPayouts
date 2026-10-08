@@ -69,6 +69,10 @@
       {
         slug: "backtest", href: "/backtest/", label: "Backtest",
         icon: '<path d="M3.5 16.5V4M3.5 16.5H17" /><path d="m5.5 13 3-3.5 2.5 2 4-5" />'
+      },
+      {
+        slug: "calendar", href: "/calendar/", label: "Calendar",
+        icon: '<rect x="3" y="4.5" width="14" height="12.5" rx="1.5" /><path d="M3 8h14M6.5 2.5v4M13.5 2.5v4" /><circle cx="10" cy="12" r="1.4" fill="currentColor" stroke="none" />'
       }
     ],
     [
@@ -81,8 +85,8 @@
         icon: '<rect x="3.5" y="9" width="4.5" height="7.5" rx="1" /><rect x="12" y="4.5" width="4.5" height="12" rx="1" />'
       },
       {
-        slug: "calendar", href: "/calendar/", label: "Calendar",
-        icon: '<rect x="3" y="4.5" width="14" height="12.5" rx="1.5" /><path d="M3 8h14M6.5 2.5v4M13.5 2.5v4" /><circle cx="10" cy="12" r="1.4" fill="currentColor" stroke="none" />'
+        slug: "calendar", href: "/calendar/", label: "Economic Calendar", query: "view=econ",
+        icon: '<rect x="3" y="4.5" width="14" height="12.5" rx="1.5" /><path d="M3 8h14M6.5 2.5v4M13.5 2.5v4" /><path d="M6.5 11h1.2M9.4 11h1.2M12.3 11h1.2M6.5 13.5h1.2M9.4 13.5h1.2" />'
       }
     ]
   ];
@@ -100,13 +104,32 @@
 
   var ALL_NAV_ITEMS = NAV_ITEMS.concat(NAV_SECTIONS.reduce(function (acc, section) { return acc.concat(section); }, []));
 
+  // Plain slug isn't unique — P&L Calendar and Economic Calendar both use
+  // slug "calendar" (same /calendar/ page, told apart by a ?view= query).
+  // This is the real identity used for "is this the active link" checks.
+  function itemKey(item) {
+    return item.query ? item.slug + "|" + item.query : item.slug;
+  }
+
   var SIDEBAR_TOGGLE_ICON = '<rect x="2.5" y="3.5" width="15" height="13" rx="2" /><path d="M8 3.5v13" />';
 
   function detectActiveItem() {
     var path = window.location.pathname;
+    var search = window.location.search.replace(/^\?/, "");
+    // Two items can share the same path (P&L vs Economic Calendar both
+    // live at /calendar/, told apart only by a ?view= query) — check the
+    // query-qualified ones first so a plain path match doesn't win first
+    // and highlight the wrong sidebar entry.
     for (var i = 0; i < ALL_NAV_ITEMS.length; i++) {
-      var slug = ALL_NAV_ITEMS[i].slug;
-      if (path.indexOf("/" + slug) === 0 || path.indexOf("/" + slug + "/") !== -1) return ALL_NAV_ITEMS[i];
+      var qItem = ALL_NAV_ITEMS[i];
+      if (!qItem.query) continue;
+      var qSlug = qItem.slug;
+      if ((path.indexOf("/" + qSlug) === 0 || path.indexOf("/" + qSlug + "/") !== -1) && search === qItem.query) return qItem;
+    }
+    for (var j = 0; j < ALL_NAV_ITEMS.length; j++) {
+      var item = ALL_NAV_ITEMS[j];
+      if (item.query) continue;
+      if (path.indexOf("/" + item.slug) === 0 || path.indexOf("/" + item.slug + "/") !== -1) return item;
     }
     return HOME_ITEM;
   }
@@ -281,7 +304,7 @@
       "</a>" +
       '<nav class="ez-topbar-links" aria-label="Primary">' +
         [HOME_ITEM].concat(ALL_NAV_ITEMS).map(function (item) {
-          return '<a href="' + item.href + '"' + (item.slug === activeSlug ? ' class="active"' : "") + ">" + item.label + "</a>";
+          return '<a href="' + item.href + '"' + (itemKey(item) === activeSlug ? ' class="active"' : "") + ">" + item.label + "</a>";
         }).join("") +
       "</nav>" +
       '<div class="ez-topbar-actions">' +
@@ -395,7 +418,7 @@
     nav.className = "ez-sidebar";
     nav.setAttribute("aria-label", "Primary");
     function renderLink(item) {
-      return '<a class="ez-sidebar-link' + (item.slug === activeSlug ? " active" : "") + '" href="' + item.href + '">' +
+      return '<a class="ez-sidebar-link' + (itemKey(item) === activeSlug ? " active" : "") + '" href="' + item.href + '">' +
         '<span class="ez-sidebar-icon" aria-hidden="true"><svg viewBox="0 0 20 20">' + item.icon + "</svg></span>" +
         '<span class="ez-sidebar-label">' + item.label + "</span>" +
       "</a>";
@@ -522,12 +545,12 @@
   // instead of the fixed header + sidebar the rest of the site uses.
   if (activeItem.slug === "home") {
     document.body.classList.add("ez-pill-mode");
-    var topbar = buildTopbar(isHome ? activeItem.slug : null);
+    var topbar = buildTopbar(isHome ? itemKey(activeItem) : null);
     document.body.insertBefore(topbar, document.body.firstChild);
   } else {
     document.body.setAttribute("data-sidebar-mode", getSidebarMode());
     var header = buildHeader(activeItem);
-    var sidebar = buildSidebar(activeItem.slug);
+    var sidebar = buildSidebar(itemKey(activeItem));
     document.body.insertBefore(sidebar, document.body.firstChild);
     document.body.insertBefore(header, document.body.firstChild);
   }
