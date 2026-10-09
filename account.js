@@ -88,6 +88,22 @@
         return data;
       });
   }
+  function oauthGoogle(idToken) {
+    return apiFetch("/oauth/google", { method: "POST", json: { idToken: idToken } })
+      .then(function (data) {
+        setSession(data.token, data.username);
+        emitChange();
+        return data;
+      });
+  }
+  function oauthApple(idToken) {
+    return apiFetch("/oauth/apple", { method: "POST", json: { idToken: idToken } })
+      .then(function (data) {
+        setSession(data.token, data.username);
+        emitChange();
+        return data;
+      });
+  }
   function logout() {
     var pending = getToken() ? apiFetch("/logout", { method: "POST" }).catch(function () {}) : Promise.resolve();
     return pending.then(function () {
@@ -164,8 +180,136 @@
       " transition:filter .15s, opacity .15s; }" +
       ".ez-auth-submit:hover{ filter:brightness(1.08); }" +
       ".ez-auth-submit:disabled{ opacity:0.6; cursor:default; filter:none; }" +
-      ".ez-auth-hint{ margin:16px 0 0; font-size:11.5px; color:var(--muted-dim); line-height:1.5; text-align:center; }";
+      ".ez-auth-hint{ margin:16px 0 0; font-size:11.5px; color:var(--muted-dim); line-height:1.5; text-align:center; }" +
+      // ---------- OAuth block (Inked Japan++): deliberately its own fixed
+      // dark/blue palette rather than the page's --mint/--phosphor theme
+      // tokens, so Google/Apple sign-in reads as a distinct, consistent
+      // "secure handshake" affordance on every page regardless of theme. ----------
+      ".ez-auth-divider{ display:flex; align-items:center; gap:10px; margin:20px 0 14px; }" +
+      ".ez-auth-divider::before, .ez-auth-divider::after{ content:\"\"; flex:1; height:1px; background:#1a223d; }" +
+      ".ez-auth-divider span{ font-family:var(--font-mono); font-size:9.5px; font-weight:700; letter-spacing:0.14em;" +
+      " text-transform:uppercase; color:#565d75; white-space:nowrap; }" +
+      ".ez-auth-oauth-row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }" +
+      ".ez-auth-oauth-btn{ display:flex; align-items:center; justify-content:center; gap:9px;" +
+      " padding:11px 10px; border-radius:12px; background:#090b12; border:1px solid #1a223d;" +
+      " color:#eef1fb; font-family:var(--font-mono); font-size:12px; font-weight:600;" +
+      " cursor:pointer; transition:border-color .15s, box-shadow .15s, transform .1s; }" +
+      ".ez-auth-oauth-btn svg{ width:16px; height:16px; flex:none; }" +
+      ".ez-auth-oauth-btn:hover{ border-color:#3262f6; box-shadow:0 0 0 1px rgba(50,98,246,0.35), 0 0 18px rgba(50,98,246,0.3); }" +
+      ".ez-auth-oauth-btn:active{ transform:scale(0.98); }" +
+      ".ez-auth-oauth-btn:disabled{ opacity:0.5; cursor:default; }" +
+      ".ez-auth-oauth-btn:disabled:hover{ border-color:#1a223d; box-shadow:none; }" +
+      ".ez-auth-security-note{ display:flex; gap:7px; margin:14px 0 0; padding:10px 12px; border-radius:10px;" +
+      " background:rgba(50,98,246,0.06); border:1px solid #1a223d; font-size:10.5px; line-height:1.55; color:#8d94a6; }" +
+      ".ez-auth-security-note span:first-child{ flex:none; }" +
+      ".ez-auth-security-note span:last-child{ flex:1; min-width:0; }";
     document.head.appendChild(style);
+  }
+
+  // ---------- Google / Apple sign-in ----------
+  // Both sign-in paths hand this page a provider-signed ID token (a JWT),
+  // which is POSTed straight to /oauth/{google,apple} — the worker verifies
+  // it against the provider's own public keys server-side before ever
+  // trusting it (see verifyIdToken in auth-worker.js). This page never
+  // handles a Google/Apple password, and the client ID isn't a secret
+  // (it's sent openly in the auth request either way).
+  var GOOGLE_CLIENT_ID = window.EZ_GOOGLE_CLIENT_ID || null;
+  var APPLE_CLIENT_ID = window.EZ_APPLE_CLIENT_ID || null;
+  var GOOGLE_AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth";
+  var APPLE_SDK_URL = "https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js";
+
+  function randomOauthState() {
+    try { return crypto.randomUUID().replace(/-/g, ""); } catch (err) { return String(Date.now()) + Math.random().toString(36).slice(2); }
+  }
+
+  function openOauthPopup(url) {
+    var w = 460, h = 600;
+    var left = window.screenX + Math.max(0, (window.outerWidth - w) / 2);
+    var top = window.screenY + Math.max(0, (window.outerHeight - h) / 2);
+    return window.open(url, "ezpayouts-oauth", "width=" + w + ",height=" + h + ",left=" + left + ",top=" + top);
+  }
+
+  // Google: a plain OAuth 2.0 implicit flow (response_type=id_token) —
+  // no Google JS SDK needed, just a popup to Google's own auth screen and a
+  // tiny same-origin callback page (oauth-callback.html) that hands the
+  // resulting token back via postMessage. Gives full control over our own
+  // button's styling instead of Google's fixed-look branded button widget.
+  function startGoogleSignIn() {
+    if (!GOOGLE_CLIENT_ID) return Promise.reject(new Error("Google sign-in isn't set up yet."));
+    var state = randomOauthState();
+    var redirectUri = window.location.origin + "/oauth-callback.html";
+    var authUrl = GOOGLE_AUTH_ENDPOINT + "?" + [
+      "client_id=" + encodeURIComponent(GOOGLE_CLIENT_ID),
+      "redirect_uri=" + encodeURIComponent(redirectUri),
+      "response_type=id_token",
+      "scope=" + encodeURIComponent("openid email"),
+      "nonce=" + encodeURIComponent(randomOauthState()),
+      "state=" + encodeURIComponent(state),
+    ].join("&");
+
+    return new Promise(function (resolve, reject) {
+      var popup = openOauthPopup(authUrl);
+      if (!popup) { reject(new Error("Pop-up blocked — allow pop-ups for this site and try again.")); return; }
+      var done = false;
+      function cleanup() {
+        window.removeEventListener("message", onMessage);
+        clearInterval(poll);
+      }
+      function onMessage(e) {
+        if (e.origin !== window.location.origin) return;
+        var data = e.data;
+        if (!data || data.source !== "ezpayouts-oauth-callback" || data.provider !== "google") return;
+        done = true;
+        cleanup();
+        if (data.error) { reject(new Error(data.error)); return; }
+        if (data.state !== state) { reject(new Error("Sign-in response didn't match — please try again.")); return; }
+        if (!data.idToken) { reject(new Error("Google didn't return a sign-in token.")); return; }
+        resolve(data.idToken);
+      }
+      window.addEventListener("message", onMessage);
+      var poll = setInterval(function () {
+        if (popup.closed) {
+          cleanup();
+          if (!done) reject(new Error("Sign-in was cancelled."));
+        }
+      }, 400);
+    });
+  }
+
+  var appleSdkPromise = null;
+  function loadAppleSdk() {
+    if (appleSdkPromise) return appleSdkPromise;
+    appleSdkPromise = new Promise(function (resolve, reject) {
+      if (window.AppleID) { resolve(window.AppleID); return; }
+      var script = document.createElement("script");
+      script.src = APPLE_SDK_URL;
+      script.async = true;
+      script.onload = function () { resolve(window.AppleID); };
+      script.onerror = function () { reject(new Error("Could not load Apple's sign-in library.")); };
+      document.head.appendChild(script);
+    });
+    return appleSdkPromise;
+  }
+
+  // Apple: official "Sign in with Apple JS" — usePopup:true makes it manage
+  // its own popup + postMessage handoff internally, so (unlike Google) no
+  // custom callback page is needed on our end for this one.
+  function startAppleSignIn() {
+    if (!APPLE_CLIENT_ID) return Promise.reject(new Error("Apple sign-in isn't set up yet."));
+    return loadAppleSdk().then(function (AppleID) {
+      AppleID.auth.init({
+        clientId: APPLE_CLIENT_ID,
+        scope: "name email",
+        redirectURI: window.location.origin + "/oauth-callback.html",
+        state: randomOauthState(),
+        usePopup: true,
+      });
+      return AppleID.auth.signIn();
+    }).then(function (res) {
+      var idToken = res && res.authorization && res.authorization.id_token;
+      if (!idToken) throw new Error("Apple didn't return a sign-in token.");
+      return idToken;
+    });
   }
 
   // ---------- Sign in / create account modal (built once, shared across mounts) ----------
@@ -194,6 +338,18 @@
           '<p class="ez-auth-error" hidden></p>' +
           '<button type="submit" class="ez-auth-submit">Sign In</button>' +
         "</form>" +
+        '<div class="ez-auth-divider"><span>&mdash;&mdash;&mdash; or continue with &mdash;&mdash;&mdash;</span></div>' +
+        '<div class="ez-auth-oauth-row">' +
+          '<button type="button" class="ez-auth-oauth-btn" data-provider="google">' +
+            '<svg viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.95v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.95 10.7a5.4 5.4 0 0 1 0-3.4V4.97H.95a9 9 0 0 0 0 8.06l3-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.46 3.44 1.35l2.58-2.58C13.46.9 11.43 0 9 0A9 9 0 0 0 .95 4.97l3 2.33C4.66 5.17 6.65 3.58 9 3.58z"/></svg>' +
+            "<span>Google</span>" +
+          "</button>" +
+          '<button type="button" class="ez-auth-oauth-btn" data-provider="apple">' +
+            '<svg viewBox="0 0 17 20" aria-hidden="true" fill="#ffffff"><path d="M14.03 10.6c-.02-2.06 1.68-3.05 1.76-3.1-.96-1.4-2.45-1.6-2.98-1.62-1.27-.13-2.48.75-3.12.75-.64 0-1.63-.73-2.68-.71-1.38.02-2.65.8-3.36 2.03-1.43 2.48-.37 6.16 1.03 8.18.68.98 1.5 2.09 2.57 2.05 1.03-.04 1.42-.67 2.67-.67 1.24 0 1.6.67 2.68.65 1.11-.02 1.82-1.01 2.5-2 .78-1.14 1.11-2.25 1.12-2.3-.02-.01-2.15-.83-2.17-3.26z"/><path d="M11.97 4.3c.57-.7.96-1.65.85-2.6-.82.03-1.83.55-2.42 1.24-.53.6-.99 1.58-.87 2.5.9.07 1.83-.46 2.44-1.14z"/></svg>' +
+            "<span>Apple</span>" +
+          "</button>" +
+        "</div>" +
+        '<p class="ez-auth-security-note"><span>🔒</span><span>Security Sync: Connecting your account via Google or Apple establishes a secure cryptographic token handshake, enabling automatic hardware 2FA and biometric protection layers.</span></p>' +
         '<p class="ez-auth-hint">Not real security &mdash; just enough to sync your data across devices.</p>' +
       "</div>";
     document.body.appendChild(overlay);
@@ -256,6 +412,35 @@
         submitBtn.textContent = originalLabel;
         errorEl.textContent = err.message || "Something went wrong.";
         errorEl.hidden = false;
+      });
+    });
+
+    var oauthButtons = overlay.querySelectorAll(".ez-auth-oauth-btn");
+    oauthButtons.forEach(function (btn) {
+      var provider = btn.getAttribute("data-provider");
+      if (provider === "google" && !GOOGLE_CLIENT_ID) btn.disabled = true;
+      if (provider === "apple" && !APPLE_CLIENT_ID) btn.disabled = true;
+      btn.addEventListener("click", function () {
+        errorEl.hidden = true;
+        oauthButtons.forEach(function (b) { b.disabled = true; });
+        var originalHtml = btn.innerHTML;
+        btn.innerHTML = "<span>" + (provider === "google" ? "Connecting to Google…" : "Connecting to Apple…") + "</span>";
+        var startFlow = provider === "google" ? startGoogleSignIn : startAppleSignIn;
+        var exchangeToken = provider === "google" ? oauthGoogle : oauthApple;
+        startFlow().then(exchangeToken).then(function () {
+          closeModal();
+          formEl.reset();
+          if (mountedContainer) renderWidget(mountedContainer);
+        }).catch(function (err) {
+          errorEl.textContent = err.message || "Something went wrong.";
+          errorEl.hidden = false;
+        }).then(function () {
+          oauthButtons.forEach(function (b) {
+            var p = b.getAttribute("data-provider");
+            b.disabled = (p === "google" && !GOOGLE_CLIENT_ID) || (p === "apple" && !APPLE_CLIENT_ID);
+          });
+          btn.innerHTML = originalHtml;
+        });
       });
     });
 

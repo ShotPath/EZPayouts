@@ -7,11 +7,26 @@
 // verification, password reset, or rate limiting. Good enough to keep
 // casual snooping out and to key each person's synced data to an account.
 //
-// Storage: a single KV namespace (binding "ACCOUNTS") holds three kinds of
+// Storage: a single KV namespace (binding "ACCOUNTS") holds four kinds of
 // keys —
-//   user:<lowercased username>    -> { username, salt, hash, createdAt }
+//   user:<lowercased username>    -> { username, salt, hash, createdAt,
+//                                      googleId?, appleId?, verifiedEmail? }
 //   session:<token>               -> lowercased username   (TTL'd)
 //   data:<lowercased username>    -> { backtest, cockpit, updatedAt }
+//   oauth:<provider>:<subjectId>  -> lowercased username
+//       (provider is "google" or "apple"; subjectId is that provider's
+//       stable user id, the JWT's `sub` claim — this index is how a
+//       returning Google/Apple sign-in is matched back to an account
+//       without ever storing anything the provider didn't itself vouch for)
+//
+// salt/hash are null for an account that has only ever signed in via
+// Google/Apple — handleLogin and handleChangePassword both guard for that.
+//
+// OAuth sign-in (handleOAuth below) verifies the provider's ID token
+// entirely with public keys (each provider's published JWKS) — no client
+// secret involved, so GOOGLE_CLIENT_ID/APPLE_CLIENT_ID (set as plain wrangler
+// vars, see wrangler.toml) are the only server-side configuration needed.
+// Until they're set, handleOAuth responds 501 rather than pretending to work.
 
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 90; // 90 days
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/;
@@ -64,6 +79,98 @@ function timingSafeEqual(a, b) {
 function userKey(username) { return "user:" + username.toLowerCase(); }
 function sessionKey(token) { return "session:" + token; }
 function dataKey(username) { return "data:" + username.toLowerCase(); }
+function oauthKey(provider, subjectId) { return "oauth:" + provider + ":" + subjectId; }
+
+// ---------- OAuth ID token verification (Google / Apple) ----------
+// Both providers hand the client a signed JWT ("ID token") after the user
+// authenticates with them directly — this worker never sees a Google/Apple
+// password. Verifying it is pure public-key crypto: fetch the provider's
+// published JWKS, check the RS256 signature, then check issuer/audience/
+// expiry. No client secret is needed for this (that's only required for the
+// authorization-code flow, which this site doesn't use).
+
+function base64UrlToBytes(b64url) {
+  var b64 = String(b64url).replace(/-/g, "+").replace(/_/g, "/");
+  while (b64.length % 4) b64 += "=";
+  var bin = atob(b64);
+  var bytes = new Uint8Array(bin.length);
+  for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+function base64UrlToJson(b64url) {
+  return JSON.parse(new TextDecoder().decode(base64UrlToBytes(b64url)));
+}
+
+var jwksCache = Object.create(null); // url -> { keys, fetchedAt }
+var JWKS_CACHE_MS = 60 * 60 * 1000;
+async function fetchJwks(url) {
+  var cached = jwksCache[url];
+  if (cached && Date.now() - cached.fetchedAt < JWKS_CACHE_MS) return cached.keys;
+  var res = await fetch(url);
+  if (!res.ok) throw new Error("Could not fetch signing keys.");
+  var data = await res.json();
+  jwksCache[url] = { keys: data.keys || [], fetchedAt: Date.now() };
+  return jwksCache[url].keys;
+}
+
+async function verifyIdToken(idToken, opts) {
+  var parts = String(idToken || "").split(".");
+  if (parts.length !== 3) throw new Error("Malformed token.");
+  var header = base64UrlToJson(parts[0]);
+  var payload = base64UrlToJson(parts[1]);
+  var signature = base64UrlToBytes(parts[2]);
+  var signedData = new TextEncoder().encode(parts[0] + "." + parts[1]);
+
+  if (header.alg !== "RS256") throw new Error("Unsupported signing algorithm.");
+  var keys = await fetchJwks(opts.jwksUrl);
+  var jwk = keys.filter(function (k) { return k.kid === header.kid; })[0];
+  if (!jwk) throw new Error("Unknown signing key.");
+
+  var cryptoKey = await crypto.subtle.importKey(
+    "jwk", jwk, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["verify"]
+  );
+  var valid = await crypto.subtle.verify("RSASSA-PKCS1-v1_5", cryptoKey, signature, signedData);
+  if (!valid) throw new Error("Invalid token signature.");
+
+  var now = Math.floor(Date.now() / 1000);
+  if (!payload.exp || payload.exp < now) throw new Error("Token expired.");
+  if (opts.issuers.indexOf(payload.iss) === -1) throw new Error("Unexpected issuer.");
+  if (payload.aud !== opts.audience) throw new Error("Unexpected audience.");
+  if (!payload.sub) throw new Error("Token missing subject.");
+
+  return payload;
+}
+
+var OAUTH_PROVIDERS = {
+  google: {
+    jwksUrl: "https://www.googleapis.com/oauth2/v3/certs",
+    issuers: ["https://accounts.google.com", "accounts.google.com"],
+    idField: "googleId",
+  },
+  apple: {
+    jwksUrl: "https://appleid.apple.com/auth/keys",
+    issuers: ["https://appleid.apple.com"],
+    idField: "appleId",
+  },
+};
+
+// trader_<6 random lowercase/digit chars> — short, URL-safe, and already
+// matches USERNAME_RE, so a brand-new Google/Apple sign-in gets a working
+// account without ever prompting for a username up front.
+var USERNAME_SUFFIX_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789";
+function randomUsernameSuffix(length) {
+  var bytes = crypto.getRandomValues(new Uint8Array(length));
+  var out = "";
+  for (var i = 0; i < length; i++) out += USERNAME_SUFFIX_CHARS[bytes[i] % USERNAME_SUFFIX_CHARS.length];
+  return out;
+}
+async function provisionUsername(env) {
+  for (var attempt = 0; attempt < 8; attempt++) {
+    var candidate = "trader_" + randomUsernameSuffix(attempt < 4 ? 6 : 9);
+    if (!(await env.ACCOUNTS.get(userKey(candidate)))) return candidate;
+  }
+  throw new Error("Could not allocate a username.");
+}
 
 async function readJson(request) {
   try { return await request.json(); } catch (err) { return null; }
@@ -119,6 +226,9 @@ async function handleLogin(request, env) {
   var raw = await env.ACCOUNTS.get(userKey(username));
   if (!raw) return json({ error: "Incorrect username or password." }, 401);
   var record = JSON.parse(raw);
+  if (!record.hash || !record.salt) {
+    return json({ error: "This account signs in with Google or Apple — use that button instead." }, 401);
+  }
   var candidateHash = await hashPassword(password, record.salt);
   if (!timingSafeEqual(candidateHash, record.hash)) {
     return json({ error: "Incorrect username or password." }, 401);
@@ -152,9 +262,13 @@ async function handleChangePassword(request, env) {
   var raw = await env.ACCOUNTS.get(userKey(username));
   if (!raw) return json({ error: "Account not found." }, 404);
   var record = JSON.parse(raw);
-  var candidateHash = await hashPassword(currentPassword, record.salt);
-  if (!timingSafeEqual(candidateHash, record.hash)) {
-    return json({ error: "Current password is incorrect." }, 401);
+  // A Google/Apple-only account has no password yet — let it set one for
+  // the first time without requiring a "current" password that never existed.
+  if (record.hash && record.salt) {
+    var candidateHash = await hashPassword(currentPassword, record.salt);
+    if (!timingSafeEqual(candidateHash, record.hash)) {
+      return json({ error: "Current password is incorrect." }, 401);
+    }
   }
 
   var saltBytes = crypto.getRandomValues(new Uint8Array(16));
@@ -165,13 +279,67 @@ async function handleChangePassword(request, env) {
   return json({ ok: true });
 }
 
+// Sign in (or, for a brand-new Google/Apple identity, silently create an
+// account for) whoever the verified ID token says they are. `provider` is
+// "google" or "apple" — see OAUTH_PROVIDERS above for each one's JWKS/issuer.
+async function handleOAuth(request, env, provider) {
+  var cfg = OAUTH_PROVIDERS[provider];
+  var audience = provider === "google" ? env.GOOGLE_CLIENT_ID : env.APPLE_CLIENT_ID;
+  if (!audience) {
+    return json({ error: (provider === "google" ? "Google" : "Apple") + " sign-in isn't configured on the server yet." }, 501);
+  }
+
+  var body = await readJson(request);
+  if (!body || !body.idToken) return json({ error: "Missing idToken." }, 400);
+
+  var payload;
+  try {
+    payload = await verifyIdToken(body.idToken, { jwksUrl: cfg.jwksUrl, issuers: cfg.issuers, audience: audience });
+  } catch (err) {
+    return json({ error: "Could not verify " + provider + " sign-in (" + err.message + ")." }, 401);
+  }
+
+  var subjectId = payload.sub;
+  var indexKey = oauthKey(provider, subjectId);
+  var lookupUsername = await env.ACCOUNTS.get(indexKey); // lowercased, or null
+  var record;
+
+  if (!lookupUsername) {
+    var newUsername = await provisionUsername(env);
+    record = { username: newUsername, salt: null, hash: null, createdAt: new Date().toISOString() };
+    record[cfg.idField] = subjectId;
+    if (payload.email) record.verifiedEmail = payload.email;
+    await env.ACCOUNTS.put(userKey(newUsername), JSON.stringify(record));
+    await env.ACCOUNTS.put(indexKey, newUsername.toLowerCase());
+  } else {
+    var raw = await env.ACCOUNTS.get(userKey(lookupUsername));
+    record = raw ? JSON.parse(raw) : null;
+    if (!record) return json({ error: "Account not found." }, 404);
+    // Apple only includes the email claim on a person's very first
+    // authorization — don't overwrite a previously-captured one with nothing.
+    if (payload.email && record.verifiedEmail !== payload.email) {
+      record.verifiedEmail = payload.email;
+      await env.ACCOUNTS.put(userKey(record.username), JSON.stringify(record));
+    }
+  }
+
+  var token = randomToken();
+  await env.ACCOUNTS.put(sessionKey(token), record.username.toLowerCase(), { expirationTtl: SESSION_TTL_SECONDS });
+  return json({ token: token, username: record.username });
+}
+
 async function handleMe(request, env) {
   var username = await requireSession(request, env);
   if (!username) return json({ error: "Not signed in." }, 401);
   var raw = await env.ACCOUNTS.get(userKey(username));
   if (!raw) return json({ error: "Not signed in." }, 401);
   var record = JSON.parse(raw);
-  return json({ username: record.username });
+  return json({
+    username: record.username,
+    verifiedEmail: record.verifiedEmail || null,
+    hasGoogle: !!record.googleId,
+    hasApple: !!record.appleId,
+  });
 }
 
 // Every page-owned data field this worker stores per account. Opaque JSON
@@ -227,6 +395,8 @@ export default {
 
     if (path === "/signup" && request.method === "POST") return handleSignup(request, env);
     if (path === "/login" && request.method === "POST") return handleLogin(request, env);
+    if (path === "/oauth/google" && request.method === "POST") return handleOAuth(request, env, "google");
+    if (path === "/oauth/apple" && request.method === "POST") return handleOAuth(request, env, "apple");
     if (path === "/logout" && request.method === "POST") return handleLogout(request, env);
     if (path === "/change-password" && request.method === "POST") return handleChangePassword(request, env);
     if (path === "/me" && request.method === "GET") return handleMe(request, env);

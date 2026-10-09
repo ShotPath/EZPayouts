@@ -11,3 +11,22 @@ compatibility_date = "2025-01-01"
 [[kv_namespaces]]
 binding = "ACCOUNTS"
 id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+# Optional: enables "Sign in with Google" / "Sign in with Apple". Neither
+# value is secret — both are just the OAuth client identifier each provider
+# hands you when you register the app, the same string the client-side JS
+# sends along in the auth request. ID-token verification needs no client
+# secret at all (see verifyIdToken in auth-worker.js), so nothing sensitive
+# lives in this file. Leave a var unset/empty and that provider's endpoint
+# responds 501 instead of pretending to work.
+#
+# Google: console.cloud.google.com -> APIs & Services -> Credentials ->
+#   OAuth client ID (type: Web application). Add this site's origin under
+#   "Authorized JavaScript origins" and <origin>/oauth-callback.html under
+#   "Authorized redirect URIs".
+# Apple: developer.apple.com -> Certificates, IDs & Profiles -> Identifiers ->
+#   Services IDs. Enable "Sign in with Apple", and under its configuration
+#   add this site's domain and <origin>/oauth-callback.html as the return URL.
+[vars]
+GOOGLE_CLIENT_ID = ""
+APPLE_CLIENT_ID = ""
