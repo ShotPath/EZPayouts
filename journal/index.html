@@ -627,7 +627,41 @@
     background:transparent; border:none; color:var(--muted); cursor:pointer; transition:color .15s; white-space:nowrap;
   }
   .share-period-tabs button.active{ color:var(--mint-text); }
-  .share-card-wrap{ position:relative; margin-bottom:14px; }
+  .share-period-tabs button[hidden]{ display:none; }
+  .share-period-tabs.is-locked{ pointer-events:none; opacity:0.55; }
+  .share-card-wrap{ position:relative; margin-bottom:10px; }
+
+  /* Frame picker under the preview */
+  .share-frame-bar{ display:flex; align-items:center; gap:8px; }
+  .share-frame-bar[hidden]{ display:none; }
+  .share-frame-btn{
+    flex:none; width:32px; height:32px; border-radius:50%; padding:0; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--panel-hi); border:1px solid var(--hairline-bright); color:var(--ice);
+    transition:border-color .15s, background .15s;
+  }
+  .share-frame-btn:hover{ border-color:var(--phosphor-dim); }
+  .share-frame-btn svg{ width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .share-frame-btn .icon-pause, .share-frame-btn .icon-play{ fill:currentColor; stroke:none; }
+  .share-frame-btn svg[hidden], .share-mute-btn svg[hidden]{ display:none; }
+  .share-frame-bar.is-paused #shareFramePlayBtn{ background:var(--phosphor); border-color:var(--phosphor); color:var(--mint-text); }
+  .share-frame-slider{
+    -webkit-appearance:none; appearance:none; flex:1; min-width:0; height:6px; border-radius:999px; margin:0; cursor:pointer; outline:none;
+    background:linear-gradient(90deg, var(--phosphor) 0 var(--fill, 0%), var(--hairline-bright) var(--fill, 0%) 100%);
+  }
+  .share-frame-slider::-webkit-slider-thumb{
+    -webkit-appearance:none; appearance:none; width:16px; height:16px; border-radius:50%;
+    background:#fff; border:none; box-shadow:0 0 0 3px rgba(0,0,0,0.35);
+  }
+  .share-frame-slider::-moz-range-thumb{ width:16px; height:16px; border-radius:50%; background:#fff; border:none; }
+  .share-frame-time{ flex:none; min-width:84px; text-align:right; font-family:var(--font-mono); font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .share-frame-hint{ margin:6px 0 0 80px; font-family:var(--font-mono); font-size:10.5px; color:var(--muted-dim); }
+  .share-frame-bar[hidden] + .share-frame-hint{ display:none; }
+  .share-export-status{ display:flex; flex-direction:column; gap:7px; padding-top:4px; }
+  .share-export-status[hidden]{ display:none; }
+  .share-export-status-bar{ height:6px; border-radius:999px; background:var(--hairline-bright); overflow:hidden; }
+  .share-export-status-bar span{ display:block; height:100%; width:0; background:var(--phosphor); border-radius:inherit; transition:width .2s linear; }
+  .share-export-status-label{ font-family:var(--font-mono); font-size:11.5px; color:var(--ice); }
   .share-card-canvas{
     width:100%; aspect-ratio:16/9; border-radius:14px; border:1px solid var(--hairline-bright);
     display:block; background:var(--panel);
@@ -758,9 +792,24 @@
   .adjust-seg button:hover{ color:var(--ice); }
   .adjust-seg button.active{ background:var(--phosphor); border-color:var(--phosphor); color:var(--mint-text); }
 
+  .adjust-group{ border-top:1px solid var(--hairline); padding-top:2px; }
+  .adjust-group summary{
+    list-style:none; cursor:pointer; display:flex; align-items:center; justify-content:space-between;
+    font-family:var(--font-mono); font-size:11px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase;
+    color:var(--muted); padding:8px 0; user-select:none;
+  }
+  .adjust-group summary::-webkit-details-marker{ display:none; }
+  .adjust-group summary::after{ content:"+"; font-size:14px; color:var(--muted-dim); }
+  .adjust-group[open] summary{ color:var(--ice); }
+  .adjust-group[open] summary::after{ content:"–"; }
+  .adjust-group-body{ display:flex; flex-direction:column; gap:12px; padding:4px 0 12px; }
+  .adjust-sub-label{ font-family:var(--font-mono); font-size:11px; color:var(--muted); margin-bottom:-6px; }
+  .share-export-text{ display:flex; flex-direction:column; align-items:flex-start; line-height:1.15; }
+  .share-export-text small{ font-family:var(--font-mono); font-size:10px; font-weight:600; opacity:0.7; }
+
   .share-export-row{ display:flex; gap:10px; }
   .share-export-btn{
-    flex:1; display:flex; align-items:center; justify-content:center; gap:7px; padding:11px 16px;
+    flex:1; display:flex; align-items:center; justify-content:center; gap:9px; padding:9px 16px;
     border-radius:12px; font-family:var(--font-display); font-weight:700; font-size:13px; cursor:pointer;
     background:var(--panel-hi); border:1px solid var(--hairline-bright); color:var(--muted); white-space:nowrap;
     transition:filter .15s, border-color .15s, background .15s, color .15s;
@@ -778,6 +827,7 @@
   }
   .modal-share-btn svg{ width:13px; height:13px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
   .modal-share-btn:hover{ border-color:var(--phosphor-dim); color:var(--ice); background:var(--panel-raised); }
+  .modal-share-btn[hidden]{ display:none; }
 
   .field{ display:flex; flex-direction:column; gap:6px; min-width:0; margin-bottom:14px; }
   .field label{ font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.06em; color:var(--muted); text-transform:uppercase; }
@@ -804,42 +854,56 @@
   }
   .select:focus{ border-color:var(--phosphor-dim); }
 
-  /* ---------- Quick Log / Log mode toggle ---------- */
-  .log-mode-toggle{
-    display:inline-flex; align-items:stretch; margin-bottom:16px;
-    border-radius:999px; overflow:hidden; border:1px solid var(--hairline-bright); background:var(--panel);
-  }
-  .log-mode-toggle[hidden]{ display:none; }
-  .log-mode-toggle .seg-thumb{ border-radius:inherit; }
-  .log-mode-toggle button{
-    flex:1; font-family:var(--font-mono); font-size:12px; font-weight:700; padding:9px 16px;
-    background:transparent; border:none; color:var(--muted); cursor:pointer; transition:color .15s; white-space:nowrap;
-  }
-  .log-mode-toggle button.active{ color:var(--mint-text); }
-
   .field-label-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:6px; }
   .field-label-row label{ margin-bottom:0; }
   .field-hint-inline{ font-family:var(--font-mono); font-size:10px; color:var(--muted-dim); text-transform:none; letter-spacing:0; }
 
-  /* ---------- Direction tiles (Long/Short) ---------- */
-  .dir-tiles{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  /* ---------- Trade modal layout: one card of essentials, the rest folded ---------- */
+  #tradeModalOverlay .modal{ max-width:460px; }
+  .tm-core{
+    background:var(--panel); border:1px solid var(--hairline); border-radius:14px;
+    padding:14px 14px 2px; margin-bottom:14px;
+  }
+  .tm-core .field input[type="text"], .tm-core .field input[type="date"], .tm-core .field input[type="number"]{
+    background:var(--panel-raised);
+  }
+  .tm-row{ display:flex; gap:10px; align-items:flex-end; }
+  .tm-row .field{ flex:1; min-width:0; }
+  .tm-row-top .tm-symbol{ flex:1.25; }
+  .tm-symbol input{ font-family:var(--font-display) !important; font-weight:700; font-size:16px !important; text-transform:uppercase; letter-spacing:0.02em; }
+  .tm-prices .tm-size{ flex:0.6; }
+  .tm-arrow{ flex:none; color:var(--muted-dim); font-size:14px; padding-bottom:24px; }
+  .tm-prices input{ font-family:var(--font-mono) !important; }
+  .tm-pnl input{
+    font-family:var(--font-display) !important; font-weight:700; font-size:22px !important;
+    padding:10px 14px !important; transition:border-color .15s, color .15s;
+  }
+  .tm-pnl input.pos{ color:var(--phosphor-soft); border-color:rgba(62,224,140,0.35); }
+  .tm-pnl input.neg{ color:var(--red); border-color:rgba(239,90,90,0.35); }
+  .tm-grade-row{ display:flex; align-items:center; gap:12px; margin-bottom:6px; }
+  .tm-inline-label{ font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.06em; color:var(--muted); text-transform:uppercase; flex:none; }
+  .tm-grade-row .grade-tiles{ flex:1; }
+  #tfDetails .field{ margin-bottom:14px; }
+  #tfDetails .tm-row{ align-items:flex-start; }
+
+  /* ---------- Direction (Long/Short) segmented control ---------- */
+  .dir-tiles{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px; }
   .dir-tile{
-    display:flex; flex-direction:column; align-items:center; gap:6px; padding:16px 12px;
-    border-radius:14px; border:1px solid var(--hairline); background:var(--panel); color:var(--muted);
+    display:flex; flex-direction:row; align-items:center; justify-content:center; gap:8px; padding:10px 12px;
+    border-radius:10px; border:1px solid var(--hairline); background:var(--panel-raised); color:var(--muted);
     cursor:pointer; transition:border-color .15s, background .15s, color .15s;
   }
-  .dir-tile svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .dir-tile svg{ width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
   .dir-tile-label{ font-family:var(--font-display); font-weight:700; font-size:13.5px; letter-spacing:0.02em; }
-  .dir-tile-hint{ font-family:var(--font-mono); font-size:10px; color:var(--muted-dim); }
-  .dir-tile.long.active{ border-color:var(--phosphor); background:rgba(62,224,140,0.1); color:var(--phosphor-soft); box-shadow:0 0 0 1px var(--phosphor) inset; }
-  .dir-tile.short.active{ border-color:var(--red); background:rgba(239,90,90,0.08); color:var(--red); box-shadow:0 0 0 1px var(--red) inset; }
+  .dir-tile.long.active{ border-color:var(--phosphor); background:rgba(62,224,140,0.1); color:var(--phosphor-soft); }
+  .dir-tile.short.active{ border-color:var(--red); background:rgba(239,90,90,0.08); color:var(--red); }
   .dir-tile:hover:not(.active){ border-color:var(--hairline-bright); color:var(--ice); }
 
-  /* ---------- Grade tiles ---------- */
-  .grade-tiles{ display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
+  /* ---------- Grade chips ---------- */
+  .grade-tiles{ display:grid; grid-template-columns:repeat(5,1fr); gap:6px; }
   .grade-tile{
-    padding:10px 4px; border-radius:10px; border:1px solid var(--hairline); background:var(--panel);
-    color:var(--muted); font-family:var(--font-display); font-weight:700; font-size:14px; text-align:center;
+    padding:7px 4px; border-radius:8px; border:1px solid var(--hairline); background:var(--panel);
+    color:var(--muted); font-family:var(--font-display); font-weight:700; font-size:13px; text-align:center;
     cursor:pointer; transition:border-color .15s, background .15s, color .15s;
   }
   .grade-tile:hover:not(.active){ border-color:var(--hairline-bright); color:var(--ice); }
@@ -901,14 +965,16 @@
   .strategy-popover-new:hover{ border-color:var(--phosphor-dim); color:var(--ice); }
 
   .details-toggle{
-    display:inline-flex; align-items:center; gap:6px; background:transparent; border:none;
-    color:var(--phosphor-soft); font-family:var(--font-mono); font-size:11.5px; font-weight:700;
-    cursor:pointer; padding:4px 0; margin-bottom:12px;
+    display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%;
+    background:transparent; border:none; border-top:1px solid var(--hairline);
+    color:var(--muted); font-family:var(--font-mono); font-size:11.5px; font-weight:700;
+    cursor:pointer; padding:14px 2px; margin-top:8px; transition:color .15s;
   }
-  .details-toggle svg{ width:11px; height:11px; fill:none; stroke:currentColor; stroke-width:2.2; transition:transform .15s; }
+  .details-toggle:hover{ color:var(--ice); }
+  .details-toggle svg{ width:12px; height:12px; fill:none; stroke:currentColor; stroke-width:2.2; transition:transform .15s; }
+  .details-toggle.open{ color:var(--ice); }
   .details-toggle.open svg{ transform:rotate(180deg); }
   #tfDetails[hidden]{ display:none; }
-  .details-hint{ margin:-4px 0 12px; font-family:var(--font-mono); font-size:10.5px; color:var(--muted-dim); }
 
   .tag-select{ display:flex; flex-wrap:wrap; gap:7px; }
   .tag-pill{
@@ -954,7 +1020,6 @@
 <script src="/select.js"></script>
 <script src="/account.js"></script>
 <script src="/coach.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
 <div class="wrap">
 
 <div id="journalListView">
@@ -1249,7 +1314,7 @@
         <span class="modal-head-icon" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M3 16.5V4M3 16.5H17" /><path d="m5.5 13 3-3.5 2.5 2 4-5" /></svg></span>
         <div>
           <span class="modal-title" id="tradeModalTitle">Log a Trade</span>
-          <p class="modal-sub">Add trades manually or import from your broker.</p>
+          <p class="modal-sub" id="tradeModalSub">Add trades manually or import from your broker.</p>
         </div>
       </div>
       <div class="modal-head-right">
@@ -1261,48 +1326,63 @@
       </div>
     </div>
 
-    <div class="log-mode-toggle seg-track" id="logModeToggle">
-      <span class="seg-thumb" aria-hidden="true"></span>
-      <button type="button" class="active" data-mode="quick">Quick Log</button>
-      <button type="button" data-mode="full">Log</button>
-    </div>
-
-    <!-- Symbol/Date/Side/P&L/Grade/Strategy are single shared elements, moved
-         between this container and #fullLogFields by setLogMode() below —
-         never duplicated, so there's exactly one source of truth per field
-         regardless of which layout currently shows it. -->
-    <div id="quickLogFields">
-      <div class="field-row" id="quickRow1"></div>
-    </div>
-
-    <div id="fullLogFields" hidden>
-      <div class="field-row" id="fullRow1">
-        <div class="field">
-          <label>Market</label>
-          <ez-select id="tfMarket"></ez-select>
-        </div>
-      </div>
-      <div class="field-row" id="fullRow2"></div>
-
-      <button type="button" class="details-toggle" id="detailsToggleBtn">
-        <svg viewBox="0 0 20 20"><path d="M5 7l5 6 5-6" /></svg>
-        <span id="detailsToggleLabel">Show trade details</span>
-      </button>
-      <p class="details-hint">Optional &mdash; entry/exit/lots for your records, stop/target to calculate planned R:R.</p>
-      <div id="tfDetails" hidden>
-        <div class="field-row">
-          <div class="field"><label>Entry</label><input type="number" step="any" id="tfEntry" placeholder="e.g. 1.08450" /></div>
-          <div class="field"><label>Exit</label><input type="number" step="any" id="tfExit" placeholder="e.g. 1.08650" /></div>
-          <div class="field"><label>Lots / Contracts</label><input type="number" step="any" id="tfLots" placeholder="e.g. 1" /></div>
-        </div>
-        <div class="field-row">
-          <div class="field"><label>Stop loss</label><input type="number" step="any" id="tfStop" placeholder="e.g. 1.08300" /></div>
-          <div class="field"><label>Take profit</label><input type="number" step="any" id="tfTarget" placeholder="e.g. 1.08900" /></div>
-        </div>
+    <div class="tm-core">
+      <div class="tm-row tm-row-top">
+        <div class="field tm-symbol"><label for="tfSymbol">Symbol</label><input type="text" id="tfSymbol" placeholder="NQ, ES, EURUSD…" autocomplete="off" /></div>
+        <div class="field tm-date"><label for="tfDate">Date</label><input type="date" id="tfDate" /></div>
       </div>
 
-      <div class="field" id="emotionsField">
-        <label>How did you feel? <span style="text-transform:none;">(optional)</span></label>
+      <div class="dir-tiles" id="dirTiles" role="radiogroup" aria-label="Side">
+        <button type="button" class="dir-tile long active" data-dir="long" title="Long (L)">
+          <svg viewBox="0 0 20 20"><path d="M4 13l4-4 3 3 5-6" /><path d="M13 5h3v3" /></svg>
+          <span class="dir-tile-label">Long</span>
+        </button>
+        <button type="button" class="dir-tile short" data-dir="short" title="Short (S)">
+          <svg viewBox="0 0 20 20"><path d="M4 7l4 4 3-3 5 6" /><path d="M13 11h3v-3" /></svg>
+          <span class="dir-tile-label">Short</span>
+        </button>
+      </div>
+
+      <div class="tm-row tm-prices">
+        <div class="field"><label for="tfEntry">Entry price</label><input type="number" step="any" id="tfEntry" placeholder="0.00" /></div>
+        <span class="tm-arrow" aria-hidden="true">&rarr;</span>
+        <div class="field"><label for="tfExit">Exit price</label><input type="number" step="any" id="tfExit" placeholder="0.00" /></div>
+        <div class="field tm-size"><label for="tfLots">Size</label><input type="number" step="any" id="tfLots" placeholder="1" /></div>
+      </div>
+
+      <div class="field tm-pnl">
+        <label for="tfPnl">P&amp;L ($)</label>
+        <input type="text" id="tfPnl" inputmode="decimal" placeholder="+240 or -85" autocomplete="off" />
+      </div>
+    </div>
+
+    <div class="tm-grade-row">
+      <span class="tm-inline-label">Grade</span>
+      <div class="grade-tiles" id="gradeTiles">
+        <button type="button" class="grade-tile grade-aplus" data-grade="A+">A+</button>
+        <button type="button" class="grade-tile grade-a" data-grade="A">A</button>
+        <button type="button" class="grade-tile grade-b" data-grade="B">B</button>
+        <button type="button" class="grade-tile grade-c" data-grade="C">C</button>
+        <button type="button" class="grade-tile grade-f" data-grade="F">F</button>
+      </div>
+    </div>
+
+    <button type="button" class="details-toggle" id="detailsToggleBtn" aria-expanded="false">
+      <span id="detailsToggleLabel">Add notes, strategy &amp; screenshots</span>
+      <svg viewBox="0 0 20 20"><path d="M5 7l5 6 5-6" /></svg>
+    </button>
+
+    <div id="tfDetails" hidden>
+      <div class="field">
+        <label>Strategy</label>
+        <button type="button" class="strategy-picker-btn" id="strategyPickerBtn">
+          <span id="strategyPickerLabel">None yet, add one</span>
+          <span class="strategy-picker-arrow">&rarr;</span>
+        </button>
+      </div>
+      <div class="field"><label for="tfNotes">Notes</label><textarea id="tfNotes" placeholder="What went well? What would you change?"></textarea></div>
+      <div class="field">
+        <label>How did you feel?</label>
         <div class="tag-select" id="tfEmotions">
           <button type="button" class="tag-pill" data-tag="Confident">Confident</button>
           <button type="button" class="tag-pill" data-tag="Disciplined">Disciplined</button>
@@ -1316,61 +1396,26 @@
           <button type="button" class="tag-pill" data-tag="Uncertain">Uncertain</button>
         </div>
       </div>
-      <div class="field"><label>Title <span style="text-transform:none;">(optional)</span></label><input type="text" id="tfTitle" placeholder="e.g. Morning breakout, clean entry" /></div>
-    </div>
-
-    <!-- Shared field blocks: live inside #quickLogFields in source order
-         (so the page works before JS runs), relocated by layoutQuickMode()/
-         layoutFullMode(). -->
-    <div class="field" id="symbolField"><label>Symbol</label><input type="text" id="tfSymbol" placeholder="e.g. NQ, EURUSD" /></div>
-    <div class="field" id="dateField"><label>Date</label><input type="date" id="tfDate" /></div>
-    <div class="field" id="dirField">
-      <label>Side</label>
-      <div class="dir-tiles" id="dirTiles">
-        <button type="button" class="dir-tile long active" data-dir="long">
-          <svg viewBox="0 0 20 20"><path d="M4 13l4-4 3 3 5-6" /><path d="M13 5h3v3" /></svg>
-          <span class="dir-tile-label">Long</span>
-          <span class="dir-tile-hint">Press L</span>
-        </button>
-        <button type="button" class="dir-tile short" data-dir="short">
-          <svg viewBox="0 0 20 20"><path d="M4 7l4 4 3-3 5 6" /><path d="M13 11h3v-3" /></svg>
-          <span class="dir-tile-label">Short</span>
-          <span class="dir-tile-hint">Press S</span>
-        </button>
+      <div class="field">
+        <label>Screenshots</label>
+        <div class="image-thumbs" id="imageThumbs"></div>
+        <button type="button" class="ghost-btn" id="addImageBtn">+ Add image</button>
+        <input type="file" id="imageFileInput" accept="image/*" multiple hidden />
+        <p class="field-hint">Up to 4. Stored on this device only.</p>
       </div>
-    </div>
-    <div class="field" id="pnlField"><label>P&amp;L ($)</label><input type="text" id="tfPnl" inputmode="decimal" placeholder="e.g. 240 or -85" /></div>
-    <div class="field" id="gradeField">
-      <div class="field-label-row"><label>Grade</label><span class="field-hint-inline">optional &middot; press 1&ndash;5</span></div>
-      <div class="grade-tiles" id="gradeTiles">
-        <button type="button" class="grade-tile grade-aplus" data-grade="A+">A+</button>
-        <button type="button" class="grade-tile grade-a" data-grade="A">A</button>
-        <button type="button" class="grade-tile grade-b" data-grade="B">B</button>
-        <button type="button" class="grade-tile grade-c" data-grade="C">C</button>
-        <button type="button" class="grade-tile grade-f" data-grade="F">F</button>
+      <div class="tm-row">
+        <div class="field"><label>Market</label><ez-select id="tfMarket"></ez-select></div>
+        <div class="field"><label for="tfStop">Stop loss</label><input type="number" step="any" id="tfStop" placeholder="optional" /></div>
+        <div class="field"><label for="tfTarget">Take profit</label><input type="number" step="any" id="tfTarget" placeholder="optional" /></div>
       </div>
+      <div class="field"><label for="tfTitle">Title</label><input type="text" id="tfTitle" placeholder="e.g. Morning breakout" /></div>
     </div>
-    <div class="field" id="strategyField">
-      <div class="field-label-row"><label>Strategy</label><span class="field-hint-inline">optional</span></div>
-      <button type="button" class="strategy-picker-btn" id="strategyPickerBtn">
-        <span id="strategyPickerLabel">None yet, add one</span>
-        <span class="strategy-picker-arrow">&rarr;</span>
-      </button>
-    </div>
-    <div class="field" id="screenshotsField">
-      <label>Screenshots <span style="text-transform:none;">(optional, up to 4)</span></label>
-      <div class="image-thumbs" id="imageThumbs"></div>
-      <button type="button" class="ghost-btn" id="addImageBtn">+ Add image</button>
-      <input type="file" id="imageFileInput" accept="image/*" multiple hidden />
-      <p class="field-hint">Stored only on this device/browser &mdash; screenshots don't sync across devices.</p>
-    </div>
-    <div class="field" id="notesField"><label>Notes <span style="text-transform:none;">(optional)</span></label><textarea id="tfNotes" placeholder="e.g. Mistakes made, emotional state, or setup quality..."></textarea></div>
 
     <div class="trade-modal-foot">
       <button type="button" class="danger-btn" id="deleteTradeBtn" hidden>Delete</button>
       <span class="spacer"></span>
       <button type="button" class="ghost-btn" id="cancelTradeBtn">Cancel</button>
-      <button type="button" class="primary-btn" id="saveTradeBtn">⚡ Log Trade</button>
+      <button type="button" class="primary-btn" id="saveTradeBtn">Log trade</button>
     </div>
   </div>
 </div>
@@ -1394,6 +1439,7 @@
       <button type="button" data-period="daily">Daily</button>
       <button type="button" data-period="weekly">Weekly</button>
       <button type="button" data-period="monthly">Monthly</button>
+      <button type="button" data-period="calendar">Calendar</button>
     </div>
 
     <div class="share-workspace">
@@ -1404,6 +1450,22 @@
             <svg class="icon-muted" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><line x1="23" y1="9" x2="17" y2="15" /><line x1="17" y1="9" x2="23" y2="15" /></svg>
             <svg class="icon-unmuted" viewBox="0 0 24 24" hidden><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14" /></svg>
           </button>
+        </div>
+        <div class="share-frame-bar" id="shareFrameBar">
+          <button type="button" class="share-frame-btn" id="shareFrameReplayBtn" aria-label="Replay from start" title="Replay from start">
+            <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7" /><path d="M3 4v5h5" /></svg>
+          </button>
+          <button type="button" class="share-frame-btn" id="shareFramePlayBtn" aria-label="Pause" title="Play / pause">
+            <svg class="icon-pause" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>
+            <svg class="icon-play" viewBox="0 0 24 24" hidden><path d="M7 5l12 7-12 7z" /></svg>
+          </button>
+          <input type="range" class="share-frame-slider" id="shareFrameSlider" min="0" max="8000" step="10" value="0" aria-label="Frame" />
+          <span class="share-frame-time" id="shareFrameTime">0.0s</span>
+        </div>
+        <p class="share-frame-hint" id="shareFrameHint">Pause or drag to choose the Photo frame.</p>
+        <div class="share-export-status" id="shareExportStatus" hidden>
+          <div class="share-export-status-bar"><span id="shareExportStatusFill"></span></div>
+          <span class="share-export-status-label" id="shareExportStatusLabel">Working…</span>
         </div>
         <!-- crossorigin="anonymous": harmless for same-origin preset files, but
              required for remotely-hosted presets (e.g. a GitHub/jsDelivr URL) —
@@ -1446,90 +1508,97 @@
         <div class="share-subpanel share-adjust-panel" id="shareAdjustPanel" data-subpanel="adjust" hidden>
           <div class="share-adjust-head">
             <span>Adjustments</span>
-            <button type="button" class="share-adjust-reset" id="adjResetBtn">Reset</button>
+            <button type="button" class="share-adjust-reset" id="adjResetBtn">Reset all</button>
           </div>
 
-          <div class="adjust-row">
-            <div class="adjust-row-head"><span>Dim</span><span class="adjust-value" id="adjDimValue">35%</span></div>
-            <input type="range" class="adjust-slider" id="adjDim" min="0" max="100" value="35">
-          </div>
-          <div class="adjust-row">
-            <div class="adjust-row-head"><span>Left shade</span><span class="adjust-value" id="adjShadeValue">45%</span></div>
-            <input type="range" class="adjust-slider" id="adjShade" min="0" max="100" value="45">
-          </div>
-          <div class="adjust-row">
-            <div class="adjust-row-head"><span>Zoom</span><span class="adjust-value" id="adjZoomValue">100%</span></div>
-            <input type="range" class="adjust-slider" id="adjZoom" min="100" max="220" value="100">
-          </div>
-          <div class="adjust-row">
-            <div class="adjust-row-head"><span>Pan X</span><span class="adjust-value" id="adjPanXValue">50%</span></div>
-            <input type="range" class="adjust-slider" id="adjPanX" min="0" max="100" value="50">
-          </div>
-          <div class="adjust-row">
-            <div class="adjust-row-head"><span>Pan Y</span><span class="adjust-value" id="adjPanYValue">50%</span></div>
-            <input type="range" class="adjust-slider" id="adjPanY" min="0" max="100" value="50">
-          </div>
-          <div class="adjust-row">
-            <div class="adjust-row-head"><span>Glow radius</span><span class="adjust-value" id="adjGlowRadiusValue">18px</span></div>
-            <input type="range" class="adjust-slider" id="adjGlowRadius" min="0" max="50" value="18">
-          </div>
-          <div class="adjust-row">
-            <div class="adjust-row-head"><span>Glow opacity</span><span class="adjust-value" id="adjGlowOpacityValue">70%</span></div>
-            <input type="range" class="adjust-slider" id="adjGlowOpacity" min="0" max="100" value="70">
-          </div>
-          <label class="adjust-toggle">
-            <input type="checkbox" id="adjMatchColor" checked>
-            <span>Match glow to P&amp;L color</span>
-          </label>
-
-          <div class="adjust-divider"></div>
-          <div class="adjust-section-label">Text colors</div>
-          <div class="adjust-color-row">
-            <span>P&amp;L text <small>(when not matched)</small></span>
-            <input type="color" class="adjust-color" id="adjPnlColor" value="#ffffff">
-          </div>
-          <div class="adjust-color-row">
-            <span>Label headers</span>
-            <input type="color" class="adjust-color" id="adjLabelColor" value="#8da093">
-          </div>
-          <div class="adjust-color-row">
-            <span>Value metrics</span>
-            <input type="color" class="adjust-color" id="adjValueColor" value="#ffffff">
-          </div>
-
-          <div class="adjust-divider"></div>
-          <div class="adjust-section-label">Photo quality</div>
-          <div class="adjust-row">
-            <div class="adjust-row-head"><span>Export scale</span><span class="adjust-value" id="adjExportScaleValue">2×</span></div>
-            <input type="range" class="adjust-slider" id="adjExportScale" min="1" max="3" step="1" value="2">
-          </div>
-          <p class="adjust-hint">Renders the downloaded Photo at up to 3× the preview's pixel density for sharper text and edges. Video/GIF stay at their normal resolution — this only affects the still Photo export.</p>
-
-          <div class="adjust-divider"></div>
-          <div class="adjust-section-label">Video quality</div>
-          <div class="adjust-seg" id="adjVideoQualitySeg">
-            <button type="button" data-val="standard">Standard</button>
-            <button type="button" data-val="high">High</button>
-            <button type="button" data-val="max">Max</button>
-          </div>
-          <p class="adjust-hint" id="adjVideoQualityHint">&nbsp;</p>
-
-          <div class="adjust-row">
-            <div class="adjust-row-head"><span>Video length</span></div>
-            <div class="adjust-seg" id="adjVideoLengthSeg">
-              <button type="button" data-val="match">Match clip</button>
-              <button type="button" data-val="fill">Fill 60s</button>
+          <details class="adjust-group" open>
+            <summary>Background</summary>
+            <div class="adjust-group-body">
+              <div class="adjust-row">
+                <div class="adjust-row-head"><span>Dim</span><span class="adjust-value" id="adjDimValue">35%</span></div>
+                <input type="range" class="adjust-slider" id="adjDim" min="0" max="100" value="35">
+              </div>
+              <div class="adjust-row">
+                <div class="adjust-row-head"><span>Left shade</span><span class="adjust-value" id="adjShadeValue">45%</span></div>
+                <input type="range" class="adjust-slider" id="adjShade" min="0" max="100" value="45">
+              </div>
+              <div class="adjust-row">
+                <div class="adjust-row-head"><span>Zoom</span><span class="adjust-value" id="adjZoomValue">100%</span></div>
+                <input type="range" class="adjust-slider" id="adjZoom" min="100" max="220" value="100">
+              </div>
+              <div class="adjust-row">
+                <div class="adjust-row-head"><span>Pan left / right</span><span class="adjust-value" id="adjPanXValue">50%</span></div>
+                <input type="range" class="adjust-slider" id="adjPanX" min="0" max="100" value="50">
+              </div>
+              <div class="adjust-row">
+                <div class="adjust-row-head"><span>Pan up / down</span><span class="adjust-value" id="adjPanYValue">50%</span></div>
+                <input type="range" class="adjust-slider" id="adjPanY" min="0" max="100" value="50">
+              </div>
             </div>
-          </div>
-          <p class="adjust-hint" id="adjVideoLengthHint">&nbsp;</p>
+          </details>
 
-          <div class="adjust-divider"></div>
-          <div class="adjust-section-label">GIF quality</div>
-          <div class="adjust-seg" id="adjGifQualitySeg">
-            <button type="button" data-val="fast">Fast &amp; small</button>
-            <button type="button" data-val="quality">Higher quality</button>
-          </div>
-          <p class="adjust-hint" id="adjGifQualityHint">&nbsp;</p>
+          <details class="adjust-group">
+            <summary>Text &amp; glow</summary>
+            <div class="adjust-group-body">
+              <div class="adjust-row">
+                <div class="adjust-row-head"><span>Glow size</span><span class="adjust-value" id="adjGlowRadiusValue">18px</span></div>
+                <input type="range" class="adjust-slider" id="adjGlowRadius" min="0" max="50" value="18">
+              </div>
+              <div class="adjust-row">
+                <div class="adjust-row-head"><span>Glow strength</span><span class="adjust-value" id="adjGlowOpacityValue">70%</span></div>
+                <input type="range" class="adjust-slider" id="adjGlowOpacity" min="0" max="100" value="70">
+              </div>
+              <label class="adjust-toggle">
+                <input type="checkbox" id="adjMatchColor" checked>
+                <span>Color P&amp;L green / red</span>
+              </label>
+              <div class="adjust-color-row">
+                <span>P&amp;L color <small>(when not green/red)</small></span>
+                <input type="color" class="adjust-color" id="adjPnlColor" value="#ffffff">
+              </div>
+              <div class="adjust-color-row">
+                <span>Labels</span>
+                <input type="color" class="adjust-color" id="adjLabelColor" value="#8da093">
+              </div>
+              <div class="adjust-color-row">
+                <span>Values</span>
+                <input type="color" class="adjust-color" id="adjValueColor" value="#ffffff">
+              </div>
+            </div>
+          </details>
+
+          <details class="adjust-group">
+            <summary>Export quality</summary>
+            <div class="adjust-group-body">
+              <div class="adjust-row">
+                <div class="adjust-row-head"><span>Photo sharpness</span><span class="adjust-value" id="adjExportScaleValue">2×</span></div>
+                <input type="range" class="adjust-slider" id="adjExportScale" min="1" max="3" step="1" value="2">
+              </div>
+
+              <div class="adjust-sub-label">Video length</div>
+              <div class="adjust-seg" id="adjVideoLengthSeg">
+                <button type="button" data-val="short">Short</button>
+                <button type="button" data-val="match">Full clip</button>
+                <button type="button" data-val="fill">60s</button>
+              </div>
+              <p class="adjust-hint" id="adjVideoLengthHint">&nbsp;</p>
+
+              <div class="adjust-sub-label">Video quality</div>
+              <div class="adjust-seg" id="adjVideoQualitySeg">
+                <button type="button" data-val="standard">Standard</button>
+                <button type="button" data-val="high">High</button>
+                <button type="button" data-val="max">Max</button>
+              </div>
+              <p class="adjust-hint" id="adjVideoQualityHint">&nbsp;</p>
+
+              <div class="adjust-sub-label">GIF</div>
+              <div class="adjust-seg" id="adjGifQualitySeg">
+                <button type="button" data-val="fast">Standard</button>
+                <button type="button" data-val="quality">High</button>
+              </div>
+              <p class="adjust-hint" id="adjGifQualityHint">&nbsp;</p>
+            </div>
+          </details>
         </div>
         </div>
       </div>
@@ -1538,15 +1607,15 @@
     <div class="trade-modal-foot share-export-row">
       <button type="button" class="share-export-btn" id="shareExportVideoBtn" data-export="video">
         <svg viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" /><path d="M7 3v18" /><path d="M3 7.5h4" /><path d="M3 12h18" /><path d="M3 16.5h4" /><path d="M17 3v18" /><path d="M17 7.5h4" /><path d="M17 16.5h4" /></svg>
-        <span>Video</span>
+        <span class="share-export-text"><span class="share-export-name">Video</span><small id="shareExportVideoSub">8s clip</small></span>
       </button>
       <button type="button" class="share-export-btn" id="shareExportGifBtn" data-export="gif">
         <svg viewBox="0 0 24 24"><path d="m12.296 3.464 3.02 3.956" /><path d="M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3z" /><path d="M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><path d="m6.18 5.276 3.1 3.899" /></svg>
-        <span>GIF</span>
+        <span class="share-export-text"><span class="share-export-name">GIF</span><small id="shareExportGifSub">6s loop</small></span>
       </button>
       <button type="button" class="share-export-btn primary" id="shareExportPhotoBtn" data-export="photo">
         <svg viewBox="0 0 24 24"><path d="M12 15V3" /><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /></svg>
-        <span>Photo</span>
+        <span class="share-export-text"><span class="share-export-name">Photo</span><small id="shareExportPhotoSub">PNG</small></span>
       </button>
     </div>
   </div>
@@ -1649,7 +1718,6 @@
   var currentGrade = "";
   var currentStrategyId = null;
   var currentStrategyName = "";
-  var logMode = "quick";
   var editingStrategyId = null;
 
   var TRADE_DRAFT_KEY = "ezpayouts.journal.drafts.v1";
@@ -1764,26 +1832,11 @@
   var addImageBtn = document.getElementById("addImageBtn");
   var imageFileInput = document.getElementById("imageFileInput");
 
-  // ---------- Quick Log / Log mode + shared field elements ----------
-  var logModeToggle = document.getElementById("logModeToggle");
-  var quickLogFields = document.getElementById("quickLogFields");
-  var fullLogFields = document.getElementById("fullLogFields");
-  var quickRow1 = document.getElementById("quickRow1");
-  var fullRow1 = document.getElementById("fullRow1");
-  var fullRow2 = document.getElementById("fullRow2");
-  var symbolField = document.getElementById("symbolField");
-  var dateField = document.getElementById("dateField");
-  var dirField = document.getElementById("dirField");
+  var tradeModalSub = document.getElementById("tradeModalSub");
   var dirTiles = document.getElementById("dirTiles");
-  var pnlField = document.getElementById("pnlField");
-  var gradeField = document.getElementById("gradeField");
   var gradeTiles = document.getElementById("gradeTiles");
-  var strategyField = document.getElementById("strategyField");
   var strategyPickerBtn = document.getElementById("strategyPickerBtn");
   var strategyPickerLabel = document.getElementById("strategyPickerLabel");
-  var screenshotsField = document.getElementById("screenshotsField");
-  var notesField = document.getElementById("notesField");
-  var emotionsField = document.getElementById("emotionsField");
 
   var strategyPopover = document.getElementById("strategyPopover");
   var strategySearchInput = document.getElementById("strategySearchInput");
@@ -1920,6 +1973,18 @@
   var shareExportVideoBtn = document.getElementById("shareExportVideoBtn");
   var shareExportGifBtn = document.getElementById("shareExportGifBtn");
   var shareExportPhotoBtn = document.getElementById("shareExportPhotoBtn");
+  var shareExportVideoSub = document.getElementById("shareExportVideoSub");
+  var shareExportGifSub = document.getElementById("shareExportGifSub");
+  var shareExportPhotoSub = document.getElementById("shareExportPhotoSub");
+  var shareFrameBar = document.getElementById("shareFrameBar");
+  var shareFrameSlider = document.getElementById("shareFrameSlider");
+  var shareFrameTime = document.getElementById("shareFrameTime");
+  var shareFramePlayBtn = document.getElementById("shareFramePlayBtn");
+  var shareFrameReplayBtn = document.getElementById("shareFrameReplayBtn");
+  var shareFrameHint = document.getElementById("shareFrameHint");
+  var shareExportStatus = document.getElementById("shareExportStatus");
+  var shareExportStatusFill = document.getElementById("shareExportStatusFill");
+  var shareExportStatusLabel = document.getElementById("shareExportStatusLabel");
   var tradeShareBtn = document.getElementById("tradeShareBtn");
 
   var SHARE_BG_GRADIENTS = [
@@ -1967,16 +2032,16 @@
   // The picker only shows the video/image presets now — SHARE_BG_GRADIENTS
   // stays defined as an internal fallback color (see drawBackgroundLayer)
   // for the moment before a preset's media has finished loading.
-  var SHARE_BG_LIST = SHARE_BG_PRESET_MEDIA;
-  var SHARE_BG_VISIBLE_COUNT = 8;
-  var SHARE_EXPORT_DURATION_MS = 3000;
-  // "Fill" length mode always records this full window, looping short clips
-  // to fit it (old always-30s behavior, just with the cap raised).
+  var SHARE_BG_LIST = [{ id: "liquid-chrome", label: "Liquid Chrome", type: "liquid" }].concat(SHARE_BG_PRESET_MEDIA);
+  var SHARE_BG_VISIBLE_COUNT = 9;
+  // Video export records in real time (MediaRecorder can't go faster), so
+  // the export takes as long as the clip. "short" is the default: the intro
+  // plus a few seconds of motion.
+  var SHARE_VIDEO_LENGTH_SHORT_MS = 8000;
   var SHARE_VIDEO_LENGTH_FILL_MS = 60000;
-  // "Match" length mode records the background clip's own natural duration
-  // once through — this is just a safety ceiling in case a clip is
-  // unexpectedly long.
   var SHARE_VIDEO_LENGTH_MATCH_MAX_MS = 90000;
+  // Liquid chrome and still backgrounds have no natural length of their own.
+  var SHARE_GENERATED_CLIP_MS = 8000;
   // MediaRecorder needs an explicit bitrate or the browser falls back to a
   // conservative default (measured well under 1 Mbps for 1080p30 in
   // testing) that visibly blurs anything with real motion — busy video
@@ -1987,31 +2052,30 @@
     high:     { bps: 5000000, label: "~5 Mbps — clearly sharper, moderate file size." },
     max:      { bps: 8000000, label: "~8 Mbps — matches typical source footage. Largest file." }
   };
-  // GIF is a palette-based format with a hard quality/size ceiling on
-  // photographic/video content no matter how it's tuned — these two tiers
-  // are "smaller & faster" vs. "looks better, costs more" rather than a
-  // free lunch. gif.js is pure-JS/no hardware acceleration, and frame count
-  // (duration × fps) drives both encode time and memory directly, so both
-  // tiers stay well short of the old 15s/1280×720 ceiling.
+  // GIF frames are rendered one at a time at exact timestamps (not sampled
+  // from the live preview), and each frame gets its own 256-color palette.
   var SHARE_GIF_QUALITY_TIERS = {
-    fast:    { width: 854,  height: 480, fps: 10, durationMs: 8000,  quality: 20, label: "854×480 · 8s · fastest, smallest file." },
-    quality: { width: 1280, height: 720, fps: 15, durationMs: 12000, quality: 3,  label: "1280×720 · 12s · better palette, bigger & slower." }
+    fast:    { width: 960,  height: 540, fps: 15, durationMs: 6000, label: "960×540 · 15fps. Moving backgrounds come out around 5–10 MB." },
+    quality: { width: 1280, height: 720, fps: 15, durationMs: 6000, label: "1280×720 · 15fps. Sharper, roughly double the file size and time." }
   };
 
-  // Every video background loops (the <video> element has loop set, and
-  // the preview plays it continuously). "Fill" length mode keeps the old
-  // behavior of always recording the full fixed window, looping short clips
-  // to fit it rather than stopping at their own natural length. "Match"
-  // length mode instead records the clip's own real duration exactly once —
-  // no loop, no cutoff — capped only as a safety ceiling for unexpectedly
-  // long clips.
+  function videoNaturalMs(){
+    var d = shareBgVideoEl.duration;
+    return (d && isFinite(d)) ? d * 1000 : 0;
+  }
+  // How long one pass of the card is: a video background's own length,
+  // otherwise a fixed loop. Never shorter than the intro animation.
+  function shareClipLengthMs(){
+    var base = shareBg.type === "video" ? (videoNaturalMs() || SHARE_GENERATED_CLIP_MS) : SHARE_GENERATED_CLIP_MS;
+    return Math.max(base, shareIntroMs() + 1500);
+  }
   function getVideoExportDurationMs(){
-    if (shareBg.type !== "video") return SHARE_EXPORT_DURATION_MS;
-    if (shareAdjust.videoLengthMode === "match"){
-      var natural = (shareBgVideoEl.duration && isFinite(shareBgVideoEl.duration)) ? shareBgVideoEl.duration * 1000 : SHARE_VIDEO_LENGTH_FILL_MS;
-      return Math.max(1000, Math.min(natural, SHARE_VIDEO_LENGTH_MATCH_MAX_MS));
-    }
-    return SHARE_VIDEO_LENGTH_FILL_MS;
+    var mode = shareAdjust.videoLengthMode;
+    var out;
+    if (mode === "fill") out = SHARE_VIDEO_LENGTH_FILL_MS;
+    else if (mode === "match") out = shareBg.type === "video" ? Math.min(videoNaturalMs() || SHARE_VIDEO_LENGTH_SHORT_MS, SHARE_VIDEO_LENGTH_MATCH_MAX_MS) : SHARE_GENERATED_CLIP_MS;
+    else out = SHARE_VIDEO_LENGTH_SHORT_MS;
+    return Math.max(out, shareIntroMs() + 1500);
   }
 
   var shareCurrentTrade = null;
@@ -2020,7 +2084,8 @@
     trade: "Download a card for this trade to post anywhere.",
     daily: "Download a card for this day to post anywhere.",
     weekly: "Download a card for this week to post anywhere.",
-    monthly: "Download a card for this month to post anywhere."
+    monthly: "Download a card for this month to post anywhere.",
+    calendar: "Download this month's P&L calendar to post anywhere."
   };
   // Placeholder until openShareModal picks SHARE_BG_LIST[0] on first open
   // (shareBgActiveId won't match any real preset id, so it always does).
@@ -2034,19 +2099,55 @@
   var shareIsMuted = true;
   var shareBgExpanded = false;
 
-  // Count-up animation for the hero P&L amount: it starts at $0 and eases
-  // up (or down, for a loss) to the real figure. shareAnimStartTime resets
-  // whenever the modal opens or the period tab changes, so switching from
-  // Daily to Weekly replays the count-up for that period's own total. The
-  // preview's continuous RAF loop (it's always running — every background
-  // is a video now) picks the new value up automatically each frame.
-  // Video/GIF export reset it again right as recording starts, so the
-  // exported clip opens on its own fresh count-up. Photo export forces
-  // the final value (shareForceFinalFrame) since a single still showing a
-  // half-finished count would look broken.
-  var SHARE_PNL_ANIM_MS = 1800;
-  var shareAnimStartTime = 0;
+  // ---------- Card timeline ----------
+  // Every animated thing on the card (background reveal, count-ups, line
+  // draw-on, calendar stages, liquid chrome motion) is a pure function of
+  // one clock, so the preview, Video, GIF and a paused Photo frame all
+  // render the exact same picture for the same timestamp.
+  //   clockOverrideMs — set while rendering GIF frames at exact times
+  //   clockHoldMs     — set while the preview is paused on a chosen frame
+  //   shareForceFinalFrame — Photo export while playing: intro finished
+  var shareClockStart = 0;
+  var clockHoldMs = null;
+  var clockOverrideMs = null;
   var shareForceFinalFrame = false;
+  function shareNowMs(){
+    if (clockOverrideMs !== null) return clockOverrideMs;
+    if (clockHoldMs !== null) return clockHoldMs;
+    return performance.now() - shareClockStart;
+  }
+  function introNowMs(){ return shareForceFinalFrame ? 1e9 : shareNowMs(); }
+  function restartShareClock(){
+    shareClockStart = performance.now();
+    clockHoldMs = null;
+    if (shareBg.type === "video"){
+      try { shareBgVideoEl.currentTime = 0; } catch (err) {}
+      shareBgVideoEl.play().catch(function(){});
+    }
+  }
+
+  function clamp01(x){ return x < 0 ? 0 : x > 1 ? 1 : x; }
+  function easeOutCubic(x){ return 1 - Math.pow(1 - x, 3); }
+  function easeOutQuart(x){ return 1 - Math.pow(1 - x, 4); }
+  function easeInOutCubic(x){ return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; }
+  function easeOutBack(x){ var c1 = 1.4, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); }
+  // Progress (0..1) of a segment that starts at `start` ms and lasts `dur` ms.
+  function seg(start, dur, ease){
+    var p = clamp01((introNowMs() - start) / dur);
+    return ease ? ease(p) : p;
+  }
+
+  // Intro schedule (ms). Calendar runs its own longer staged sequence.
+  var T_BG = { start: 100, dur: 2200 };
+  var T_TEXT = { start: 0, dur: 650 };
+  var T_COUNT = { start: 250, dur: 1900 };
+  var T_LINE = { start: 450, dur: 2000 };
+  var T_CAL = { panel: 0, panelDur: 1000, cells: 800, cellStagger: 25, cellDur: 500, nums: 1750, numStagger: 20, numDur: 420, vals: 2700, valDur: 1700 };
+  function shareIntroMs(){
+    if (sharePeriod === "calendar") return T_CAL.vals + T_CAL.valDur + 31 * 10 + 300;
+    return Math.max(T_BG.start + T_BG.dur, T_LINE.start + T_LINE.dur + 500, T_COUNT.start + T_COUNT.dur);
+  }
+  function pnlAnimProgress(){ return seg(T_COUNT.start, T_COUNT.dur, easeOutQuart); }
   // Canvas image smoothing for the background video/GIF/image draw is by
   // far the single most expensive thing in this whole render pipeline —
   // measured at ~4-5x the cost of the same draw with smoothing off,
@@ -2058,11 +2159,10 @@
   // matters for the one-shot, non-continuous Photo export, so it's off
   // everywhere else and only switched on around that single draw call.
   var shareHighQualitySmoothing = false;
-  function pnlAnimProgress(){
-    if (shareForceFinalFrame) return 1;
-    var t = Math.min(1, (Date.now() - shareAnimStartTime) / SHARE_PNL_ANIM_MS);
-    return 1 - Math.pow(1 - t, 3); // ease-out cubic
-  }
+  // "high" costs ~3-4x "low" per video frame (measured ~150ms vs ~44ms at
+  // 960×540 on CPU). Photo uses "high"; GIF frames, a plain 2x downscale,
+  // look the same with "low".
+  var shareSmoothingQuality = "high";
 
   // ---------- Background adjustment engine ----------
   // These are pure draw-time parameters read by drawBackgroundLayer/
@@ -2078,29 +2178,32 @@
     // "standard" keeps exports small by default; "high"/"max" trade file
     // size for sharpness on busy video backgrounds (see SHARE_VIDEO_BITRATE_TIERS).
     videoQuality: "standard",
-    // "match" records the background clip's own natural length once through,
-    // no looping or cutoff; "fill" always fills a fixed window like before,
-    // looping short clips to fit (see SHARE_VIDEO_LENGTH_FILL_MS).
-    videoLengthMode: "match",
-    // "fast" favors small/quick GIFs; "quality" favors a better-looking (but
-    // bigger, slower) GIF. GIF is a palette format with a hard quality/size
-    // ceiling on photographic backgrounds either way — see SHARE_GIF_QUALITY_TIERS.
-    gifQuality: "fast"
+    // "short" (default) = intro + a few seconds; "match" = the background
+    // clip's own length; "fill" = a fixed 60s window, looping short clips.
+    videoLengthMode: "short",
+    gifQuality: "fast",
+    settingsVersion: 2
   };
   var SHARE_ADJUST_STORAGE_KEY = "ezpayouts.shareAdjust";
   function loadShareAdjust(){
     try {
       var saved = JSON.parse(localStorage.getItem(SHARE_ADJUST_STORAGE_KEY));
-      // Merge over the defaults rather than using saved wholesale — if a
-      // future version adds a new slider, an older saved blob just won't
-      // have that key, and it should fall back to its default instead of
-      // rendering as undefined.
-      if (saved && typeof saved === "object") return Object.assign({}, SHARE_ADJUST_DEFAULTS, saved);
+      if (saved && typeof saved === "object"){
+        // Version 2 changed what the export length/GIF options mean, so the
+        // old saved choices for those two are dropped once.
+        if (saved.settingsVersion !== 2){
+          delete saved.videoLengthMode;
+          delete saved.gifQuality;
+          saved.settingsVersion = 2;
+        }
+        return Object.assign({}, SHARE_ADJUST_DEFAULTS, saved);
+      }
     } catch (err) {}
     return Object.assign({}, SHARE_ADJUST_DEFAULTS);
   }
   function saveShareAdjust(){
     try { localStorage.setItem(SHARE_ADJUST_STORAGE_KEY, JSON.stringify(shareAdjust)); } catch (err) {}
+    updateExportSubLabels();
   }
   // Last-used settings, not the hardcoded defaults — so nobody has to
   // redo their dim/glow/color setup each time they open the share modal.
@@ -2130,8 +2233,9 @@
   var SHARE_ADJUST_SEGMENTS = [
     { key: "videoQuality", el: document.getElementById("adjVideoQualitySeg"), hint: document.getElementById("adjVideoQualityHint"), tiers: SHARE_VIDEO_BITRATE_TIERS },
     { key: "videoLengthMode", el: document.getElementById("adjVideoLengthSeg"), hint: document.getElementById("adjVideoLengthHint"), tiers: {
-        match: { label: "Records the clip's real length once through — no looping, no cutoff." },
-        fill:  { label: "Always fills a fixed " + (SHARE_VIDEO_LENGTH_FILL_MS / 1000) + "s window, looping short clips to fit." }
+        short: { label: (SHARE_VIDEO_LENGTH_SHORT_MS / 1000) + "s — the intro plus a few seconds. Fastest to record." },
+        match: { label: "The background clip's full length, once through. Records in real time." },
+        fill:  { label: "A fixed " + (SHARE_VIDEO_LENGTH_FILL_MS / 1000) + "s window, looping the clip. Takes a full minute to record." }
       } },
     { key: "gifQuality", el: document.getElementById("adjGifQualitySeg"), hint: document.getElementById("adjGifQualityHint"), tiers: SHARE_GIF_QUALITY_TIERS }
   ];
@@ -2202,8 +2306,8 @@
     sharePeriodTabs.querySelectorAll("button[data-period]").forEach(function(b){ b.classList.toggle("active", b === btn); });
     layoutSegThumb(sharePeriodTabs);
     updateShareModalSub();
-    shareAnimStartTime = Date.now();
-    redrawShareCard();
+    restartShareClock();
+    syncFramePlayUI();
   });
 
   shareSubTabs.addEventListener("click", function(e){
@@ -2216,10 +2320,140 @@
     shareAdjustPanel.hidden = tab !== "adjust";
   });
 
-  function isAnimatedBg(){ return shareBg.type === "video" || shareBg.type === "gif"; }
+  function isAnimatedBg(){ return shareBg.type === "video" || shareBg.type === "gif" || shareBg.type === "liquid"; }
+
+  // ---------- Liquid chrome background ----------
+  // A fragment shader draws a domain-warped height field whose zero
+  // contours become rounded "tubes", then shades it as polished metal by
+  // reflecting a studio light setup off the surface normal. It renders on
+  // the GPU into its own WebGL canvas at the exact pixel size needed, and
+  // the card copies that in 1:1, so it costs almost nothing per frame.
+  var LiquidChrome = (function(){
+    var canvas = null, gl = null, uRes = null, uTime = null, uView = null, failed = false;
+    var VS = "attribute vec2 a;void main(){gl_Position=vec4(a,0.0,1.0);}";
+    var FS = [
+      "precision highp float;",
+      "uniform vec2 uRes; uniform float uTime; uniform vec3 uView;",
+      "float field(vec2 p, float t){",
+      "  vec2 q = p;",
+      "  q += 0.42 * vec2(sin(q.y * 1.35 + t * 0.50), cos(q.x * 1.15 - t * 0.42));",
+      "  q += 0.26 * vec2(sin(q.y * 2.30 - t * 0.36 + 1.7), cos(q.x * 2.05 + t * 0.55 + 0.4));",
+      "  q += 0.12 * vec2(sin(q.y * 3.90 + t * 0.70 + 2.3), cos(q.x * 3.60 - t * 0.62 + 1.1));",
+      "  return sin(q.x * 1.7) * cos(q.y * 1.9) + 0.4 * sin(q.x * 2.6 + q.y * 1.4 + t * 0.22);",
+      "}",
+      "float height(vec2 p, float t){",
+      "  float v = field(p, t);",
+      "  float d = min(abs(v) / 0.36, 1.0);",
+      "  float tube = cos(d * 1.5707963);",
+      "  return tube * 0.9 + v * 0.2;",
+      "}",
+      "void main(){",
+      "  vec2 uv = gl_FragCoord.xy / uRes;",
+      "  vec2 p = (gl_FragCoord.xy - 0.5 * uRes) / uRes.y * 4.3 / uView.x + (uView.yz - 0.5) * 2.0;",
+      "  float t = uTime;",
+      "  float e = 0.004;",
+      "  float h = height(p, t);",
+      "  float hx = (height(p + vec2(e, 0.0), t) - height(p - vec2(e, 0.0), t)) / (2.0 * e);",
+      "  float hy = (height(p + vec2(0.0, e), t) - height(p - vec2(0.0, e), t)) / (2.0 * e);",
+      "  vec3 n = normalize(vec3(-hx * 0.5, -hy * 0.5, 1.0));",
+      "  vec3 r = reflect(vec3(0.0, 0.0, -1.0), n);",
+      "  float env = 0.13;",
+      "  env += 1.25 * smoothstep(0.57, 0.97, dot(r, normalize(vec3(-0.35, 0.75, 0.55))));",
+      "  env += 0.6 * smoothstep(0.60, 0.96, dot(r, normalize(vec3(0.85, -0.15, 0.55))));",
+      "  env += 0.25 * smoothstep(0.70, 0.98, dot(r, normalize(vec3(-0.2, -0.85, 0.5))));",
+      "  float band = 0.5 + 0.5 * sin((r.x * 2.4 - r.y * 3.2) * 3.0 + 1.3);",
+      "  env *= 0.72 + 0.42 * band;",
+      "  env += 1.6 * pow(max(dot(r, normalize(vec3(-0.45, 0.55, 0.70))), 0.0), 60.0);",
+      "  env += pow(1.0 - n.z, 3.0) * 0.35;",
+      "  vec3 col = vec3(env) * vec3(0.88, 0.92, 0.98);",
+      "  col *= 0.55 + 0.45 * smoothstep(-0.25, 0.7, h);",
+      "  float vig = smoothstep(1.15, 0.15, length((uv - 0.5) * vec2(1.35, 1.0)));",
+      "  col *= 0.68 + 0.32 * vig;",
+      "  gl_FragColor = vec4(pow(col, vec3(0.92)), 1.0);",
+      "}"
+    ].join("\n");
+    function init(){
+      if (gl) return true;
+      if (failed) return false;
+      try {
+        canvas = document.createElement("canvas");
+        gl = canvas.getContext("webgl", { preserveDrawingBuffer: true, antialias: false, alpha: false, depth: false });
+        if (!gl) throw new Error("WebGL unavailable");
+        var compile = function(type, src){
+          var s = gl.createShader(type);
+          gl.shaderSource(s, src);
+          gl.compileShader(s);
+          if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+          return s;
+        };
+        var prog = gl.createProgram();
+        gl.attachShader(prog, compile(gl.VERTEX_SHADER, VS));
+        gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FS));
+        gl.linkProgram(prog);
+        if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+        gl.useProgram(prog);
+        gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+        var loc = gl.getAttribLocation(prog, "a");
+        gl.enableVertexAttribArray(loc);
+        gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+        uRes = gl.getUniformLocation(prog, "uRes");
+        uTime = gl.getUniformLocation(prog, "uTime");
+        uView = gl.getUniformLocation(prog, "uView");
+        return true;
+      } catch (err){
+        failed = true;
+        gl = null;
+        return false;
+      }
+    }
+    // zoom 1 = default framing; panX/panY in 0..1 (0.5 = centered).
+    function render(timeMs, w, h, zoom, panX, panY){
+      if (!init()) return null;
+      w = Math.max(1, Math.round(w)); h = Math.max(1, Math.round(h));
+      if (canvas.width !== w || canvas.height !== h){ canvas.width = w; canvas.height = h; }
+      gl.viewport(0, 0, w, h);
+      gl.uniform2f(uRes, w, h);
+      gl.uniform1f(uTime, timeMs / 1000);
+      gl.uniform3f(uView, zoom || 1, panX === undefined ? 0.5 : panX, panY === undefined ? 0.5 : panY);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      return canvas;
+    }
+    var thumbUrl = null;
+    function thumb(){
+      if (thumbUrl === null){
+        var c = render(5200, 320, 240, 1, 0.5, 0.5);
+        thumbUrl = c ? c.toDataURL("image/jpeg", 0.85) : "";
+      }
+      return thumbUrl;
+    }
+    return { render: render, thumb: thumb };
+  })();
+
+  // Background fades up from black over the intro, settling from a slight
+  // zoom — the "hidden, then appears" reveal.
+  function bgRevealProgress(){ return seg(T_BG.start, T_BG.dur, easeInOutCubic); }
 
   function drawBackgroundLayer(ctx, w, h){
+    var reveal = bgRevealProgress();
+    var revealZoom = 1 + 0.07 * (1 - reveal);
+    if (shareBg.type === "liquid"){
+      // Render at the destination's real pixel density so it's copied 1:1.
+      var tr = ctx.getTransform ? ctx.getTransform() : { a: 1 };
+      var density = Math.min(tr.a || 1, shareHighQualitySmoothing ? 4 : 1);
+      var src = LiquidChrome.render(shareNowMs(), w * density, h * density,
+        (shareAdjust.zoom / 100) * revealZoom, shareAdjust.panX / 100, 1 - shareAdjust.panY / 100);
+      if (src){
+        ctx.drawImage(src, 0, 0, w, h);
+        return;
+      }
+    }
     var media = shareBg.type === "video" ? shareBgVideoEl : shareBg.type === "gif" ? shareBgGifEl : shareBg.type === "image" ? shareBgImgEl : null;
+    if (media && revealZoom !== 1){
+      ctx.translate(w / 2, h / 2);
+      ctx.scale(revealZoom, revealZoom);
+      ctx.translate(-w / 2, -h / 2);
+    }
     if (media){
       var mw = media.videoWidth || media.naturalWidth || 0;
       var mh = media.videoHeight || media.naturalHeight || 0;
@@ -2323,10 +2557,20 @@
 
   // ---------- Share card: drawing helpers shared by all period layouts ----------
   function drawCardBase(ctx, w, h){
-    ctx.clearRect(0, 0, w, h);
     ctx.imageSmoothingEnabled = shareHighQualitySmoothing;
-    if (shareHighQualitySmoothing) ctx.imageSmoothingQuality = "high";
-    drawBackgroundLayer(ctx, w, h);
+    if (shareHighQualitySmoothing) ctx.imageSmoothingQuality = shareSmoothingQuality;
+    var reveal = bgRevealProgress();
+    // Once fully revealed the background covers every pixel itself.
+    if (reveal < 1){
+      ctx.fillStyle = "#04060a";
+      ctx.fillRect(0, 0, w, h);
+    }
+    if (reveal > 0){
+      ctx.save();
+      ctx.globalAlpha = reveal;
+      drawBackgroundLayer(ctx, w, h);
+      ctx.restore();
+    }
     var vignette = ctx.createLinearGradient(0, 0, 0, h);
     vignette.addColorStop(0, "rgba(0,0,0,0.5)");
     vignette.addColorStop(0.22, "rgba(0,0,0,0.05)");
@@ -2357,84 +2601,84 @@
     var r = parseInt(hex.substr(0, 2), 16), g = parseInt(hex.substr(2, 2), 16), b = parseInt(hex.substr(4, 2), 16);
     return "rgba(" + r + "," + g + "," + b + "," + alpha + ")";
   }
-  // Glowing hero amount. Chakra Petch only ships up to weight 700 (no
-  // 900/Black cut is actually loaded), so declaring "900" below renders no
-  // bolder than 700 on its own — a same-color stroke fattens the glyph
-  // edges for real extra weight, then the soft double-shadow glow, then a
-  // crisp top layer so the glow doesn't wash out the edges. Glow radius is
-  // an absolute pixel blur (shareAdjust.glowRadius), independent of font
-  // size; glow opacity controls the shadow color's own alpha.
-  // shadowBlur is by far the most expensive thing Canvas2D can do — a real
-  // Gaussian pass over the glyph's alpha mask, run twice here (once for the
-  // soft outer glow, once for the tighter inner one) at up to 1920×1080.
-  // Recomputing that every single animation frame — live preview AND every
-  // frame captured during Video/GIF export — was the actual cause of the
-  // stutter/lag/dropped-frame reports in both places. Fix: render the glow
-  // once into an offscreen sprite whenever the text/style actually changes
-  // (not every frame — during the count-up animation the rounded value
-  // often repeats across several consecutive frames anyway), then every
-  // frame just drawImage()s that cached sprite, which is nearly free.
-  var glowSpriteCache = { key: null, canvas: null, originX: 0, originY: 0 };
-  function drawGlowAmount(ctx, text, color, x, y, fontSize){
-    // shareAdjust.matchColor off: the hero amount renders in the chosen
-    // override color instead of tracking the win/loss green or red.
+  // Glowing hero amount. The old version re-ran two full-resolution
+  // shadowBlur passes every time the text changed, which is every frame of
+  // the count-up, and that is what made the count-up stutter. Now the glow
+  // is blurred on a quarter-size canvas (blur cost scales with pixel count,
+  // so ~16x cheaper) and scaled back up, since a blur has no fine detail to
+  // lose. The crisp text is drawn on top at full resolution. Chakra Petch
+  // tops out at weight 700, so a same-color stroke adds the extra weight.
+  var GLOW_DOWNSCALE = 0.25;
+  var glowCache = { key: null, canvas: null, ox: 0, oy: 0 };
+  var measureCtx = null;
+  function textWidthFor(font, text){
+    if (!measureCtx) measureCtx = document.createElement("canvas").getContext("2d");
+    measureCtx.font = font;
+    return measureCtx.measureText(text).width;
+  }
+  function fitFontSize(text, weightPrefix, family, size, maxWidth, minSize){
+    var wNow = textWidthFor(weightPrefix + size + "px " + family, text);
+    if (wNow <= maxWidth) return size;
+    return Math.max(minSize, Math.floor(size * maxWidth / wNow));
+  }
+  function drawGlowAmount(ctx, text, color, x, y, fontSize, alpha){
+    if (alpha === undefined) alpha = 1;
+    if (alpha <= 0) return;
+    // matchColor off: the hero amount uses the chosen override color.
     if (!shareAdjust.matchColor) color = shareAdjust.pnlColor;
     var radius = shareAdjust.glowRadius;
     var opacity = shareAdjust.glowOpacity;
     var font = "900 " + fontSize + "px 'Chakra Petch', sans-serif";
-    var key = text + "|" + color + "|" + radius + "|" + opacity + "|" + font;
-
-    if (glowSpriteCache.key !== key){
-      ctx.font = font;
-      var textWidth = ctx.measureText(text).width;
-      // Pad enough to hold the widest glow spread (radius*1.6) plus the
-      // stroke width, on every side, so nothing clips in the sprite.
-      var pad = Math.ceil(fontSize * 0.1) + (radius > 0 ? Math.ceil(radius * 1.6) + 12 : 4);
-      var spriteW = Math.ceil(textWidth) + pad * 2;
-      var spriteH = Math.ceil(fontSize * 1.3) + pad * 2;
-      var sprite = document.createElement("canvas");
-      sprite.width = spriteW;
-      sprite.height = spriteH;
-      var sctx = sprite.getContext("2d");
-      var originX = pad, originY = spriteH - pad - Math.ceil(fontSize * 0.22);
-
-      sctx.textAlign = "left";
-      sctx.textBaseline = "alphabetic";
-      sctx.font = font;
-      sctx.lineJoin = "round";
-      sctx.miterLimit = 2;
-      sctx.lineWidth = fontSize * 0.045;
-      sctx.strokeStyle = color;
-      if (radius > 0 && opacity > 0){
-        var glowColor = hexToRgba(color, opacity / 100);
-        sctx.save();
-        sctx.shadowColor = glowColor;
-        sctx.shadowBlur = radius;
-        sctx.fillStyle = color;
-        sctx.fillText(text, originX, originY);
-        sctx.strokeText(text, originX, originY);
-        sctx.shadowBlur = radius * 1.6;
-        sctx.fillText(text, originX, originY);
-        sctx.restore();
+    ctx.save();
+    ctx.globalAlpha *= alpha;
+    if (radius > 0 && opacity > 0){
+      var key = text + "|" + color + "|" + radius + "|" + opacity + "|" + font;
+      if (glowCache.key !== key){
+        var s = GLOW_DOWNSCALE;
+        var tw = textWidthFor(font, text);
+        var pad = radius * 2.2 + fontSize * 0.12 + 8;
+        var c = glowCache.canvas || document.createElement("canvas");
+        c.width = Math.ceil((tw + pad * 2) * s);
+        c.height = Math.ceil((fontSize * 1.3 + pad * 2) * s);
+        var g = c.getContext("2d");
+        g.setTransform(s, 0, 0, s, 0, 0);
+        g.font = font;
+        g.textAlign = "left";
+        g.textBaseline = "alphabetic";
+        var ox = pad, oy = pad + fontSize;
+        // Only the shadow should land on this canvas, never a blurry copy
+        // of the text itself: draw the text far off to the left and offset
+        // its shadow back into place. Shadow blur/offset ignore the
+        // transform, so both are given in small-canvas pixels.
+        var away = 4000;
+        g.fillStyle = color;
+        g.shadowColor = hexToRgba(color, opacity / 100);
+        g.shadowOffsetX = away * s;
+        g.shadowBlur = radius * s * 1.6;
+        g.fillText(text, ox - away, oy);
+        g.shadowBlur = radius * s;
+        g.fillText(text, ox - away, oy);
+        glowCache = { key: key, canvas: c, ox: ox, oy: oy };
       }
-      sctx.fillStyle = color;
-      sctx.fillText(text, originX, originY);
-      sctx.strokeText(text, originX, originY);
-
-      glowSpriteCache = { key: key, canvas: sprite, originX: originX, originY: originY };
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(glowCache.canvas, x - glowCache.ox, y - glowCache.oy,
+        glowCache.canvas.width / GLOW_DOWNSCALE, glowCache.canvas.height / GLOW_DOWNSCALE);
     }
-
-    ctx.drawImage(glowSpriteCache.canvas, x - glowSpriteCache.originX, y - glowSpriteCache.originY);
+    ctx.font = font;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    ctx.lineJoin = "round";
+    ctx.miterLimit = 2;
+    ctx.lineWidth = fontSize * 0.045;
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.fillText(text, x, y);
+    ctx.strokeText(text, x, y);
+    ctx.restore();
   }
-  // Every label/value/caption on the card gets a subtle dark drop-shadow —
-  // these all draw directly over whatever the background video is showing
-  // at that moment, and a bright/busy frame can wash out plain white text.
-  // shadowBlur:0 still renders a real (offset-only, unblurred) canvas
-  // shadow — it just skips the Gaussian convolution pass, which is the
-  // expensive part and not something a 1px-offset shadow needs anyway.
-  // This runs on every single preview/export frame (header + stat rows +
-  // footer, every card type), so the no-blur version matters a lot more
-  // here than the one-time cost suggests.
+  // Every label/value/caption gets a subtle offset-only shadow (no blur
+  // pass, so it's cheap enough to run every frame) to stay legible over a
+  // bright background frame.
   function withLegibilityShadow(ctx, fn){
     ctx.save();
     ctx.shadowColor = "rgba(0,0,0,0.7)";
@@ -2444,48 +2688,138 @@
     fn();
     ctx.restore();
   }
+  // Fade + rise-in for anything that enters during the intro.
+  function withFade(ctx, a, rise, fn){
+    if (a <= 0) return;
+    ctx.save();
+    ctx.globalAlpha *= a;
+    if (rise) ctx.translate(0, rise * (1 - a));
+    fn();
+    ctx.restore();
+  }
+  function rrPath(ctx, x, y, w, h, r){
+    r = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+  function fmtMoneyCard(n, cents){
+    var sign = n < 0 ? "-" : "+";
+    var abs = Math.abs(n);
+    return sign + "$" + abs.toLocaleString(undefined, cents ? { minimumFractionDigits: 2, maximumFractionDigits: 2 } : { maximumFractionDigits: 0 });
+  }
+  function hasCents(n){ return Math.round(n * 100) % 100 !== 0; }
   function drawPeriodHeader(ctx, pad, label, title){
-    withLegibilityShadow(ctx, function(){
-      ctx.textAlign = "left";
-      ctx.textBaseline = "alphabetic";
-      ctx.fillStyle = "rgba(255,255,255,0.55)";
-      ctx.font = "700 20px 'IBM Plex Mono', monospace";
-      ctx.fillText(label, pad, pad + 10);
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "800 46px 'Chakra Petch', sans-serif";
-      ctx.fillText(title, pad, pad + 62);
+    withFade(ctx, seg(T_TEXT.start, T_TEXT.dur, easeOutCubic), 14, function(){
+      withLegibilityShadow(ctx, function(){
+        ctx.textAlign = "left";
+        ctx.textBaseline = "alphabetic";
+        ctx.fillStyle = "rgba(255,255,255,0.55)";
+        ctx.font = "700 20px 'IBM Plex Mono', monospace";
+        ctx.fillText(label, pad, pad + 10);
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "800 46px 'Chakra Petch', sans-serif";
+        ctx.fillText(title, pad, pad + 62);
+      });
     });
   }
-  function drawStatRows(ctx, rows, x, y, width, rowH, labelSize, valueSize){
+  // Rows rise in one after another, starting at `startMs`.
+  function drawStatRows(ctx, rows, x, y, width, rowH, labelSize, valueSize, startMs){
     labelSize = labelSize || 21;
     valueSize = valueSize || 23;
-    withLegibilityShadow(ctx, function(){
-      rows.forEach(function(r, i){
-        var ry = y + i * rowH;
-        ctx.textAlign = "left";
-        ctx.fillStyle = shareAdjust.labelColor;
-        ctx.font = "600 " + labelSize + "px 'IBM Plex Mono', monospace";
-        ctx.fillText(r.label, x, ry);
-        ctx.textAlign = "right";
-        ctx.fillStyle = r.color || shareAdjust.valueColor;
-        ctx.font = "700 " + valueSize + "px 'IBM Plex Mono', monospace";
-        ctx.fillText(r.value, x + width, ry);
+    var start = startMs === undefined ? 450 : startMs;
+    rows.forEach(function(r, i){
+      var ry = y + i * rowH;
+      withFade(ctx, seg(start + i * 110, 520, easeOutCubic), 18, function(){
+        withLegibilityShadow(ctx, function(){
+          ctx.textBaseline = "alphabetic";
+          ctx.textAlign = "left";
+          ctx.fillStyle = shareAdjust.labelColor;
+          ctx.font = "600 " + labelSize + "px 'IBM Plex Mono', monospace";
+          ctx.fillText(r.label, x, ry);
+          ctx.textAlign = "right";
+          ctx.fillStyle = r.color || shareAdjust.valueColor;
+          ctx.font = "700 " + valueSize + "px 'IBM Plex Mono', monospace";
+          ctx.fillText(r.value, x + width, ry);
+        });
       });
     });
   }
   function drawCardFooter(ctx, w, h, pad){
-    withLegibilityShadow(ctx, function(){
-      var username = (window.EZAuth && EZAuth.getUsername()) || "trader";
-      ctx.textAlign = "left";
-      ctx.textBaseline = "alphabetic";
-      ctx.font = "700 32px 'IBM Plex Mono', monospace";
-      ctx.fillStyle = "rgba(255,255,255,0.88)";
-      ctx.fillText("@" + username, pad, h - pad);
-      ctx.textAlign = "right";
-      ctx.fillText("ezpayouts.xyz", w - pad, h - pad);
+    withFade(ctx, seg(350, 700, easeOutCubic), 0, function(){
+      withLegibilityShadow(ctx, function(){
+        var username = (window.EZAuth && EZAuth.getUsername()) || "trader";
+        ctx.textAlign = "left";
+        ctx.textBaseline = "alphabetic";
+        ctx.font = "700 32px 'IBM Plex Mono', monospace";
+        ctx.fillStyle = "rgba(255,255,255,0.88)";
+        ctx.fillText("@" + username, pad, h - pad);
+        ctx.textAlign = "right";
+        ctx.fillText("ezpayouts.xyz", w - pad, h - pad);
+      });
     });
   }
-  // Mini equity-curve line: points[0] is always the implicit $0 start.
+
+  // ---------- Lines that draw themselves ----------
+  // Builds the path up to `progress` (0..1) measured by arc length, so the
+  // head travels at an even speed however the points are spaced. Returns
+  // where the head is.
+  function tracePolyline(ctx, pts, progress){
+    ctx.beginPath();
+    if (!pts.length) return null;
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    var head = { x: pts[0][0], y: pts[0][1] };
+    if (pts.length < 2 || progress <= 0) return head;
+    var lens = [0], total = 0;
+    for (var i = 1; i < pts.length; i++){
+      total += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+      lens.push(total);
+    }
+    var target = total * clamp01(progress);
+    for (var j = 1; j < pts.length; j++){
+      if (lens[j] <= target){
+        ctx.lineTo(pts[j][0], pts[j][1]);
+        head = { x: pts[j][0], y: pts[j][1] };
+        continue;
+      }
+      var segLen = lens[j] - lens[j - 1];
+      var f = segLen ? (target - lens[j - 1]) / segLen : 0;
+      head = { x: pts[j - 1][0] + (pts[j][0] - pts[j - 1][0]) * f, y: pts[j - 1][1] + (pts[j][1] - pts[j - 1][1]) * f };
+      ctx.lineTo(head.x, head.y);
+      break;
+    }
+    return head;
+  }
+  // Layered translucent strokes instead of shadowBlur: same soft glow,
+  // a fraction of the cost per frame.
+  function strokeGlowLine(ctx, color, width){
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.strokeStyle = hexToRgba(color, 0.10);
+    ctx.lineWidth = width * 4.5;
+    ctx.stroke();
+    ctx.strokeStyle = hexToRgba(color, 0.22);
+    ctx.lineWidth = width * 2.2;
+    ctx.stroke();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.stroke();
+  }
+  function drawGlowDot(ctx, x, y, color, r){
+    ctx.fillStyle = hexToRgba(color, 0.16);
+    ctx.beginPath(); ctx.arc(x, y, r * 3.4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = hexToRgba(color, 0.38);
+    ctx.beginPath(); ctx.arc(x, y, r * 1.9, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // Equity curve: points[0] is always the implicit $0 start. Draws from
+  // the first point to the last over the line segment of the timeline.
   function drawEquityLine(ctx, points, x, y, w, h, color){
     if (!points.length) return;
     var values = points.map(function(p){ return p.value; });
@@ -2495,53 +2829,175 @@
     function px(i){ return points.length <= 1 ? x : x + (i / (points.length - 1)) * w; }
     function py(v){ return y + h - ((v - minV) / (maxV - minV)) * h; }
     var zeroY = py(0);
+    var pts = points.map(function(p, i){ return [px(i), py(p.value)]; });
 
-    ctx.strokeStyle = "rgba(255,255,255,0.18)";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(x, zeroY);
-    ctx.lineTo(x + w, zeroY);
-    ctx.stroke();
-
-    ctx.beginPath();
-    points.forEach(function(p, i){
-      var xx = px(i), yy = py(p.value);
-      if (i === 0) ctx.moveTo(xx, yy); else ctx.lineTo(xx, yy);
+    withFade(ctx, seg(T_LINE.start - 250, 500, easeOutCubic), 0, function(){
+      ctx.strokeStyle = "rgba(255,255,255,0.18)";
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([8, 8]);
+      ctx.beginPath();
+      ctx.moveTo(x, zeroY);
+      ctx.lineTo(x + w, zeroY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath(); ctx.arc(pts[0][0], pts[0][1], 6, 0, Math.PI * 2); ctx.fill();
     });
-    ctx.lineJoin = "round";
-    ctx.lineCap = "round";
-    ctx.save();
-    ctx.shadowColor = color;
-    ctx.shadowBlur = 16;
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 4;
-    ctx.stroke();
-    ctx.restore();
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2.5;
-    ctx.stroke();
+
+    var prog = seg(T_LINE.start, T_LINE.dur, easeInOutCubic);
+    if (prog > 0){
+      ctx.save();
+      var head = tracePolyline(ctx, pts, prog);
+      strokeGlowLine(ctx, color, 3);
+      ctx.restore();
+      drawGlowDot(ctx, head.x, head.y, color, 6.5);
+    }
 
     var last = points[points.length - 1];
-    var lastX = px(points.length - 1), lastY = py(last.value);
-    ctx.fillStyle = color;
-    ctx.beginPath(); ctx.arc(lastX, lastY, 6, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(px(0), py(points[0].value), 6, 0, Math.PI * 2); ctx.fill();
-
-    withLegibilityShadow(ctx, function(){
-      ctx.textAlign = "right";
-      ctx.textBaseline = "alphabetic";
-      ctx.font = "700 26px 'IBM Plex Mono', monospace";
-      ctx.fillStyle = "#ffffff";
-      ctx.fillText(fmtMoneyCompactSigned(last.value), x + w - 10, Math.max(lastY - 20, 30));
-
-      ctx.font = "600 17px 'IBM Plex Mono', monospace";
-      ctx.fillStyle = "rgba(255,255,255,0.5)";
-      if (points[0].label){
+    var lastY = py(last.value);
+    withFade(ctx, seg(T_LINE.start + T_LINE.dur - 200, 500, easeOutCubic), 10, function(){
+      withLegibilityShadow(ctx, function(){
+        ctx.textAlign = "right";
+        ctx.textBaseline = "alphabetic";
+        ctx.font = "700 26px 'IBM Plex Mono', monospace";
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText(fmtMoneyCompactSigned(last.value), x + w - 10, Math.max(lastY - 22, y + 4));
+        ctx.font = "600 17px 'IBM Plex Mono', monospace";
+        ctx.fillStyle = "rgba(255,255,255,0.5)";
+        if (points[0].label){
+          ctx.textAlign = "left";
+          ctx.fillText(points[0].label, x, y + h + 26);
+        }
+        if (last.label){
+          ctx.textAlign = "right";
+          ctx.fillText(last.label, x + w, y + h + 26);
+        }
         ctx.textAlign = "left";
-        ctx.fillText(points[0].label, x, y + h + 26);
-      }
-      ctx.textAlign = "right";
-      ctx.fillText("$0", x + w, zeroY - 8);
+        ctx.fillText("$0", x + 10, zeroY - 8);
+      });
+    });
+  }
+
+  // ---------- Single trade: entry → exit price chart ----------
+  // Only the entry and exit prices are known, not the ticks in between, so
+  // the wiggle between them is generated: a random walk pinned to the
+  // entry at the start and the exit at the end. It's seeded from the trade
+  // itself, so the same trade always draws the same path.
+  function hashStr(s){
+    var h = 2166136261;
+    for (var i = 0; i < s.length; i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return h >>> 0;
+  }
+  function mulberry32(a){
+    return function(){
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      var t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  var tradePathCache = { key: null, prices: null };
+  function tradePricePath(t){
+    var key = (t.id || "") + "|" + t.entry + "|" + t.exit;
+    if (tradePathCache.key === key) return tradePathCache.prices;
+    var rng = mulberry32(hashStr(key));
+    var n = 84, walk = [0], i;
+    for (i = 1; i <= n; i++) walk.push(walk[i - 1] + (rng() - 0.5) + (rng() - 0.5) * 0.7);
+    var endDrift = walk[n], maxAbs = 0;
+    for (i = 0; i <= n; i++){
+      walk[i] -= endDrift * (i / n);
+      maxAbs = Math.max(maxAbs, Math.abs(walk[i]));
+    }
+    var move = t.exit - t.entry;
+    var amp = Math.max(Math.abs(move) * 0.42, Math.abs(t.entry) * 0.00025, 1e-6);
+    var prices = [];
+    for (i = 0; i <= n; i++){
+      var u = i / n;
+      prices.push(t.entry + move * (u * u * (3 - 2 * u)) + (maxAbs ? walk[i] / maxAbs : 0) * amp);
+    }
+    prices[0] = t.entry;
+    prices[n] = t.exit;
+    tradePathCache = { key: key, prices: prices };
+    return prices;
+  }
+  function tradeHasPrices(t){
+    return !!t && hasVal(t.entry) && hasVal(t.exit) && isFinite(t.entry) && isFinite(t.exit);
+  }
+  function fmtPrice(n){
+    var s = String(n);
+    var dot = s.indexOf(".");
+    var dec = dot === -1 ? 0 : s.length - dot - 1;
+    return Number(n).toFixed(Math.min(Math.max(dec, 2), 6));
+  }
+  function fmtSize(t){
+    var n = Number(t.lots);
+    var unit = t.market === "Forex" ? "lot" : t.market === "Stocks" ? "share" : t.market === "Crypto" ? "unit" : "contract";
+    return (Number.isInteger(n) ? n : n.toFixed(2)) + " " + unit + (n === 1 ? "" : "s");
+  }
+  // Dark rounded tag like "ENTRY  31122.00". (ax, ay) is the anchor point;
+  // alignX "right"/"left" says which edge sits on it, and the pill is
+  // vertically centered on ay. Clamped to stay inside [minX, maxX].
+  function drawPricePill(ctx, label, value, ax, ay, alignX, minX, maxX){
+    var fontL = "600 21px 'IBM Plex Mono', monospace";
+    var fontV = "700 23px 'IBM Plex Mono', monospace";
+    var gap = 12, padX = 16, ph = 44;
+    var lw = textWidthFor(fontL, label), vw = textWidthFor(fontV, value);
+    var pw = padX * 2 + lw + gap + vw;
+    var px = alignX === "right" ? ax - pw : ax;
+    if (minX !== undefined) px = Math.max(minX, Math.min(px, maxX - pw));
+    var py = ay - ph / 2;
+    rrPath(ctx, px, py, pw, ph, 12);
+    ctx.fillStyle = "rgba(10,12,16,0.72)";
+    ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = "rgba(255,255,255,0.22)";
+    ctx.stroke();
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.font = fontL;
+    ctx.fillStyle = "rgba(255,255,255,0.62)";
+    ctx.fillText(label, px + padX, ay + 1);
+    ctx.font = fontV;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(value, px + padX + lw + gap, ay + 1);
+  }
+  function drawTradePriceChart(ctx, t, x, y, w, h, color){
+    var prices = tradePricePath(t);
+    var minP = Math.min.apply(null, prices), maxP = Math.max.apply(null, prices);
+    var span = (maxP - minP) || Math.abs(t.entry) * 0.001 || 1;
+    minP -= span * 0.16;
+    maxP += span * 0.16;
+    function py(p){ return y + h - (p - minP) / (maxP - minP) * h; }
+    var pts = prices.map(function(p, i){ return [x + (i / (prices.length - 1)) * w, py(p)]; });
+    var entryY = py(t.entry);
+
+    withFade(ctx, seg(T_LINE.start - 300, 550, easeOutCubic), 0, function(){
+      ctx.setLineDash([10, 9]);
+      ctx.strokeStyle = "rgba(255,255,255,0.32)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x, entryY);
+      ctx.lineTo(x + w + 30, entryY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      drawPricePill(ctx, "ENTRY", fmtPrice(t.entry), x + w + 30, entryY - 34, "right", x, x + w + 30);
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath(); ctx.arc(pts[0][0], pts[0][1], 7, 0, Math.PI * 2); ctx.fill();
+    });
+
+    var prog = seg(T_LINE.start, T_LINE.dur, easeInOutCubic);
+    if (prog > 0){
+      ctx.save();
+      var head = tracePolyline(ctx, pts, prog);
+      strokeGlowLine(ctx, color, 3.5);
+      ctx.restore();
+      drawGlowDot(ctx, head.x, head.y, color, 7);
+    }
+
+    var end = pts[pts.length - 1];
+    withFade(ctx, seg(T_LINE.start + T_LINE.dur - 200, 550, easeOutCubic), 12, function(){
+      var below = end[1] + 52 + 22 <= y + h + 40;
+      drawPricePill(ctx, "EXIT", fmtPrice(t.exit), end[0] - 26, below ? end[1] + 52 : end[1] - 52, "right", x, x + w + 30);
     });
   }
 
@@ -2549,36 +3005,51 @@
     var t = shareCurrentTrade;
     drawCardBase(ctx, w, h);
     var pad = 64;
+    var chart = tradeHasPrices(t);
 
-    // Ticker badge + symbol, top-left
-    withLegibilityShadow(ctx, function(){
-      ctx.beginPath();
-      ctx.arc(pad + 26, pad + 30, 26, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(0,0,0,0.4)";
-      ctx.fill();
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "700 22px 'Chakra Petch', sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText((t.symbol || "?").slice(0, 2).toUpperCase(), pad + 26, pad + 32);
+    withFade(ctx, seg(T_TEXT.start, T_TEXT.dur, easeOutCubic), 14, function(){
+      withLegibilityShadow(ctx, function(){
+        ctx.beginPath();
+        ctx.arc(pad + 26, pad + 30, 26, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(0,0,0,0.4)";
+        ctx.fill();
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "700 22px 'Chakra Petch', sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText((t.symbol || "?").slice(0, 2).toUpperCase(), pad + 26, pad + 32);
 
-      ctx.textAlign = "left";
-      ctx.textBaseline = "alphabetic";
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "800 56px 'Chakra Petch', sans-serif";
-      ctx.fillText((t.symbol || "").toUpperCase(), pad + 70, pad + 30);
+        ctx.textAlign = "left";
+        ctx.textBaseline = "alphabetic";
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "800 56px 'Chakra Petch', sans-serif";
+        ctx.fillText((t.symbol || "").toUpperCase(), pad + 70, pad + 30);
 
-      ctx.fillStyle = "rgba(255,255,255,0.78)";
-      ctx.font = "700 27px 'IBM Plex Mono', monospace";
-      if ("letterSpacing" in ctx) ctx.letterSpacing = "2px";
-      var metaText = (t.symbol || "").toUpperCase() + "  ·  " + (t.direction === "long" ? "LONG" : "SHORT") + "  ·  " + fmtDateShort(t.date).toUpperCase();
-      ctx.fillText(metaText, pad + 70, pad + 68);
-      if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
+        ctx.fillStyle = "rgba(255,255,255,0.78)";
+        ctx.font = "700 27px 'IBM Plex Mono', monospace";
+        if ("letterSpacing" in ctx) ctx.letterSpacing = "2px";
+        ctx.fillText((t.direction === "short" ? "SHORT" : "LONG") + "  ·  " + fmtDateShort(t.date).toUpperCase(), pad + 70, pad + 68);
+        if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
+      });
     });
 
     var pnlColor = t.pnl >= 0 ? "#53ba79" : "#ef5a5a";
-    var pnlShown = Math.round(t.pnl * pnlAnimProgress());
-    drawGlowAmount(ctx, fmtMoneySigned(pnlShown), pnlColor, pad - 2, pad + 265, 165);
+    var cents = hasCents(t.pnl);
+    var maxW = chart ? w * 0.46 : w - pad * 2;
+    var size = fitFontSize(fmtMoneyCard(t.pnl, cents), "900 ", "'Chakra Petch', sans-serif", chart ? 150 : 165, maxW, 72);
+    drawGlowAmount(ctx, fmtMoneyCard(t.pnl * pnlAnimProgress(), cents), pnlColor, pad - 2, pad + 265, size,
+      seg(T_COUNT.start - 200, 400, easeOutCubic));
+
+    if (chart){
+      var rows = [
+        { label: "Entry", value: fmtPrice(t.entry) },
+        { label: "Exit", value: fmtPrice(t.exit) }
+      ];
+      if (hasVal(t.lots)) rows.push({ label: "Size", value: fmtSize(t) });
+      drawStatRows(ctx, rows, pad, pad + 370, Math.min(520, w * 0.36), 64, 28, 32, 500);
+      var chartX = w * 0.55, chartY = pad + 96;
+      drawTradePriceChart(ctx, t, chartX, chartY, w - chartX - pad - 30, h - chartY - pad - 120, pnlColor);
+    }
 
     drawCardFooter(ctx, w, h, pad);
   }
@@ -2593,7 +3064,8 @@
     drawPeriodHeader(ctx, pad, "DAILY", title);
 
     var pnlColor = agg.pnl >= 0 ? "#53ba79" : "#ef5a5a";
-    drawGlowAmount(ctx, fmtMoneySigned(Math.round(agg.pnl * pnlAnimProgress())), pnlColor, pad - 2, pad + 265, 145);
+    drawGlowAmount(ctx, fmtMoneySigned(agg.pnl * pnlAnimProgress()), pnlColor, pad - 2, pad + 265, 145,
+      seg(T_COUNT.start - 200, 400, easeOutCubic));
 
     var rows = [
       { label: "Trades", value: String(agg.count) },
@@ -2613,7 +3085,8 @@
     drawPeriodHeader(ctx, pad, "WEEKLY", "Week of " + fmtDateShort(agg.start));
 
     var pnlColor = agg.pnl >= 0 ? "#53ba79" : "#ef5a5a";
-    drawGlowAmount(ctx, fmtMoneySigned(Math.round(agg.pnl * pnlAnimProgress())), pnlColor, pad - 2, pad + 250, 125);
+    drawGlowAmount(ctx, fmtMoneySigned(agg.pnl * pnlAnimProgress()), pnlColor, pad - 2, pad + 250, 125,
+      seg(T_COUNT.start - 200, 400, easeOutCubic));
 
     var rows = [
       { label: "Trades", value: String(agg.count) },
@@ -2623,23 +3096,37 @@
     if (agg.bestDay) rows.push({ label: "Best day", value: fmtMoneySigned(agg.bestDay.pnl) + " " + agg.bestDay.label });
     drawStatRows(ctx, rows, pad, pad + 335, 560, 82, 32, 40);
 
+    // Cumulative P&L across the week, drawn Mon → Fri.
+    var cum = 0;
+    var curvePoints = [{ label: "", value: 0 }].concat(agg.days.map(function(d){
+      cum += d.pnl;
+      return { label: d.label, value: cum };
+    }));
+    curvePoints[0].label = agg.days.length ? agg.days[0].label : "";
+    curvePoints[curvePoints.length - 1].label = agg.days.length ? agg.days[agg.days.length - 1].label : "";
+    var chartX = w * 0.62, chartY = pad + 30, chartW = w - chartX - pad, chartH = 190;
+    drawEquityLine(ctx, curvePoints, chartX, chartY, chartW, chartH, pnlColor);
+
     var rightX = w * 0.62, rightY = pad + 335;
-    withLegibilityShadow(ctx, function(){
-      agg.days.forEach(function(d, i){
-        var ry = rightY + i * 60;
-        ctx.textAlign = "left";
-        ctx.fillStyle = "rgba(255,255,255,0.6)";
-        ctx.font = "600 28px 'IBM Plex Mono', monospace";
-        ctx.fillText(d.label, rightX, ry);
-        ctx.textAlign = "right";
-        ctx.font = "700 30px 'IBM Plex Mono', monospace";
-        if (d.hasTrades){
-          ctx.fillStyle = d.pnl >= 0 ? "#53ba79" : "#ef5a5a";
-          ctx.fillText(fmtMoneySigned(d.pnl), rightX + 260, ry);
-        } else {
-          ctx.fillStyle = "rgba(255,255,255,0.35)";
-          ctx.fillText("No trades", rightX + 260, ry);
-        }
+    agg.days.forEach(function(d, i){
+      var ry = rightY + i * 60;
+      withFade(ctx, seg(650 + i * 110, 520, easeOutCubic), 16, function(){
+        withLegibilityShadow(ctx, function(){
+          ctx.textBaseline = "alphabetic";
+          ctx.textAlign = "left";
+          ctx.fillStyle = "rgba(255,255,255,0.6)";
+          ctx.font = "600 28px 'IBM Plex Mono', monospace";
+          ctx.fillText(d.label, rightX, ry);
+          ctx.textAlign = "right";
+          ctx.font = "700 30px 'IBM Plex Mono', monospace";
+          if (d.hasTrades){
+            ctx.fillStyle = d.pnl >= 0 ? "#53ba79" : "#ef5a5a";
+            ctx.fillText(fmtMoneySigned(d.pnl), rightX + 260, ry);
+          } else {
+            ctx.fillStyle = "rgba(255,255,255,0.35)";
+            ctx.fillText("No trades", rightX + 260, ry);
+          }
+        });
       });
     });
 
@@ -2655,7 +3142,8 @@
     drawPeriodHeader(ctx, pad, "MONTHLY", title);
 
     var pnlColor = agg.pnl >= 0 ? "#53ba79" : "#ef5a5a";
-    drawGlowAmount(ctx, fmtMoneySigned(Math.round(agg.pnl * pnlAnimProgress())), pnlColor, pad - 2, pad + 250, 125);
+    drawGlowAmount(ctx, fmtMoneySigned(agg.pnl * pnlAnimProgress()), pnlColor, pad - 2, pad + 250, 125,
+      seg(T_COUNT.start - 200, 400, easeOutCubic));
 
     var rows = [
       { label: "Win rate", value: agg.winRate + "%" },
@@ -2668,18 +3156,200 @@
     var curvePoints = [{ date: null, label: "", value: 0 }].concat(
       agg.curve.map(function(p){ return { date: p.date, label: fmtDateShort(p.date), value: p.value }; })
     );
+    if (curvePoints.length > 1){
+      curvePoints[0].label = curvePoints[1].label;
+      for (var i = 1; i < curvePoints.length - 1; i++) curvePoints[i].label = "";
+    }
     var chartX = w * 0.60, chartY = pad + 40, chartW = w - chartX - pad, chartH = 260;
     drawEquityLine(ctx, curvePoints, chartX, chartY, chartW, chartH, pnlColor);
 
     drawCardFooter(ctx, w, h, pad);
   }
 
+  // ---------- Calendar card ----------
+  // The month's P&L calendar, revealed in stages: the calendar panel, then
+  // the day cells, then the day numbers, then each day's P&L counting up
+  // from $0 (cells take on their green/red tint as their value lands).
+  function computeCalendarMonth(dateStr){
+    var d0 = new Date(dateStr + "T00:00:00");
+    var year = d0.getFullYear(), month = d0.getMonth();
+    var prefix = year + "-" + pad2(month + 1) + "-";
+    var byDate = {};
+    trades.forEach(function(t){
+      if (!t.date || t.date.indexOf(prefix) !== 0) return;
+      var e = byDate[t.date] || (byDate[t.date] = { pnl: 0, count: 0 });
+      e.pnl += t.pnl;
+      e.count++;
+    });
+    var lead = new Date(year, month, 1).getDay();
+    var daysInMonth = new Date(year, month + 1, 0).getDate();
+    var cells = [];
+    for (var i = 0; i < lead; i++) cells.push(null);
+    for (var day = 1; day <= daysInMonth; day++){
+      var ds = prefix + pad2(day);
+      cells.push({ day: day, date: ds, data: byDate[ds] || null });
+    }
+    while (cells.length % 7) cells.push(null);
+    var total = 0, traded = 0, green = 0;
+    Object.keys(byDate).forEach(function(k){
+      total += byDate[k].pnl;
+      traded++;
+      if (byDate[k].pnl > 0) green++;
+    });
+    return { year: year, month: month, cells: cells, rows: cells.length / 7, total: total, traded: traded, green: green };
+  }
+  function drawCalendarCard(ctx, w, h){
+    var t = shareCurrentTrade;
+    drawCardBase(ctx, w, h);
+    var pad = 64;
+    var cal = computeCalendarMonth(t.date);
+
+    var panelX = 150, panelY = 52, panelW = w - 300, panelH = h - 52 - 130;
+    var innerPad = 30, headerH = 76, weekdayH = 40, gap = 12;
+    var gridX = panelX + innerPad, gridY = panelY + innerPad + headerH + weekdayH;
+    var gridW = panelW - innerPad * 2, gridH = panelH - innerPad * 2 - headerH - weekdayH;
+    var cellW = (gridW - gap * 6) / 7, cellH = (gridH - gap * (cal.rows - 1)) / cal.rows;
+
+    // Stage 1: the calendar panel itself.
+    var aPanel = seg(T_CAL.panel, T_CAL.panelDur, easeOutCubic);
+    if (aPanel > 0){
+      ctx.save();
+      ctx.globalAlpha *= aPanel;
+      var sc = 0.965 + 0.035 * aPanel;
+      ctx.translate(panelX + panelW / 2, panelY + panelH / 2);
+      ctx.scale(sc, sc);
+      ctx.translate(-(panelX + panelW / 2), -(panelY + panelH / 2));
+      var bg = ctx.createLinearGradient(0, panelY, 0, panelY + panelH);
+      bg.addColorStop(0, "rgba(20,27,45,0.9)");
+      bg.addColorStop(1, "rgba(14,20,36,0.9)");
+      rrPath(ctx, panelX, panelY, panelW, panelH, 24);
+      ctx.fillStyle = bg;
+      ctx.fill();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = "#243153";
+      ctx.stroke();
+
+      var monthTitle = new Date(cal.year, cal.month, 1).toLocaleDateString(undefined, { month: "long", year: "numeric" });
+      ctx.textBaseline = "middle";
+      ctx.textAlign = "left";
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "700 40px 'Chakra Petch', sans-serif";
+      ctx.fillText(monthTitle, gridX, panelY + innerPad + headerH / 2 - 4);
+
+      var weekdayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      ctx.textAlign = "center";
+      ctx.font = "500 20px 'IBM Plex Sans', 'Segoe UI', sans-serif";
+      ctx.fillStyle = "#64748b";
+      for (var c = 0; c < 7; c++){
+        ctx.fillText(weekdayNames[c], gridX + c * (cellW + gap) + cellW / 2, gridY - weekdayH / 2);
+      }
+      ctx.restore();
+    }
+
+    // Header total counts up alongside the day values.
+    var totalP = seg(T_CAL.vals, T_CAL.valDur + 300, easeOutQuart);
+    withFade(ctx, seg(T_CAL.vals - 150, 400, easeOutCubic), 0, function(){
+      ctx.textBaseline = "middle";
+      ctx.textAlign = "right";
+      ctx.font = "800 44px 'Chakra Petch', sans-serif";
+      ctx.fillStyle = cal.total >= 0 ? "#a5f3fc" : "#fda4af";
+      ctx.fillText(fmtMoneySigned(cal.total * totalP), gridX + gridW, panelY + innerPad + headerH / 2 - 14);
+      ctx.font = "500 18px 'IBM Plex Sans', 'Segoe UI', sans-serif";
+      ctx.fillStyle = "#94a3b8";
+      ctx.fillText(cal.traded + " trading day" + (cal.traded === 1 ? "" : "s") + " · " + cal.green + " green", gridX + gridW, panelY + innerPad + headerH / 2 + 22);
+    });
+
+    var k = 0;
+    cal.cells.forEach(function(cell, i){
+      if (!cell) return;
+      var order = k++;
+      var col = i % 7, row = Math.floor(i / 7);
+      var x = gridX + col * (cellW + gap);
+      var y = gridY + row * (cellH + gap);
+      var data = cell.data;
+      var win = !!data && data.pnl >= 0;
+
+      // Stage 2: the day cell.
+      var aCell = seg(T_CAL.cells + order * T_CAL.cellStagger, T_CAL.cellDur, easeOutCubic);
+      if (aCell <= 0) return;
+      ctx.save();
+      ctx.globalAlpha *= aCell;
+      var cs = 0.86 + 0.14 * easeOutBack(aCell);
+      ctx.translate(x + cellW / 2, y + cellH / 2);
+      ctx.scale(cs, cs);
+      ctx.translate(-(x + cellW / 2), -(y + cellH / 2));
+      rrPath(ctx, x, y, cellW, cellH, 14);
+      ctx.fillStyle = "rgba(14,20,36,0.75)";
+      ctx.fill();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = "#1b2540";
+      ctx.stroke();
+
+      // Stage 4 tint: the cell takes its win/loss color as the value lands.
+      var valStart = T_CAL.vals + order * 10;
+      var aVal = seg(valStart, 320, easeOutCubic);
+      if (data && aVal > 0){
+        ctx.save();
+        ctx.globalAlpha *= aVal;
+        var grad = ctx.createLinearGradient(x, y, x + cellW, y + cellH);
+        if (win){
+          grad.addColorStop(0, "rgba(59,130,246,0.32)");
+          grad.addColorStop(0.5, "rgba(79,70,229,0.22)");
+          grad.addColorStop(1, "rgba(30,27,75,0.45)");
+        } else {
+          grad.addColorStop(0, "rgba(244,63,94,0.28)");
+          grad.addColorStop(0.5, "rgba(136,19,55,0.22)");
+          grad.addColorStop(1, "rgba(26,15,28,0.6)");
+        }
+        rrPath(ctx, x, y, cellW, cellH, 14);
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.strokeStyle = win ? "rgba(96,165,250,0.45)" : "rgba(251,113,133,0.4)";
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Stage 3: the day number.
+      var aNum = seg(T_CAL.nums + order * T_CAL.numStagger, T_CAL.numDur, easeOutCubic);
+      if (aNum > 0){
+        ctx.save();
+        ctx.globalAlpha *= aNum;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        ctx.fillStyle = "#cbd5e1";
+        ctx.font = "500 22px 'IBM Plex Sans', 'Segoe UI', sans-serif";
+        ctx.fillText(String(cell.day), x + 14, y + 12 + 6 * (1 - aNum));
+        ctx.restore();
+      }
+
+      // Stage 4: the P&L counts from $0 to the day's total.
+      if (data && aVal > 0){
+        var p = seg(valStart, T_CAL.valDur, easeOutQuart);
+        ctx.save();
+        ctx.globalAlpha *= aVal;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        var valFont = fitFontSize(fmtMoneySigned(data.pnl), "700 ", "'Chakra Petch', sans-serif", 30, cellW - 26, 18);
+        ctx.font = "700 " + valFont + "px 'Chakra Petch', sans-serif";
+        ctx.fillStyle = win ? "#a5f3fc" : "#fda4af";
+        ctx.fillText(fmtMoneySigned(data.pnl * p), x + 14, y + cellH * 0.42);
+        if (cellH > 92){
+          ctx.font = "400 17px 'IBM Plex Sans', 'Segoe UI', sans-serif";
+          ctx.fillStyle = "#94a3b8";
+          ctx.fillText(data.count + " trade" + (data.count === 1 ? "" : "s"), x + 14, y + cellH * 0.42 + valFont + 8);
+        }
+        ctx.restore();
+      }
+      ctx.restore();
+    });
+
+    drawCardFooter(ctx, w, h, pad);
+  }
+
   // ctx/w/h are optional — omitted, this draws into the live preview
-  // canvas as always. Passed explicitly (an offscreen canvas's context,
-  // plus its logical width/height), this renders the exact same card at
-  // whatever resolution that canvas was created at, which is how high-DPI
-  // Photo export works: an offscreen canvas N times larger, pre-scaled
-  // with ctx.scale(N,N), run through this same function unmodified.
+  // canvas. Passed explicitly (an offscreen canvas's context, pre-scaled,
+  // plus the logical 1920×1080 size), it renders the same card at that
+  // canvas's resolution — how Photo and GIF export work.
   function drawShareCard(ctx, w, h){
     if (!shareCurrentTrade || !shareCardCanvas.getContext) return;
     ctx = ctx || shareCardCanvas.getContext("2d");
@@ -2688,13 +3358,13 @@
     if (sharePeriod === "daily") drawDailyCard(ctx, w, h);
     else if (sharePeriod === "weekly") drawWeeklyCard(ctx, w, h);
     else if (sharePeriod === "monthly") drawMonthlyCard(ctx, w, h);
+    else if (sharePeriod === "calendar") drawCalendarCard(ctx, w, h);
     else drawTradeCard(ctx, w, h);
   }
 
   function redrawShareCard(){
-    // Not document.fonts.ready.then(drawShareCard) — that would pass the
-    // resolved FontFaceSet as drawShareCard's first argument (ctx), which
-    // now genuinely matters since drawShareCard takes real parameters.
+    // Not document.fonts.ready.then(drawShareCard): that would pass the
+    // FontFaceSet in as drawShareCard's ctx argument.
     if (document.fonts && document.fonts.ready){
       document.fonts.ready.then(function(){ drawShareCard(); });
     } else {
@@ -2702,8 +3372,17 @@
     }
   }
 
+  // ---------- Preview loop ----------
+  // Runs the whole time the modal is open. Like an exported clip, the
+  // preview loops: once a full pass has played it starts over, intro and
+  // all, so what you see is what you'll download.
+  var shareExporting = false;
   function previewTick(){
+    if (clockHoldMs === null && clockOverrideMs === null && !shareExporting && shareNowMs() >= shareClipLengthMs()){
+      restartShareClock();
+    }
     drawShareCard();
+    syncFrameBar();
     sharePreviewRAF = requestAnimationFrame(previewTick);
   }
   function startPreviewLoop(){
@@ -2715,8 +3394,9 @@
   }
   function updateMuteBtnUI(){
     shareMuteBtn.hidden = shareBg.type !== "video";
-    shareMuteBtn.querySelector(".icon-muted").hidden = !shareIsMuted;
-    shareMuteBtn.querySelector(".icon-unmuted").hidden = shareIsMuted;
+    // SVG elements have no .hidden property; toggle the attribute itself.
+    shareMuteBtn.querySelector(".icon-muted").toggleAttribute("hidden", !shareIsMuted);
+    shareMuteBtn.querySelector(".icon-unmuted").toggleAttribute("hidden", shareIsMuted);
     shareMuteBtn.setAttribute("aria-label", shareIsMuted ? "Unmute preview" : "Mute preview");
   }
   shareMuteBtn.addEventListener("click", function(){
@@ -2725,13 +3405,95 @@
     updateMuteBtnUI();
   });
   function applyShareBgChange(){
-    stopPreviewLoop();
-    if (shareBg.type === "video") shareBgVideoEl.play().catch(function(){});
+    if (shareBg.type === "video"){
+      if (clockHoldMs !== null) seekBgVideo(clockHoldMs);
+      else shareBgVideoEl.play().catch(function(){});
+    }
     updateMuteBtnUI();
-    if (isAnimatedBg()) startPreviewLoop();
-    else redrawShareCard();
+    updateExportSubLabels();
+    if (!sharePreviewRAF && !shareModalOverlay.hidden) startPreviewLoop();
   }
-  shareBgImgEl.addEventListener("load", function(){ if (shareBg.type === "image") redrawShareCard(); });
+  shareBgVideoEl.addEventListener("loadedmetadata", function(){
+    updateExportSubLabels();
+    if (clockHoldMs !== null) seekBgVideo(clockHoldMs);
+  });
+
+  // ---------- Frame picker ----------
+  // Drag the scrubber (or hit pause) to freeze the preview on any moment of
+  // the clip; Photo then exports exactly that frame.
+  function seekBgVideo(ms){
+    if (shareBg.type !== "video") return;
+    var dur = shareBgVideoEl.duration;
+    shareBgVideoEl.pause();
+    if (dur && isFinite(dur)){
+      try { shareBgVideoEl.currentTime = (ms / 1000) % dur; } catch (err) {}
+    }
+  }
+  function holdFrame(ms){
+    clockHoldMs = Math.max(0, ms);
+    seekBgVideo(clockHoldMs);
+    syncFramePlayUI();
+  }
+  function resumeFromHold(){
+    if (clockHoldMs === null) return;
+    var ms = clockHoldMs;
+    clockHoldMs = null;
+    shareClockStart = performance.now() - ms;
+    if (shareBg.type === "video") shareBgVideoEl.play().catch(function(){});
+    syncFramePlayUI();
+  }
+  function fmtSeconds(ms){ return (ms / 1000).toFixed(1) + "s"; }
+  function syncFrameBar(){
+    var clip = shareClipLengthMs();
+    var now = Math.min(shareNowMs(), clip);
+    if (Number(shareFrameSlider.max) !== Math.round(clip)) shareFrameSlider.max = String(Math.round(clip));
+    if (!shareFrameDragging) shareFrameSlider.value = String(Math.round(now));
+    shareFrameSlider.style.setProperty("--fill", (clip ? (now / clip) * 100 : 0) + "%");
+    shareFrameTime.textContent = fmtSeconds(now) + " / " + fmtSeconds(clip);
+  }
+  function syncFramePlayUI(){
+    var paused = clockHoldMs !== null;
+    shareFramePlayBtn.querySelector(".icon-pause").toggleAttribute("hidden", paused);
+    shareFramePlayBtn.querySelector(".icon-play").toggleAttribute("hidden", !paused);
+    shareFramePlayBtn.setAttribute("aria-label", paused ? "Play" : "Pause");
+    shareFrameHint.textContent = paused
+      ? "Paused. Photo will use this frame."
+      : "Pause or drag to choose the Photo frame.";
+    shareFrameBar.classList.toggle("is-paused", paused);
+  }
+  var shareFrameDragging = false;
+  shareFrameSlider.addEventListener("pointerdown", function(){ shareFrameDragging = true; });
+  document.addEventListener("pointerup", function(){ shareFrameDragging = false; });
+  shareFrameSlider.addEventListener("input", function(){ holdFrame(Number(shareFrameSlider.value)); });
+  shareFramePlayBtn.addEventListener("click", function(){
+    if (clockHoldMs !== null) resumeFromHold();
+    else holdFrame(shareNowMs());
+  });
+  shareFrameReplayBtn.addEventListener("click", function(){
+    restartShareClock();
+    syncFramePlayUI();
+  });
+
+  // ---------- Export status ----------
+  function setExportBusy(busy, label){
+    shareExporting = busy;
+    [shareExportVideoBtn, shareExportGifBtn, shareExportPhotoBtn].forEach(function(b){ b.disabled = busy; });
+    shareFrameBar.hidden = busy;
+    shareExportStatus.hidden = !busy;
+    sharePeriodTabs.classList.toggle("is-locked", busy);
+    if (busy) setExportProgress(0, label || "Working…");
+  }
+  function setExportProgress(frac, label){
+    shareExportStatusFill.style.width = Math.round(clamp01(frac) * 100) + "%";
+    if (label) shareExportStatusLabel.textContent = label;
+  }
+  function updateExportSubLabels(){
+    var v = getVideoExportDurationMs();
+    shareExportVideoSub.textContent = Math.round(v / 1000) + "s clip";
+    var tier = SHARE_GIF_QUALITY_TIERS[shareAdjust.gifQuality] || SHARE_GIF_QUALITY_TIERS.fast;
+    shareExportGifSub.textContent = Math.round(gifDurationMs(tier) / 1000) + "s loop";
+    shareExportPhotoSub.textContent = "PNG · " + (shareAdjust.exportScale || 1) + "×";
+  }
 
   function releaseUploadedBgUrl(){
     if (shareUploadedUrl){ URL.revokeObjectURL(shareUploadedUrl); shareUploadedUrl = null; }
@@ -2743,7 +3505,8 @@
       var bgStyle = entry.type === "gradient"
         ? ' style="background:radial-gradient(circle at 35% 30%, ' + entry.stops[0] + ', ' + entry.stops[1] + ' 55%, ' + entry.stops[2] + ' 100%);"'
         : "";
-      var img = entry.thumb ? '<img src="' + escapeHtml(entry.thumb) + '" alt="" loading="lazy" />' : "";
+      var thumb = entry.type === "liquid" ? LiquidChrome.thumb() : entry.thumb;
+      var img = thumb ? '<img src="' + escapeHtml(thumb) + '" alt="" loading="lazy" />' : "";
       return '<button type="button" class="share-bg-tile' + extraCls + '" data-bg-id="' + entry.id + '"' + bgStyle + '>' +
         img +
         '<span class="share-bg-tile-label">' + escapeHtml(entry.label) + '</span>' +
@@ -2767,8 +3530,11 @@
 
   function selectPresetBg(entry){
     releaseUploadedBgUrl();
+    if (entry.type !== "video") shareBgVideoEl.pause();
     if (entry.type === "gradient"){
       shareBg = { type: "gradient", stops: entry.stops };
+    } else if (entry.type === "liquid"){
+      shareBg = { type: "liquid" };
     } else if (entry.type === "video"){
       shareBgVideoEl.src = entry.src;
       shareBgVideoEl.load();
@@ -2786,7 +3552,7 @@
   }
   shareBgGrid.addEventListener("click", function(e){
     var btn = e.target.closest(".share-bg-tile[data-bg-id]");
-    if (!btn) return;
+    if (!btn || shareExporting) return;
     var entry = SHARE_BG_LIST.filter(function(x){ return x.id === btn.getAttribute("data-bg-id"); })[0];
     if (entry) selectPresetBg(entry);
   });
@@ -2802,9 +3568,11 @@
       shareBgVideoEl.load();
       shareBg = { type: "video" };
     } else if (file.type === "image/gif"){
+      shareBgVideoEl.pause();
       shareBgGifEl.src = url;
       shareBg = { type: "gif" };
     } else {
+      shareBgVideoEl.pause();
       shareBgImgEl.src = url;
       shareBg = { type: "image" };
     }
@@ -2822,12 +3590,16 @@
     if (SHARE_BG_LIST.length) selectPresetBg(SHARE_BG_LIST[0]);
   });
 
-  function openShareModal(trade){
+  function openShareModal(trade, period){
     shareCurrentTrade = trade;
-    sharePeriod = "trade";
-    shareAnimStartTime = Date.now();
+    // Opened from the header (no specific trade): there's no single trade
+    // to show, so the Trade tab is hidden.
+    var isRealTrade = !!trade && typeof trade.pnl === "number";
+    sharePeriod = period || (isRealTrade ? "trade" : "daily");
+    if (sharePeriod === "trade" && !isRealTrade) sharePeriod = "daily";
     sharePeriodTabs.querySelectorAll("button[data-period]").forEach(function(b){
-      b.classList.toggle("active", b.getAttribute("data-period") === "trade");
+      if (b.getAttribute("data-period") === "trade") b.hidden = !isRealTrade;
+      b.classList.toggle("active", b.getAttribute("data-period") === sharePeriod);
     });
     updateShareModalSub();
     shareSubTabs.querySelectorAll("button[data-subtab]").forEach(function(b){
@@ -2835,8 +3607,8 @@
     });
     shareBgPanel.hidden = false;
     shareAdjustPanel.hidden = true;
-    // Show the modal before measuring the tab thumb — while hidden, the
-    // tabs report zero width/position, same issue as the log mode toggle.
+    // Show the modal before measuring the tab thumbs; while hidden they
+    // report zero width.
     shareModalOverlay.hidden = false;
     layoutSegThumb(sharePeriodTabs, true);
     layoutSegThumb(shareSubTabs, true);
@@ -2844,13 +3616,19 @@
     var isKnownPreset = SHARE_BG_LIST.some(function(e){ return e.id === shareBgActiveId; });
     if (!isKnownPreset && SHARE_BG_LIST.length) selectPresetBg(SHARE_BG_LIST[0]);
     else applyShareBgChange();
+    restartShareClock();
+    syncFramePlayUI();
+    updateExportSubLabels();
+    startPreviewLoop();
   }
   function closeShareModal(){
+    if (shareExporting) return;
     shareModalOverlay.hidden = true;
     shareCurrentTrade = null;
     stopPreviewLoop();
     shareBgVideoEl.pause();
-    // Opened from inside the trade modal (tradeShareBtn hides it first) —
+    clockHoldMs = null;
+    // Opened from inside the trade modal (tradeShareBtn hides it first):
     // bring it back, same pattern as the strategy builder.
     if (editingTradeId) tradeModalOverlay.hidden = false;
   }
@@ -2876,13 +3654,10 @@
     a.remove();
     setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
   }
-  // Clipboard Media Copy Engine: try to put the exported blob straight on the
-  // clipboard so the user can paste it anywhere, no file dialog involved.
-  // Chromium's Clipboard API only actually accepts "image/png" — GIF and
-  // video blobs always reject, which is a real platform limit, not a bug —
-  // so this always falls back to a normal download when the write fails.
+  // Puts the exported image on the clipboard when the browser allows it
+  // (Chromium only accepts image/png there), otherwise downloads it.
   function copyBlobToClipboardOrDownload(blob, filename, downloadedLabel){
-    if (navigator.clipboard && window.ClipboardItem){
+    if (blob.type === "image/png" && navigator.clipboard && window.ClipboardItem){
       var item = {};
       item[blob.type] = blob;
       navigator.clipboard.write([ new ClipboardItem(item) ])
@@ -2896,21 +3671,10 @@
       showToast(downloadedLabel);
     }
   }
-  function setExportBusy(busy){
-    [shareExportVideoBtn, shareExportGifBtn, shareExportPhotoBtn].forEach(function(b){ b.disabled = busy; });
-  }
-  function setButtonLabel(btn, text){
-    var span = btn.querySelector("span");
-    if (span) span.textContent = text;
-  }
 
+  // ---------- Photo ----------
   shareExportPhotoBtn.addEventListener("click", function(){
-    // High-DPI export: draw the exact same card into an offscreen canvas
-    // that's N times larger (shareAdjust.exportScale), pre-scaled with
-    // ctx.scale(N,N) so every draw call's logical 1920×1080 coordinates
-    // land N× denser in physical pixels — classic supersampling. The live
-    // preview canvas itself stays at 1920×1080 (no reason to pay that
-    // render cost every animation frame just for a one-shot export).
+    // Supersampled: the same card drawn into a canvas N× larger.
     var scale = shareAdjust.exportScale || 1;
     var w = shareCardCanvas.width, h = shareCardCanvas.height;
     var exportCanvas = document.createElement("canvas");
@@ -2918,13 +3682,10 @@
     exportCanvas.height = h * scale;
     var ctx = exportCanvas.getContext("2d");
     ctx.scale(scale, scale);
-    // A still frame showing the P&L mid-count-up would look broken — force
-    // the finished value for this one draw, then let the preview's RAF
-    // loop (already running, drawing into the separate live canvas) carry
-    // on animating as normal afterward. Smoothing is likewise only worth
-    // its cost here, for this single non-continuous draw — see
-    // shareHighQualitySmoothing.
-    shareForceFinalFrame = true;
+    // Paused: export exactly the frame on screen. Playing: the current
+    // background moment with the intro finished, so nothing is mid-count.
+    var paused = clockHoldMs !== null;
+    shareForceFinalFrame = !paused;
     shareHighQualitySmoothing = true;
     drawShareCard(ctx, w, h);
     shareHighQualitySmoothing = false;
@@ -2935,8 +3696,11 @@
     }, "image/png");
   });
 
+  // ---------- Video ----------
+  // MediaRecorder can only record in real time, so a video export takes as
+  // long as the clip; the default "Short" length keeps that to ~8s.
   function pickVideoMimeType(){
-    var candidates = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm", "video/mp4"];
+    var candidates = ["video/mp4;codecs=avc1", "video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm", "video/mp4"];
     for (var i = 0; i < candidates.length; i++){
       if (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(candidates[i])) return candidates[i];
     }
@@ -2953,147 +3717,270 @@
       return;
     }
     var stream = shareCardCanvas.captureStream(60);
-    // The canvas stream is video-only — pull the background video's real
-    // decoded audio in alongside it (captureStream() ignores the preview's
-    // muted flag, so this works even while the preview itself is silent).
     if (shareBg.type === "video" && shareBgVideoEl.captureStream){
       try {
-        var bgStream = shareBgVideoEl.captureStream();
-        bgStream.getAudioTracks().forEach(function(track){ stream.addTrack(track); });
+        shareBgVideoEl.captureStream().getAudioTracks().forEach(function(track){ stream.addTrack(track); });
       } catch (err) {}
     }
-    var chunks = [];
-    var recorder;
-    // Without an explicit bitrate, MediaRecorder falls back to a low
-    // browser default that visibly blurs any real motion in the
-    // background — this is the fix for exports looking soft compared to
-    // the source footage. videoBitsPerSecond is ignored harmlessly by
-    // browsers that don't support tuning it.
     var bitrateTier = SHARE_VIDEO_BITRATE_TIERS[shareAdjust.videoQuality] || SHARE_VIDEO_BITRATE_TIERS.standard;
+    var recorder;
     try {
       recorder = new MediaRecorder(stream, { mimeType: mimeType, videoBitsPerSecond: bitrateTier.bps });
     } catch (err){
-      try {
-        recorder = new MediaRecorder(stream, { mimeType: mimeType });
-      } catch (err2){
-        showToast("Video export isn't supported in this browser");
-        return;
-      }
+      try { recorder = new MediaRecorder(stream, { mimeType: mimeType }); }
+      catch (err2){ showToast("Video export isn't supported in this browser"); return; }
     }
-    setExportBusy(true);
-    // Force a continuous redraw loop for the whole capture window, even over
-    // a static background — captureStream()'s fixed-rate mode is unreliable
-    // in practice when the canvas never actually changes, which was cutting
-    // the recorded clip short. Request a timeslice too, so chunks flush
-    // steadily instead of relying on one blob at the very end.
-    var wasAnimated = isAnimatedBg();
-    if (!wasAnimated) startPreviewLoop();
-    // An uploaded/preset video background should export its whole clip, not
-    // whatever few seconds it happened to be mid-loop on — replay it from
-    // the start for the capture window. Restart the P&L count-up in the
-    // same breath, so the exported clip opens on its own fresh animation
-    // rather than whatever point the live preview happened to be at.
-    if (shareBg.type === "video") shareBgVideoEl.currentTime = 0;
-    shareAnimStartTime = Date.now();
+    var chunks = [];
     var durationMs = getVideoExportDurationMs();
-    var recordStartedAt = Date.now();
-    setButtonLabel(shareExportVideoBtn, "Recording 0%");
+    setExportBusy(true, "Recording video…");
+    restartShareClock();
+    var recordStartedAt = performance.now();
     var progressTimer = setInterval(function(){
-      var pct = Math.min(99, Math.round(((Date.now() - recordStartedAt) / durationMs) * 100));
-      setButtonLabel(shareExportVideoBtn, "Recording " + pct + "%");
-    }, 150);
+      var elapsed = performance.now() - recordStartedAt;
+      var left = Math.max(0, Math.ceil((durationMs - elapsed) / 1000));
+      setExportProgress(elapsed / durationMs, "Recording video… " + left + "s left");
+    }, 200);
     recorder.ondataavailable = function(e){ if (e.data && e.data.size) chunks.push(e.data); };
     recorder.onstop = function(){
       clearInterval(progressTimer);
-      if (!wasAnimated) stopPreviewLoop();
       var blob = new Blob(chunks, { type: mimeType.split(";")[0] });
       var ext = mimeType.indexOf("mp4") !== -1 ? "mp4" : "webm";
-      copyBlobToClipboardOrDownload(blob, shareCardFileName(ext), "Video downloaded");
       setExportBusy(false);
-      setButtonLabel(shareExportVideoBtn, "Video");
+      copyBlobToClipboardOrDownload(blob, shareCardFileName(ext), "Video downloaded");
     };
     recorder.start(250);
-    setTimeout(function(){ recorder.stop(); }, durationMs + 200);
+    setTimeout(function(){ recorder.stop(); }, durationMs + 150);
   });
 
-  // Browsers refuse to construct a Worker straight from a cross-origin URL,
-  // so pointing gif.js's workerScript directly at the cdnjs URL fails
-  // silently inside the library — render() just hangs forever with no error.
-  // Fetch the worker script once and hand gif.js a same-origin blob URL
-  // instead.
-  var shareGifWorkerUrlPromise = null;
-  function getGifWorkerUrl(){
-    if (!shareGifWorkerUrlPromise){
-      shareGifWorkerUrlPromise = fetch("https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js")
-        .then(function(res){
-          if (!res.ok) throw new Error("gif.worker.js fetch failed");
-          return res.text();
-        })
-        .then(function(text){
-          return URL.createObjectURL(new Blob([text], { type: "application/javascript" }));
-        });
+  // ---------- GIF ----------
+  // Why the old GIFs looked dark/grainy and took so long:
+  //  * gif.js with globalPalette:true builds ONE 256-color palette from the
+  //    first frame and forces every later frame into it. The first frame is
+  //    the darkest, emptiest one, so later frames got crushed into the
+  //    wrong colors.
+  //  * Frames were sampled off the live preview on a timer, so any hitch
+  //    became a dropped or doubled frame, and encoding only started after
+  //    the whole capture finished.
+  // Now: every frame is drawn at an exact timestamp straight at GIF size,
+  // gets its own palette (gifenc, rgb565), and is quantized in a pool of
+  // workers while the next frames are still rendering.
+  function gifDurationMs(tier){
+    return Math.max(tier.durationMs, shareIntroMs() + 1200);
+  }
+  var gifencPromise = null;
+  function loadGifenc(){
+    if (!gifencPromise) gifencPromise = import(new URL("vendor/gifenc.esm.js", document.baseURI).href);
+    return gifencPromise;
+  }
+  function createQuantizePool(size, onResult, onBroken){
+    var workers = [];
+    try {
+      for (var i = 0; i < size; i++){
+        var wk = new Worker(new URL("vendor/gif-quantize-worker.js", document.baseURI), { type: "module" });
+        wk.onmessage = function(e){ onResult(e.data); };
+        wk.onerror = function(){ onBroken(); };
+        workers.push(wk);
+      }
+    } catch (err){
+      workers.forEach(function(w){ w.terminate(); });
+      return null;
     }
-    return shareGifWorkerUrlPromise;
+    var next = 0;
+    return {
+      post: function(id, buffer){
+        workers[next].postMessage({ id: id, rgba: buffer }, [buffer]);
+        next = (next + 1) % workers.length;
+      },
+      close: function(){ workers.forEach(function(w){ w.terminate(); }); }
+    };
   }
 
   shareExportGifBtn.addEventListener("click", function(){
-    if (!window.GIF){
-      showToast("GIF export isn't available right now");
-      return;
-    }
-    setExportBusy(true);
-    setButtonLabel(shareExportGifBtn, "Preparing…");
-    var gifTier = SHARE_GIF_QUALITY_TIERS[shareAdjust.gifQuality] || SHARE_GIF_QUALITY_TIERS.fast;
-    getGifWorkerUrl().then(function(workerUrl){
-      var gifCanvas = document.createElement("canvas");
-      gifCanvas.width = gifTier.width;
-      gifCanvas.height = gifTier.height;
-      var gifCtx = gifCanvas.getContext("2d");
-      // High-quality downscale: we're always shrinking the 1920×1080 source
-      // canvas down to the tier's width/height here, and the default
-      // nearest-neighbor-ish sampling is what made GIF text look jagged —
-      // this is the one spot imageSmoothingQuality actually matters, since
-      // there's no DPI upscaling happening anywhere else in this pipeline.
-      gifCtx.imageSmoothingEnabled = true;
-      gifCtx.imageSmoothingQuality = "high";
-      var gif = new GIF({
-        workers: 2,
-        quality: gifTier.quality, // gif.js's "quality" is literally the NeuQuant sample interval
-        globalPalette: true, // one shared palette for all frames: faster encode, smaller file
-        width: gifTier.width,
-        height: gifTier.height,
-        workerScript: workerUrl
-      });
-      if (shareBg.type === "video") shareBgVideoEl.currentTime = 0;
-      shareAnimStartTime = Date.now();
-      var frameDelay = Math.round(1000 / gifTier.fps);
-      var gifDurationMs = shareBg.type === "video" ? gifTier.durationMs : SHARE_EXPORT_DURATION_MS;
-      var frameCount = Math.round(gifDurationMs / frameDelay);
-      var captured = 0;
-      var captureTimer = setInterval(function(){
-        gifCtx.drawImage(shareCardCanvas, 0, 0, gifTier.width, gifTier.height);
-        gif.addFrame(gifCtx, { copy: true, delay: frameDelay });
-        captured++;
-        setButtonLabel(shareExportGifBtn, "Capturing " + Math.round((captured / frameCount) * 100) + "%");
-        if (captured >= frameCount){
-          clearInterval(captureTimer);
-          gif.render();
-        }
-      }, frameDelay);
-      gif.on("progress", function(p){
-        setButtonLabel(shareExportGifBtn, "Building " + Math.round(p * 100) + "%");
-      });
-      gif.on("finished", function(blob){
-        copyBlobToClipboardOrDownload(blob, shareCardFileName("gif"), "GIF downloaded");
-        setExportBusy(false);
-        setButtonLabel(shareExportGifBtn, "GIF");
-      });
-    }).catch(function(){
-      setExportBusy(false);
-      setButtonLabel(shareExportGifBtn, "GIF");
-      showToast("GIF export isn't available right now");
+    var tier = SHARE_GIF_QUALITY_TIERS[shareAdjust.gifQuality] || SHARE_GIF_QUALITY_TIERS.fast;
+    setExportBusy(true, "Preparing GIF…");
+    loadGifenc().then(function(mod){
+      return buildGif(mod, tier);
+    }).then(function(blob){
+      finishGifExport();
+      copyBlobToClipboardOrDownload(blob, shareCardFileName("gif"), "GIF downloaded");
+    }).catch(function(err){
+      finishGifExport();
+      showToast("GIF export failed. Try again.");
+      if (window.console) console.error(err);
     });
   });
+  function finishGifExport(){
+    clockOverrideMs = null;
+    shareHighQualitySmoothing = false;
+    shareSmoothingQuality = "high";
+    shareBgVideoEl.playbackRate = 1;
+    setExportBusy(false);
+    restartShareClock();
+    syncFramePlayUI();
+    startPreviewLoop();
+  }
+
+  function buildGif(mod, tier){
+    return new Promise(function(resolve, reject){
+      var gw = tier.width, gh = tier.height;
+      var delay = Math.round(1000 / tier.fps);
+      var frameCount = Math.max(2, Math.round(gifDurationMs(tier) / delay));
+      var canvas = document.createElement("canvas");
+      canvas.width = gw;
+      canvas.height = gh;
+      var gctx = canvas.getContext("2d", { willReadFrequently: true });
+      var LW = shareCardCanvas.width, LH = shareCardCanvas.height;
+
+      var encoder = mod.GIFEncoder();
+      var results = {};
+      var nextToWrite = 0;
+      var inFlight = 0;
+      var drainWaiters = [];
+      var failed = false;
+      var poolSize = Math.max(1, Math.min(4, (navigator.hardwareConcurrency || 4) - 1));
+      var maxInFlight = poolSize * 2;
+
+      function writeReady(){
+        while (results[nextToWrite]){
+          var r = results[nextToWrite];
+          delete results[nextToWrite];
+          encoder.writeFrame(r.index, gw, gh, { palette: r.palette, delay: delay, repeat: 0 });
+          nextToWrite++;
+          setExportProgress(nextToWrite / frameCount, "Making GIF… " + Math.round((nextToWrite / frameCount) * 100) + "%");
+        }
+        if (nextToWrite >= frameCount && !failed){
+          if (pool) pool.close();
+          encoder.finish();
+          resolve(new Blob([encoder.bytes()], { type: "image/gif" }));
+        }
+      }
+      // Frames posted to a worker keep a copy here until their result comes
+      // back: a module worker that fails to load only reports it later, and
+      // those frames are then quantized on this thread instead.
+      var pending = {};
+      function handleResult(r){
+        if (results[r.id] || r.id < nextToWrite) return;
+        delete pending[r.id];
+        inFlight--;
+        results[r.id] = r;
+        writeReady();
+        while (drainWaiters.length && inFlight < maxInFlight) drainWaiters.shift()();
+      }
+      // Main-thread fallback when module workers aren't available.
+      function quantizeHere(id, buffer){
+        var rgba = new Uint8ClampedArray(buffer);
+        var palette = mod.quantize(rgba, 256, { format: "rgb565" });
+        var index = mod.applyPalette(rgba, palette, "rgb565");
+        inFlight++;
+        handleResult({ id: id, palette: palette, index: index });
+      }
+      function rescuePending(){
+        Object.keys(pending).forEach(function(key){
+          var buf = pending[key];
+          delete pending[key];
+          inFlight--;
+          quantizeHere(Number(key), buf);
+        });
+      }
+      var pool = createQuantizePool(poolSize, function(r){ handleResult(r); }, function(){
+        if (pool){ pool.close(); pool = null; }
+        rescuePending();
+      });
+      function dispatch(id, buffer){
+        if (pool){
+          pending[id] = buffer.slice(0);
+          inFlight++;
+          pool.post(id, buffer);
+        } else {
+          quantizeHere(id, buffer);
+        }
+      }
+
+      function renderFrame(i){
+        clockOverrideMs = i * delay;
+        gctx.setTransform(gw / LW, 0, 0, gh / LH, 0, 0);
+        drawShareCard(gctx, LW, LH);
+        gctx.setTransform(1, 0, 0, 1, 0, 0);
+        dispatch(i, gctx.getImageData(0, 0, gw, gh).data.buffer);
+      }
+      function waitForRoom(){
+        if (!pool){ rescuePending(); return Promise.resolve(); }
+        if (inFlight < maxInFlight) return Promise.resolve();
+        return new Promise(function(res){ drainWaiters.push(res); });
+      }
+
+      stopPreviewLoop();
+      shareHighQualitySmoothing = true;
+      shareSmoothingQuality = "low";
+
+      if (shareBg.type === "video" && shareBgVideoEl.duration && isFinite(shareBgVideoEl.duration)){
+        captureFromVideo();
+      } else {
+        captureStepped(0);
+      }
+
+      // Generated/still backgrounds: render frame by frame, as fast as the
+      // workers can take them.
+      function captureStepped(i){
+        if (failed) return;
+        if (i >= frameCount) return;
+        waitForRoom().then(function(){
+          try { renderFrame(i); } catch (err){ failed = true; if (pool) pool.close(); reject(err); return; }
+          if (i % 4 === 3) setTimeout(function(){ captureStepped(i + 1); }, 0);
+          else captureStepped(i + 1);
+        });
+      }
+
+      // Video backgrounds: seeking a compressed video to every frame is very
+      // slow, so the clip plays through and each GIF frame is taken when the
+      // video reaches its timestamp. The video's own clock drives the card,
+      // so playback is slowed to whatever this machine can render (measured
+      // as it goes) instead of falling behind and doubling frames.
+      function captureFromVideo(){
+        var v = shareBgVideoEl;
+        var dur = v.duration;
+        var nextFrame = 0, loops = 0, lastMedia = -1;
+        var avgRenderMs = delay;
+        var hasRVFC = typeof v.requestVideoFrameCallback === "function";
+        function schedule(){
+          if (hasRVFC) v.requestVideoFrameCallback(function(now, meta){ onVideoFrame(meta.mediaTime); });
+          else requestAnimationFrame(function(){ onVideoFrame(v.currentTime); });
+        }
+        function onVideoFrame(mediaTime){
+          if (failed) return;
+          if (lastMedia >= 0 && mediaTime + 0.05 < lastMedia) loops++;
+          lastMedia = mediaTime;
+          var elapsed = (loops * dur + mediaTime) * 1000;
+          try {
+            while (nextFrame < frameCount && nextFrame * delay <= elapsed + delay * 0.5){
+              var t0 = performance.now();
+              renderFrame(nextFrame++);
+              avgRenderMs = avgRenderMs * 0.7 + (performance.now() - t0) * 0.3;
+            }
+          } catch (err){ failed = true; v.pause(); if (pool) pool.close(); reject(err); return; }
+          v.playbackRate = Math.max(0.15, Math.min(1, delay / (avgRenderMs * 1.3)));
+          if (nextFrame >= frameCount){ v.pause(); return; }
+          if (!pool) rescuePending();
+          if (inFlight >= maxInFlight){
+            v.pause();
+            waitForRoom().then(function(){ v.play().catch(function(){}); schedule(); });
+            return;
+          }
+          schedule();
+        }
+        v.pause();
+        var started = false;
+        var begin = function(){
+          if (started) return;
+          started = true;
+          v.play().then(schedule).catch(function(){ schedule(); });
+        };
+        v.addEventListener("seeked", begin, { once: true });
+        try { v.currentTime = 0; } catch (err) { begin(); }
+        setTimeout(begin, 800);
+      }
+    });
+  }
 
   tradeShareBtn.addEventListener("click", function(){
     if (!editingTradeId) return;
@@ -3129,14 +4016,33 @@
   // concept — fold that into one "Main" account under a stable id so a
   // first sync between an old local save and an old remote save converges
   // on the same account instead of duplicating it.
+  var ACCOUNT_LABEL_MAX = 7;
+  function shortAccountLabel(name){
+    return String(name || "").trim().slice(0, ACCOUNT_LABEL_MAX).toUpperCase() || "ACCOUNT";
+  }
+  // Older Account Balance imports stored the full account number as the
+  // symbol; trim those in place so it never reaches a share card.
+  function trimImportedAccountSymbols(accs){
+    var changed = false;
+    accs.forEach(function(a){
+      (a.trades || []).forEach(function(t){
+        if (t.title === "Daily import" && t.symbol && t.symbol.length > ACCOUNT_LABEL_MAX){
+          t.symbol = shortAccountLabel(t.symbol);
+          changed = true;
+        }
+      });
+    });
+    return changed;
+  }
   function migrateJournalData(parsed){
+    var out = null;
     if (parsed && Array.isArray(parsed.accounts) && parsed.accounts.length){
-      return { accounts: parsed.accounts, activeAccountId: parsed.activeAccountId || parsed.accounts[0].id };
+      out = { accounts: parsed.accounts, activeAccountId: parsed.activeAccountId || parsed.accounts[0].id };
+    } else if (parsed && Array.isArray(parsed.trades)){
+      out = { accounts: [{ id: "acc_default", name: "Main", trades: parsed.trades }], activeAccountId: "acc_default" };
     }
-    if (parsed && Array.isArray(parsed.trades)){
-      return { accounts: [{ id: "acc_default", name: "Main", trades: parsed.trades }], activeAccountId: "acc_default" };
-    }
-    return null;
+    if (out) out.trimmedSymbols = trimImportedAccountSymbols(out.accounts);
+    return out;
   }
   function totalTradeCount(){
     return accounts.reduce(function(s, a){ return s + (a.trades ? a.trades.length : 0); }, 0);
@@ -3150,6 +4056,9 @@
       if (migrated){
         accounts = migrated.accounts;
         activeAccountId = migrated.activeAccountId;
+        if (migrated.trimmedSymbols){
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({ accounts: accounts, activeAccountId: activeAccountId }));
+        }
       }
     } catch (err) {}
     if (!accounts.length){
@@ -4092,46 +5001,13 @@
     setGrade(btn.getAttribute("data-grade"));
   });
 
-  // ---------- Quick Log / Log mode: Symbol/Date/Side/P&L/Grade/Strategy/
-  // Screenshots are single shared elements physically moved between the two
-  // layouts (never duplicated), so there's exactly one source of truth
-  // regardless of which mode is showing. Market/Entry-Exit-Lots-Stop-Target/
-  // Emotions/Title/Notes only ever live in Full Log.
-  function layoutQuickMode(){
-    quickRow1.appendChild(symbolField);
-    quickRow1.appendChild(dateField);
-    quickLogFields.appendChild(dirField);
-    quickLogFields.appendChild(pnlField);
-    quickLogFields.appendChild(gradeField);
-    quickLogFields.appendChild(strategyField);
-    quickLogFields.appendChild(notesField);
-    quickLogFields.appendChild(screenshotsField);
+  function syncPnlTone(){
+    var n = parseAmount(tfPnl.value);
+    tfPnl.classList.toggle("pos", !isNaN(n) && n > 0);
+    tfPnl.classList.toggle("neg", !isNaN(n) && n < 0);
   }
-  function layoutFullMode(){
-    fullRow1.appendChild(symbolField);
-    fullLogFields.insertBefore(dirField, fullRow2);
-    fullRow2.appendChild(dateField);
-    fullRow2.appendChild(pnlField);
-    fullLogFields.insertBefore(gradeField, emotionsField);
-    fullLogFields.insertBefore(strategyField, emotionsField);
-    fullLogFields.appendChild(notesField);
-    fullLogFields.appendChild(screenshotsField);
-  }
-  function setLogMode(mode){
-    logMode = mode === "full" ? "full" : "quick";
-    logModeToggle.querySelectorAll("button").forEach(function(b){
-      b.classList.toggle("active", b.getAttribute("data-mode") === logMode);
-    });
-    layoutSegThumb(logModeToggle, true);
-    quickLogFields.hidden = logMode !== "quick";
-    fullLogFields.hidden = logMode !== "full";
-    if (logMode === "quick") layoutQuickMode(); else layoutFullMode();
-  }
-  logModeToggle.addEventListener("click", function(e){
-    var btn = e.target.closest("button[data-mode]");
-    if (!btn) return;
-    setLogMode(btn.getAttribute("data-mode"));
-  });
+  tfPnl.addEventListener("input", syncPnlTone);
+  tfSymbol.addEventListener("input", function(){ tfSymbol.style.borderColor = ""; });
 
   // L/S select direction, 1-5 select a grade — only while the trade modal is
   // the frontmost thing open and focus isn't inside a text field (so typing
@@ -4300,7 +5176,8 @@
   function setDetailsOpen(open){
     tfDetails.hidden = !open;
     detailsToggleBtn.classList.toggle("open", open);
-    detailsToggleLabel.textContent = open ? "Hide trade details" : "Show trade details";
+    detailsToggleBtn.setAttribute("aria-expanded", open ? "true" : "false");
+    detailsToggleLabel.textContent = open ? "Hide notes, strategy & screenshots" : "Add notes, strategy & screenshots";
   }
   detailsToggleBtn.addEventListener("click", function(){
     setDetailsOpen(tfDetails.hidden);
@@ -4352,7 +5229,7 @@
     saveTradeBtn.disabled = pendingUploadCount > 0;
     saveTradeBtn.textContent = pendingUploadCount > 0
       ? "Uploading screenshot" + (pendingUploadCount > 1 ? "s" : "") + "…"
-      : "⚡ Log Trade";
+      : (editingTradeId ? "Save changes" : "Log trade");
   }
 
   imageFileInput.addEventListener("change", function(){
@@ -4605,21 +5482,19 @@
     tfNotes.value = source.notes || "";
     renderEmotionTags();
     renderImageThumbs();
-    var hasDetails = hasVal(source.entry) || hasVal(source.exit) || hasVal(source.lots) || hasVal(source.stop) || hasVal(source.target);
-    setDetailsOpen(!!hasDetails);
+    syncPnlTone();
+    tfSymbol.style.borderColor = "";
+    tfPnl.style.borderColor = "";
+    // The fold only opens on its own when something inside it is filled in.
+    var hasExtras = !!(source.notes || source.strategy || currentEmotions.length || pendingImageIds.length ||
+      hasVal(source.stop) || hasVal(source.target) || (source.title && source.title !== "Daily import"));
+    setDetailsOpen(hasExtras);
     deleteTradeBtn.hidden = !trade;
     tradeShareBtn.hidden = !trade;
-    // New trades start in Quick Log, with the toggle visible so you can
-    // switch to Full. An existing trade always opens straight into Full —
-    // there's nothing to "quickly" log about one that's already saved — so
-    // the toggle is hidden rather than just defaulted away from.
-    logModeToggle.hidden = !!trade;
-    // Show the modal before measuring the Quick Log/Log thumb — while
-    // hidden, the toggle's buttons report zero width/position, which bakes
-    // a zero-size thumb in as an inline style that a hidden "Quick Log"
-    // active-text color then has nothing to sit on top of.
+    tradeModalSub.textContent = (trade ? "In " : "Saving to ") + account.name;
+    saveTradeBtn.textContent = trade ? "Save changes" : "Log trade";
     tradeModalOverlay.hidden = false;
-    setLogMode(trade ? "full" : "quick");
+    if (!trade) setTimeout(function(){ tfSymbol.focus(); }, 30);
   }
   function closeTradeModal(){
     tradeModalOverlay.hidden = true;
@@ -4653,13 +5528,7 @@
     openTradeModal(null, target);
   });
   headerShareBtn.addEventListener("click", function(){
-    openShareModal({ date: todayStr() });
-    sharePeriod = "daily";
-    sharePeriodTabs.querySelectorAll("button[data-period]").forEach(function(b){
-      b.classList.toggle("active", b.getAttribute("data-period") === "daily");
-    });
-    layoutSegThumb(sharePeriodTabs, true);
-    updateShareModalSub();
+    openShareModal({ date: todayStr() }, "daily");
   });
   tradeModalClose.addEventListener("click", discardTradeModal);
   cancelTradeBtn.addEventListener("click", discardTradeModal);
@@ -4993,7 +5862,10 @@
             var pnl = parseAmount(r[balPnlIdx]);
             if (!date || isNaN(pnl)) return;
             byDay[date] = (byDay[date] || 0) + pnl;
-            if (acctNameIdx !== -1 && r[acctNameIdx]) accountLabel = r[acctNameIdx].trim();
+            // Account ID is deliberately never read. The Account Name becomes
+            // the trade's symbol, which shows on share cards, so only its
+            // first few characters are kept.
+            if (acctNameIdx !== -1 && r[acctNameIdx]) accountLabel = shortAccountLabel(r[acctNameIdx]);
           });
         } else if (dailyFormat === "cash"){
           var cashDateIdx = findColumn(headers, ["date"]);
@@ -5067,7 +5939,6 @@
   renderAcctFilter();
   updateFilterCount();
   layoutSegThumb(journalTabsEl, true);
-  setLogMode("quick");
   if (window.EZAuth){
     if (EZAuth.isLoggedIn()) syncFromAccount();
     EZAuth.onChange(function(loggedIn){ if (loggedIn) syncFromAccount(); else resetJournalToBlank(); });
@@ -5080,18 +5951,10 @@
     var params = new URLSearchParams(window.location.search);
     var sharePeriodParam = params.get("share");
     if (!sharePeriodParam) return;
-    var validPeriods = ["trade", "daily", "weekly", "monthly"];
+    var validPeriods = ["trade", "daily", "weekly", "monthly", "calendar"];
     if (validPeriods.indexOf(sharePeriodParam) === -1) return;
     var dateParam = params.get("date") || todayStr();
-    openShareModal({ date: dateParam });
-    sharePeriod = sharePeriodParam;
-    sharePeriodTabs.querySelectorAll("button[data-period]").forEach(function(b){
-      b.classList.toggle("active", b.getAttribute("data-period") === sharePeriodParam);
-    });
-    layoutSegThumb(sharePeriodTabs, true);
-    updateShareModalSub();
-    shareAnimStartTime = Date.now();
-    redrawShareCard();
+    openShareModal({ date: dateParam }, sharePeriodParam);
     // Clean the URL so a reload/share doesn't keep reopening the modal.
     var cleanUrl = window.location.pathname + window.location.hash;
     window.history.replaceState(null, "", cleanUrl);
