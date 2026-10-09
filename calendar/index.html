@@ -963,21 +963,17 @@
     }
   }
 
-  // Clicking a day fires a brief neon flash, then hands off to the Journal.
-  // A day with existing trades routes to the Daily tab, scrolled to and
-  // flash-highlighted on that day's trade group; an empty day still opens
-  // the trade logger pre-filled for that date ("triggering the trade
-  // logger state" from the calendar itself) since there's nothing to show.
+  // Clicking a day fires a brief neon flash, then routes to the Journal's
+  // Daily tab scrolled to (and flash-highlighted on) that date — pure page
+  // routing only. This never opens the trade logger: an empty day still
+  // lands on the Daily tab, just with nothing to scroll to.
   function handleDayCardClick(cardEl){
     if (!cardEl || cardEl.classList.contains("outside")) return;
     var date = cardEl.getAttribute("data-date");
     if (!date) return;
-    var hasTrades = cardEl.classList.contains("has-data");
     cardEl.classList.add("flash");
     setTimeout(function(){
-      window.location.href = hasTrades
-        ? "/journal/?scrollTo=" + encodeURIComponent(date)
-        : "/journal/?logDate=" + encodeURIComponent(date);
+      window.location.href = "/journal/?scrollTo=" + encodeURIComponent(date);
     }, 380);
   }
   pnlGridEl.addEventListener("click", function(e){

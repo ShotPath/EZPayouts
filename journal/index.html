@@ -128,6 +128,32 @@
   .account-popover-foot{ margin-top:6px; padding-top:8px; border-top:1px solid var(--hairline); }
   .account-popover-foot .ghost-btn{ width:100%; justify-content:center; }
 
+  /* ---------- Trading-account VIEW filter (checkboxes; defaults to all) —
+     distinct from .account-switcher above, which picks the single account
+     new/edited trades are saved into. This one only narrows what the
+     Trades/Daily/Weekly/Strategy tabs and stat cards display. Same shared
+     localStorage selection as the Dashboard and Calendar filters. ---------- */
+  .acct-filter{ position:relative; }
+  #acctFilterBtn svg.chev{ width:11px; height:11px; margin-left:-1px; opacity:0.7; }
+  #acctFilterLabel{ max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .acct-filter-popover{
+    position:absolute; top:calc(100% + 8px); right:0; z-index:60; width:230px;
+    background:var(--panel-raised); border:1px solid var(--hairline-bright); border-radius:14px;
+    padding:8px; box-shadow:0 20px 44px -18px rgba(0,0,0,0.65);
+  }
+  .acct-filter-popover[hidden]{ display:none; }
+  .acct-filter-row{
+    display:flex; align-items:center; gap:9px; padding:8px 10px; border-radius:8px; cursor:pointer;
+    font-family:var(--font-body); font-size:13px; color:var(--ice); transition:background .12s;
+  }
+  .acct-filter-row:hover{ background:var(--panel-hi); }
+  .acct-filter-row input[type="checkbox"]{ width:15px; height:15px; accent-color:var(--phosphor); flex:none; }
+  .acct-filter-all-row{ font-weight:600; }
+  .acct-filter-divider{ height:1px; background:var(--hairline); margin:6px 4px; }
+  .acct-filter-list{ max-height:240px; overflow-y:auto; }
+  .acct-filter-empty{ padding:10px; font-size:12px; color:var(--muted); text-align:center; }
+  .acct-filter-count{ margin-left:auto; font-family:var(--font-mono); font-size:10px; color:var(--muted); flex:none; }
+
   .ghost-btn{
     display:inline-flex; align-items:center; gap:7px;
     font-family:var(--font-display); font-weight:600; font-size:12.5px; white-space:nowrap;
@@ -963,6 +989,21 @@
       <button type="button" class="ghost-btn icon-only" id="exportCsvBtn" aria-label="Download CSV" title="Download CSV">
         <svg viewBox="0 0 20 20"><path d="M10 3v10M6 9l4 4 4-4" /><path d="M4 16h12" /></svg>
       </button>
+      <div class="acct-filter" id="acctFilter">
+        <button type="button" class="ghost-btn" id="acctFilterBtn" aria-haspopup="true" aria-expanded="false">
+          <svg viewBox="0 0 20 20"><path d="M3 6h14M3 10h14M3 14h14"/></svg>
+          <span id="acctFilterLabel">All Accounts</span>
+          <svg class="chev" viewBox="0 0 20 20"><path d="M5 8l5 5 5-5"/></svg>
+        </button>
+        <div class="acct-filter-popover" id="acctFilterPopover" hidden>
+          <label class="acct-filter-row acct-filter-all-row">
+            <input type="checkbox" id="acctFilterAll" />
+            <span>All Accounts at Once</span>
+          </label>
+          <div class="acct-filter-divider"></div>
+          <div class="acct-filter-list" id="acctFilterList"></div>
+        </div>
+      </div>
       <div class="account-switcher" id="accountSwitcher">
         <button type="button" class="ghost-btn" id="accountSwitcherBtn">
           <svg viewBox="0 0 20 20"><path d="M4 16v-1a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v1" /><circle cx="10" cy="6.5" r="3" /></svg>
@@ -1603,6 +1644,11 @@
   var selectedTradeIds = {};
   var activeTab = "trades";
   var editingTradeId = null;
+  // Which account an in-progress edit actually belongs to — may differ from
+  // activeAccountId when editing a trade surfaced by the VIEW filter below
+  // from a non-active account. A brand-new trade (editingTradeId === null)
+  // always saves to activeAccountId regardless of this.
+  var editingTradeAccountId = null;
   var pendingImageIds = [];
   var originalImageIds = [];
   // While a screenshot is signed-in-uploading, its pendingImageIds entry is
@@ -3070,7 +3116,8 @@
 
   tradeShareBtn.addEventListener("click", function(){
     if (!editingTradeId) return;
-    var t = trades.find(function(x){ return x.id === editingTradeId; });
+    var found = findTradeById(editingTradeId);
+    var t = found ? found.trade : null;
     if (!t) return;
     tradeModalOverlay.hidden = true;
     openShareModal(t);
@@ -3169,6 +3216,7 @@
         '</button>' +
       '</div>';
     }).join("");
+    renderAcctFilter();
   }
   function switchAccount(id){
     if (id === activeAccountId) return;
@@ -3237,6 +3285,123 @@
     renderAll();
     renderAccountSwitcher();
     accountPopover.hidden = true;
+  });
+
+  // ---------- Trading-account VIEW filter (checkboxes; defaults to all) ----------
+  // Separate from the account switcher above: that one picks where NEW/
+  // edited trades are saved, this one only narrows what the Trades/Daily/
+  // Weekly/Strategy tabs and stat cards display. The selection is shared
+  // with the identical Dashboard and Calendar filters via localStorage —
+  // ticking accounts on any of the three carries over to the other two.
+  var ACCT_FILTER_STORAGE_KEY = "ezpayouts.acctFilter.v1";
+  function loadAcctFilterSelection(){
+    try {
+      var raw = localStorage.getItem(ACCT_FILTER_STORAGE_KEY);
+      if (raw === null) return null;
+      var parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : null;
+    } catch (err) { return null; }
+  }
+  function saveAcctFilterSelection(ids){
+    try {
+      if (ids === null) localStorage.removeItem(ACCT_FILTER_STORAGE_KEY);
+      else localStorage.setItem(ACCT_FILTER_STORAGE_KEY, JSON.stringify(ids));
+    } catch (err) {}
+  }
+  var selectedAccountIds = loadAcctFilterSelection();
+  var acctFilterEl = document.getElementById("acctFilter");
+  var acctFilterBtn = document.getElementById("acctFilterBtn");
+  var acctFilterPopover = document.getElementById("acctFilterPopover");
+  var acctFilterAllCb = document.getElementById("acctFilterAll");
+  var acctFilterListEl = document.getElementById("acctFilterList");
+  var acctFilterLabelEl = document.getElementById("acctFilterLabel");
+
+  function isAccountSelectedForView(id){
+    return selectedAccountIds === null || selectedAccountIds.indexOf(id) !== -1;
+  }
+  // Flattened, read-only view across every selected account — each trade is
+  // tagged with which account it actually lives in, so edit/delete/share
+  // can resolve back to the right account's array even while viewing an
+  // aggregate of several at once.
+  function viewTrades(){
+    var selected = selectedAccountIds === null ? accounts : accounts.filter(function(a){ return selectedAccountIds.indexOf(a.id) !== -1; });
+    var out = [];
+    selected.forEach(function(acc){
+      (acc.trades || []).forEach(function(t){
+        out.push(Object.assign({}, t, { _accountId: acc.id, _accountName: acc.name }));
+      });
+    });
+    return out;
+  }
+  function findTradeById(id){
+    for (var i = 0; i < accounts.length; i++){
+      var acc = accounts[i];
+      var t = (acc.trades || []).find(function(x){ return x.id === id; });
+      if (t) return { trade: t, account: acc };
+    }
+    return null;
+  }
+  function renderAcctFilter(){
+    if (!accounts.length){
+      acctFilterListEl.innerHTML = '<p class="acct-filter-empty">No trading accounts yet.</p>';
+      acctFilterAllCb.checked = true;
+      acctFilterAllCb.indeterminate = false;
+      acctFilterLabelEl.textContent = "All Accounts";
+      return;
+    }
+    acctFilterListEl.innerHTML = accounts.map(function(a){
+      var checked = isAccountSelectedForView(a.id);
+      var count = a.trades ? a.trades.length : 0;
+      return '<label class="acct-filter-row"><input type="checkbox" data-id="' + escapeHtml(a.id) + '"' + (checked ? " checked" : "") + ' />' +
+        '<span>' + escapeHtml(a.name) + '</span>' +
+        '<span class="acct-filter-count">' + count + '</span></label>';
+    }).join("");
+    var selectedCount = accounts.filter(function(a){ return isAccountSelectedForView(a.id); }).length;
+    var allChecked = selectedCount === accounts.length;
+    acctFilterAllCb.checked = allChecked;
+    acctFilterAllCb.indeterminate = !allChecked && selectedCount > 0;
+    if (allChecked){
+      acctFilterLabelEl.textContent = "All Accounts";
+    } else if (selectedCount === 0){
+      acctFilterLabelEl.textContent = "No Accounts";
+    } else if (selectedCount === 1){
+      var only = accounts.filter(function(a){ return isAccountSelectedForView(a.id); })[0];
+      acctFilterLabelEl.textContent = only.name;
+    } else {
+      acctFilterLabelEl.textContent = selectedCount + " Accounts";
+    }
+  }
+  acctFilterBtn.addEventListener("click", function(e){
+    e.stopPropagation();
+    acctFilterPopover.hidden = !acctFilterPopover.hidden;
+    acctFilterBtn.setAttribute("aria-expanded", acctFilterPopover.hidden ? "false" : "true");
+  });
+  document.addEventListener("click", function(e){
+    if (!acctFilterPopover.hidden && !acctFilterEl.contains(e.target)) acctFilterPopover.hidden = true;
+  });
+  acctFilterAllCb.addEventListener("change", function(){
+    selectedAccountIds = acctFilterAllCb.checked ? null : [];
+    saveAcctFilterSelection(selectedAccountIds);
+    renderAcctFilter();
+    renderAll();
+  });
+  acctFilterListEl.addEventListener("change", function(e){
+    var cb = e.target.closest('input[type="checkbox"][data-id]');
+    if (!cb) return;
+    var current = selectedAccountIds === null ? accounts.map(function(a){ return a.id; }) : selectedAccountIds.slice();
+    var id = cb.getAttribute("data-id");
+    if (cb.checked){
+      if (current.indexOf(id) === -1) current.push(id);
+    } else {
+      current = current.filter(function(x){ return x !== id; });
+    }
+    selectedAccountIds = (current.length === accounts.length) ? null : current;
+    saveAcctFilterSelection(selectedAccountIds);
+    renderAcctFilter();
+    renderAll();
+  });
+  window.addEventListener("storage", function(e){
+    if (e.key === ACCT_FILTER_STORAGE_KEY){ selectedAccountIds = loadAcctFilterSelection(); renderAcctFilter(); renderAll(); }
   });
 
   function loadImageStore(){
@@ -3318,7 +3483,7 @@
     return n;
   }
   function filteredTrades(){
-    var list = trades.filter(function(t){
+    var list = viewTrades().filter(function(t){
       if (filters.symbol && String(t.symbol || "").toUpperCase().indexOf(filters.symbol.toUpperCase()) === -1) return false;
       if (filters.direction && t.direction !== filters.direction) return false;
       if (filters.market && t.market !== filters.market) return false;
@@ -3603,9 +3768,10 @@
     var list = filteredTrades();
     tradesCountBadge.textContent = list.length;
     if (!list.length){
-      tradesSubtitle.textContent = trades.length ? "No trades match your filters" : "No trades yet";
+      var hasAnyInView = viewTrades().length > 0;
+      tradesSubtitle.textContent = hasAnyInView ? "No trades match your filters" : "No trades yet";
       tradesTableEl.innerHTML = '<div class="journal-empty">' +
-        '<p>' + (trades.length ? "No trades match your filters." : "No trades yet.") + '</p>' +
+        '<p>' + (hasAnyInView ? "No trades match your filters." : "No trades yet.") + '</p>' +
         '<p>Add your first trade manually, or import a CSV export from your broker.</p>' +
       '</div>';
       updateBulkBar();
@@ -3655,38 +3821,49 @@
     var editBtn = e.target.closest(".row-action.edit");
     var deleteBtn = e.target.closest(".row-action.delete");
     if (shareBtn){
-      var st = trades.find(function(x){ return x.id === shareBtn.getAttribute("data-id"); });
-      if (st) shareTrade(st);
+      var sf = findTradeById(shareBtn.getAttribute("data-id"));
+      if (sf) shareTrade(sf.trade);
       return;
     }
     if (editBtn){
-      var et = trades.find(function(x){ return x.id === editBtn.getAttribute("data-id"); });
-      if (et) openTradeModal(et);
+      var ef = findTradeById(editBtn.getAttribute("data-id"));
+      if (ef) openTradeModal(ef.trade, ef.account);
       return;
     }
     if (deleteBtn){
-      var dt = trades.find(function(x){ return x.id === deleteBtn.getAttribute("data-id"); });
-      if (dt && window.confirm("Delete this trade? This can't be undone.")){
-        removeTradesByIds([dt.id]);
+      var df = findTradeById(deleteBtn.getAttribute("data-id"));
+      if (df && window.confirm("Delete this trade? This can't be undone.")){
+        removeTradesByIds([df.trade.id]);
       }
       return;
     }
     var row = e.target.closest(".trades-row[data-id]");
     if (row && !row.classList.contains("trades-row-head")){
-      var t = trades.find(function(x){ return x.id === row.getAttribute("data-id"); });
-      if (t) openTradeModal(t);
+      var rf = findTradeById(row.getAttribute("data-id"));
+      if (rf) openTradeModal(rf.trade, rf.account);
     }
   });
+  // Deletes by id regardless of which account each one actually lives in —
+  // the aggregate VIEW filter can surface ids from several accounts in one
+  // bulk-delete selection, so each id is resolved to its own account rather
+  // than assuming they all belong to the currently active one.
   function removeTradesByIds(ids){
     var idSet = {};
     ids.forEach(function(id){ idSet[id] = true; });
-    trades.filter(function(t){ return idSet[t.id]; }).forEach(function(t){
-      if (Array.isArray(t.imageIds)) t.imageIds.forEach(deleteImage);
+    accounts.forEach(function(acc){
+      var list = acc.trades || [];
+      var toDelete = list.filter(function(t){ return idSet[t.id]; });
+      if (!toDelete.length) return;
+      toDelete.forEach(function(t){
+        if (Array.isArray(t.imageIds)) t.imageIds.forEach(deleteImage);
+      });
+      acc.trades = list.filter(function(t){ return !idSet[t.id]; });
+      if (acc.id === activeAccountId) trades = acc.trades;
     });
-    trades = trades.filter(function(t){ return !idSet[t.id]; });
     ids.forEach(function(id){ delete selectedTradeIds[id]; });
     save();
     renderAll();
+    renderAcctFilter();
   }
   bulkDeleteBtn.addEventListener("click", function(){
     var ids = Object.keys(selectedTradeIds).filter(function(id){ return selectedTradeIds[id]; });
@@ -3794,8 +3971,8 @@
     var shareBtn = e.target.closest(".trade-card-share-btn");
     if (shareBtn){
       e.stopPropagation();
-      var st = trades.find(function(x){ return x.id === shareBtn.getAttribute("data-id"); });
-      if (st) shareTrade(st);
+      var sf2 = findTradeById(shareBtn.getAttribute("data-id"));
+      if (sf2) shareTrade(sf2.trade);
       return;
     }
     var card = e.target.closest(".trade-card[data-id]");
@@ -3853,6 +4030,8 @@
     accounts = [{ id: "acc_default", name: "Main", trades: [] }];
     activeAccountId = "acc_default";
     trades = accounts[0].trades;
+    selectedAccountIds = null;
+    saveAcctFilterSelection(null);
     try { localStorage.removeItem(STORAGE_KEY); } catch (err) {}
     renderAll();
     renderAccountSwitcher();
@@ -4371,7 +4550,8 @@
   }
 
   function showTradeDetail(tradeId){
-    var trade = trades.find(function(t){ return t.id === tradeId; });
+    var found = findTradeById(tradeId);
+    var trade = found ? found.trade : null;
     if (!trade) return;
     currentDetailTradeId = tradeId;
     populateDetailView(trade);
@@ -4390,14 +4570,14 @@
   tdBackBtn.addEventListener("click", backToList);
   tdEditBtn.addEventListener("click", function(){
     if (currentDetailTradeId){
-      var trade = trades.find(function(t){ return t.id === currentDetailTradeId; });
-      if (trade) openTradeModal(trade);
+      var found = findTradeById(currentDetailTradeId);
+      if (found) openTradeModal(found.trade, found.account);
     }
   });
   tdShareBtn.addEventListener("click", function(){
     if (currentDetailTradeId){
-      var trade = trades.find(function(t){ return t.id === currentDetailTradeId; });
-      if (trade) shareTrade(trade);
+      var found = findTradeById(currentDetailTradeId);
+      if (found) shareTrade(found.trade);
     }
   });
   tdDeleteBtn.addEventListener("click", function(){
@@ -4415,8 +4595,13 @@
     }
   });
 
-  function openTradeModal(trade){
+  // `account` is which account `trade` actually lives in — only matters
+  // when editing (a new trade always saves to activeAccountId); defaults to
+  // the active account so every existing call site that doesn't pass one
+  // (adding a brand-new trade) keeps working unchanged.
+  function openTradeModal(trade, account){
     editingTradeId = trade ? trade.id : null;
+    editingTradeAccountId = trade ? (account ? account.id : activeAccountId) : null;
     originalImageIds = trade && Array.isArray(trade.imageIds) ? trade.imageIds.slice() : [];
     var draft = loadDraft(draftKeyFor(editingTradeId));
     var source = draft || trade || {};
@@ -4462,6 +4647,7 @@
   function closeTradeModal(){
     tradeModalOverlay.hidden = true;
     editingTradeId = null;
+    editingTradeAccountId = null;
     pendingImageIds = [];
     originalImageIds = [];
     currentEmotions = [];
@@ -4525,7 +4711,13 @@
     tfSymbol.style.borderColor = "";
     tfPnl.style.borderColor = "";
 
-    var existing = editingTradeId ? trades.find(function(t){ return t.id === editingTradeId; }) : null;
+    // A new trade always saves to the active account; an edit writes back
+    // to whichever account it actually came from (may differ from the
+    // active account when it was opened via the aggregate VIEW filter).
+    var targetAccount = editingTradeId
+      ? (accounts.find(function(a){ return a.id === editingTradeAccountId; }) || activeAccount())
+      : activeAccount();
+    var existing = editingTradeId ? (targetAccount.trades || []).find(function(t){ return t.id === editingTradeId; }) : null;
     var trade = {
       id: editingTradeId || ("t_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8)),
       market: tfMarket.value,
@@ -4547,12 +4739,14 @@
       imageIds: pendingImageIds.slice(),
       createdAt: existing ? (existing.createdAt || Date.now()) : Date.now()
     };
-    if (editingTradeId) trades = trades.map(function(t){ return t.id === editingTradeId ? trade : t; });
-    else trades.unshift(trade);
+    if (editingTradeId) targetAccount.trades = (targetAccount.trades || []).map(function(t){ return t.id === editingTradeId ? trade : t; });
+    else { targetAccount.trades = targetAccount.trades || []; targetAccount.trades.unshift(trade); }
+    if (targetAccount.id === activeAccountId) trades = targetAccount.trades;
 
     clearDraftFor(draftKeyFor(editingTradeId));
     save();
     renderAll();
+    renderAcctFilter();
     closeTradeModal();
   });
 
@@ -4877,23 +5071,11 @@
     window.history.replaceState(null, "", cleanUrl);
   })();
 
-  // ---------- Deep link: ?logDate=YYYY-MM-DD opens a fresh Log a Trade
-  // modal pre-filled with that date. Used by the P&L Calendar — clicking
-  // any day there "triggers the trade logger state" for that date.
-  (function handleLogDateDeepLink(){
-    var params = new URLSearchParams(window.location.search);
-    var dateParam = params.get("logDate");
-    if (!dateParam || !/^\d{4}-\d{2}-\d{2}$/.test(dateParam)) return;
-    openTradeModal(null);
-    tfDate.value = dateParam;
-    var cleanUrl = window.location.pathname + window.location.hash;
-    window.history.replaceState(null, "", cleanUrl);
-  })();
-
   // ---------- Deep link: ?scrollTo=YYYY-MM-DD switches to the Daily tab,
   // scrolls that day's trade group into view, and flashes a neon outline
-  // around it for 1.5s. Used by the P&L Calendar — clicking a day that
-  // already has trades lands here instead of opening the trade logger.
+  // around it for 1.5s. Used by every P&L Calendar day click — pure
+  // routing, no modal; an empty day just lands on the Daily tab with
+  // nothing to scroll to.
   (function handleScrollToDeepLink(){
     var params = new URLSearchParams(window.location.search);
     var dateParam = params.get("scrollTo");
