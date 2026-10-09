@@ -136,6 +136,8 @@
   }
   .ghost-btn:hover{ border-color:var(--phosphor-dim); background:var(--panel-hi); }
   .ghost-btn svg{ width:14px; height:14px; flex:none; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+  .ghost-btn.icon-only{ padding:9px; }
+  .ghost-btn.icon-only svg{ width:16px; height:16px; }
 
   .primary-btn{
     display:inline-flex; align-items:center; gap:7px;
@@ -942,18 +944,16 @@
       </div>
     </div>
     <div class="page-head-actions">
+      <button type="button" class="primary-btn" id="addTradeBtn">+ Add Trade</button>
       <button type="button" class="ghost-btn" id="headerShareBtn">
         <svg viewBox="0 0 20 20"><circle cx="15" cy="4.5" r="2.4" /><circle cx="5" cy="10" r="2.4" /><circle cx="15" cy="15.5" r="2.4" /><line x1="7.1" y1="11.2" x2="12.9" y2="14.3" /><line x1="12.9" y1="5.7" x2="7.1" y2="8.8" /></svg>
         + Share
       </button>
-      <button type="button" class="primary-btn" id="addTradeBtn">+ Add Trade</button>
-      <button type="button" class="ghost-btn" id="importCsvBtn">
-        <svg viewBox="0 0 20 20"><path d="M10 3v10M6 9l4 4 4-4" /><path d="M4 16h12" /></svg>
-        Upload
-      </button>
-      <button type="button" class="ghost-btn" id="exportCsvBtn">
+      <button type="button" class="ghost-btn icon-only" id="importCsvBtn" aria-label="Upload CSV" title="Upload CSV">
         <svg viewBox="0 0 20 20"><path d="M10 13V3M6 7l4-4 4 4" /><path d="M4 16h12" /></svg>
-        Download
+      </button>
+      <button type="button" class="ghost-btn icon-only" id="exportCsvBtn" aria-label="Download CSV" title="Download CSV">
+        <svg viewBox="0 0 20 20"><path d="M10 3v10M6 9l4 4 4-4" /><path d="M4 16h12" /></svg>
       </button>
       <div class="account-switcher" id="accountSwitcher">
         <button type="button" class="ghost-btn" id="accountSwitcherBtn">
