@@ -176,6 +176,79 @@
   .radar-dot{ fill:var(--ij-blue-soft); }
   .radar-vertex-node{ fill:#00d2ff; filter:drop-shadow(0 0 6px var(--ij-blue)); }
 
+  /* ---------- Edge Profile hologram (focused/expanded state only) ----------
+     4 Z-stacked layers sharing one coordinate system with the plain radar
+     above (same pointAt() math), composited via perspective + preserve-3d
+     on this inner stage ONLY — .chart-card itself stays flat even while
+     focused (transform:none!important, set earlier). */
+  .hologram-stage{
+    display:none; position:relative; width:100%; height:420px; margin-top:4px;
+    perspective:1200px;
+  }
+  .chart-card.is-focused .radar-wrap{ display:none; }
+  .chart-card.is-focused .hologram-stage{ display:block; }
+  .hologram-inner{
+    position:relative; width:100%; height:100%; transform-style:preserve-3d;
+    transform:rotateX(var(--holo-x, 6deg)) rotateY(var(--holo-y, 0deg));
+    transition:transform .4s cubic-bezier(.16,1,.3,1);
+  }
+  .hologram-inner.is-tilting{ transition:none; }
+  .hologram-layer{ position:absolute; inset:0; transform-style:preserve-3d; }
+  .hologram-layer-1{ transform:translateZ(5px); }
+  .hologram-layer-2{ transform:translateZ(20px); }
+  .hologram-layer-3{ transform:translateZ(40px); }
+  .hologram-layer-4{ transform:translateZ(75px); }
+  .hologram-layer-svg{ display:block; width:100%; height:100%; overflow:visible; }
+
+  .hologram-floor-ring{ fill:none; stroke:var(--ij-border-bright); stroke-width:1; opacity:.35; }
+  .hologram-wire-ring{ fill:none; stroke:var(--ij-blue-soft); stroke-width:1; opacity:.55; }
+  .hologram-wire-axis{ stroke:var(--ij-blue); stroke-width:.75; opacity:.4; }
+  .hologram-data-area{
+    fill:var(--ij-blue); fill-opacity:.28; stroke:#00d2ff; stroke-width:2; stroke-linejoin:round;
+    filter:drop-shadow(0 0 10px var(--ij-blue-glow));
+  }
+  .hologram-pulse-node{
+    fill:#00d2ff; filter:drop-shadow(0 0 8px #3262f6);
+    animation:hologramPulse 2.4s ease-in-out infinite;
+  }
+  @keyframes hologramPulse{
+    0%, 100%{ opacity:.75; r:4; }
+    50%{ opacity:1; r:5.5; }
+  }
+
+  .hologram-text-layer{ position:absolute; inset:0; font-family:var(--font-mono); }
+  .hologram-branch{ position:absolute; display:flex; align-items:flex-start; gap:8px; width:170px; }
+  .hologram-branch-line{
+    flex:none; display:block; margin-top:6px; height:1px; width:26px;
+    background:repeating-linear-gradient(90deg, #00d2ff 0 4px, transparent 4px 7px);
+    filter:drop-shadow(0 0 3px #3262f6);
+  }
+  .hologram-branch-head{ font-size:10px; font-weight:700; letter-spacing:.04em; color:#eef1fb; white-space:nowrap; }
+  .hologram-branch-score{ color:#00d2ff; }
+  .hologram-branch-sub{ font-size:9px; color:var(--ij-muted); margin-top:2px; white-space:nowrap; }
+  .hologram-branch-body{ min-width:0; }
+
+  /* Right-hand nodes: branch extends right of the vertex, text reads
+     left-to-right starting just past the line. */
+  .hologram-branch-right{ transform:translateY(-50%); }
+  /* Left-hand nodes: branch extends left of the vertex (line + body
+     order reversed), text right-aligned so it "points into" the node
+     instead of running off the card's left edge. */
+  .hologram-branch-left{
+    transform:translate(calc(-100% - 0px), -50%); flex-direction:row-reverse; text-align:right;
+  }
+  .hologram-branch-left .hologram-branch-sub,
+  .hologram-branch-left .hologram-branch-head{ text-align:right; }
+  /* Top apex: centered stack directly above the vertex, no visible branch
+     line (nothing to point sideways at). */
+  .hologram-branch-top{
+    flex-direction:column; align-items:center; text-align:center; width:150px;
+    transform:translate(-50%, calc(-100% - 14px));
+  }
+  .hologram-branch-top .hologram-branch-line{ display:none; }
+  .hologram-branch-top .hologram-branch-sub,
+  .hologram-branch-top .hologram-branch-head{ text-align:center; white-space:normal; }
+
   .edge-chart-wrap{ position:relative; flex:1; }
   .edge-chart-wrap svg{ display:block; width:100%; height:220px; }
   .edge-crosshair{ position:absolute; top:0; bottom:0; width:1px; background:var(--ij-border-bright); pointer-events:none; opacity:0; transition:opacity .1s; }
@@ -382,6 +455,13 @@
           <button type="button" class="chart-card-close" data-close-module>&times; Close Focus</button>
         </div>
         <div class="radar-wrap" id="radarChartWrap"></div>
+        <!-- Only rendered/shown once this card is focused — the plain
+             radar above stays the baseline view. perspective lives here,
+             on the inner canvas only; the card itself (.chart-card) never
+             tilts, even while focused (see .chart-card.is-focused). -->
+        <div class="hologram-stage" id="radarHologramStage">
+          <div class="hologram-inner" id="radarHologramInner"></div>
+        </div>
         <p class="chart-card-expand-hint">Click to expand &#8599;</p>
         <div class="chart-card-stats" id="edgeProfileStats"></div>
       </div>
@@ -694,6 +774,102 @@
     '</svg>';
   }
 
+  // ---------- Edge Profile hologram: the same radar geometry split into 4
+  // Z-stacked layers (floor grid, pentagon wireframe, live data plot, text
+  // trees) for the focused/expanded card view's 3D parallax. Shares the
+  // exact pointAt() coordinate math with buildRadarSvg above so every layer
+  // stays pixel-aligned with the others and with the plain radar chart. ----
+  function scoreGrade(score){
+    if (score >= 90) return "A+";
+    if (score >= 80) return "A";
+    if (score >= 65) return "B";
+    if (score >= 50) return "C";
+    return "F";
+  }
+  function paceLabel(score){
+    if (score >= 80) return "Optimized";
+    if (score >= 50) return "Developing";
+    return "Slow";
+  }
+  function drawdownStatus(score){
+    if (score >= 80) return "Safe";
+    if (score >= 50) return "Caution";
+    return "High Risk";
+  }
+  function buildHologramRadar(edge, labels){
+    var cx = 150, cy = 100, R = 72;
+    var n = labels.length;
+    function pointAt(i, radiusFrac){
+      var angle = -Math.PI / 2 + (i / n) * Math.PI * 2;
+      return [cx + Math.cos(angle) * R * radiusFrac, cy + Math.sin(angle) * R * radiusFrac];
+    }
+    var scores = edge.scores;
+
+    // Layer 1 — faint floor grid, full-extent rings only.
+    var floorPts = labels.map(function(_, i){ return pointAt(i, 1).join(","); }).join(" ");
+    var layer1 = '<svg class="hologram-layer-svg" viewBox="0 0 300 200"><polygon class="hologram-floor-ring" points="' + floorPts + '"/></svg>';
+
+    // Layer 2 — nested concentric pentagon wireframes (the "guide rings").
+    var wireRings = [0.4, 0.7, 1].map(function(frac){
+      var pts = labels.map(function(_, i){ return pointAt(i, frac).join(","); }).join(" ");
+      return '<polygon class="hologram-wire-ring" points="' + pts + '"/>';
+    }).join("");
+    var axes = labels.map(function(_, i){
+      var p = pointAt(i, 1);
+      return '<line class="hologram-wire-axis" x1="' + cx + '" y1="' + cy + '" x2="' + p[0].toFixed(1) + '" y2="' + p[1].toFixed(1) + '"/>';
+    }).join("");
+    var layer2 = '<svg class="hologram-layer-svg" viewBox="0 0 300 200">' + wireRings + axes + '</svg>';
+
+    // Layer 3 — the live data plot: same scores as the plain radar chart,
+    // with pulsing high-intensity vertex nodes (CSS animation, see styles).
+    var dataPts = scores.map(function(s, i){ return pointAt(i, Math.max(0.04, s / 100)); });
+    var areaPts = dataPts.map(function(p){ return p.join(","); }).join(" ");
+    var pulseNodes = dataPts.map(function(p){
+      return '<circle class="hologram-pulse-node" cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="4"/>';
+    }).join("");
+    var layer3 = '<svg class="hologram-layer-svg" viewBox="0 0 300 200">' +
+      '<polygon class="hologram-data-area" points="' + areaPts + '"/>' + pulseNodes +
+    '</svg>';
+
+    // Layer 4 — floating diagnostic text trees. HTML/CSS (not SVG) so each
+    // branch's text can wrap and align naturally. Positioned in percent
+    // coordinates derived from the same pointAt() math, quadrant-aware:
+    // right-side nodes branch rightward with left-aligned text, left-side
+    // nodes branch leftward with right-aligned text, top/bottom nodes stack
+    // centered — so nothing ever reads into the core shape.
+    var subData = [
+      { sub1: "Avg Daily Swing: " + fmtMoneyPlain(edge.avgAbsDaily), sub2: "Score Index: " + scores[0].toFixed(1) + "%" },
+      { sub1: "Ratio: " + edge.profitFactor.toFixed(2), sub2: "Gross Win: " + fmtMoneySigned(edge.grossWin) },
+      { sub1: "Peak Drawdown: " + fmtMoneyPlain(edge.maxDrawdown), sub2: "Status: " + drawdownStatus(scores[2]) },
+      { sub1: "Recovery Factor: " + edge.recoveryFactor.toFixed(2), sub2: "Pace: " + paceLabel(scores[3]) },
+      { sub1: "Compliance Index: " + scores[4].toFixed(1) + "%", sub2: "Grade: " + scoreGrade(scores[4]) }
+    ];
+    var quadrants = ["top", "right", "right", "left", "left"];
+    var branches = labels.map(function(label, i){
+      var p = pointAt(i, 1);
+      var leftPct = (p[0] / 300) * 100;
+      var topPct = (p[1] / 200) * 100;
+      var q = quadrants[i];
+      var sub = subData[i];
+      return '<div class="hologram-branch hologram-branch-' + q + '" style="left:' + leftPct.toFixed(1) + '%; top:' + topPct.toFixed(1) + '%;">' +
+        '<span class="hologram-branch-line" aria-hidden="true"></span>' +
+        '<div class="hologram-branch-body">' +
+          '<div class="hologram-branch-head">' + escapeHtml(label.toUpperCase()) + ' <span class="hologram-branch-score">[' + scores[i].toFixed(1) + '%]</span></div>' +
+          '<div class="hologram-branch-sub">&bull; ' + escapeHtml(sub.sub1) + '</div>' +
+          '<div class="hologram-branch-sub">&bull; ' + escapeHtml(sub.sub2) + '</div>' +
+        '</div>' +
+      '</div>';
+    }).join("");
+    var layer4 = '<div class="hologram-text-layer">' + branches + '</div>';
+
+    return (
+      '<div class="hologram-layer hologram-layer-1">' + layer1 + '</div>' +
+      '<div class="hologram-layer hologram-layer-2">' + layer2 + '</div>' +
+      '<div class="hologram-layer hologram-layer-3">' + layer3 + '</div>' +
+      '<div class="hologram-layer hologram-layer-4">' + layer4 + '</div>'
+    );
+  }
+
   // ---------- Area chart: single combined cumulative series ----------
   function buildAreaChartSvg(series){
     var w = 700, h = 220, padX = 10, padY = 16;
@@ -803,7 +979,15 @@
       profitFactor: profitFactor,
       scores: [consistencyScore, pfScore, drawdownScore, recoveryScore, setupScore],
       dailyPnls: dailyPnls,
-      netPnl: netPnl
+      netPnl: netPnl,
+      // Raw figures behind each score, for the hologram breakdown panel —
+      // real derived numbers, not placeholder copy.
+      grossWin: grossWin,
+      grossLoss: grossLoss,
+      avgAbsDaily: avgAbsDaily,
+      maxDrawdown: maxDrawdown,
+      recoveryFactor: recoveryFactor,
+      setupScore: setupScore
     };
   }
 
@@ -959,7 +1143,9 @@
     document.getElementById("gaugeAvgWinLossChart").innerHTML = buildWinLossBar(avgWin, avgLoss);
 
     // Radar: Edge Profile
-    document.getElementById("radarChartWrap").innerHTML = buildRadarSvg(edge.scores, ["Consistency", "Profit Factor", "Max Drawdown", "Recovery", "Setup Quality"]);
+    var edgeAxisLabels = ["Consistency", "Profit Factor", "Max Drawdown", "Recovery", "Setup Quality"];
+    document.getElementById("radarChartWrap").innerHTML = buildRadarSvg(edge.scores, edgeAxisLabels);
+    document.getElementById("radarHologramInner").innerHTML = buildHologramRadar(edge, edgeAxisLabels);
 
     // Area chart: cumulative P&L across selected accounts/range
     var cum2 = 0;
@@ -1083,6 +1269,29 @@
       setFocusedModule(card.getAttribute("data-module"));
     });
   });
+  // Independent inner-canvas tilt for the Edge Profile hologram — separate
+  // from the (now-disabled-while-focused) card-level tilt above, capped at
+  // the wider +/-15deg the hologram spec calls for, and scoped to the
+  // hologram stage element only so the flat outer card is never touched.
+  var hologramStage = document.getElementById("radarHologramStage");
+  var hologramInner = document.getElementById("radarHologramInner");
+  var HOLOGRAM_TILT_MAX_DEG = 15;
+  hologramStage.addEventListener("mousemove", function(e){
+    var box = hologramStage.getBoundingClientRect();
+    var x = e.clientX - box.left;
+    var y = e.clientY - box.top;
+    var rotX = -((y - box.height / 2) / (box.height / 2)) * HOLOGRAM_TILT_MAX_DEG;
+    var rotY = ((x - box.width / 2) / (box.width / 2)) * HOLOGRAM_TILT_MAX_DEG;
+    hologramInner.classList.add("is-tilting");
+    hologramInner.style.setProperty("--holo-x", rotX.toFixed(2) + "deg");
+    hologramInner.style.setProperty("--holo-y", rotY.toFixed(2) + "deg");
+  });
+  hologramStage.addEventListener("mouseleave", function(){
+    hologramInner.classList.remove("is-tilting");
+    hologramInner.style.setProperty("--holo-x", "6deg");
+    hologramInner.style.setProperty("--holo-y", "0deg");
+  });
+
   document.querySelectorAll("[data-close-module]").forEach(function(btn){
     btn.addEventListener("click", function(e){
       e.stopPropagation();
