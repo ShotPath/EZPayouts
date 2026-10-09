@@ -183,21 +183,31 @@
      focused (transform:none!important, set earlier). */
   .hologram-stage{
     display:none; position:relative; width:100%; height:420px; margin-top:4px;
-    perspective:1200px;
+    /* Tighter than the card-level 1200px on purpose — at 1200px the 0-80px
+       Z range originally used here was too shallow relative to the viewing
+       distance to read as separated planes (confirmed: layers computed
+       correct 3D positions but the parallax was only a few percent, so it
+       visually looked like one tilted shape, not a stack). 550px exaggerates
+       the same depth relationships enough to actually see the gaps. */
+    perspective:550px; cursor:grab;
   }
+  .hologram-stage.is-dragging{ cursor:grabbing; }
   .chart-card.is-focused .radar-wrap{ display:none; }
   .chart-card.is-focused .hologram-stage{ display:block; }
   .hologram-inner{
     position:relative; width:100%; height:100%; transform-style:preserve-3d;
-    transform:rotateX(var(--holo-x, 6deg)) rotateY(var(--holo-y, 0deg));
+    transform:rotateX(var(--holo-x, 18deg)) rotateY(var(--holo-y, -24deg));
     transition:transform .4s cubic-bezier(.16,1,.3,1);
   }
   .hologram-inner.is-tilting{ transition:none; }
   .hologram-layer{ position:absolute; inset:0; transform-style:preserve-3d; }
-  .hologram-layer-1{ transform:translateZ(5px); }
-  .hologram-layer-2{ transform:translateZ(20px); }
-  .hologram-layer-3{ transform:translateZ(40px); }
-  .hologram-layer-4{ transform:translateZ(75px); }
+  /* Spread ~6x deeper than the first pass for the same reason — enough
+     physical separation between planes that rotating the stack visibly
+     slides them past each other instead of them staying stuck together. */
+  .hologram-layer-1{ transform:translateZ(0px); }
+  .hologram-layer-2{ transform:translateZ(55px); }
+  .hologram-layer-3{ transform:translateZ(115px); }
+  .hologram-layer-4{ transform:translateZ(210px); }
   .hologram-layer-svg{ display:block; width:100%; height:100%; overflow:visible; }
 
   .hologram-floor-ring{ fill:none; stroke:var(--ij-border-bright); stroke-width:1; opacity:.35; }
@@ -285,6 +295,8 @@
     color:var(--ij-muted-dim); text-align:center; position:relative; z-index:1;
   }
   .chart-card.is-focused .chart-card-expand-hint{ display:none; }
+  .hologram-drag-hint{ display:none; }
+  .chart-card.is-focused .hologram-drag-hint{ display:block; }
   .chart-card-close{
     display:none; position:relative; z-index:2; font-family:var(--font-mono); font-size:10px; font-weight:700;
     padding:6px 12px; border-radius:10px; background:var(--ij-void); border:1px solid var(--ij-border-bright);
@@ -462,6 +474,7 @@
         <div class="hologram-stage" id="radarHologramStage">
           <div class="hologram-inner" id="radarHologramInner"></div>
         </div>
+        <p class="chart-card-expand-hint hologram-drag-hint">Drag to rotate &middot; Double-click to recenter</p>
         <p class="chart-card-expand-hint">Click to expand &#8599;</p>
         <div class="chart-card-stats" id="edgeProfileStats"></div>
       </div>
@@ -1259,6 +1272,9 @@
         card.style.setProperty("--tilt-y", "0deg");
       }
     });
+    // Re-opening the hologram always starts from its default 3/4 angle
+    // rather than wherever a previous drag session left it spun.
+    if (moduleName === "edge_profile") resetHologramRotation();
   }
   tiltableCards.forEach(function(card){
     card.addEventListener("mousemove", handleTiltMove);
@@ -1269,28 +1285,59 @@
       setFocusedModule(card.getAttribute("data-module"));
     });
   });
-  // Independent inner-canvas tilt for the Edge Profile hologram — separate
-  // from the (now-disabled-while-focused) card-level tilt above, capped at
-  // the wider +/-15deg the hologram spec calls for, and scoped to the
-  // hologram stage element only so the flat outer card is never touched.
+  // Drag-to-orbit for the Edge Profile hologram — click and drag turns the
+  // whole stack around on both axes, independent of (and replacing, for
+  // this stage specifically) the passive hover-follows-cursor tilt used on
+  // the flat card faces elsewhere. A passive hover tilt wasn't enough to
+  // *see* the layer separation (rotation stayed tiny and self-cancelled on
+  // mouse leave); dragging lets you actually turn it to an angle and leave
+  // it there, which is what the Z-depth spread is for. The outer
+  // .chart-card is untouched either way — this only ever touches
+  // #radarHologramInner's own --holo-x/--holo-y.
   var hologramStage = document.getElementById("radarHologramStage");
   var hologramInner = document.getElementById("radarHologramInner");
-  var HOLOGRAM_TILT_MAX_DEG = 15;
-  hologramStage.addEventListener("mousemove", function(e){
-    var box = hologramStage.getBoundingClientRect();
-    var x = e.clientX - box.left;
-    var y = e.clientY - box.top;
-    var rotX = -((y - box.height / 2) / (box.height / 2)) * HOLOGRAM_TILT_MAX_DEG;
-    var rotY = ((x - box.width / 2) / (box.width / 2)) * HOLOGRAM_TILT_MAX_DEG;
+  var HOLOGRAM_DEFAULT_X = 18, HOLOGRAM_DEFAULT_Y = -24;
+  var holoRotX = HOLOGRAM_DEFAULT_X, holoRotY = HOLOGRAM_DEFAULT_Y;
+  var holoDragging = false, holoDragStartX = 0, holoDragStartY = 0, holoStartRotX = 0, holoStartRotY = 0;
+
+  function applyHologramRotation(){
+    hologramInner.style.setProperty("--holo-x", holoRotX.toFixed(2) + "deg");
+    hologramInner.style.setProperty("--holo-y", holoRotY.toFixed(2) + "deg");
+  }
+  hologramStage.addEventListener("mousedown", function(e){
+    holoDragging = true;
+    hologramStage.classList.add("is-dragging");
     hologramInner.classList.add("is-tilting");
-    hologramInner.style.setProperty("--holo-x", rotX.toFixed(2) + "deg");
-    hologramInner.style.setProperty("--holo-y", rotY.toFixed(2) + "deg");
+    holoDragStartX = e.clientX;
+    holoDragStartY = e.clientY;
+    holoStartRotX = holoRotX;
+    holoStartRotY = holoRotY;
+    e.preventDefault();
   });
-  hologramStage.addEventListener("mouseleave", function(){
+  document.addEventListener("mousemove", function(e){
+    if (!holoDragging) return;
+    var dx = e.clientX - holoDragStartX;
+    var dy = e.clientY - holoDragStartY;
+    // Full freedom on Y (spin it all the way around to see the back);
+    // X stays clamped well short of vertical so it can't flip upside down.
+    holoRotY = holoStartRotY + dx * 0.4;
+    holoRotX = Math.max(-70, Math.min(70, holoStartRotX - dy * 0.4));
+    applyHologramRotation();
+  });
+  document.addEventListener("mouseup", function(){
+    if (!holoDragging) return;
+    holoDragging = false;
+    hologramStage.classList.remove("is-dragging");
     hologramInner.classList.remove("is-tilting");
-    hologramInner.style.setProperty("--holo-x", "6deg");
-    hologramInner.style.setProperty("--holo-y", "0deg");
   });
+  function resetHologramRotation(){
+    holoRotX = HOLOGRAM_DEFAULT_X;
+    holoRotY = HOLOGRAM_DEFAULT_Y;
+    hologramInner.classList.remove("is-tilting");
+    applyHologramRotation();
+  }
+  // Double-click to recenter if you spin it somewhere awkward.
+  hologramStage.addEventListener("dblclick", resetHologramRotation);
 
   document.querySelectorAll("[data-close-module]").forEach(function(btn){
     btn.addEventListener("click", function(e){
