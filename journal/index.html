@@ -106,14 +106,15 @@
   .account-row-icon-btn.delete:hover{ color:var(--red); }
   .account-row-icon-btn:disabled{ opacity:0.3; cursor:default; pointer-events:none; }
 
-  /* ---------- Trading-account VIEW filter (checkboxes; defaults to all) —
-     the ONE account control in the header. Ticking accounts here only
-     narrows what the Trades/Daily/Weekly/Strategy tabs and stat cards
-     display (same shared localStorage selection as the Dashboard and
-     Calendar filters); which account a trade is actually logged into is
-     chosen separately inside the trade modal (#tfAccountField). Account
-     management (rename/delete/create) lives in this same popover instead
-     of a second header button. ---------- */
+  /* ---------- Trading-account filter (checkboxes; defaults to all) — the
+     ONE account control in the header. It is BOTH the view filter (narrows
+     what the Trades/Daily/Weekly/Strategy tabs and stat cards display, same
+     shared localStorage selection as the Dashboard and Calendar filters)
+     AND the write target: adding a trade or importing a CSV writes into
+     whichever single account is checked here. With zero or more than one
+     account checked, those actions are blocked with a message asking for
+     exactly one. Account management (rename/delete/create) lives in this
+     same popover instead of a second header button. ---------- */
   .acct-filter{ position:relative; }
   #acctFilterBtn svg.chev{ width:11px; height:11px; margin-left:-1px; opacity:0.7; }
   #acctFilterLabel{ max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -982,13 +983,13 @@
           <span id="acctFilterLabel">All Accounts</span>
           <svg class="chev" viewBox="0 0 20 20"><path d="M5 8l5 5 5-5"/></svg>
         </button>
-        <!-- The one and only account control in the header: ticking accounts
-             here is purely a VIEW filter (what the Trades/Daily/Weekly/
-             Strategy tabs and stat cards display). Which account a trade
-             actually gets logged/saved into is chosen separately, inside
-             the "+ Add Trade" modal — see #tfAccountField. Account
-             management (rename/delete/create) lives in this same popover's
-             footer so there's no second header button for it. -->
+        <!-- The one and only account control in the header: it's both the
+             VIEW filter (what the Trades/Daily/Weekly/Strategy tabs and stat
+             cards display) AND the write target — exactly one account
+             checked here is where "+ Add Trade" and CSV import write to.
+             Zero or multiple checked blocks those actions with a message.
+             Account management (rename/delete/create) lives in this same
+             popover's footer so there's no second header button for it. -->
         <div class="acct-filter-popover" id="acctFilterPopover" hidden>
           <label class="acct-filter-row acct-filter-all-row">
             <input type="checkbox" id="acctFilterAll" />
@@ -1264,16 +1265,6 @@
       <span class="seg-thumb" aria-hidden="true"></span>
       <button type="button" class="active" data-mode="quick">Quick Log</button>
       <button type="button" data-mode="full">Log</button>
-    </div>
-
-    <!-- Which account this specific entry saves into — shown in both Quick
-         Log and Full Log, so it lives here rather than inside either of
-         their field-shuffling containers below. Separate from the header's
-         acct-filter, which only controls what's displayed, not where a new
-         trade is written. -->
-    <div class="field" id="tfAccountField">
-      <label>Select Account</label>
-      <ez-select id="tfAccount"></ez-select>
     </div>
 
     <!-- Symbol/Date/Side/P&L/Grade/Strategy are single shared elements, moved
@@ -1612,32 +1603,6 @@
   </div>
 </div>
 
-<div class="modal-overlay" id="csvImportModalOverlay" hidden>
-  <div class="modal" role="dialog" aria-modal="true">
-    <div class="modal-head">
-      <div class="modal-head-left">
-        <span class="modal-head-icon" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M10 13V3M6 7l4-4 4 4" /><path d="M4 16h12" /></svg></span>
-        <div>
-          <span class="modal-title">Import CSV</span>
-          <p class="modal-sub" id="csvImportModalSub">Choose which account these trades belong to.</p>
-        </div>
-      </div>
-      <button type="button" class="modal-close" id="csvImportModalClose" aria-label="Close">&times;</button>
-    </div>
-
-    <div class="field">
-      <label>Import Into Account</label>
-      <ez-select id="csvImportAccount"></ez-select>
-    </div>
-
-    <div class="trade-modal-foot">
-      <span class="spacer"></span>
-      <button type="button" class="ghost-btn" id="cancelCsvImportBtn">Cancel</button>
-      <button type="button" class="primary-btn" id="confirmCsvImportBtn">Import</button>
-    </div>
-  </div>
-</div>
-
 <div class="lightbox-overlay" id="lightboxOverlay" hidden>
   <img id="lightboxImg" alt="Trade screenshot" />
 </div>
@@ -1780,7 +1745,6 @@
   var cancelTradeBtn = document.getElementById("cancelTradeBtn");
   var saveTradeBtn = document.getElementById("saveTradeBtn");
   var deleteTradeBtn = document.getElementById("deleteTradeBtn");
-  var tfAccount = document.getElementById("tfAccount");
   var tfMarket = document.getElementById("tfMarket");
   var tfDate = document.getElementById("tfDate");
   var tfSymbol = document.getElementById("tfSymbol");
@@ -3154,8 +3118,8 @@
     return acc;
   }
   // Which account the open trade modal's strategy picker/library is scoped
-  // to — tracks whichever account is selected in #tfAccount while the
-  // modal is open, falling back to activeAccount() otherwise.
+  // to — set by openTradeModal when the modal opens, falling back to
+  // activeAccount() otherwise.
   function modalTargetAccount(){
     var acc = accounts.find(function(a){ return a.id === editingTradeAccountId; }) || activeAccount();
     if (acc && !Array.isArray(acc.strategies)) acc.strategies = [];
@@ -3254,6 +3218,18 @@
 
   function isAccountSelectedForView(id){
     return selectedAccountIds === null || selectedAccountIds.indexOf(id) !== -1;
+  }
+  // The header's account filter is the ONLY account control now: adding a
+  // trade or importing a CSV writes into whichever single account is
+  // currently checked there. Returns that account, or null when zero or
+  // more than one are checked (the caller should then block the action and
+  // ask for exactly one) — unless there's only one account total, which is
+  // always an unambiguous target regardless of the filter's state.
+  function resolveSingleTargetAccount(){
+    if (accounts.length === 1) return accounts[0];
+    var ids = selectedAccountIds === null ? accounts.map(function(a){ return a.id; }) : selectedAccountIds;
+    if (ids.length !== 1) return null;
+    return accounts.find(function(a){ return a.id === ids[0]; }) || null;
   }
   // Flattened, read-only view across every selected account — each trade is
   // tagged with which account it actually lives in, so edit/delete/share
@@ -3359,7 +3335,6 @@
         a.name = name.trim();
         save();
         renderAcctFilter();
-        renderTradeModalAccountOptions();
       }
       return;
     }
@@ -3386,7 +3361,6 @@
       save();
       renderAll();
       renderAcctFilter();
-      renderTradeModalAccountOptions();
       return;
     }
   });
@@ -3400,7 +3374,6 @@
     save();
     renderAll();
     renderAcctFilter();
-    renderTradeModalAccountOptions();
   });
   window.addEventListener("storage", function(e){
     if (e.key === ACCT_FILTER_STORAGE_KEY){ selectedAccountIds = loadAcctFilterSelection(); renderAcctFilter(); renderAll(); }
@@ -4597,28 +4570,15 @@
     }
   });
 
-  // Populates the modal's "Select Account" field from the current account
-  // list. Called whenever the account list itself changes (rename/delete/
-  // create) while the modal might reopen later, and every time the modal
-  // opens so it can't go stale.
-  function renderTradeModalAccountOptions(){
-    tfAccount.innerHTML = accounts.map(function(a){
-      return '<option value="' + escapeHtml(a.id) + '">' + escapeHtml(a.name) + '</option>';
-    }).join("");
-  }
-
-  // `account` is which account `trade` actually lives in — only matters
-  // when editing; defaults to the active account so every existing call
-  // site that doesn't pass one (adding a brand-new trade) keeps working
-  // unchanged. editingTradeAccountId tracks whichever account is selected
-  // in the modal's own field for as long as it's open (see the tfAccount
-  // change handler below), for both a new trade and an edit — not just
-  // edits — so modalTargetAccount() always has a live answer while open.
+  // `account` is which account this trade saves into — the account the
+  // trade actually lives in when editing, or the single account currently
+  // checked in the header filter when adding a new one (resolved by the
+  // caller; see resolveSingleTargetAccount). editingTradeAccountId mirrors
+  // it for as long as the modal is open, so modalTargetAccount() (used by
+  // the strategy picker/library) always has a live answer.
   function openTradeModal(trade, account){
     editingTradeId = trade ? trade.id : null;
-    renderTradeModalAccountOptions();
-    editingTradeAccountId = trade ? (account ? account.id : activeAccountId) : activeAccountId;
-    tfAccount.value = editingTradeAccountId;
+    editingTradeAccountId = account.id;
     originalImageIds = trade && Array.isArray(trade.imageIds) ? trade.imageIds.slice() : [];
     var draft = loadDraft(draftKeyFor(editingTradeId));
     var source = draft || trade || {};
@@ -4671,15 +4631,6 @@
     currentStrategyId = null;
     currentStrategyName = "";
   }
-  // Switching the target account mid-form drops any already-chosen
-  // strategy — it's scoped to the account it was picked from (see
-  // modalTargetAccount) and may not exist in the new one.
-  tfAccount.addEventListener("change", function(){
-    editingTradeAccountId = tfAccount.value;
-    currentStrategyId = null;
-    currentStrategyName = "";
-    renderStrategyPickerLabel();
-  });
   // Backdrop click: save as a draft, don't add/commit.
   function softCloseTradeModal(){
     saveDraftFor(draftKeyFor(editingTradeId), collectFormAsDraft());
@@ -4693,7 +4644,14 @@
     });
     closeTradeModal();
   }
-  addTradeBtn.addEventListener("click", function(){ openTradeModal(null); });
+  addTradeBtn.addEventListener("click", function(){
+    var target = resolveSingleTargetAccount();
+    if (!target){
+      alert("Select exactly one account above before adding a trade.");
+      return;
+    }
+    openTradeModal(null, target);
+  });
   headerShareBtn.addEventListener("click", function(){
     openShareModal({ date: todayStr() });
     sharePeriod = "daily";
@@ -4737,11 +4695,9 @@
     tfSymbol.style.borderColor = "";
     tfPnl.style.borderColor = "";
 
-    // Saves to whatever account is picked in the modal's own "Select
-    // Account" field — editingTradeAccountId tracks it live (see the
-    // tfAccount change handler). Explicitly choosing it there is what
-    // guarantees the entry lands in the right account regardless of how
-    // many are showing in the header's (purely read-only) VIEW filter.
+    // Saves into the account the modal was opened for — the single account
+    // checked in the header filter for a new trade, or the trade's own
+    // account when editing (see openTradeModal/editingTradeAccountId).
     var targetAccount = accounts.find(function(a){ return a.id === editingTradeAccountId; }) || activeAccount();
     var existing = editingTradeId ? (targetAccount.trades || []).find(function(t){ return t.id === editingTradeId; }) : null;
     var trade = {
@@ -4887,49 +4843,18 @@
     return "unknown";
   }
 
-  importCsvBtn.addEventListener("click", function(){ csvFileInput.click(); });
-
-  // ---------- CSV import account picker ----------
-  // Parsing used to write straight into the ambient `trades` (i.e.
-  // whichever account happened to be activeAccountId at that moment) with
-  // no explicit choice in the import flow itself — activeAccountId is set
-  // implicitly by whatever account a trade was last saved to via the
-  // modal, so from here it looked like CSV import "picked a random
-  // account." Parsing now only builds a plan (what WOULD be imported);
-  // nothing is written to any account until the user explicitly confirms
-  // a target in this modal, same as the modal's own "Select Account" field.
-  var csvImportModalOverlay = document.getElementById("csvImportModalOverlay");
-  var csvImportModalSub = document.getElementById("csvImportModalSub");
-  var csvImportAccountSelect = document.getElementById("csvImportAccount");
-  var csvImportModalClose = document.getElementById("csvImportModalClose");
-  var cancelCsvImportBtn = document.getElementById("cancelCsvImportBtn");
-  var confirmCsvImportBtn = document.getElementById("confirmCsvImportBtn");
-  var pendingCsvImportPlan = null;
-
-  function closeCsvImportModal(){
-    csvImportModalOverlay.hidden = true;
-    pendingCsvImportPlan = null;
-    csvFileInput.value = "";
-  }
-  csvImportModalClose.addEventListener("click", closeCsvImportModal);
-  cancelCsvImportBtn.addEventListener("click", closeCsvImportModal);
-  var csvImportMouseDownOnBackdrop = false;
-  csvImportModalOverlay.addEventListener("mousedown", function(e){ csvImportMouseDownOnBackdrop = e.target === csvImportModalOverlay; });
-  csvImportModalOverlay.addEventListener("click", function(e){
-    if (e.target === csvImportModalOverlay && csvImportMouseDownOnBackdrop) closeCsvImportModal();
-    csvImportMouseDownOnBackdrop = false;
+  // Importing writes into whichever single account is currently checked in
+  // the header filter — same rule as "+ Add Trade" (see
+  // resolveSingleTargetAccount). Checked before the file picker even opens,
+  // and re-checked once the file is parsed in case the filter changed
+  // while the picker was open.
+  importCsvBtn.addEventListener("click", function(){
+    if (!resolveSingleTargetAccount()){
+      alert("Select exactly one account above before importing a CSV.");
+      return;
+    }
+    csvFileInput.click();
   });
-
-  function openCsvImportModal(plan){
-    pendingCsvImportPlan = plan;
-    csvImportAccountSelect.innerHTML = accounts.map(function(a){
-      return '<option value="' + escapeHtml(a.id) + '">' + escapeHtml(a.name) + '</option>';
-    }).join("");
-    csvImportAccountSelect.value = activeAccountId;
-    var count = plan.kind === "rows" ? plan.newTrades.length : Object.keys(plan.byDay).length;
-    csvImportModalSub.textContent = "Found " + count + " " + (plan.kind === "rows" ? ("trade" + (count === 1 ? "" : "s")) : ("day" + (count === 1 ? "" : "s"))) + ". Choose which account to import into.";
-    csvImportModalOverlay.hidden = false;
-  }
 
   function commitCsvImport(plan, targetAccount){
     var imported = 0, updated = 0;
@@ -4978,15 +4903,6 @@
     if (summary.length) alert("Imported into \"" + targetAccount.name + "\": " + summary.join(", ") + ".");
     else alert("No valid rows found in that file.");
   }
-
-  confirmCsvImportBtn.addEventListener("click", function(){
-    if (!pendingCsvImportPlan) return;
-    var targetAccount = accounts.find(function(a){ return a.id === csvImportAccountSelect.value; }) || activeAccount();
-    var plan = pendingCsvImportPlan;
-    csvImportModalOverlay.hidden = true;
-    pendingCsvImportPlan = null;
-    commitCsvImport(plan, targetAccount);
-  });
 
   csvFileInput.addEventListener("change", function(){
     var file = csvFileInput.files && csvFileInput.files[0];
@@ -5114,7 +5030,13 @@
         alert("No valid rows found in that file.");
         return;
       }
-      openCsvImportModal(plan);
+      var targetAccount = resolveSingleTargetAccount();
+      if (!targetAccount){
+        csvFileInput.value = "";
+        alert("Select exactly one account above before importing a CSV.");
+        return;
+      }
+      commitCsvImport(plan, targetAccount);
     };
     reader.onerror = function(){ csvFileInput.value = ""; };
     reader.readAsText(file);
