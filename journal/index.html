@@ -208,8 +208,8 @@
   }
   #tradeModalOverlay .grade-tile.active{ box-shadow:0 0 14px rgba(50,98,246,0.4); }
   #tradeModalOverlay #saveTradeBtn{
-    background:linear-gradient(90deg, #ff8a3d, #00d2ff); border-color:transparent; color:#050811; font-weight:800;
-    box-shadow:0 0 18px rgba(0,210,255,0.35); transition:filter .15s, transform .1s;
+    background:linear-gradient(90deg, #0099ff, #00d2ff); border-color:transparent; color:#050811; font-weight:800;
+    box-shadow:0 0 15px rgba(0,210,255,0.4); transition:filter .15s, transform .1s;
   }
   #tradeModalOverlay #saveTradeBtn:hover{ filter:brightness(1.08); }
   #tradeModalOverlay #saveTradeBtn:active{ transform:scale(0.97); }
@@ -936,21 +936,24 @@
 <div id="journalListView">
   <div class="page-head">
     <div class="page-head-title-group">
-      <span class="page-head-icon" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M3 16.5V4M3 16.5H17" /><path d="m5.5 13 3-3.5 2.5 2 4-5" /></svg></span>
       <div>
         <h1>Journal</h1>
         <p class="page-head-sub">Your trading history, ready to review.</p>
       </div>
     </div>
     <div class="page-head-actions">
+      <button type="button" class="ghost-btn" id="headerShareBtn">
+        <svg viewBox="0 0 20 20"><circle cx="15" cy="4.5" r="2.4" /><circle cx="5" cy="10" r="2.4" /><circle cx="15" cy="15.5" r="2.4" /><line x1="7.1" y1="11.2" x2="12.9" y2="14.3" /><line x1="12.9" y1="5.7" x2="7.1" y2="8.8" /></svg>
+        + Share
+      </button>
       <button type="button" class="primary-btn" id="addTradeBtn">+ Add Trade</button>
       <button type="button" class="ghost-btn" id="importCsvBtn">
         <svg viewBox="0 0 20 20"><path d="M10 3v10M6 9l4 4 4-4" /><path d="M4 16h12" /></svg>
-        Import CSV
+        Upload
       </button>
       <button type="button" class="ghost-btn" id="exportCsvBtn">
         <svg viewBox="0 0 20 20"><path d="M10 13V3M6 7l4-4 4 4" /><path d="M4 16h12" /></svg>
-        Export CSV
+        Download
       </button>
       <div class="account-switcher" id="accountSwitcher">
         <button type="button" class="ghost-btn" id="accountSwitcherBtn">
@@ -965,10 +968,6 @@
           </div>
         </div>
       </div>
-      <button type="button" class="ghost-btn" id="helpBtn">
-        <svg viewBox="0 0 20 20"><path d="M6 4h9a1 1 0 0 1 1 1v11l-3-2H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" /><path d="M8 8h5M8 11h3" /></svg>
-        Help
-      </button>
     </div>
   </div>
 
@@ -1574,26 +1573,6 @@
   <img id="lightboxImg" alt="Trade screenshot" />
 </div>
 
-<div class="modal-overlay" id="helpModalOverlay" hidden>
-  <div class="modal" role="dialog" aria-modal="true">
-    <div class="modal-head">
-      <span class="modal-title">About the Journal</span>
-      <button type="button" class="modal-close" id="helpModalClose" aria-label="Close">&times;</button>
-    </div>
-    <div class="help-body">
-      <p>Log your <b>actual</b> trades here &mdash; symbol, side, and real dollar P&amp;L &mdash; separate from the Backtest page, which is for testing a strategy's edge with model/R:R/win-loss data.</p>
-      <p>Use the account switcher at the top to keep separate journals for separate funded accounts or prop firms. Each account has its own trade list, stats, and CSV export &mdash; switch any time, and <b>+ New account</b> to add another.</p>
-      <p>Click <b>+ Add Trade</b> to log one manually, or <b>Import CSV</b> to bulk-import from a broker export into the active account. P&amp;L is always the number you (or your broker export) enter &mdash; it's never auto-calculated from entry/exit, since that would need a per-instrument point value this page doesn't have.</p>
-      <p>The trade form opens in <b>Quick Log</b> &mdash; Symbol, Date, Side, P&amp;L, Grade, Strategy, and screenshots, with keyboard shortcuts (<span class="mono">L</span>/<span class="mono">S</span> for side, <span class="mono">1&ndash;5</span> for grade). Switch to <b>Log</b> for Market, Entry/Exit/Lots/Stop/Target, emotion tags, a title, and notes.</p>
-      <p>The <b>Strategy</b> field is a picker, not free text: describe a setup once (entry conditions, invalidation rules, min R:R) and quickly tag trades to it afterward, instead of retyping an inconsistent name each time. <b>+ New strategy</b> from the picker to create one.</p>
-      <p>Click <b>Show trade details</b> in Log mode to add Entry, Exit, Lots, Stop loss, and Take profit. Stop + Target feed the <b>Avg R:R</b> stat; P&amp;L feeds everything else, including <b>Profit Factor</b> (gross wins &divide; gross losses).</p>
-      <p>Click any row in All Trades to open it back up, tag how you felt, write notes, and attach up to 4 screenshots. Use the search box and <b>Filters</b> to narrow the list by symbol, side, market, outcome, or date, and the checkboxes to bulk-delete.</p>
-      <p>Trade numbers sync across devices when you're signed in. Screenshots are kept only in this browser and won't follow you to another device.</p>
-      <p><b>Daily</b> shows each day's trades as cards &mdash; grade, side, P&amp;L, screenshot, and a <b>Share</b> button, right in the list. <b>Weekly</b> and <b>Strategy</b> roll P&amp;L up by week or by the strategy tag you gave each trade.</p>
-    </div>
-  </div>
-</div>
-
 <script>
 (function(){
   "use strict";
@@ -1712,6 +1691,7 @@
   var filtersClearBtn = document.getElementById("filtersClear");
 
   var addTradeBtn = document.getElementById("addTradeBtn");
+  var headerShareBtn = document.getElementById("headerShareBtn");
   var importCsvBtn = document.getElementById("importCsvBtn");
   var exportCsvBtn = document.getElementById("exportCsvBtn");
   var csvFileInput = document.getElementById("csvFileInput");
@@ -1782,10 +1762,6 @@
 
   var lightboxOverlay = document.getElementById("lightboxOverlay");
   var lightboxImg = document.getElementById("lightboxImg");
-
-  var helpBtn = document.getElementById("helpBtn");
-  var helpModalOverlay = document.getElementById("helpModalOverlay");
-  var helpModalClose = document.getElementById("helpModalClose");
 
   // ---------- Helpers ----------
   function escapeHtml(s){
@@ -2332,48 +2308,6 @@
       ctx.fillRect(0, 0, w, h);
     }
   }
-  // Premium cyber-neon card frame: a glowing blue outer border plus small
-  // corner-bracket HUD accents, drawn once per frame on top of whatever card
-  // content was just rendered. Pure canvas — no DOM screenshot involved, so
-  // the glow/border always rides along into every Photo/GIF/Video export.
-  function roundRectPath(ctx, x, y, w, h, r){
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
-  }
-  function drawHudFrame(ctx, w, h){
-    var inset = 10, radius = 26;
-    ctx.save();
-    ctx.shadowColor = "rgba(59,130,246,0.85)";
-    ctx.shadowBlur = 22;
-    ctx.strokeStyle = "rgba(96,165,250,0.9)";
-    ctx.lineWidth = 2.5;
-    roundRectPath(ctx, inset, inset, w - inset * 2, h - inset * 2, radius);
-    ctx.stroke();
-    ctx.restore();
-
-    var arm = 22, bracketInset = inset + 10;
-    ctx.save();
-    ctx.strokeStyle = "rgba(147,197,253,0.95)";
-    ctx.lineWidth = 2;
-    ctx.lineCap = "round";
-    function bracket(x, y, dx, dy){
-      ctx.beginPath();
-      ctx.moveTo(x, y + dy * arm);
-      ctx.lineTo(x, y);
-      ctx.lineTo(x + dx * arm, y);
-      ctx.stroke();
-    }
-    bracket(bracketInset, bracketInset, 1, 1);
-    bracket(w - bracketInset, bracketInset, -1, 1);
-    bracket(bracketInset, h - bracketInset, 1, -1);
-    bracket(w - bracketInset, h - bracketInset, -1, -1);
-    ctx.restore();
-  }
   function hexToRgba(hex, alpha){
     hex = (hex || "#ffffff").replace("#", "");
     if (hex.length === 3) hex = hex.split("").map(function(c){ return c + c; }).join("");
@@ -2496,35 +2430,16 @@
       });
     });
   }
-  // Structural tag boxes: a thin bordered pill behind each watermark piece,
-  // instead of bare floating text — matches the HUD frame's crisp, boxed
-  // look rather than a plain caption.
-  function drawTagBox(ctx, text, x, y, align){
-    var font = "700 26px 'IBM Plex Mono', monospace";
-    ctx.font = font;
-    var textW = ctx.measureText(text).width;
-    var padX = 16, boxH = 42;
-    var boxW = textW + padX * 2;
-    var boxX = align === "right" ? x - boxW : x;
-    var boxY = y - boxH + 10;
-    ctx.save();
-    roundRectPath(ctx, boxX, boxY, boxW, boxH, 9);
-    ctx.fillStyle = "rgba(10,14,26,0.55)";
-    ctx.fill();
-    ctx.lineWidth = 1.2;
-    ctx.strokeStyle = "rgba(96,165,250,0.55)";
-    ctx.stroke();
-    ctx.restore();
-    ctx.textAlign = "left";
-    ctx.textBaseline = "alphabetic";
-    ctx.fillStyle = "rgba(255,255,255,0.92)";
-    ctx.fillText(text, boxX + padX, y);
-  }
   function drawCardFooter(ctx, w, h, pad){
     withLegibilityShadow(ctx, function(){
       var username = (window.EZAuth && EZAuth.getUsername()) || "trader";
-      drawTagBox(ctx, "@" + username, pad, h - pad, "left");
-      drawTagBox(ctx, "ezpayouts.xyz", w - pad, h - pad, "right");
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
+      ctx.font = "700 32px 'IBM Plex Mono', monospace";
+      ctx.fillStyle = "rgba(255,255,255,0.88)";
+      ctx.fillText("@" + username, pad, h - pad);
+      ctx.textAlign = "right";
+      ctx.fillText("ezpayouts.xyz", w - pad, h - pad);
     });
   }
   // Mini equity-curve line: points[0] is always the implicit $0 start.
@@ -2731,7 +2646,6 @@
     else if (sharePeriod === "weekly") drawWeeklyCard(ctx, w, h);
     else if (sharePeriod === "monthly") drawMonthlyCard(ctx, w, h);
     else drawTradeCard(ctx, w, h);
-    drawHudFrame(ctx, w, h);
   }
 
   function redrawShareCard(){
@@ -2919,6 +2833,26 @@
     a.remove();
     setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
   }
+  // Clipboard Media Copy Engine: try to put the exported blob straight on the
+  // clipboard so the user can paste it anywhere, no file dialog involved.
+  // Chromium's Clipboard API only actually accepts "image/png" — GIF and
+  // video blobs always reject, which is a real platform limit, not a bug —
+  // so this always falls back to a normal download when the write fails.
+  function copyBlobToClipboardOrDownload(blob, filename, downloadedLabel){
+    if (navigator.clipboard && window.ClipboardItem){
+      var item = {};
+      item[blob.type] = blob;
+      navigator.clipboard.write([ new ClipboardItem(item) ])
+        .then(function(){ showToast("✓ Copied to clipboard!"); })
+        .catch(function(){
+          downloadBlob(blob, filename);
+          showToast(downloadedLabel);
+        });
+    } else {
+      downloadBlob(blob, filename);
+      showToast(downloadedLabel);
+    }
+  }
   function setExportBusy(busy){
     [shareExportVideoBtn, shareExportGifBtn, shareExportPhotoBtn].forEach(function(b){ b.disabled = busy; });
   }
@@ -2954,8 +2888,7 @@
     shareForceFinalFrame = false;
     exportCanvas.toBlob(function(blob){
       if (!blob) return;
-      downloadBlob(blob, shareCardFileName("png"));
-      showToast("Photo downloaded (" + exportCanvas.width + "×" + exportCanvas.height + ")");
+      copyBlobToClipboardOrDownload(blob, shareCardFileName("png"), "Photo downloaded (" + exportCanvas.width + "×" + exportCanvas.height + ")");
     }, "image/png");
   });
 
@@ -3032,10 +2965,9 @@
       if (!wasAnimated) stopPreviewLoop();
       var blob = new Blob(chunks, { type: mimeType.split(";")[0] });
       var ext = mimeType.indexOf("mp4") !== -1 ? "mp4" : "webm";
-      downloadBlob(blob, shareCardFileName(ext));
+      copyBlobToClipboardOrDownload(blob, shareCardFileName(ext), "Video downloaded");
       setExportBusy(false);
       setButtonLabel(shareExportVideoBtn, "Video");
-      showToast("Video downloaded");
     };
     recorder.start(250);
     setTimeout(function(){ recorder.stop(); }, durationMs + 200);
@@ -3109,10 +3041,9 @@
         setButtonLabel(shareExportGifBtn, "Building " + Math.round(p * 100) + "%");
       });
       gif.on("finished", function(blob){
-        downloadBlob(blob, shareCardFileName("gif"));
+        copyBlobToClipboardOrDownload(blob, shareCardFileName("gif"), "GIF downloaded");
         setExportBusy(false);
         setButtonLabel(shareExportGifBtn, "GIF");
-        showToast("GIF downloaded");
       });
     }).catch(function(){
       setExportBusy(false);
@@ -4453,6 +4384,15 @@
     closeTradeModal();
   }
   addTradeBtn.addEventListener("click", function(){ openTradeModal(null); });
+  headerShareBtn.addEventListener("click", function(){
+    openShareModal({ date: todayStr() });
+    sharePeriod = "daily";
+    sharePeriodTabs.querySelectorAll("button[data-period]").forEach(function(b){
+      b.classList.toggle("active", b.getAttribute("data-period") === "daily");
+    });
+    layoutSegThumb(sharePeriodTabs, true);
+    updateShareModalSub();
+  });
   tradeModalClose.addEventListener("click", discardTradeModal);
   cancelTradeBtn.addEventListener("click", discardTradeModal);
 
@@ -4473,7 +4413,6 @@
     if (e.key !== "Escape") return;
     if (!lightboxOverlay.hidden){ lightboxOverlay.hidden = true; lightboxImg.src = ""; return; }
     if (!tradeModalOverlay.hidden) discardTradeModal();
-    if (!helpModalOverlay.hidden) helpModalOverlay.hidden = true;
     if (!accountPopover.hidden) accountPopover.hidden = true;
   });
 
@@ -4782,16 +4721,6 @@
     };
     reader.onerror = function(){ csvFileInput.value = ""; };
     reader.readAsText(file);
-  });
-
-  // ---------- Help modal ----------
-  helpBtn.addEventListener("click", function(){ helpModalOverlay.hidden = false; });
-  helpModalClose.addEventListener("click", function(){ helpModalOverlay.hidden = true; });
-  var helpModalMouseDownOnBackdrop = false;
-  helpModalOverlay.addEventListener("mousedown", function(e){ helpModalMouseDownOnBackdrop = e.target === helpModalOverlay; });
-  helpModalOverlay.addEventListener("click", function(e){
-    if (e.target === helpModalOverlay && helpModalMouseDownOnBackdrop) helpModalOverlay.hidden = true;
-    helpModalMouseDownOnBackdrop = false;
   });
 
   // ---------- Page-aware coach ----------

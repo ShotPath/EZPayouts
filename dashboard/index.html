@@ -207,7 +207,6 @@
 
   <div class="page-head">
     <div class="page-head-title-group">
-      <span class="page-head-icon" aria-hidden="true"><svg viewBox="0 0 20 20"><rect x="3" y="3" width="6.5" height="8" rx="1.3" /><rect x="10.5" y="3" width="6.5" height="5" rx="1.3" /><rect x="10.5" y="9.5" width="6.5" height="7.5" rx="1.3" /><rect x="3" y="12.5" width="6.5" height="4.5" rx="1.3" /></svg></span>
       <div>
         <h1>Dashboard</h1>
         <p class="page-head-sub">Your trading performance at a glance.</p>
@@ -498,16 +497,32 @@
   }
 
   // ---------- Render ----------
+  // Authentication Visibility Guard: signed-out viewers never see live
+  // account data, even if a browser happens to have local trades cached
+  // from a previous session — the dashboard renders the same pristine,
+  // data-free empty state a brand-new signed-out visitor would see.
+  function isSignedIn(){
+    return !!(window.EZAuth && EZAuth.isLoggedIn());
+  }
   function render(){
-    var selAccounts = selectedAccounts();
-    var allTrades = allFilteredTrades();
     var dashEmpty = document.getElementById("dashEmpty");
     var dashBody = document.getElementById("dashBody");
+
+    if (!isSignedIn()){
+      dashEmpty.hidden = false;
+      dashBody.hidden = true;
+      dashEmpty.innerHTML = '<p>Sign in to see your dashboard.</p><p>Your trades, P&amp;L, and account balances stay private until you do.</p>';
+      return;
+    }
+
+    var selAccounts = selectedAccounts();
+    var allTrades = allFilteredTrades();
 
     var totalAllTime = accounts.reduce(function(s, a){ return s + (a.trades ? a.trades.length : 0); }, 0);
     if (!totalAllTime){
       dashEmpty.hidden = false;
       dashBody.hidden = true;
+      dashEmpty.innerHTML = '<p>No trades logged yet.</p><p>Head to the <a href="/journal/">Journal</a> and log your first trade to see your dashboard come alive.</p>';
       return;
     }
     dashEmpty.hidden = true;
@@ -612,15 +627,23 @@
   // line, not another filtered view.
   var dashGreetingTitleEl = document.getElementById("dashGreetingTitle");
   var dashGreetingPillsEl = document.getElementById("dashGreetingPills");
+  // Dynamic, timezone-aware greeting: Date().getHours() always reads in the
+  // viewer's own local system timezone, not UTC, so this naturally follows
+  // whatever clock the browser is set to.
+  // Morning 5:00–11:59, Afternoon 12:00–17:59, Evening 18:00–4:59 (wraps past midnight).
   function timeOfDayGreeting(){
     var h = new Date().getHours();
-    if (h < 5) return "Good night";
-    if (h < 12) return "Good morning";
-    if (h < 18) return "Good afternoon";
+    if (h >= 5 && h < 12) return "Good morning";
+    if (h >= 12 && h < 18) return "Good afternoon";
     return "Good evening";
   }
   function renderGreeting(){
-    var name = (window.EZAuth && EZAuth.getUsername()) || null;
+    if (!isSignedIn()){
+      dashGreetingTitleEl.textContent = timeOfDayGreeting();
+      dashGreetingPillsEl.innerHTML = '<span class="dash-greeting-pill">Sign in to see your stats</span>';
+      return;
+    }
+    var name = EZAuth.getUsername() || null;
     dashGreetingTitleEl.textContent = timeOfDayGreeting() + (name ? ", " + name : "");
 
     var weekStart = rangeStart("week");
@@ -653,7 +676,7 @@
   rangeFilterEl.addEventListener("change", render);
   render();
   renderGreeting();
-  if (window.EZAuth) EZAuth.onChange(renderGreeting);
+  if (window.EZAuth) EZAuth.onChange(function(){ render(); renderGreeting(); });
 
   // Pick up changes made in Journal in another tab, or after returning to this tab.
   window.addEventListener("storage", function(e){

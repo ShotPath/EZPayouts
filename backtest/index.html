@@ -513,7 +513,6 @@
 
   <div class="page-head">
     <div class="page-head-title-group">
-      <span class="page-head-icon" aria-hidden="true"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" /><circle cx="10" cy="10" r="3.4" /><circle cx="10" cy="10" r="0.7" fill="currentColor" stroke="none" /></svg></span>
       <div>
         <h1>Backtest</h1>
         <p class="page-head-sub">Prove your edge before risking real money.</p>
@@ -522,11 +521,7 @@
     <div class="page-head-actions">
       <button class="ghost-btn" id="exportCsvBtn" type="button" hidden>
         <svg viewBox="0 0 20 20"><path d="M10 13V3M6 7l4-4 4 4" /><path d="M4 16h12" /></svg>
-        Export CSV
-      </button>
-      <button type="button" class="ghost-btn" id="helpBtn">
-        <svg viewBox="0 0 20 20"><path d="M6 4h9a1 1 0 0 1 1 1v11l-3-2H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" /><path d="M8 8h5M8 11h3" /></svg>
-        Help
+        Download
       </button>
     </div>
   </div>
@@ -692,24 +687,6 @@
 
 </div>
 
-<div class="modal-overlay" id="helpModalOverlay" hidden>
-  <div class="modal" role="dialog" aria-modal="true">
-    <div class="modal-head">
-      <span class="modal-title">About Backtest</span>
-      <button type="button" class="modal-close" id="helpModalClose" aria-label="Close">&times;</button>
-    </div>
-    <div class="help-body">
-      <p>This is for testing a strategy's theoretical edge &mdash; <b>Model</b> (your setup name), <b>Risk:Reward</b>, and <b>Win/BE/Loss</b> &mdash; separate from the Journal, which logs your actual trades with real dollar P&amp;L.</p>
-      <p>Risk:Reward accepts <span class="mono">1:2</span> or just <span class="mono">2</span>. A loss always counts as exactly &minus;1R; a win counts as whatever R you entered; breakeven counts as 0R.</p>
-      <p>Model, Risk:Reward, Result, an optional Grade, and an optional Note &mdash; with keyboard shortcuts (<span class="mono">W</span>/<span class="mono">B</span>/<span class="mono">L</span> for the result, <span class="mono">1&ndash;5</span> for grade).</p>
-      <p>Use the strategy tabs at the top to keep separate backtests for separate setups &mdash; up to 5. Double-click a tab to rename or delete it, or drag to reorder. <b>+ Strategy</b> adds another.</p>
-      <p><b>Analyze a chart screenshot</b> uses AI to read a chart image and fill in Model/Risk:Reward/Result for you to review and confirm &mdash; sign in to use it.</p>
-      <p><b>Net R</b> is your total R across all logged trades; <b>Avg R</b> is that divided by trade count (your expectancy per trade); <b>Profit Factor</b> is R won on wins &divide; R lost on losses.</p>
-      <p>Click the note icon on any row to attach notes, use the search box and Win/BE/Loss filter to narrow the list, and the checkboxes to bulk-delete.</p>
-    </div>
-  </div>
-</div>
-
 <script>
 (function(){
   "use strict";
@@ -734,10 +711,6 @@
   var bulkDeleteBtn = document.getElementById("bulkDeleteBtn");
   var strategyTabs = document.getElementById("strategyTabs");
   var strategyAddBtn = document.getElementById("strategyAddBtn");
-
-  var helpBtn = document.getElementById("helpBtn");
-  var helpModalOverlay = document.getElementById("helpModalOverlay");
-  var helpModalClose = document.getElementById("helpModalClose");
 
   var noteModalOverlay = document.getElementById("noteModalOverlay");
   var noteModalTitle = document.getElementById("noteModalTitle");
@@ -1409,7 +1382,7 @@
   // W/B/L select a result, 1-5 select a grade — only while focus isn't inside
   // a text field and no modal is open, so typing "Loss" in Notes never fires it.
   document.addEventListener("keydown", function(e){
-    if (!noteModalOverlay.hidden || !helpModalOverlay.hidden) return;
+    if (!noteModalOverlay.hidden) return;
     var tag = e.target.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
     var key = e.key.toLowerCase();
@@ -1489,17 +1462,6 @@
   });
   document.addEventListener("keydown", function(e){
     if (e.key === "Escape" && !noteModalOverlay.hidden) closeNoteModal();
-    if (e.key === "Escape" && !helpModalOverlay.hidden) helpModalOverlay.hidden = true;
-  });
-
-  // ---------- Help modal ----------
-  helpBtn.addEventListener("click", function(){ helpModalOverlay.hidden = false; });
-  helpModalClose.addEventListener("click", function(){ helpModalOverlay.hidden = true; });
-  var helpModalMouseDownOnBackdrop = false;
-  helpModalOverlay.addEventListener("mousedown", function(e){ helpModalMouseDownOnBackdrop = e.target === helpModalOverlay; });
-  helpModalOverlay.addEventListener("click", function(e){
-    if (e.target === helpModalOverlay && helpModalMouseDownOnBackdrop) helpModalOverlay.hidden = true;
-    helpModalMouseDownOnBackdrop = false;
   });
 
   // Downscales/re-encodes the picked file client-side before it ever leaves
