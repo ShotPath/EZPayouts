@@ -117,12 +117,18 @@
     gap:10px; margin:0 0 24px;
   }
   .strategy-tabs{
-    display:inline-flex; align-items:stretch; max-width:100%; min-width:0; overflow-x:auto;
+    display:inline-flex; flex-wrap:nowrap; align-items:stretch; max-width:100%; min-width:0; overflow-x:auto;
     border-radius:999px; border:1px solid var(--hairline-bright); background:var(--panel-raised);
+    /* Hide the default scrollbar — this row scrolls on overflow (many
+       strategies) rather than squeezing tabs down to unreadable widths,
+       so the scroll affordance should read as part of the pill, not a
+       bolted-on browser control. */
+    scrollbar-width:none; -ms-overflow-style:none; -webkit-overflow-scrolling:touch;
   }
-  .strategy-tabs .seg-thumb{ border-radius:999px; }
+  .strategy-tabs::-webkit-scrollbar{ display:none; }
+  .strategy-tabs .seg-thumb{ border-radius:999px; box-shadow:0 0 16px -3px var(--phosphor-glow); }
   .strategy-tabs button{
-    display:inline-flex; align-items:center; gap:6px;
+    display:inline-flex; align-items:center; gap:6px; flex:none;
     font-family:var(--font-mono); font-size:12px; font-weight:700; padding:9px 16px;
     background:transparent; border:none; color:var(--muted); cursor:pointer; white-space:nowrap;
     transition:color .15s;

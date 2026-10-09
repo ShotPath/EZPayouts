@@ -94,28 +94,8 @@
   .page-head-sub{ margin:4px 0 0; font-size:13px; color:var(--muted); }
   .page-head-actions{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 
-  /* ---------- Account switcher ---------- */
-  .account-switcher{ position:relative; }
-  #accountSwitcherBtn svg.chev{ width:11px; height:11px; margin-left:-1px; opacity:0.7; }
-  #accountSwitcherLabel{ max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .account-popover{
-    position:absolute; top:calc(100% + 8px); right:0; z-index:60; width:240px;
-    background:var(--panel-raised); border:1px solid var(--hairline-bright); border-radius:14px;
-    padding:8px; box-shadow:0 20px 44px -18px rgba(0,0,0,0.65);
-  }
-  .account-popover[hidden]{ display:none; }
-  .account-list{ max-height:260px; overflow-y:auto; }
-  .account-row{ display:flex; align-items:stretch; gap:4px; border-radius:10px; }
-  .account-row + .account-row{ margin-top:2px; }
-  .account-row.active{ background:var(--panel-hi); }
-  .account-row-main{
-    flex:1; min-width:0; display:flex; flex-direction:column; align-items:flex-start; gap:2px;
-    background:transparent; border:none; padding:9px 10px; cursor:pointer; text-align:left; border-radius:8px;
-  }
-  .account-row-main:hover{ background:var(--panel-hi); }
-  .account-row-name{ font-family:var(--font-display); font-weight:600; font-size:13px; color:var(--ice); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:140px; }
-  .account-row.active .account-row-name{ color:var(--phosphor-soft); }
-  .account-row-sub{ font-family:var(--font-mono); font-size:10px; color:var(--muted); }
+  /* ---------- Account management icon buttons (rename/delete), used
+     inside the acct-filter popover rows below ---------- */
   .account-row-icon-btn{
     flex:none; width:30px; border-radius:8px; padding:0; margin:4px 0; cursor:pointer;
     background:transparent; border:none; color:var(--muted); display:flex; align-items:center; justify-content:center;
@@ -125,19 +105,20 @@
   .account-row-icon-btn:hover{ background:var(--panel-hi); color:var(--ice); }
   .account-row-icon-btn.delete:hover{ color:var(--red); }
   .account-row-icon-btn:disabled{ opacity:0.3; cursor:default; pointer-events:none; }
-  .account-popover-foot{ margin-top:6px; padding-top:8px; border-top:1px solid var(--hairline); }
-  .account-popover-foot .ghost-btn{ width:100%; justify-content:center; }
 
   /* ---------- Trading-account VIEW filter (checkboxes; defaults to all) —
-     distinct from .account-switcher above, which picks the single account
-     new/edited trades are saved into. This one only narrows what the
-     Trades/Daily/Weekly/Strategy tabs and stat cards display. Same shared
-     localStorage selection as the Dashboard and Calendar filters. ---------- */
+     the ONE account control in the header. Ticking accounts here only
+     narrows what the Trades/Daily/Weekly/Strategy tabs and stat cards
+     display (same shared localStorage selection as the Dashboard and
+     Calendar filters); which account a trade is actually logged into is
+     chosen separately inside the trade modal (#tfAccountField). Account
+     management (rename/delete/create) lives in this same popover instead
+     of a second header button. ---------- */
   .acct-filter{ position:relative; }
   #acctFilterBtn svg.chev{ width:11px; height:11px; margin-left:-1px; opacity:0.7; }
   #acctFilterLabel{ max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .acct-filter-popover{
-    position:absolute; top:calc(100% + 8px); right:0; z-index:60; width:230px;
+    position:absolute; top:calc(100% + 8px); right:0; z-index:60; width:250px;
     background:var(--panel-raised); border:1px solid var(--hairline-bright); border-radius:14px;
     padding:8px; box-shadow:0 20px 44px -18px rgba(0,0,0,0.65);
   }
@@ -153,6 +134,14 @@
   .acct-filter-list{ max-height:240px; overflow-y:auto; }
   .acct-filter-empty{ padding:10px; font-size:12px; color:var(--muted); text-align:center; }
   .acct-filter-count{ margin-left:auto; font-family:var(--font-mono); font-size:10px; color:var(--muted); flex:none; }
+  /* Each row pairs the checkbox label with rename/delete icon buttons —
+     kept as siblings rather than nested inside the <label> so clicking an
+     icon button doesn't also toggle the checkbox underneath it. */
+  .acct-filter-row-wrap{ display:flex; align-items:stretch; gap:2px; }
+  .acct-filter-row-wrap + .acct-filter-row-wrap{ margin-top:2px; }
+  .acct-filter-row-wrap .acct-filter-row{ flex:1; min-width:0; }
+  .acct-filter-foot{ margin-top:6px; padding-top:8px; border-top:1px solid var(--hairline); }
+  .acct-filter-foot .ghost-btn{ width:100%; justify-content:center; }
 
   .ghost-btn{
     display:inline-flex; align-items:center; gap:7px;
@@ -199,18 +188,16 @@
     box-shadow:0 0 10px rgba(0,0,0,0.5); transition:border-color .15s, color .15s, box-shadow .15s;
   }
   .page-head-actions .ghost-btn:hover{ border-color:#3262f6; color:#fff; box-shadow:0 0 12px rgba(50,98,246,0.25); background:#0d1122; }
-  .page-head-actions #accountSwitcherBtn{ border-color:#202b54; box-shadow:0 0 15px rgba(50,98,246,0.2); }
-  .page-head-actions #accountSwitcherBtn:hover{ border-color:#3262f6; }
-  .account-popover{
+  .page-head-actions #acctFilterBtn{ border-color:#202b54; box-shadow:0 0 15px rgba(50,98,246,0.2); }
+  .page-head-actions #acctFilterBtn:hover{ border-color:#3262f6; }
+  .acct-filter-popover{
     background:rgba(9,13,24,0.95); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
     border-color:#26356e; box-shadow:0 10px 30px rgba(50,98,246,0.25);
   }
-  .account-row.active{ background:#141d3a; box-shadow:inset 0 0 0 1px rgba(50,98,246,0.4); }
-  .account-row.active .account-row-name{ color:#fff; }
-  .account-popover-foot .ghost-btn{
+  .acct-filter-foot .ghost-btn{
     background:#0d1329; border-color:#1f2d61; color:#3262f6; font-weight:700;
   }
-  .account-popover-foot .ghost-btn:hover{ background:#121b3a; color:#527eff; border-color:#3262f6; }
+  .acct-filter-foot .ghost-btn:hover{ background:#121b3a; color:#527eff; border-color:#3262f6; }
 
   /* ---------- Log a Trade modal: cyber-luminescent restyle ----------
      Scoped to #tradeModalOverlay only — the Share/Strategy/Help/Filters
@@ -995,6 +982,13 @@
           <span id="acctFilterLabel">All Accounts</span>
           <svg class="chev" viewBox="0 0 20 20"><path d="M5 8l5 5 5-5"/></svg>
         </button>
+        <!-- The one and only account control in the header: ticking accounts
+             here is purely a VIEW filter (what the Trades/Daily/Weekly/
+             Strategy tabs and stat cards display). Which account a trade
+             actually gets logged/saved into is chosen separately, inside
+             the "+ Add Trade" modal — see #tfAccountField. Account
+             management (rename/delete/create) lives in this same popover's
+             footer so there's no second header button for it. -->
         <div class="acct-filter-popover" id="acctFilterPopover" hidden>
           <label class="acct-filter-row acct-filter-all-row">
             <input type="checkbox" id="acctFilterAll" />
@@ -1002,17 +996,7 @@
           </label>
           <div class="acct-filter-divider"></div>
           <div class="acct-filter-list" id="acctFilterList"></div>
-        </div>
-      </div>
-      <div class="account-switcher" id="accountSwitcher">
-        <button type="button" class="ghost-btn" id="accountSwitcherBtn">
-          <svg viewBox="0 0 20 20"><path d="M4 16v-1a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v1" /><circle cx="10" cy="6.5" r="3" /></svg>
-          <span id="accountSwitcherLabel">Account</span>
-          <svg viewBox="0 0 20 20" class="chev"><path d="M6 8l4 4 4-4" /></svg>
-        </button>
-        <div class="account-popover" id="accountPopover" hidden>
-          <div class="account-list" id="accountList"></div>
-          <div class="account-popover-foot">
+          <div class="acct-filter-foot">
             <button type="button" class="ghost-btn" id="newAccountBtn">+ New account</button>
           </div>
         </div>
@@ -1280,6 +1264,16 @@
       <span class="seg-thumb" aria-hidden="true"></span>
       <button type="button" class="active" data-mode="quick">Quick Log</button>
       <button type="button" data-mode="full">Log</button>
+    </div>
+
+    <!-- Which account this specific entry saves into — shown in both Quick
+         Log and Full Log, so it lives here rather than inside either of
+         their field-shuffling containers below. Separate from the header's
+         acct-filter, which only controls what's displayed, not where a new
+         trade is written. -->
+    <div class="field" id="tfAccountField">
+      <label>Select Account</label>
+      <ez-select id="tfAccount"></ez-select>
     </div>
 
     <!-- Symbol/Date/Side/P&L/Grade/Strategy are single shared elements, moved
@@ -1734,10 +1728,6 @@
   var bulkBarLabel = document.getElementById("bulkBarLabel");
   var bulkDeleteBtn = document.getElementById("bulkDeleteBtn");
 
-  var accountSwitcherBtn = document.getElementById("accountSwitcherBtn");
-  var accountSwitcherLabel = document.getElementById("accountSwitcherLabel");
-  var accountPopover = document.getElementById("accountPopover");
-  var accountListEl = document.getElementById("accountList");
   var newAccountBtn = document.getElementById("newAccountBtn");
 
   var filtersBtn = document.getElementById("filtersBtn");
@@ -1764,6 +1754,7 @@
   var cancelTradeBtn = document.getElementById("cancelTradeBtn");
   var saveTradeBtn = document.getElementById("saveTradeBtn");
   var deleteTradeBtn = document.getElementById("deleteTradeBtn");
+  var tfAccount = document.getElementById("tfAccount");
   var tfMarket = document.getElementById("tfMarket");
   var tfDate = document.getElementById("tfDate");
   var tfSymbol = document.getElementById("tfSymbol");
@@ -3136,6 +3127,14 @@
     if (acc && !Array.isArray(acc.strategies)) acc.strategies = [];
     return acc;
   }
+  // Which account the open trade modal's strategy picker/library is scoped
+  // to — tracks whichever account is selected in #tfAccount while the
+  // modal is open, falling back to activeAccount() otherwise.
+  function modalTargetAccount(){
+    var acc = accounts.find(function(a){ return a.id === editingTradeAccountId; }) || activeAccount();
+    if (acc && !Array.isArray(acc.strategies)) acc.strategies = [];
+    return acc;
+  }
   // Legacy saves stored a single flat { trades: [...] } with no account
   // concept — fold that into one "Main" account under a stable id so a
   // first sync between an old local save and an old remote save converges
@@ -3187,105 +3186,16 @@
         trades = activeAccount().trades;
         save();
         renderAll();
-        renderAccountSwitcher();
+        renderAcctFilter();
         return;
       }
       if (totalTradeCount()) EZAuth.saveData({ journal: { accounts: accounts, activeAccountId: activeAccountId } });
     });
   }
 
-  // ---------- Account switcher UI ----------
   function slugify(s){
     return String(s).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "account";
   }
-  function renderAccountSwitcher(){
-    var active = activeAccount();
-    accountSwitcherLabel.textContent = active.name;
-    accountListEl.innerHTML = accounts.map(function(a){
-      var count = a.trades ? a.trades.length : 0;
-      return '<div class="account-row' + (a.id === activeAccountId ? " active" : "") + '">' +
-        '<button type="button" class="account-row-main" data-id="' + a.id + '">' +
-          '<span class="account-row-name">' + escapeHtml(a.name) + '</span>' +
-          '<span class="account-row-sub">' + count + ' trade' + (count === 1 ? "" : "s") + '</span>' +
-        '</button>' +
-        '<button type="button" class="account-row-icon-btn rename" data-id="' + a.id + '" aria-label="Rename account">' +
-          '<svg viewBox="0 0 20 20"><path d="M13.5 3.5l3 3L7 16l-4 1 1-4z" /></svg>' +
-        '</button>' +
-        '<button type="button" class="account-row-icon-btn delete" data-id="' + a.id + '" aria-label="Delete account"' + (accounts.length <= 1 ? " disabled" : "") + '>' +
-          '<svg viewBox="0 0 20 20"><path d="M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10" /></svg>' +
-        '</button>' +
-      '</div>';
-    }).join("");
-    renderAcctFilter();
-  }
-  function switchAccount(id){
-    if (id === activeAccountId) return;
-    activeAccountId = id;
-    trades = activeAccount().trades;
-    selectedTradeIds = {};
-    save();
-    renderAll();
-    renderAccountSwitcher();
-  }
-  accountSwitcherBtn.addEventListener("click", function(e){
-    e.stopPropagation();
-    accountPopover.hidden = !accountPopover.hidden;
-  });
-  document.addEventListener("click", function(e){
-    if (!accountPopover.hidden && !e.target.closest(".account-switcher")) accountPopover.hidden = true;
-  });
-  accountListEl.addEventListener("click", function(e){
-    var renameBtn = e.target.closest(".account-row-icon-btn.rename");
-    var deleteBtn = e.target.closest(".account-row-icon-btn.delete");
-    var mainBtn = e.target.closest(".account-row-main");
-    if (renameBtn){
-      var a = accounts.find(function(x){ return x.id === renameBtn.getAttribute("data-id"); });
-      if (!a) return;
-      var name = window.prompt("Rename account", a.name);
-      if (name && name.trim()){
-        a.name = name.trim();
-        save();
-        renderAccountSwitcher();
-      }
-      return;
-    }
-    if (deleteBtn){
-      if (accounts.length <= 1) return;
-      var id = deleteBtn.getAttribute("data-id");
-      var acc = accounts.find(function(x){ return x.id === id; });
-      if (!acc) return;
-      var count = acc.trades ? acc.trades.length : 0;
-      if (!window.confirm("Delete \"" + acc.name + "\"" + (count ? " and its " + count + " trade" + (count === 1 ? "" : "s") : "") + "? This can't be undone.")) return;
-      (acc.trades || []).forEach(function(t){
-        if (Array.isArray(t.imageIds)) t.imageIds.forEach(deleteImage);
-      });
-      accounts = accounts.filter(function(x){ return x.id !== id; });
-      if (activeAccountId === id){
-        activeAccountId = accounts[0].id;
-        trades = activeAccount().trades;
-      }
-      save();
-      renderAll();
-      renderAccountSwitcher();
-      return;
-    }
-    if (mainBtn){
-      switchAccount(mainBtn.getAttribute("data-id"));
-      accountPopover.hidden = true;
-    }
-  });
-  newAccountBtn.addEventListener("click", function(){
-    var name = window.prompt("Name for the new account", "Account " + (accounts.length + 1));
-    if (!name || !name.trim()) return;
-    var acc = { id: newAccountId(), name: name.trim(), trades: [] };
-    accounts.push(acc);
-    activeAccountId = acc.id;
-    trades = activeAccount().trades;
-    save();
-    renderAll();
-    renderAccountSwitcher();
-    accountPopover.hidden = true;
-  });
 
   // ---------- Trading-account VIEW filter (checkboxes; defaults to all) ----------
   // Separate from the account switcher above: that one picks where NEW/
@@ -3352,9 +3262,17 @@
     acctFilterListEl.innerHTML = accounts.map(function(a){
       var checked = isAccountSelectedForView(a.id);
       var count = a.trades ? a.trades.length : 0;
-      return '<label class="acct-filter-row"><input type="checkbox" data-id="' + escapeHtml(a.id) + '"' + (checked ? " checked" : "") + ' />' +
-        '<span>' + escapeHtml(a.name) + '</span>' +
-        '<span class="acct-filter-count">' + count + '</span></label>';
+      return '<div class="acct-filter-row-wrap">' +
+        '<label class="acct-filter-row"><input type="checkbox" data-id="' + escapeHtml(a.id) + '"' + (checked ? " checked" : "") + ' />' +
+          '<span>' + escapeHtml(a.name) + '</span>' +
+          '<span class="acct-filter-count">' + count + '</span></label>' +
+        '<button type="button" class="account-row-icon-btn rename" data-id="' + escapeHtml(a.id) + '" aria-label="Rename account">' +
+          '<svg viewBox="0 0 20 20"><path d="M13.5 3.5l3 3L7 16l-4 1 1-4z" /></svg>' +
+        '</button>' +
+        '<button type="button" class="account-row-icon-btn delete" data-id="' + escapeHtml(a.id) + '" aria-label="Delete account"' + (accounts.length <= 1 ? " disabled" : "") + '>' +
+          '<svg viewBox="0 0 20 20"><path d="M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10" /></svg>' +
+        '</button>' +
+      '</div>';
     }).join("");
     var selectedCount = accounts.filter(function(a){ return isAccountSelectedForView(a.id); }).length;
     var allChecked = selectedCount === accounts.length;
@@ -3399,6 +3317,64 @@
     saveAcctFilterSelection(selectedAccountIds);
     renderAcctFilter();
     renderAll();
+  });
+  // Account management (rename/delete) lives in this same popover rather
+  // than a separate header button — the icon buttons sit beside each
+  // checkbox row (see renderAcctFilter above), not inside its <label>, so
+  // clicking one doesn't also toggle the view-filter checkbox under it.
+  acctFilterListEl.addEventListener("click", function(e){
+    var renameBtn = e.target.closest(".account-row-icon-btn.rename");
+    var deleteBtn = e.target.closest(".account-row-icon-btn.delete");
+    if (renameBtn){
+      var a = accounts.find(function(x){ return x.id === renameBtn.getAttribute("data-id"); });
+      if (!a) return;
+      var name = window.prompt("Rename account", a.name);
+      if (name && name.trim()){
+        a.name = name.trim();
+        save();
+        renderAcctFilter();
+        renderTradeModalAccountOptions();
+      }
+      return;
+    }
+    if (deleteBtn){
+      if (accounts.length <= 1) return;
+      var id = deleteBtn.getAttribute("data-id");
+      var acc = accounts.find(function(x){ return x.id === id; });
+      if (!acc) return;
+      var count = acc.trades ? acc.trades.length : 0;
+      if (!window.confirm("Delete \"" + acc.name + "\"" + (count ? " and its " + count + " trade" + (count === 1 ? "" : "s") : "") + "? This can't be undone.")) return;
+      (acc.trades || []).forEach(function(t){
+        if (Array.isArray(t.imageIds)) t.imageIds.forEach(deleteImage);
+      });
+      accounts = accounts.filter(function(x){ return x.id !== id; });
+      if (selectedAccountIds !== null){
+        selectedAccountIds = selectedAccountIds.filter(function(x){ return x !== id; });
+        if (selectedAccountIds.length === accounts.length) selectedAccountIds = null;
+        saveAcctFilterSelection(selectedAccountIds);
+      }
+      if (activeAccountId === id){
+        activeAccountId = accounts[0].id;
+        trades = activeAccount().trades;
+      }
+      save();
+      renderAll();
+      renderAcctFilter();
+      renderTradeModalAccountOptions();
+      return;
+    }
+  });
+  newAccountBtn.addEventListener("click", function(){
+    var name = window.prompt("Name for the new account", "Account " + (accounts.length + 1));
+    if (!name || !name.trim()) return;
+    var acc = { id: newAccountId(), name: name.trim(), trades: [] };
+    accounts.push(acc);
+    activeAccountId = acc.id;
+    trades = activeAccount().trades;
+    save();
+    renderAll();
+    renderAcctFilter();
+    renderTradeModalAccountOptions();
   });
   window.addEventListener("storage", function(e){
     if (e.key === ACCT_FILTER_STORAGE_KEY){ selectedAccountIds = loadAcctFilterSelection(); renderAcctFilter(); renderAll(); }
@@ -4034,7 +4010,7 @@
     saveAcctFilterSelection(null);
     try { localStorage.removeItem(STORAGE_KEY); } catch (err) {}
     renderAll();
-    renderAccountSwitcher();
+    renderAcctFilter();
   }
 
   // ---------- Tabs ----------
@@ -4192,11 +4168,11 @@
   }
   function renderStrategyPopoverList(){
     var query = strategySearchInput.value.trim().toLowerCase();
-    var list = activeAccount().strategies.filter(function(s){
+    var list = modalTargetAccount().strategies.filter(function(s){
       return !query || s.name.toLowerCase().indexOf(query) !== -1 || (s.shortcut || "").toLowerCase().indexOf(query) !== -1;
     });
     if (!list.length){
-      strategyPopoverList.innerHTML = '<p class="strategy-popover-empty">' + (activeAccount().strategies.length ? "No matches." : "No strategies yet.") + '</p>';
+      strategyPopoverList.innerHTML = '<p class="strategy-popover-empty">' + (modalTargetAccount().strategies.length ? "No matches." : "No strategies yet.") + '</p>';
       return;
     }
     strategyPopoverList.innerHTML = list.map(function(s){
@@ -4234,14 +4210,14 @@
   strategyPopoverList.addEventListener("click", function(e){
     var editBtn = e.target.closest(".strategy-row-edit");
     if (editBtn){
-      var s = activeAccount().strategies.find(function(x){ return x.id === editBtn.getAttribute("data-id"); });
+      var s = modalTargetAccount().strategies.find(function(x){ return x.id === editBtn.getAttribute("data-id"); });
       closeStrategyPopover();
       if (s) openStrategyBuilder(s);
       return;
     }
     var mainBtn = e.target.closest(".strategy-row-main");
     if (mainBtn){
-      var strat = activeAccount().strategies.find(function(x){ return x.id === mainBtn.getAttribute("data-id"); });
+      var strat = modalTargetAccount().strategies.find(function(x){ return x.id === mainBtn.getAttribute("data-id"); });
       if (strat) selectStrategy(strat);
     }
   });
@@ -4296,7 +4272,7 @@
       notes: stNotes.value.trim(),
       createdAt: Date.now()
     };
-    var acc = activeAccount();
+    var acc = modalTargetAccount();
     if (editingStrategyId) acc.strategies = acc.strategies.map(function(s){ return s.id === editingStrategyId ? strat : s; });
     else acc.strategies.push(strat);
     save();
@@ -4306,7 +4282,7 @@
   deleteStrategyBtn.addEventListener("click", function(){
     if (!editingStrategyId) return;
     if (!window.confirm("Delete this strategy? Trades already logged with it keep their strategy name as plain text.")) return;
-    var acc = activeAccount();
+    var acc = modalTargetAccount();
     acc.strategies = acc.strategies.filter(function(s){ return s.id !== editingStrategyId; });
     if (currentStrategyId === editingStrategyId){
       currentStrategyId = null;
@@ -4595,13 +4571,28 @@
     }
   });
 
+  // Populates the modal's "Select Account" field from the current account
+  // list. Called whenever the account list itself changes (rename/delete/
+  // create) while the modal might reopen later, and every time the modal
+  // opens so it can't go stale.
+  function renderTradeModalAccountOptions(){
+    tfAccount.innerHTML = accounts.map(function(a){
+      return '<option value="' + escapeHtml(a.id) + '">' + escapeHtml(a.name) + '</option>';
+    }).join("");
+  }
+
   // `account` is which account `trade` actually lives in — only matters
-  // when editing (a new trade always saves to activeAccountId); defaults to
-  // the active account so every existing call site that doesn't pass one
-  // (adding a brand-new trade) keeps working unchanged.
+  // when editing; defaults to the active account so every existing call
+  // site that doesn't pass one (adding a brand-new trade) keeps working
+  // unchanged. editingTradeAccountId tracks whichever account is selected
+  // in the modal's own field for as long as it's open (see the tfAccount
+  // change handler below), for both a new trade and an edit — not just
+  // edits — so modalTargetAccount() always has a live answer while open.
   function openTradeModal(trade, account){
     editingTradeId = trade ? trade.id : null;
-    editingTradeAccountId = trade ? (account ? account.id : activeAccountId) : null;
+    renderTradeModalAccountOptions();
+    editingTradeAccountId = trade ? (account ? account.id : activeAccountId) : activeAccountId;
+    tfAccount.value = editingTradeAccountId;
     originalImageIds = trade && Array.isArray(trade.imageIds) ? trade.imageIds.slice() : [];
     var draft = loadDraft(draftKeyFor(editingTradeId));
     var source = draft || trade || {};
@@ -4654,6 +4645,15 @@
     currentStrategyId = null;
     currentStrategyName = "";
   }
+  // Switching the target account mid-form drops any already-chosen
+  // strategy — it's scoped to the account it was picked from (see
+  // modalTargetAccount) and may not exist in the new one.
+  tfAccount.addEventListener("change", function(){
+    editingTradeAccountId = tfAccount.value;
+    currentStrategyId = null;
+    currentStrategyName = "";
+    renderStrategyPickerLabel();
+  });
   // Backdrop click: save as a draft, don't add/commit.
   function softCloseTradeModal(){
     saveDraftFor(draftKeyFor(editingTradeId), collectFormAsDraft());
@@ -4697,7 +4697,7 @@
     if (e.key !== "Escape") return;
     if (!lightboxOverlay.hidden){ lightboxOverlay.hidden = true; lightboxImg.src = ""; return; }
     if (!tradeModalOverlay.hidden) discardTradeModal();
-    if (!accountPopover.hidden) accountPopover.hidden = true;
+    if (!acctFilterPopover.hidden) acctFilterPopover.hidden = true;
   });
 
   saveTradeBtn.addEventListener("click", function(){
@@ -4711,12 +4711,12 @@
     tfSymbol.style.borderColor = "";
     tfPnl.style.borderColor = "";
 
-    // A new trade always saves to the active account; an edit writes back
-    // to whichever account it actually came from (may differ from the
-    // active account when it was opened via the aggregate VIEW filter).
-    var targetAccount = editingTradeId
-      ? (accounts.find(function(a){ return a.id === editingTradeAccountId; }) || activeAccount())
-      : activeAccount();
+    // Saves to whatever account is picked in the modal's own "Select
+    // Account" field — editingTradeAccountId tracks it live (see the
+    // tfAccount change handler). Explicitly choosing it there is what
+    // guarantees the entry lands in the right account regardless of how
+    // many are showing in the header's (purely read-only) VIEW filter.
+    var targetAccount = accounts.find(function(a){ return a.id === editingTradeAccountId; }) || activeAccount();
     var existing = editingTradeId ? (targetAccount.trades || []).find(function(t){ return t.id === editingTradeId; }) : null;
     var trade = {
       id: editingTradeId || ("t_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8)),
@@ -4741,7 +4741,11 @@
     };
     if (editingTradeId) targetAccount.trades = (targetAccount.trades || []).map(function(t){ return t.id === editingTradeId ? trade : t; });
     else { targetAccount.trades = targetAccount.trades || []; targetAccount.trades.unshift(trade); }
-    if (targetAccount.id === activeAccountId) trades = targetAccount.trades;
+    // The explicitly-picked account becomes the new default — for the next
+    // "+ Add Trade", and for anything else (CSV export/import) that still
+    // needs a single "current" account now there's no header switcher.
+    activeAccountId = targetAccount.id;
+    trades = targetAccount.trades;
 
     clearDraftFor(draftKeyFor(editingTradeId));
     save();
@@ -4836,7 +4840,9 @@
         t.strategy || "", (t.emotions || []).join("; "), t.title || "", t.notes || ""
       ]);
     });
-    downloadCsv("ezpayouts-journal-" + slugify(activeAccount().name) + "-" + todayStr() + ".csv", rows);
+    var inView = accounts.filter(function(a){ return isAccountSelectedForView(a.id); });
+    var label = inView.length === 1 ? slugify(inView[0].name) : "all-accounts";
+    downloadCsv("ezpayouts-journal-" + label + "-" + todayStr() + ".csv", rows);
   });
 
   // Broker exports come in two shapes. Per-trade logs have their own Date +
@@ -5038,7 +5044,7 @@
   // ---------- Init ----------
   load();
   renderAll();
-  renderAccountSwitcher();
+  renderAcctFilter();
   updateFilterCount();
   layoutSegThumb(journalTabsEl, true);
   setLogMode("quick");
