@@ -89,6 +89,37 @@
   .page-head h1{ font-size:24px; font-weight:700; line-height:1.2; color:var(--ij-ice); letter-spacing:-0.01em; }
   .page-head-sub{ margin:4px 0 0; font-size:13px; color:var(--ij-muted); }
   .page-head-actions{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+
+  .ghost-btn{
+    display:inline-flex; align-items:center; gap:7px;
+    font-family:var(--font-display); font-weight:600; font-size:12.5px; white-space:nowrap;
+    padding:9px 15px; border-radius:10px; border:1px solid var(--ij-border-bright);
+    background:var(--ij-panel); color:var(--ij-ice); cursor:pointer; transition:border-color .15s, background .15s, box-shadow .15s;
+  }
+  .ghost-btn:hover{ border-color:var(--ij-blue); box-shadow:0 0 12px var(--ij-blue-glow); }
+  .ghost-btn svg{ width:14px; height:14px; flex:none; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+
+  /* ---------- Trading-account filter (checkboxes; defaults to all) ---------- */
+  .acct-filter{ position:relative; }
+  #acctFilterBtn svg.chev{ width:11px; height:11px; margin-left:-1px; opacity:0.7; }
+  #acctFilterLabel{ max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .acct-filter-popover{
+    position:absolute; top:calc(100% + 8px); right:0; z-index:60; width:230px;
+    background:var(--ij-panel); border:1px solid var(--ij-border-bright); border-radius:14px;
+    padding:8px; box-shadow:0 20px 44px -18px rgba(0,0,0,0.65);
+  }
+  .acct-filter-popover[hidden]{ display:none; }
+  .acct-filter-row{
+    display:flex; align-items:center; gap:9px; padding:8px 10px; border-radius:8px; cursor:pointer;
+    font-family:var(--font-body); font-size:13px; color:var(--ij-ice); transition:background .12s;
+  }
+  .acct-filter-row:hover{ background:var(--ij-panel-hi); }
+  .acct-filter-row input[type="checkbox"]{ width:15px; height:15px; accent-color:var(--ij-blue); flex:none; }
+  .acct-filter-all-row{ font-weight:600; }
+  .acct-filter-divider{ height:1px; background:var(--ij-border); margin:6px 4px; }
+  .acct-filter-list{ max-height:240px; overflow-y:auto; }
+  .acct-filter-empty{ padding:10px; font-size:12px; color:var(--ij-muted); text-align:center; }
+  .acct-filter-count{ margin-left:auto; font-family:var(--font-mono); font-size:10px; color:var(--ij-muted); flex:none; }
   .select{
     padding:9px 12px; border-radius:10px; border:1px solid var(--ij-border);
     background:var(--ij-panel); color:var(--ij-ice); font-family:var(--font-mono); font-size:12.5px;
@@ -211,7 +242,21 @@
       <p class="page-head-sub">Your trading performance at a glance.</p>
     </div>
     <div class="page-head-actions">
-      <ez-select id="accountFilter"></ez-select>
+      <div class="acct-filter" id="acctFilter">
+        <button type="button" class="ghost-btn" id="acctFilterBtn" aria-haspopup="true" aria-expanded="false">
+          <svg viewBox="0 0 20 20"><path d="M3 6h14M3 10h14M3 14h14"/></svg>
+          <span id="acctFilterLabel">All Accounts</span>
+          <svg class="chev" viewBox="0 0 20 20"><path d="M5 8l5 5 5-5"/></svg>
+        </button>
+        <div class="acct-filter-popover" id="acctFilterPopover" hidden>
+          <label class="acct-filter-row acct-filter-all-row">
+            <input type="checkbox" id="acctFilterAll" />
+            <span>All Accounts</span>
+          </label>
+          <div class="acct-filter-divider"></div>
+          <div class="acct-filter-list" id="acctFilterList"></div>
+        </div>
+      </div>
       <ez-select id="rangeFilter">
         <option value="all">All time</option>
         <option value="month">This month</option>
@@ -344,16 +389,78 @@
   var IJ_BLUE = "#3262f6", IJ_BLUE_SOFT = "#7c9bff", IJ_GREEN = "#53ba79", IJ_RED = "#ef5a5a";
 
   // ---------- Filters ----------
-  var accountFilterEl = document.getElementById("accountFilter");
   var rangeFilterEl = document.getElementById("rangeFilter");
 
-  function populateAccountFilter(){
-    var opts = ['<option value="all">All accounts</option>'];
-    accounts.forEach(function(a){
-      opts.push('<option value="' + escapeHtml(a.id) + '">' + escapeHtml(a.name) + '</option>');
-    });
-    accountFilterEl.innerHTML = opts.join("");
+  // Trading-account filter (checkboxes; defaults to all). null = "all
+  // accounts", which also auto-includes any account added later.
+  var selectedAccountIds = null;
+  var acctFilterEl = document.getElementById("acctFilter");
+  var acctFilterBtn = document.getElementById("acctFilterBtn");
+  var acctFilterPopover = document.getElementById("acctFilterPopover");
+  var acctFilterAllCb = document.getElementById("acctFilterAll");
+  var acctFilterListEl = document.getElementById("acctFilterList");
+  var acctFilterLabelEl = document.getElementById("acctFilterLabel");
+
+  function isAccountSelected(id){
+    return selectedAccountIds === null || selectedAccountIds.indexOf(id) !== -1;
   }
+  function populateAccountFilter(){
+    if (!accounts.length){
+      acctFilterListEl.innerHTML = '<p class="acct-filter-empty">No trading accounts yet.</p>';
+      acctFilterAllCb.checked = true;
+      acctFilterAllCb.indeterminate = false;
+      acctFilterLabelEl.textContent = "All Accounts";
+      return;
+    }
+    acctFilterListEl.innerHTML = accounts.map(function(a){
+      var checked = isAccountSelected(a.id);
+      var count = a.trades ? a.trades.length : 0;
+      return '<label class="acct-filter-row"><input type="checkbox" data-id="' + escapeHtml(a.id) + '"' + (checked ? " checked" : "") + ' />' +
+        '<span>' + escapeHtml(a.name) + '</span>' +
+        '<span class="acct-filter-count">' + count + '</span></label>';
+    }).join("");
+    var selectedCount = accounts.filter(function(a){ return isAccountSelected(a.id); }).length;
+    var allChecked = selectedCount === accounts.length;
+    acctFilterAllCb.checked = allChecked;
+    acctFilterAllCb.indeterminate = !allChecked && selectedCount > 0;
+    if (allChecked){
+      acctFilterLabelEl.textContent = "All Accounts";
+    } else if (selectedCount === 0){
+      acctFilterLabelEl.textContent = "No Accounts";
+    } else if (selectedCount === 1){
+      var only = accounts.filter(function(a){ return isAccountSelected(a.id); })[0];
+      acctFilterLabelEl.textContent = only.name;
+    } else {
+      acctFilterLabelEl.textContent = selectedCount + " Accounts";
+    }
+  }
+  acctFilterBtn.addEventListener("click", function(e){
+    e.stopPropagation();
+    acctFilterPopover.hidden = !acctFilterPopover.hidden;
+    acctFilterBtn.setAttribute("aria-expanded", acctFilterPopover.hidden ? "false" : "true");
+  });
+  document.addEventListener("click", function(e){
+    if (!acctFilterPopover.hidden && !acctFilterEl.contains(e.target)) acctFilterPopover.hidden = true;
+  });
+  acctFilterAllCb.addEventListener("change", function(){
+    selectedAccountIds = acctFilterAllCb.checked ? null : [];
+    populateAccountFilter();
+    render();
+  });
+  acctFilterListEl.addEventListener("change", function(e){
+    var cb = e.target.closest('input[type="checkbox"][data-id]');
+    if (!cb) return;
+    var current = selectedAccountIds === null ? accounts.map(function(a){ return a.id; }) : selectedAccountIds.slice();
+    var id = cb.getAttribute("data-id");
+    if (cb.checked){
+      if (current.indexOf(id) === -1) current.push(id);
+    } else {
+      current = current.filter(function(x){ return x !== id; });
+    }
+    selectedAccountIds = (current.length === accounts.length) ? null : current;
+    populateAccountFilter();
+    render();
+  });
 
   function rangeStart(key){
     var now = new Date();
@@ -370,9 +477,8 @@
   }
 
   function selectedAccounts(){
-    var val = accountFilterEl.value;
-    if (val === "all") return accounts;
-    return accounts.filter(function(a){ return a.id === val; });
+    if (selectedAccountIds === null) return accounts;
+    return accounts.filter(function(a){ return selectedAccountIds.indexOf(a.id) !== -1; });
   }
 
   function filteredTradesForAccount(acc){
@@ -807,11 +913,26 @@
 
   load();
   populateAccountFilter();
-  accountFilterEl.addEventListener("change", render);
   rangeFilterEl.addEventListener("change", render);
   render();
   renderGreeting();
-  if (window.EZAuth) EZAuth.onChange(function(){ render(); renderGreeting(); });
+  // Signing out clears this page's view back to blank instead of continuing
+  // to show whatever account was last synced to this device's shared
+  // "ezpayouts.journal.v1" storage — mirrors the same reset on the Journal
+  // and Calendar pages.
+  if (window.EZAuth){
+    EZAuth.onChange(function(loggedIn){
+      if (!loggedIn){
+        try { localStorage.removeItem(STORAGE_KEY); } catch (err) {}
+        accounts = [];
+        selectedAccountIds = null;
+      }
+      load();
+      populateAccountFilter();
+      render();
+      renderGreeting();
+    });
+  }
 
   window.addEventListener("storage", function(e){
     if (e.key === STORAGE_KEY){ load(); populateAccountFilter(); render(); renderGreeting(); }

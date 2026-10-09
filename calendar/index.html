@@ -86,8 +86,41 @@
   a{ color:var(--phosphor-soft); }
   .mono{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
 
-  .cal-head{ flex:none; padding:10px 0 12px; }
+  .cal-head{ flex:none; padding:10px 0 12px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
   .cal-head h1{ font-size:25px; font-weight:700; color:var(--ice); letter-spacing:-0.01em; }
+
+  .ghost-btn{
+    display:inline-flex; align-items:center; gap:7px;
+    font-family:var(--font-display); font-weight:600; font-size:12.5px; white-space:nowrap;
+    padding:9px 15px; border-radius:10px; border:1px solid var(--hairline-bright);
+    background:var(--panel-raised); color:var(--ice); cursor:pointer; transition:border-color .15s, background .15s;
+  }
+  .ghost-btn:hover{ border-color:var(--phosphor-dim); background:var(--panel-hi); }
+  .ghost-btn svg{ width:14px; height:14px; flex:none; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+
+  /* ---------- Trading-account filter (checkboxes; shown only on the P&L
+     view, which is the only one that reads journal trade data) ---------- */
+  .acct-filter{ position:relative; }
+  .acct-filter[hidden]{ display:none; }
+  #acctFilterBtn svg.chev{ width:11px; height:11px; margin-left:-1px; opacity:0.7; }
+  #acctFilterLabel{ max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .acct-filter-popover{
+    position:absolute; top:calc(100% + 8px); right:0; z-index:60; width:230px;
+    background:var(--panel-raised); border:1px solid var(--hairline-bright); border-radius:14px;
+    padding:8px; box-shadow:0 20px 44px -18px rgba(0,0,0,0.65);
+  }
+  .acct-filter-popover[hidden]{ display:none; }
+  .acct-filter-row{
+    display:flex; align-items:center; gap:9px; padding:8px 10px; border-radius:8px; cursor:pointer;
+    font-family:var(--font-body); font-size:13px; color:var(--ice); transition:background .12s;
+  }
+  .acct-filter-row:hover{ background:var(--panel-hi); }
+  .acct-filter-row input[type="checkbox"]{ width:15px; height:15px; accent-color:var(--phosphor); flex:none; }
+  .acct-filter-all-row{ font-weight:600; }
+  .acct-filter-divider{ height:1px; background:var(--hairline); margin:6px 4px; }
+  .acct-filter-list{ max-height:240px; overflow-y:auto; }
+  .acct-filter-empty{ padding:10px; font-size:12px; color:var(--muted); text-align:center; }
+  .acct-filter-count{ margin-left:auto; font-family:var(--font-mono); font-size:10px; color:var(--muted); flex:none; }
 
   .cal-toolbar{
     flex:none; display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
@@ -348,6 +381,21 @@
 
   <div class="cal-head">
     <h1 id="calPageTitle">Calendar</h1>
+    <div class="acct-filter" id="acctFilter">
+      <button type="button" class="ghost-btn" id="acctFilterBtn" aria-haspopup="true" aria-expanded="false">
+        <svg viewBox="0 0 20 20"><path d="M3 6h14M3 10h14M3 14h14"/></svg>
+        <span id="acctFilterLabel">All Accounts</span>
+        <svg class="chev" viewBox="0 0 20 20"><path d="M5 8l5 5 5-5"/></svg>
+      </button>
+      <div class="acct-filter-popover" id="acctFilterPopover" hidden>
+        <label class="acct-filter-row acct-filter-all-row">
+          <input type="checkbox" id="acctFilterAll" />
+          <span>All Accounts</span>
+        </label>
+        <div class="acct-filter-divider"></div>
+        <div class="acct-filter-list" id="acctFilterList"></div>
+      </div>
+    </div>
   </div>
 
   <div class="cal-view-panel" id="pnlView">
@@ -681,6 +729,9 @@
   pnlViewEl.hidden = activeView !== "pnl";
   econViewEl.hidden = activeView !== "econ";
   calPageTitleEl.textContent = activeView === "econ" ? "Economic Calendar" : "Calendar";
+  // Only the P&L view reads journal trade data, so the account filter has
+  // nothing to do on the (unrelated) Economic Calendar view.
+  document.getElementById("acctFilter").hidden = activeView !== "pnl";
 
   // ---------- Read-only journal data (same storage shape as Journal/Dashboard) ----------
   var JOURNAL_STORAGE_KEY = "ezpayouts.journal.v1";
@@ -698,9 +749,87 @@
       if (migrated) journalAccounts = migrated;
     } catch (err) {}
   }
+  // ---------- Trading-account filter (checkboxes; defaults to all) ----------
+  // Without this, every trading account's trades (e.g. a prop-firm eval
+  // account and a personal one) were silently flattened together into one
+  // P&L number with no way to tell them apart. null = "all accounts",
+  // which also auto-includes any account added later.
+  var selectedAccountIds = null;
+  var acctFilterEl = document.getElementById("acctFilter");
+  var acctFilterBtn = document.getElementById("acctFilterBtn");
+  var acctFilterPopover = document.getElementById("acctFilterPopover");
+  var acctFilterAllCb = document.getElementById("acctFilterAll");
+  var acctFilterListEl = document.getElementById("acctFilterList");
+  var acctFilterLabelEl = document.getElementById("acctFilterLabel");
+
+  function isAccountSelected(id){
+    return selectedAccountIds === null || selectedAccountIds.indexOf(id) !== -1;
+  }
+  function selectedJournalAccounts(){
+    if (selectedAccountIds === null) return journalAccounts;
+    return journalAccounts.filter(function(a){ return selectedAccountIds.indexOf(a.id) !== -1; });
+  }
+  function renderAcctFilter(){
+    if (!journalAccounts.length){
+      acctFilterListEl.innerHTML = '<p class="acct-filter-empty">No trading accounts yet.</p>';
+      acctFilterAllCb.checked = true;
+      acctFilterAllCb.indeterminate = false;
+      acctFilterLabelEl.textContent = "All Accounts";
+      return;
+    }
+    acctFilterListEl.innerHTML = journalAccounts.map(function(a){
+      var checked = isAccountSelected(a.id);
+      var count = a.trades ? a.trades.length : 0;
+      return '<label class="acct-filter-row"><input type="checkbox" data-id="' + escapeHtml(a.id) + '"' + (checked ? " checked" : "") + ' />' +
+        '<span>' + escapeHtml(a.name) + '</span>' +
+        '<span class="acct-filter-count">' + count + '</span></label>';
+    }).join("");
+    var selectedCount = journalAccounts.filter(function(a){ return isAccountSelected(a.id); }).length;
+    var allChecked = selectedCount === journalAccounts.length;
+    acctFilterAllCb.checked = allChecked;
+    acctFilterAllCb.indeterminate = !allChecked && selectedCount > 0;
+    if (allChecked){
+      acctFilterLabelEl.textContent = "All Accounts";
+    } else if (selectedCount === 0){
+      acctFilterLabelEl.textContent = "No Accounts";
+    } else if (selectedCount === 1){
+      var only = journalAccounts.filter(function(a){ return isAccountSelected(a.id); })[0];
+      acctFilterLabelEl.textContent = only.name;
+    } else {
+      acctFilterLabelEl.textContent = selectedCount + " Accounts";
+    }
+  }
+  acctFilterBtn.addEventListener("click", function(e){
+    e.stopPropagation();
+    acctFilterPopover.hidden = !acctFilterPopover.hidden;
+    acctFilterBtn.setAttribute("aria-expanded", acctFilterPopover.hidden ? "false" : "true");
+  });
+  document.addEventListener("click", function(e){
+    if (!acctFilterPopover.hidden && !acctFilterEl.contains(e.target)) acctFilterPopover.hidden = true;
+  });
+  acctFilterAllCb.addEventListener("change", function(){
+    selectedAccountIds = acctFilterAllCb.checked ? null : [];
+    renderAcctFilter();
+    renderPnlCalendar();
+  });
+  acctFilterListEl.addEventListener("change", function(e){
+    var cb = e.target.closest('input[type="checkbox"][data-id]');
+    if (!cb) return;
+    var current = selectedAccountIds === null ? journalAccounts.map(function(a){ return a.id; }) : selectedAccountIds.slice();
+    var id = cb.getAttribute("data-id");
+    if (cb.checked){
+      if (current.indexOf(id) === -1) current.push(id);
+    } else {
+      current = current.filter(function(x){ return x !== id; });
+    }
+    selectedAccountIds = (current.length === journalAccounts.length) ? null : current;
+    renderAcctFilter();
+    renderPnlCalendar();
+  });
+
   function allTrades(){
     var out = [];
-    journalAccounts.forEach(function(acc){ (acc.trades || []).forEach(function(t){ out.push(t); }); });
+    selectedJournalAccounts().forEach(function(acc){ (acc.trades || []).forEach(function(t){ out.push(t); }); });
     return out;
   }
   function pnlByDate(){
@@ -861,9 +990,27 @@
   });
 
   window.addEventListener("storage", function(e){
-    if (e.key === JOURNAL_STORAGE_KEY){ loadJournal(); renderPnlCalendar(); }
+    if (e.key === JOURNAL_STORAGE_KEY){ loadJournal(); renderAcctFilter(); renderPnlCalendar(); }
   });
-  window.addEventListener("focus", function(){ loadJournal(); renderPnlCalendar(); });
+  window.addEventListener("focus", function(){ loadJournal(); renderAcctFilter(); renderPnlCalendar(); });
+
+  // Signing out clears this page's view back to blank instead of continuing
+  // to show whatever account was last synced to this device's shared
+  // "ezpayouts.journal.v1" storage — mirrors the same reset on the Journal
+  // and Dashboard pages.
+  if (window.EZAuth){
+    EZAuth.onChange(function(loggedIn){
+      if (!loggedIn){
+        try { localStorage.removeItem(JOURNAL_STORAGE_KEY); } catch (err) {}
+        journalAccounts = [];
+        selectedAccountIds = null;
+      } else {
+        loadJournal();
+      }
+      renderAcctFilter();
+      renderPnlCalendar();
+    });
+  }
 
   // ---------- Camera menu: Copy Screenshot to Clipboard / Open Card Editor ----------
   var pnlCameraBtn = document.getElementById("pnlCameraBtn");
@@ -1074,6 +1221,7 @@
   };
 
   loadJournal();
+  renderAcctFilter();
   renderPnlCalendar();
 })();
 </script>

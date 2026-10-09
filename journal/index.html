@@ -3836,6 +3836,21 @@
     renderActivePanel();
   }
 
+  // Signing out clears this device's view back to a blank slate instead of
+  // continuing to show whatever account was last synced here — the data is
+  // still safe on the server, it just shouldn't linger on-screen (or in this
+  // shared localStorage key, which the Calendar and Dashboard pages also
+  // read directly) once nobody's signed in to claim it. Mirrors Backtest's
+  // resetToDefault() on the same event.
+  function resetJournalToBlank(){
+    accounts = [{ id: "acc_default", name: "Main", trades: [] }];
+    activeAccountId = "acc_default";
+    trades = accounts[0].trades;
+    try { localStorage.removeItem(STORAGE_KEY); } catch (err) {}
+    renderAll();
+    renderAccountSwitcher();
+  }
+
   // ---------- Tabs ----------
   journalTabsEl.addEventListener("click", function(e){
     var btn = e.target.closest("button[data-tab]");
@@ -4828,7 +4843,7 @@
   setLogMode("quick");
   if (window.EZAuth){
     if (EZAuth.isLoggedIn()) syncFromAccount();
-    EZAuth.onChange(function(loggedIn){ if (loggedIn) syncFromAccount(); });
+    EZAuth.onChange(function(loggedIn){ if (loggedIn) syncFromAccount(); else resetJournalToBlank(); });
   }
 
   // ---------- Deep link: ?share=monthly&date=YYYY-MM-DD opens the Share
