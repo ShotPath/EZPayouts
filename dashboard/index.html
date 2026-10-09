@@ -9,26 +9,28 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
 <style>
+  /* ---------- Inked Japan++ palette: a fixed cyber-neon aesthetic for this
+     page specifically, independent of the sitewide theme switcher (which
+     targets --void/--panel/etc via html[data-ez-theme]). Using its own
+     namespaced tokens means this dashboard always renders exactly this
+     color matrix no matter what theme the rest of the site is on. ---------- */
   :root{
-    --void:#07090a;
-    --panel:#0c1310;
-    --panel-raised:#121b16;
-    --panel-hi:#182319;
-    --hairline:#23332a;
-    --hairline-bright:#345a44;
-    --phosphor:#3ee08c;
-    --phosphor-soft:#8fe6b6;
-    --phosphor-dim:#1c5c3d;
-    --phosphor-glow:rgba(62,224,140,0.35);
-    --mint:#7ee8ac;
-    --mint-text:#062b17;
-    --red:#ef5a5a;
-    --red-glow:rgba(239,90,90,0.35);
-    --amber:#e8c34a;
-    --amber-glow:rgba(232,195,74,0.35);
-    --ice:#dcefe2;
-    --muted:#7c9584;
-    --muted-dim:#4d6055;
+    --ij-void:#050811;
+    --ij-panel:#0d101d;
+    --ij-panel-hi:#121628;
+    --ij-border:#161c33;
+    --ij-border-bright:#232c54;
+    --ij-blue:#3262f6;
+    --ij-blue-soft:#7c9bff;
+    --ij-blue-glow:rgba(50,98,246,0.35);
+    --ij-green:#53ba79;
+    --ij-green-soft:#8fe0ac;
+    --ij-green-glow:rgba(83,186,121,0.35);
+    --ij-red:#ef5a5a;
+    --ij-red-glow:rgba(239,90,90,0.35);
+    --ij-ice:#eef1fb;
+    --ij-muted:#848ca3;
+    --ij-muted-dim:#565d75;
     --font-display:'Chakra Petch', 'Segoe UI', sans-serif;
     --font-body:'IBM Plex Sans', 'Segoe UI', sans-serif;
     --font-mono:'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
@@ -40,10 +42,10 @@
     margin:0;
     min-height:100vh;
     background:
-      radial-gradient(ellipse 120% 60% at 50% -10%, rgba(62,224,140,0.10), transparent 60%),
-      radial-gradient(ellipse 80% 50% at 100% 100%, rgba(62,224,140,0.06), transparent 60%),
-      var(--void);
-    color:var(--ice);
+      radial-gradient(ellipse 120% 60% at 50% -10%, rgba(50,98,246,0.12), transparent 60%),
+      radial-gradient(ellipse 80% 50% at 100% 100%, rgba(83,186,121,0.07), transparent 60%),
+      var(--ij-void);
+    color:var(--ij-ice);
     font-family:var(--font-body);
     padding:0 clamp(16px,4vw,48px);
     padding-block:clamp(18px,3.4vw,32px) 60px;
@@ -52,146 +54,143 @@
   }
   body::before{
     content:"";
-    position:fixed;
-    inset:0;
-    pointer-events:none;
-    background:repeating-linear-gradient(
-      to bottom,
-      rgba(62,224,140,0.035) 0px,
-      rgba(62,224,140,0.035) 1px,
-      transparent 1px,
-      transparent 3px
-    );
-    mix-blend-mode:overlay;
-    z-index:0;
-    animation:scan 9s linear infinite;
+    position:fixed; inset:0; pointer-events:none;
+    background:repeating-linear-gradient(to bottom, rgba(50,98,246,0.03) 0px, rgba(50,98,246,0.03) 1px, transparent 1px, transparent 3px);
+    mix-blend-mode:overlay; z-index:0; animation:scan 9s linear infinite;
   }
-  @keyframes scan{
-    0%{ background-position:0 0; }
-    100%{ background-position:0 120px; }
-  }
+  @keyframes scan{ 0%{ background-position:0 0; } 100%{ background-position:0 120px; } }
   @media (prefers-reduced-motion: reduce){
     body::before{ animation:none; }
     *{ animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; }
   }
 
-  .wrap{ max-width:1280px; margin:0 auto; position:relative; z-index:1; }
-
+  .wrap{ max-width:1400px; margin:0 auto; position:relative; z-index:1; }
   h1,h2{ font-family:var(--font-display); text-wrap:balance; margin:0; }
-  a{ color:var(--phosphor-soft); }
+  a{ color:var(--ij-blue-soft); }
   .mono{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
-  .dim{ color:var(--muted); }
+  .pos{ color:var(--ij-green-soft); }
+  .neg{ color:var(--ij-red); }
 
   .dash-greeting{ padding-top:22px; }
   .dash-greeting-title{
-    font-family:var(--font-display); font-weight:700; font-size:26px; line-height:1.2;
-    letter-spacing:-0.01em; margin:0;
-    background:linear-gradient(90deg, var(--phosphor-soft), var(--ice));
+    font-family:var(--font-display); font-weight:700; font-size:26px; line-height:1.2; letter-spacing:-0.01em; margin:0;
+    background:linear-gradient(90deg, var(--ij-blue-soft), var(--ij-ice));
     -webkit-background-clip:text; background-clip:text; color:transparent;
   }
   .dash-greeting-pills{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:12px; }
   .dash-greeting-pill{
     font-family:var(--font-mono); font-size:12px; font-weight:700; padding:7px 14px;
-    border-radius:999px; background:var(--panel-raised); border:1px solid var(--hairline-bright); color:var(--ice);
-    white-space:nowrap;
+    border-radius:999px; background:var(--ij-panel); border:1px solid var(--ij-border-bright); color:var(--ij-ice); white-space:nowrap;
   }
-  .dash-greeting-pill.pos{ color:var(--phosphor-soft); border-color:var(--phosphor-dim); background:rgba(62,224,140,0.1); }
-  .dash-greeting-pill.neg{ color:var(--red); border-color:var(--red); background:rgba(239,90,90,0.08); }
+  .dash-greeting-pill.pos{ color:var(--ij-green-soft); border-color:var(--ij-green); background:rgba(83,186,121,0.1); }
+  .dash-greeting-pill.neg{ color:var(--ij-red); border-color:var(--ij-red); background:rgba(239,90,90,0.08); }
 
   .page-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:14px; padding:22px 0 18px; flex-wrap:wrap; }
-  .page-head-title-group{ display:flex; align-items:flex-start; gap:12px; }
-  .page-head-icon{
-    flex:none; width:38px; height:38px; border-radius:11px; margin-top:1px;
-    background:var(--panel-raised); border:1px solid var(--hairline-bright); color:var(--phosphor-soft);
-    display:flex; align-items:center; justify-content:center;
-  }
-  .page-head-icon svg{ width:19px; height:19px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
-  .page-head h1{ font-size:24px; font-weight:700; line-height:1.2; color:var(--ice); letter-spacing:-0.01em; }
-  .page-head-sub{ margin:4px 0 0; font-size:13px; color:var(--muted); }
+  .page-head h1{ font-size:24px; font-weight:700; line-height:1.2; color:var(--ij-ice); letter-spacing:-0.01em; }
+  .page-head-sub{ margin:4px 0 0; font-size:13px; color:var(--ij-muted); }
   .page-head-actions{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-
-  .ghost-btn{
-    display:inline-flex; align-items:center; gap:7px;
-    font-family:var(--font-display); font-weight:600; font-size:12.5px; white-space:nowrap;
-    padding:9px 15px; border-radius:10px; border:1px solid var(--hairline-bright);
-    background:var(--panel-raised); color:var(--ice); cursor:pointer; transition:border-color .15s, background .15s;
-  }
-  .ghost-btn:hover{ border-color:var(--phosphor-dim); background:var(--panel-hi); }
-  .ghost-btn svg{ width:14px; height:14px; flex:none; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
-
   .select{
-    padding:9px 12px; border-radius:10px; border:1px solid var(--hairline);
-    background:var(--panel-raised); color:var(--ice); font-family:var(--font-mono); font-size:12.5px;
+    padding:9px 12px; border-radius:10px; border:1px solid var(--ij-border);
+    background:var(--ij-panel); color:var(--ij-ice); font-family:var(--font-mono); font-size:12.5px;
     outline:none; transition:border-color .15s; cursor:pointer;
   }
-  .select:focus{ border-color:var(--phosphor-dim); }
+  .select:focus{ border-color:var(--ij-blue); }
 
-  /* ---------- Stat cards ---------- */
-  .stat-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:14px; }
-  .stat-grid-row2{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:14px; }
-  @media (max-width:980px){ .stat-grid, .stat-grid-row2{ grid-template-columns:repeat(2,1fr); } }
-  @media (max-width:560px){ .stat-grid, .stat-grid-row2{ grid-template-columns:1fr; } }
-  .stat-card{
-    background:var(--panel); border:1px solid var(--hairline-bright); border-radius:16px;
-    padding:18px 20px; box-shadow:0 14px 30px -22px rgba(0,0,0,0.6);
-  }
-  .stat-card-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; }
-  .stat-card-label{ font-family:var(--font-display); font-weight:600; font-size:13px; color:var(--ice); }
-  .badge-pill{
-    font-family:var(--font-mono); font-size:10.5px; font-weight:700; padding:4px 10px; border-radius:999px;
-    background:var(--panel-hi); border:1px solid var(--hairline-bright); color:var(--muted); white-space:nowrap;
-  }
-  .badge-pill.pos{ color:var(--phosphor-soft); border-color:var(--phosphor-dim); background:rgba(62,224,140,0.1); }
-  .badge-pill.neg{ color:var(--red); border-color:var(--red); background:rgba(239,90,90,0.08); }
-  .stat-card-body{ display:flex; align-items:flex-end; justify-content:space-between; gap:10px; }
-  .stat-card-value{ font-family:var(--font-display); font-weight:700; font-size:26px; color:var(--ice); line-height:1; }
-  .stat-card-value.pos{ color:var(--phosphor-soft); }
-  .stat-card-value.neg{ color:var(--red); }
-  .stat-card-sparkline{ width:84px; height:30px; flex:none; display:block; }
-  .stat-card-sub{ margin-top:12px; font-family:var(--font-mono); font-size:11px; color:var(--muted); line-height:1.65; }
-  .stat-card-sub .pos{ color:var(--phosphor-soft); }
-  .stat-card-sub .neg{ color:var(--red); }
-
-  /* ---------- Dashboard-specific cards ---------- */
-  .dash-card{
-    background:var(--panel); border:1px solid var(--hairline-bright); border-radius:20px;
-    box-shadow:0 20px 50px -24px var(--phosphor-glow); margin-bottom:22px;
-    padding:22px clamp(16px,3vw,26px);
-  }
-  .dash-card-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
-  .dash-card-head h2{ font-size:15px; color:var(--ice); }
-  .dash-card-head-sub{ margin:3px 0 0; font-family:var(--font-mono); font-size:11px; color:var(--muted); }
-
-  .dash-empty{ text-align:center; padding:48px 10px; color:var(--muted); }
+  .dash-empty{ text-align:center; padding:48px 10px; color:var(--ij-muted); background:var(--ij-panel); border:1px solid var(--ij-border-bright); border-radius:20px; }
   .dash-empty p{ margin:0 0 6px; font-size:13.5px; line-height:1.6; }
-  .dash-empty p:first-child{ color:var(--ice); font-size:14.5px; }
-  .dash-empty a{ color:var(--phosphor-soft); font-weight:600; text-decoration:none; }
+  .dash-empty p:first-child{ color:var(--ij-ice); font-size:14.5px; }
+  .dash-empty a{ color:var(--ij-blue-soft); font-weight:600; text-decoration:none; }
   .dash-empty a:hover{ text-decoration:underline; }
 
-  /* ---------- Edge-style charts (shared pattern) ---------- */
-  .edge-chart-wrap{ position:relative; }
-  .edge-chart-wrap svg{ display:block; width:100%; height:220px; }
-  .edge-crosshair{
-    position:absolute; top:0; bottom:0; width:1px; background:var(--hairline-bright);
-    pointer-events:none; opacity:0; transition:opacity .1s;
+  /* ---------- 1. Gauge row ---------- */
+  .gauge-grid{ display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin-bottom:16px; }
+  @media (max-width:1180px){ .gauge-grid{ grid-template-columns:repeat(3,1fr); } }
+  @media (max-width:720px){ .gauge-grid{ grid-template-columns:repeat(2,1fr); } }
+  .gauge-card{
+    background:var(--ij-panel); border:1px solid var(--ij-border); border-radius:16px;
+    padding:16px 18px; box-shadow:0 14px 30px -22px rgba(0,0,0,0.7);
+    display:flex; flex-direction:column; gap:10px;
   }
-  .edge-tooltip{
-    position:absolute; top:0; pointer-events:none; opacity:0; transition:opacity .1s;
-    transform:translate(-50%,-100%); margin-top:-8px;
-    background:var(--panel-hi); border:1px solid var(--hairline-bright); border-radius:10px;
-    padding:8px 11px; font-family:var(--font-mono); font-size:11px; color:var(--ice);
-    white-space:nowrap; box-shadow:0 14px 30px -12px rgba(0,0,0,0.6); z-index:5;
-  }
-  .edge-tooltip-line{ line-height:1.5; }
-  .edge-tooltip-line + .edge-tooltip-line{ margin-top:1px; }
-  .edge-tooltip-r{ font-weight:700; }
-  .edge-tooltip-r.pos{ color:var(--phosphor-soft); }
-  .edge-tooltip-r.neg{ color:var(--red); }
-  .edge-legend{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:12px; }
-  .edge-legend-item{ display:flex; align-items:center; gap:6px; font-family:var(--font-mono); font-size:11px; color:var(--muted); }
-  .edge-legend-dot{ width:9px; height:9px; border-radius:50%; flex:none; }
+  .gauge-label{ font-family:var(--font-display); font-weight:600; font-size:12px; color:var(--ij-muted); display:flex; align-items:center; justify-content:space-between; }
+  .gauge-value{ font-family:var(--font-display); font-weight:700; font-size:23px; color:var(--ij-ice); line-height:1; }
+  .gauge-visual{ display:flex; align-items:center; justify-content:center; }
+  .gauge-visual.stack{ flex-direction:column; align-items:stretch; justify-content:center; gap:7px; }
+  .gauge-visual svg{ display:block; overflow:visible; }
+  .gauge-sub{ font-family:var(--font-mono); font-size:10.5px; color:var(--ij-muted-dim); }
+  .winloss-track{ height:8px; border-radius:999px; background:var(--ij-border); overflow:hidden; display:flex; }
+  .winloss-track .seg-loss{ background:var(--ij-red); box-shadow:0 0 8px var(--ij-red-glow); }
+  .winloss-track .seg-win{ background:var(--ij-green); box-shadow:0 0 8px var(--ij-green-glow); }
+  .winloss-ends{ display:flex; justify-content:space-between; font-family:var(--font-mono); font-size:10.5px; }
 
-  .mini-bar-wrap svg{ display:block; width:100%; height:60px; }
+  /* ---------- 2. Split charts row ---------- */
+  .charts-grid{ display:grid; grid-template-columns:1fr 1.3fr 0.9fr; gap:16px; margin-bottom:16px; align-items:stretch; }
+  @media (max-width:1180px){ .charts-grid{ grid-template-columns:1fr; } }
+  .chart-card{
+    background:var(--ij-panel); border:1px solid var(--ij-border); border-radius:18px;
+    padding:18px 20px; box-shadow:0 20px 50px -28px var(--ij-blue-glow);
+    display:flex; flex-direction:column;
+  }
+  .chart-card-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; }
+  .chart-card-head h2{ font-size:13.5px; color:var(--ij-ice); }
+  .chart-card-head .badge-pill{
+    font-family:var(--font-mono); font-size:10px; font-weight:700; padding:3px 9px; border-radius:999px;
+    background:var(--ij-panel-hi); border:1px solid var(--ij-border-bright); color:var(--ij-muted);
+  }
+
+  .radar-wrap svg{ display:block; width:100%; height:220px; overflow:visible; }
+  .radar-grid-line{ fill:none; stroke:var(--ij-border-bright); stroke-width:1; }
+  .radar-axis-line{ stroke:var(--ij-border); stroke-width:1; }
+  .radar-axis-label{ font-family:var(--font-mono); font-size:9px; fill:var(--ij-muted); text-anchor:middle; }
+  .radar-area{ fill:var(--ij-blue); fill-opacity:0.22; stroke:var(--ij-blue-soft); stroke-width:2; stroke-linejoin:round; filter:drop-shadow(0 0 6px var(--ij-blue-glow)); }
+  .radar-dot{ fill:var(--ij-blue-soft); }
+
+  .edge-chart-wrap{ position:relative; flex:1; }
+  .edge-chart-wrap svg{ display:block; width:100%; height:220px; }
+  .edge-crosshair{ position:absolute; top:0; bottom:0; width:1px; background:var(--ij-border-bright); pointer-events:none; opacity:0; transition:opacity .1s; }
+  .edge-tooltip{
+    position:absolute; top:0; pointer-events:none; opacity:0; transition:opacity .1s; transform:translate(-50%,-100%); margin-top:-8px;
+    background:var(--ij-panel-hi); border:1px solid var(--ij-border-bright); border-radius:10px; padding:8px 11px;
+    font-family:var(--font-mono); font-size:11px; color:var(--ij-ice); white-space:nowrap; box-shadow:0 14px 30px -12px rgba(0,0,0,0.7); z-index:5;
+  }
+
+  .bar-chart-wrap svg{ display:block; width:100%; height:220px; }
+
+  /* ---------- 3. Recent trades + mini calendar row ---------- */
+  .lower-grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:stretch; }
+  @media (max-width:980px){ .lower-grid{ grid-template-columns:1fr; } }
+
+  .trades-ledger{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  .trades-ledger thead th{
+    text-align:left; font-family:var(--font-mono); font-size:10px; letter-spacing:0.06em; text-transform:uppercase;
+    color:var(--ij-muted-dim); padding:0 0 10px; font-weight:600; border-bottom:1px solid var(--ij-border);
+  }
+  .trades-ledger thead th:last-child{ text-align:right; }
+  .trades-ledger tbody td{ padding:9px 0; border-bottom:1px solid var(--ij-border); font-family:var(--font-mono); color:var(--ij-ice); }
+  .trades-ledger tbody tr:last-child td{ border-bottom:none; }
+  .trades-ledger tbody td:last-child{ text-align:right; font-weight:700; }
+  .trades-ledger-symbol{ font-weight:700; }
+
+  .mini-cal{ display:grid; grid-template-columns:repeat(7,1fr) auto; gap:6px; align-items:start; }
+  .mini-cal-weekday{ font-family:var(--font-mono); font-size:9px; text-transform:uppercase; color:var(--ij-muted-dim); text-align:center; padding-bottom:4px; }
+  .mini-cal-cell{
+    aspect-ratio:1; border-radius:7px; background:var(--ij-panel-hi); border:1px solid var(--ij-border);
+    display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:10px; color:var(--ij-muted-dim);
+    position:relative;
+  }
+  .mini-cal-cell.outside{ visibility:hidden; }
+  .mini-cal-cell.win{ background:rgba(83,186,121,0.18); border-color:var(--ij-green); color:var(--ij-green-soft); box-shadow:0 0 10px -2px var(--ij-green-glow); }
+  .mini-cal-cell.loss{ background:rgba(239,90,90,0.14); border-color:var(--ij-red); color:#ffb3b3; box-shadow:0 0 10px -2px var(--ij-red-glow); }
+  .mini-cal-cell.today{ box-shadow:inset 0 0 0 1.5px var(--ij-blue-soft); }
+  .mini-cal-week-col{ grid-row:span 1; }
+  .mini-cal-week{
+    display:flex; flex-direction:column; align-items:flex-end; justify-content:center; padding:2px 2px 2px 10px;
+    font-family:var(--font-mono); min-width:64px;
+  }
+  .mini-cal-week-label{ font-size:9px; color:var(--ij-muted-dim); text-transform:uppercase; }
+  .mini-cal-week-pnl{ font-size:12px; font-weight:700; color:var(--ij-muted); }
+  .mini-cal-week-pnl.pos{ color:var(--ij-green-soft); }
+  .mini-cal-week-pnl.neg{ color:var(--ij-red); }
+  .mini-cal-week-days{ font-size:9px; color:var(--ij-muted-dim); }
 </style>
 </head>
 <body>
@@ -206,11 +205,9 @@
   </div>
 
   <div class="page-head">
-    <div class="page-head-title-group">
-      <div>
-        <h1>Dashboard</h1>
-        <p class="page-head-sub">Your trading performance at a glance.</p>
-      </div>
+    <div>
+      <h1>Dashboard</h1>
+      <p class="page-head-sub">Your trading performance at a glance.</p>
     </div>
     <div class="page-head-actions">
       <select class="select" id="accountFilter"></select>
@@ -223,81 +220,80 @@
     </div>
   </div>
 
-  <div id="dashEmpty" class="dash-card dash-empty" hidden>
+  <div id="dashEmpty" class="dash-empty" hidden>
     <p>No trades logged yet.</p>
     <p>Head to the <a href="/journal/">Journal</a> and log your first trade to see your dashboard come alive.</p>
   </div>
 
   <div id="dashBody">
-    <div class="stat-grid">
-      <div class="stat-card" id="statTotalTrades">
-        <div class="stat-card-head"><span class="stat-card-label">Total Trades</span></div>
-        <div class="stat-card-body">
-          <span class="stat-card-value" id="statTotalTradesValue">0</span>
-        </div>
-        <div class="stat-card-sub" id="statTotalTradesSub">No trades in range</div>
+
+    <!-- 1. Top metric gauges -->
+    <div class="gauge-grid">
+      <div class="gauge-card" id="gaugeNetPnl">
+        <div class="gauge-label">Net P&amp;L</div>
+        <div class="gauge-value" id="gaugeNetPnlValue">$0.00</div>
+        <div class="gauge-visual" id="gaugeNetPnlChart"></div>
+        <div class="gauge-sub" id="gaugeNetPnlSub">Across 0 trades</div>
       </div>
-      <div class="stat-card" id="statTradesByDay">
-        <div class="stat-card-head"><span class="stat-card-label">Trades by Day (avg)</span></div>
-        <div class="stat-card-body">
-          <span class="stat-card-value" id="statTradesByDayValue">0.0</span>
-        </div>
-        <div class="mini-bar-wrap" id="statTradesByDayChart"></div>
-        <div class="stat-card-sub" id="statTradesByDaySub">Last 10 trading days</div>
+      <div class="gauge-card" id="gaugeWinRate">
+        <div class="gauge-label">Trade Win %</div>
+        <div class="gauge-value" id="gaugeWinRateValue">0.00%</div>
+        <div class="gauge-visual" id="gaugeWinRateChart"></div>
+        <div class="gauge-sub" id="gaugeWinRateSub">0W / 0L</div>
       </div>
-      <div class="stat-card" id="statAvg7">
-        <div class="stat-card-head"><span class="stat-card-label">Avg Last 7 Trading Days</span></div>
-        <div class="stat-card-body">
-          <span class="stat-card-value" id="statAvg7Value">$0.00</span>
-          <svg class="stat-card-sparkline" id="statAvg7Chart" viewBox="0 0 84 30" preserveAspectRatio="none"></svg>
-        </div>
-        <div class="stat-card-sub" id="statAvg7Sub">Avg lot size &middot; 0.00</div>
+      <div class="gauge-card" id="gaugeProfitFactor">
+        <div class="gauge-label">Profit Factor</div>
+        <div class="gauge-value" id="gaugeProfitFactorValue">0.00</div>
+        <div class="gauge-visual" id="gaugeProfitFactorChart"></div>
+        <div class="gauge-sub">Gross win &divide; gross loss</div>
       </div>
-      <div class="stat-card" id="statPnlByDay">
-        <div class="stat-card-head">
-          <span class="stat-card-label">P&amp;L by Day</span>
-          <span class="badge-pill" id="statPnlByDayBadge">&mdash;</span>
-        </div>
-        <div class="stat-card-body">
-          <span class="stat-card-value" id="statPnlByDayValue">$0.00</span>
-        </div>
-        <div class="stat-card-sub" id="statPnlByDaySub">Average P&amp;L per trading day</div>
+      <div class="gauge-card" id="gaugeDayWinRate">
+        <div class="gauge-label">Day Win %</div>
+        <div class="gauge-value" id="gaugeDayWinRateValue">0.00%</div>
+        <div class="gauge-visual" id="gaugeDayWinRateChart"></div>
+        <div class="gauge-sub" id="gaugeDayWinRateSub">0W / 0L days</div>
+      </div>
+      <div class="gauge-card" id="gaugeAvgWinLoss">
+        <div class="gauge-label">Avg Win / Loss Trade</div>
+        <div class="gauge-value" id="gaugeAvgWinLossValue">0.00</div>
+        <div class="gauge-visual stack" id="gaugeAvgWinLossChart" style="width:100%;"></div>
       </div>
     </div>
 
-    <div class="stat-grid-row2">
-      <div class="stat-card" id="statNetPnl">
-        <div class="stat-card-head"><span class="stat-card-label">Net P&amp;L</span></div>
-        <div class="stat-card-body"><span class="stat-card-value" id="statNetPnlValue">$0.00</span></div>
-        <div class="stat-card-sub" id="statNetPnlSub">Across selected range</div>
+    <!-- 2. Split charts -->
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-card-head"><h2>Edge Profile</h2></div>
+        <div class="radar-wrap" id="radarChartWrap"></div>
       </div>
-      <div class="stat-card" id="statAvgWin">
-        <div class="stat-card-head"><span class="stat-card-label">Average Winning Trade</span></div>
-        <div class="stat-card-body"><span class="stat-card-value pos" id="statAvgWinValue">$0.00</span></div>
-        <div class="stat-card-sub" id="statAvgWinSub">0 winning trades</div>
+      <div class="chart-card">
+        <div class="chart-card-head">
+          <h2>Daily Net Cumulative P&amp;L</h2>
+          <span class="badge-pill" id="areaChartBadge">&mdash;</span>
+        </div>
+        <div class="edge-chart-wrap" id="areaChartWrap"></div>
       </div>
-      <div class="stat-card" id="statAvgLoss">
-        <div class="stat-card-head"><span class="stat-card-label">Average Losing Trade</span></div>
-        <div class="stat-card-body"><span class="stat-card-value neg" id="statAvgLossValue">$0.00</span></div>
-        <div class="stat-card-sub" id="statAvgLossSub">0 losing trades</div>
-      </div>
-      <div class="stat-card" id="statStreak">
-        <div class="stat-card-head"><span class="stat-card-label">Current Day Streak</span></div>
-        <div class="stat-card-body"><span class="stat-card-value" id="statStreakValue">0</span></div>
-        <div class="stat-card-sub" id="statStreakSub">No streak yet</div>
+      <div class="chart-card">
+        <div class="chart-card-head"><h2>Net Daily P&amp;L</h2></div>
+        <div class="bar-chart-wrap" id="barChartWrap"></div>
       </div>
     </div>
 
-    <div class="dash-card">
-      <div class="dash-card-head">
-        <div>
-          <h2>Cumulative P&amp;L by Account</h2>
-          <p class="dash-card-head-sub" id="cumChartSub">Running total across the selected range</p>
-        </div>
+    <!-- 3. Recent trades + mini calendar -->
+    <div class="lower-grid">
+      <div class="chart-card">
+        <div class="chart-card-head"><h2>Recent Trades</h2></div>
+        <table class="trades-ledger">
+          <thead><tr><th>Close Date</th><th>Symbol</th><th>Net P&amp;L</th></tr></thead>
+          <tbody id="recentTradesBody"></tbody>
+        </table>
       </div>
-      <div class="edge-chart-wrap" id="cumChartWrap"></div>
-      <div class="edge-legend" id="cumChartLegend"></div>
+      <div class="chart-card">
+        <div class="chart-card-head"><h2 id="miniCalMonthLabel">Calendar</h2></div>
+        <div class="mini-cal" id="miniCalGrid"></div>
+      </div>
     </div>
+
   </div>
 
 </div>
@@ -338,8 +334,13 @@
     n = Number(n) || 0;
     return (n < 0 ? "-" : "+") + fmtMoneyPlain(n);
   }
+  function fmtMoneyShort(n){
+    n = Number(n) || 0;
+    var sign = n < 0 ? "-" : "";
+    return sign + "$" + Math.round(Math.abs(n)).toLocaleString();
+  }
 
-  var ACCOUNT_COLORS = ["#3ee08c", "#e8c34a", "#5ab0ef", "#ef5a5a", "#b784ef", "#ef9a5a"];
+  var IJ_BLUE = "#3262f6", IJ_BLUE_SOFT = "#7c9bff", IJ_GREEN = "#53ba79", IJ_RED = "#ef5a5a";
 
   // ---------- Filters ----------
   var accountFilterEl = document.getElementById("accountFilter");
@@ -360,14 +361,13 @@
     if (key === "30d"){ d.setDate(d.getDate() - 29); return d; }
     if (key === "week"){
       var dow = d.getDay();
-      var diff = (dow === 0 ? 6 : dow - 1); // week starts Monday
+      var diff = (dow === 0 ? 6 : dow - 1);
       d.setDate(d.getDate() - diff);
       return d;
     }
     return null;
   }
 
-  // ---------- Data gathering: list of {account, trades[]} honoring filters ----------
   function selectedAccounts(){
     var val = accountFilterEl.value;
     if (val === "all") return accounts;
@@ -406,89 +406,114 @@
     return order.map(function(key){ return { date: key, trades: map[key] }; });
   }
 
-  // ---------- Chart builders (same pattern as Journal's edge curve) ----------
-  function buildSparklineSvg(series, color){
-    var w = 84, h = 30;
-    if (!series.length) series = [0];
-    var minV = Math.min.apply(null, series.concat([0]));
-    var maxV = Math.max.apply(null, series.concat([0]));
-    var range = (maxV - minV) || 1;
-    function xAt(i){ return series.length > 1 ? (i / (series.length - 1)) * w : w / 2; }
-    function yAt(v){ return h - 2 - ((v - minV) / range) * (h - 4); }
-    var pts = series.map(function(v, i){ return xAt(i).toFixed(1) + "," + yAt(v).toFixed(1); }).join(" ");
-    return '<polyline points="' + pts + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
-  }
-
-  function buildMiniBarSvg(series){
-    var w = 240, h = 60, gap = 3;
-    if (!series.length) series = [0];
-    var maxV = Math.max.apply(null, series.concat([1]));
-    var barW = (w / series.length) - gap;
-    var bars = series.map(function(v, i){
-      var bh = Math.max(2, (v / maxV) * (h - 4));
-      var x = i * (barW + gap);
-      var y = h - bh;
-      return '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + Math.max(2, barW).toFixed(1) + '" height="' + bh.toFixed(1) + '" rx="2" fill="#3ee08c" fill-opacity="0.55"/>';
-    }).join("");
-    return '<svg viewBox="0 0 ' + w + ' ' + h + '" width="100%" height="60" preserveAspectRatio="none" role="img" aria-label="Trades per day">' + bars + '</svg>';
-  }
-
-  function buildMultiEdgeChartSvg(series_list, colors){
-    var w = 900, h = 220, padX = 10, padY = 16;
-    var allVals = [0];
-    series_list.forEach(function(s){ allVals = allVals.concat(s); });
-    var minV = Math.min.apply(null, allVals);
-    var maxV = Math.max.apply(null, allVals);
-    var range = (maxV - minV) || 1;
-    var maxLen = Math.max.apply(null, series_list.map(function(s){ return s.length; }).concat([1]));
-    function xAt(i){ return padX + (maxLen > 1 ? (i / (maxLen - 1)) * (w - padX * 2) : (w - padX * 2) / 2); }
-    function yAt(v){ return h - padY - ((v - minV) / range) * (h - padY * 2); }
-    var zeroY = yAt(0);
-    var defs = "";
-    var shapes = "";
-    series_list.forEach(function(series, si){
-      var color = colors[si % colors.length];
-      var pts = series.map(function(v, i){ return xAt(i).toFixed(1) + "," + yAt(v).toFixed(1); }).join(" ");
-      var last = series[series.length - 1] || 0;
-      var gid = "edgeFillD" + si;
-      defs += '<linearGradient id="' + gid + '" x1="0" y1="0" x2="0" y2="1">' +
-        '<stop offset="0%" stop-color="' + color + '" stop-opacity="0.22"/>' +
-        '<stop offset="100%" stop-color="' + color + '" stop-opacity="0"/>' +
-      '</linearGradient>';
-      if (series_list.length === 1){
-        var areaPts = pts + " " + xAt(series.length - 1).toFixed(1) + "," + zeroY.toFixed(1) + " " + xAt(0).toFixed(1) + "," + zeroY.toFixed(1);
-        shapes += '<polygon points="' + areaPts + '" fill="url(#' + gid + ')" stroke="none"/>';
-      }
-      shapes += '<polyline points="' + pts + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
-    });
-    return '<svg viewBox="0 0 ' + w + ' ' + h + '" width="100%" height="220" preserveAspectRatio="none" role="img" aria-label="Cumulative P&amp;L by account" id="cumChartSvg">' +
-      '<defs>' + defs + '</defs>' +
-      '<line x1="' + padX + '" y1="' + zeroY.toFixed(1) + '" x2="' + (w - padX) + '" y2="' + zeroY.toFixed(1) + '" stroke="#23332a" stroke-width="1" stroke-dasharray="3,3"/>' +
-      shapes +
+  // ---------- Gauge builders ----------
+  // Semicircle arc, green portion = pct, red portion = remainder. Used for
+  // the two win-rate gauges (Trade Win % / Day Win %).
+  function buildSemiArcGauge(pct){
+    pct = Math.max(0, Math.min(100, pct));
+    var r = 44, cx = 58, cy = 54, sw = 9;
+    var circumference = Math.PI * r;
+    var posLen = (pct / 100) * circumference;
+    var d = "M " + (cx - r) + " " + cy + " A " + r + " " + r + " 0 0 1 " + (cx + r) + " " + cy;
+    return '<svg viewBox="0 0 116 60" width="100" height="52" role="img" aria-label="' + pct.toFixed(1) + '% win rate">' +
+      '<path d="' + d + '" fill="none" stroke="#1b2140" stroke-width="' + sw + '" stroke-linecap="round"/>' +
+      '<path d="' + d + '" fill="none" stroke="' + IJ_RED + '" stroke-width="' + sw + '" stroke-linecap="round" ' +
+        'stroke-dasharray="' + (circumference - posLen).toFixed(1) + ' ' + circumference.toFixed(1) + '" stroke-dashoffset="-' + posLen.toFixed(1) + '" opacity="0.85"/>' +
+      '<path d="' + d + '" fill="none" stroke="' + IJ_GREEN + '" stroke-width="' + sw + '" stroke-linecap="round" ' +
+        'stroke-dasharray="' + posLen.toFixed(1) + ' ' + circumference.toFixed(1) + '" style="filter:drop-shadow(0 0 5px rgba(83,186,121,0.6))"/>' +
     '</svg>';
   }
 
-  function wireCumChartHover(wrap, series_list, metaList, names, colors){
-    var crosshair = document.getElementById("cumCrosshair");
-    var tooltip = document.getElementById("cumTooltip");
-    if (!crosshair || !tooltip) return;
-    var maxLen = Math.max.apply(null, series_list.map(function(s){ return s.length; }).concat([1]));
+  // Full ring gauge for Profit Factor — capped visually at PF=3 (a PF of 3+
+  // reads as a "full" ring; the exact number is still shown as the headline value).
+  function buildRingGauge(pf){
+    var pct = Math.max(0, Math.min(1, pf / 3));
+    var r = 24, cx = 29, cy = 29, sw = 7;
+    var circumference = 2 * Math.PI * r;
+    var len = pct * circumference;
+    var color = pf >= 1 ? IJ_BLUE_SOFT : IJ_RED;
+    return '<svg viewBox="0 0 58 58" width="58" height="58" role="img" aria-label="Profit factor ' + pf.toFixed(2) + '">' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#1b2140" stroke-width="' + sw + '"/>' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="' + sw + '" stroke-linecap="round" ' +
+        'stroke-dasharray="' + len.toFixed(1) + ' ' + circumference.toFixed(1) + '" transform="rotate(-90 ' + cx + ' ' + cy + ')" ' +
+        'style="filter:drop-shadow(0 0 5px ' + (pf >= 1 ? "rgba(124,155,255,0.6)" : "rgba(239,90,90,0.5)") + ')"/>' +
+    '</svg>';
+  }
+
+  function buildWinLossBar(avgWin, avgLoss){
+    var winAbs = Math.abs(avgWin), lossAbs = Math.abs(avgLoss);
+    var total = winAbs + lossAbs;
+    var winPct = total ? (winAbs / total) * 100 : 50;
+    var lossPct = 100 - winPct;
+    return '<div class="winloss-track"><div class="seg-loss" style="width:' + lossPct.toFixed(1) + '%"></div><div class="seg-win" style="width:' + winPct.toFixed(1) + '%"></div></div>' +
+      '<div class="winloss-ends"><span class="pos">' + fmtMoneyShort(winAbs) + '</span><span class="neg">-' + fmtMoneyShort(lossAbs) + '</span></div>';
+  }
+
+  // ---------- Radar chart: 5 axes, each a 0-100 score ----------
+  function buildRadarSvg(scores, labels){
+    var cx = 150, cy = 100, R = 72;
+    var n = scores.length;
+    function pointAt(i, radiusFrac){
+      var angle = -Math.PI / 2 + (i / n) * Math.PI * 2;
+      return [cx + Math.cos(angle) * R * radiusFrac, cy + Math.sin(angle) * R * radiusFrac];
+    }
+    var rings = [0.25, 0.5, 0.75, 1].map(function(frac){
+      var pts = labels.map(function(_, i){ return pointAt(i, frac).join(","); }).join(" ");
+      return '<polygon class="radar-grid-line" points="' + pts + '"/>';
+    }).join("");
+    var axes = labels.map(function(_, i){
+      var p = pointAt(i, 1);
+      return '<line class="radar-axis-line" x1="' + cx + '" y1="' + cy + '" x2="' + p[0].toFixed(1) + '" y2="' + p[1].toFixed(1) + '"/>';
+    }).join("");
+    var dataPts = scores.map(function(s, i){ return pointAt(i, Math.max(0.04, s / 100)); });
+    var areaPts = dataPts.map(function(p){ return p.join(","); }).join(" ");
+    var dots = dataPts.map(function(p){ return '<circle class="radar-dot" cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="3"/>'; }).join("");
+    var labelEls = labels.map(function(label, i){
+      var p = pointAt(i, 1.26);
+      return '<text class="radar-axis-label" x="' + p[0].toFixed(1) + '" y="' + p[1].toFixed(1) + '">' + escapeHtml(label) + '</text>';
+    }).join("");
+    return '<svg viewBox="0 0 300 200" role="img" aria-label="Edge profile radar chart">' +
+      rings + axes +
+      '<polygon class="radar-area" points="' + areaPts + '"/>' + dots + labelEls +
+    '</svg>';
+  }
+
+  // ---------- Area chart: single combined cumulative series ----------
+  function buildAreaChartSvg(series){
+    var w = 700, h = 220, padX = 10, padY = 16;
+    var allVals = [0].concat(series);
+    var minV = Math.min.apply(null, allVals);
+    var maxV = Math.max.apply(null, allVals);
+    var range = (maxV - minV) || 1;
+    function xAt(i){ return padX + (series.length > 1 ? (i / (series.length - 1)) * (w - padX * 2) : (w - padX * 2) / 2); }
+    function yAt(v){ return h - padY - ((v - minV) / range) * (h - padY * 2); }
+    var zeroY = yAt(0);
+    var pts = series.map(function(v, i){ return xAt(i).toFixed(1) + "," + yAt(v).toFixed(1); }).join(" ");
+    var areaPts = pts + " " + xAt(series.length - 1).toFixed(1) + "," + zeroY.toFixed(1) + " " + xAt(0).toFixed(1) + "," + zeroY.toFixed(1);
+    return '<svg viewBox="0 0 ' + w + ' ' + h + '" width="100%" height="220" preserveAspectRatio="none" role="img" aria-label="Cumulative P&amp;L">' +
+      '<defs><linearGradient id="areaFillGrad" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0%" stop-color="' + IJ_BLUE_SOFT + '" stop-opacity="0.32"/>' +
+        '<stop offset="100%" stop-color="' + IJ_BLUE_SOFT + '" stop-opacity="0"/>' +
+      '</linearGradient></defs>' +
+      '<line x1="' + padX + '" y1="' + zeroY.toFixed(1) + '" x2="' + (w - padX) + '" y2="' + zeroY.toFixed(1) + '" stroke="#1b2140" stroke-width="1" stroke-dasharray="3,3"/>' +
+      '<polygon points="' + areaPts + '" fill="url(#areaFillGrad)" stroke="none"/>' +
+      '<polyline points="' + pts + '" fill="none" stroke="' + IJ_BLUE_SOFT + '" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" style="filter:drop-shadow(0 0 5px rgba(124,155,255,0.45))"/>' +
+    '</svg>';
+  }
+
+  function wireAreaChartHover(wrap, series){
+    var crosshair = document.getElementById("areaCrosshair");
+    var tooltip = document.getElementById("areaTooltip");
+    if (!crosshair || !tooltip || series.length < 2) return;
     function show(clientX){
       var rect = wrap.getBoundingClientRect();
       var relX = Math.max(0, Math.min(1, rect.width ? (clientX - rect.left) / rect.width : 0));
-      var idx = maxLen > 1 ? Math.round(relX * (maxLen - 1)) : 0;
-      var xPct = maxLen > 1 ? (idx / (maxLen - 1)) * 100 : 50;
+      var idx = Math.round(relX * (series.length - 1));
+      var xPct = (idx / (series.length - 1)) * 100;
+      var v = series[idx];
       crosshair.style.left = xPct + "%";
       crosshair.style.opacity = "1";
-      var lines = [];
-      series_list.forEach(function(series, si){
-        var v = series[idx];
-        if (v === undefined) return;
-        var cls = v >= 0 ? "pos" : "neg";
-        lines.push('<div class="edge-tooltip-line">' + escapeHtml(names[si]) + ': <span class="edge-tooltip-r ' + cls + '">' + fmtMoneySigned(v) + '</span></div>');
-      });
-      if (!lines.length){ tooltip.style.opacity = "0"; return; }
-      tooltip.innerHTML = lines.join("");
+      tooltip.innerHTML = '<span class="' + (v >= 0 ? "pos" : "neg") + '">' + fmtMoneySigned(v) + '</span>';
       tooltip.style.left = xPct + "%";
       tooltip.style.opacity = "1";
     }
@@ -496,11 +521,133 @@
     wrap.addEventListener("mouseleave", function(){ crosshair.style.opacity = "0"; tooltip.style.opacity = "0"; });
   }
 
+  // ---------- Vertical bar histogram: per-day net P&L ----------
+  function buildBarChartSvg(dailyPnls){
+    var w = 420, h = 220, padX = 8, padY = 16, gap = 4;
+    if (!dailyPnls.length) dailyPnls = [0];
+    var maxAbs = Math.max.apply(null, dailyPnls.map(Math.abs).concat([1]));
+    var zeroY = h - padY - (h - padY * 2) / 2;
+    var usable = h - padY * 2;
+    var barW = Math.max(2, (w - padX * 2) / dailyPnls.length - gap);
+    var bars = dailyPnls.map(function(v, i){
+      var x = padX + i * ((w - padX * 2) / dailyPnls.length);
+      var bh = Math.max(1.5, (Math.abs(v) / maxAbs) * (usable / 2));
+      var y = v >= 0 ? zeroY - bh : zeroY;
+      var color = v >= 0 ? IJ_GREEN : IJ_RED;
+      return '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + bh.toFixed(1) + '" rx="2" fill="' + color + '" fill-opacity="0.85"/>';
+    }).join("");
+    return '<svg viewBox="0 0 ' + w + ' ' + h + '" width="100%" height="220" preserveAspectRatio="none" role="img" aria-label="Net daily P&amp;L">' +
+      '<line x1="' + padX + '" y1="' + zeroY.toFixed(1) + '" x2="' + (w - padX) + '" y2="' + zeroY.toFixed(1) + '" stroke="#1b2140" stroke-width="1"/>' +
+      bars +
+    '</svg>';
+  }
+
+  // ---------- Derived "edge profile" scores (0-100 each), all computed
+  // from real trade data — no placeholder numbers. ----------
+  function computeEdgeScores(allTrades, days){
+    var wins = allTrades.filter(function(t){ return t.pnl > 0; });
+    var losses = allTrades.filter(function(t){ return t.pnl < 0; });
+    var grossWin = wins.reduce(function(s, t){ return s + t.pnl; }, 0);
+    var grossLoss = Math.abs(losses.reduce(function(s, t){ return s + t.pnl; }, 0));
+    var profitFactor = grossLoss > 0 ? grossWin / grossLoss : (grossWin > 0 ? 3 : 0);
+    var pfScore = Math.max(0, Math.min(100, (profitFactor / 3) * 100));
+
+    var dailyPnls = days.map(function(d){ return d.trades.reduce(function(s, t){ return s + t.pnl; }, 0); });
+    var meanDaily = dailyPnls.length ? dailyPnls.reduce(function(s, v){ return s + v; }, 0) / dailyPnls.length : 0;
+    var variance = dailyPnls.length ? dailyPnls.reduce(function(s, v){ return s + Math.pow(v - meanDaily, 2); }, 0) / dailyPnls.length : 0;
+    var stdDev = Math.sqrt(variance);
+    var avgAbsDaily = dailyPnls.length ? dailyPnls.reduce(function(s, v){ return s + Math.abs(v); }, 0) / dailyPnls.length : 0;
+    var consistencyScore = avgAbsDaily > 0 ? Math.max(0, Math.min(100, 100 - (stdDev / (avgAbsDaily * 2.2)) * 100)) : 0;
+
+    var cum = 0, peak = 0, maxDrawdown = 0;
+    allTrades.forEach(function(t){
+      cum += t.pnl;
+      if (cum > peak) peak = cum;
+      var dd = peak - cum;
+      if (dd > maxDrawdown) maxDrawdown = dd;
+    });
+    var netPnl = cum;
+    var ddBasis = Math.max(peak, Math.abs(netPnl), 1);
+    var drawdownScore = Math.max(0, Math.min(100, 100 - (maxDrawdown / ddBasis) * 100));
+
+    var recoveryFactor = maxDrawdown > 0 ? netPnl / maxDrawdown : (netPnl > 0 ? 3 : 0);
+    var recoveryScore = Math.max(0, Math.min(100, (recoveryFactor / 3) * 100));
+
+    var gradeMap = { "A+": 100, "A": 86, "B": 70, "C": 54, "F": 25 };
+    var graded = allTrades.filter(function(t){ return t.grade && gradeMap.hasOwnProperty(t.grade); });
+    var setupScore;
+    if (graded.length){
+      setupScore = graded.reduce(function(s, t){ return s + gradeMap[t.grade]; }, 0) / graded.length;
+    } else {
+      var decided = wins.length + losses.length;
+      setupScore = decided ? (wins.length / decided) * 100 : 0;
+    }
+
+    return {
+      profitFactor: profitFactor,
+      scores: [consistencyScore, pfScore, drawdownScore, recoveryScore, setupScore],
+      dailyPnls: dailyPnls,
+      netPnl: netPnl
+    };
+  }
+
+  // ---------- Mini calendar (current month, Sunday-start weeks) ----------
+  var MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  function dateKey(d){ return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+  function renderMiniCalendar(allAccountsTrades){
+    var byDate = {};
+    allAccountsTrades.forEach(function(t){
+      if (!t.date) return;
+      if (!byDate[t.date]) byDate[t.date] = { pnl: 0, count: 0 };
+      byDate[t.date].pnl += Number(t.pnl) || 0;
+      byDate[t.date].count += 1;
+    });
+
+    var now = new Date();
+    var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var monthLabelEl = document.getElementById("miniCalMonthLabel");
+    monthLabelEl.textContent = MONTH_NAMES[now.getMonth()] + " " + now.getFullYear();
+
+    var firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    var gridStart = new Date(firstOfMonth);
+    gridStart.setDate(gridStart.getDate() - firstOfMonth.getDay());
+    var days = [];
+    for (var i = 0; i < 42; i++){
+      var d = new Date(gridStart);
+      d.setDate(gridStart.getDate() + i);
+      days.push(d);
+    }
+    while (days.length > 35 && days[days.length - 7].getMonth() !== now.getMonth()) days.splice(days.length - 7, 7);
+
+    var html = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(function(w){ return '<div class="mini-cal-weekday">' + w + '</div>'; }).join("") +
+      '<div class="mini-cal-weekday"></div>';
+
+    var weekRows = days.length / 7;
+    for (var row = 0; row < weekRows; row++){
+      var weekPnl = 0, weekDayCount = 0;
+      for (var col = 0; col < 7; col++){
+        var d = days[row * 7 + col];
+        var isOutside = d.getMonth() !== now.getMonth();
+        var key = dateKey(d);
+        var data = byDate[key];
+        var isToday = dateKey(d) === dateKey(today);
+        if (!isOutside && data){ weekPnl += data.pnl; weekDayCount++; }
+        var cls = ["mini-cal-cell"];
+        if (isOutside) cls.push("outside");
+        if (isToday) cls.push("today");
+        if (!isOutside && data) cls.push(data.pnl >= 0 ? "win" : "loss");
+        html += '<div class="' + cls.join(" ") + '">' + (isOutside ? "" : d.getDate()) + '</div>';
+      }
+      html += '<div class="mini-cal-week">' +
+        '<span class="mini-cal-week-label">Week ' + (row + 1) + '</span>' +
+        '<span class="mini-cal-week-pnl' + (weekDayCount ? (weekPnl >= 0 ? " pos" : " neg") : "") + '">' + (weekDayCount ? fmtMoneySigned(weekPnl) : "$0") + '</span>' +
+        '<span class="mini-cal-week-days">' + weekDayCount + " day" + (weekDayCount === 1 ? "" : "s") + '</span>' +
+      '</div>';
+    }
+    document.getElementById("miniCalGrid").innerHTML = html;
+  }
+
   // ---------- Render ----------
-  // Authentication Visibility Guard: signed-out viewers never see live
-  // account data, even if a browser happens to have local trades cached
-  // from a previous session — the dashboard renders the same pristine,
-  // data-free empty state a brand-new signed-out visitor would see.
   function isSignedIn(){
     return !!(window.EZAuth && EZAuth.isLoggedIn());
   }
@@ -515,9 +662,7 @@
       return;
     }
 
-    var selAccounts = selectedAccounts();
     var allTrades = allFilteredTrades();
-
     var totalAllTime = accounts.reduce(function(s, a){ return s + (a.trades ? a.trades.length : 0); }, 0);
     if (!totalAllTime){
       dashEmpty.hidden = false;
@@ -529,108 +674,97 @@
     dashBody.hidden = false;
 
     var days = groupByDay(allTrades);
-
-    // Total Trades
-    document.getElementById("statTotalTradesValue").textContent = String(allTrades.length);
-    document.getElementById("statTotalTradesSub").textContent = days.length + " trading day" + (days.length === 1 ? "" : "s") + " in range";
-
-    // Trades by Day (avg) + mini bar chart (last 10 trading days)
-    var avgPerDay = days.length ? allTrades.length / days.length : 0;
-    document.getElementById("statTradesByDayValue").textContent = avgPerDay.toFixed(1);
-    var last10 = days.slice(-10);
-    document.getElementById("statTradesByDayChart").innerHTML = buildMiniBarSvg(last10.map(function(d){ return d.trades.length; }));
-    document.getElementById("statTradesByDaySub").textContent = "Last " + last10.length + " trading day" + (last10.length === 1 ? "" : "s");
-
-    // Avg last 7 trading days (P&L) sparkline
-    var last7 = days.slice(-7);
-    var last7Pnls = last7.map(function(d){ return d.trades.reduce(function(s, t){ return s + t.pnl; }, 0); });
-    var avg7 = last7Pnls.length ? last7Pnls.reduce(function(s, v){ return s + v; }, 0) / last7Pnls.length : 0;
-    document.getElementById("statAvg7Value").textContent = fmtMoneySigned(avg7);
-    document.getElementById("statAvg7Value").className = "stat-card-value " + (avg7 >= 0 ? "pos" : "neg");
-    document.getElementById("statAvg7Chart").innerHTML = buildSparklineSvg(last7Pnls, avg7 >= 0 ? "#3ee08c" : "#ef5a5a");
-    var lotTrades = allTrades.filter(function(t){ return typeof t.lots === "number" && t.lots > 0; });
-    var avgLot = lotTrades.length ? lotTrades.reduce(function(s, t){ return s + t.lots; }, 0) / lotTrades.length : 0;
-    document.getElementById("statAvg7Sub").textContent = "Avg lot size · " + avgLot.toFixed(2);
-
-    // P&L by Day
-    var totalPnl = allTrades.reduce(function(s, t){ return s + t.pnl; }, 0);
-    var avgPnlPerDay = days.length ? totalPnl / days.length : 0;
-    document.getElementById("statPnlByDayValue").textContent = fmtMoneySigned(avgPnlPerDay);
-    document.getElementById("statPnlByDayValue").className = "stat-card-value " + (avgPnlPerDay >= 0 ? "pos" : "neg");
-    var pnlBadge = document.getElementById("statPnlByDayBadge");
-    pnlBadge.textContent = avgPnlPerDay >= 0 ? "Profitable" : "Unprofitable";
-    pnlBadge.className = "badge-pill " + (avgPnlPerDay >= 0 ? "pos" : "neg");
-
-    // Net P&L
-    document.getElementById("statNetPnlValue").textContent = fmtMoneySigned(totalPnl);
-    document.getElementById("statNetPnlValue").className = "stat-card-value " + (totalPnl >= 0 ? "pos" : "neg");
-
-    // Avg winning / losing trade
     var wins = allTrades.filter(function(t){ return t.pnl > 0; });
     var losses = allTrades.filter(function(t){ return t.pnl < 0; });
+    var decided = wins.length + losses.length;
+    var winRate = decided ? (wins.length / decided) * 100 : 0;
     var avgWin = wins.length ? wins.reduce(function(s, t){ return s + t.pnl; }, 0) / wins.length : 0;
     var avgLoss = losses.length ? losses.reduce(function(s, t){ return s + t.pnl; }, 0) / losses.length : 0;
-    document.getElementById("statAvgWinValue").textContent = fmtMoneyPlain(avgWin);
-    document.getElementById("statAvgWinSub").textContent = wins.length + " winning trade" + (wins.length === 1 ? "" : "s");
-    document.getElementById("statAvgLossValue").textContent = fmtMoneyPlain(avgLoss);
-    document.getElementById("statAvgLossSub").textContent = losses.length + " losing trade" + (losses.length === 1 ? "" : "s");
+    var avgWinLossRatio = avgLoss !== 0 ? Math.abs(avgWin / avgLoss) : (avgWin > 0 ? 3 : 0);
 
-    // Current day streak: consecutive most-recent trading days, all same sign
-    var streakCount = 0;
-    var streakType = null;
-    for (var i = days.length - 1; i >= 0; i--){
-      var dayPnl = days[i].trades.reduce(function(s, t){ return s + t.pnl; }, 0);
-      var sign = dayPnl >= 0 ? "win" : "loss";
-      if (streakType === null){ streakType = sign; streakCount = 1; }
-      else if (sign === streakType){ streakCount++; }
-      else { break; }
-    }
-    document.getElementById("statStreakValue").textContent = streakCount ? String(streakCount) : "0";
-    document.getElementById("statStreakValue").className = "stat-card-value " + (streakCount ? (streakType === "win" ? "pos" : "neg") : "");
-    document.getElementById("statStreakSub").textContent = streakCount
-      ? streakCount + " " + (streakType === "win" ? "Win" : "Loss") + " Day" + (streakCount === 1 ? "" : "s")
-      : "No streak yet";
-
-    // Cumulative P&L by Account chart
-    var cumWrap = document.getElementById("cumChartWrap");
-    var legendEl = document.getElementById("cumChartLegend");
-    var namesForChart = [];
-    var seriesList = [];
-    var tradesByAccount = [];
-    selAccounts.forEach(function(acc){
-      var list = filteredTradesForAccount(acc);
-      tradesByAccount.push(list.length);
-      if (!list.length) return;
-      var cum = 0;
-      var series = [0];
-      list.forEach(function(t){ cum += t.pnl; series.push(cum); });
-      namesForChart.push(acc.name);
-      seriesList.push(series);
+    var dayWins = 0, dayLosses = 0;
+    days.forEach(function(d){
+      var dayPnl = d.trades.reduce(function(s, t){ return s + t.pnl; }, 0);
+      if (dayPnl > 0) dayWins++; else if (dayPnl < 0) dayLosses++;
     });
-    if (!seriesList.length){
-      cumWrap.innerHTML = '<div class="dash-empty"><p>Not enough data to chart yet.</p></div>';
-      legendEl.innerHTML = "";
-    } else {
-      cumWrap.innerHTML = buildMultiEdgeChartSvg(seriesList, ACCOUNT_COLORS) +
-        '<div class="edge-crosshair" id="cumCrosshair"></div>' +
-        '<div class="edge-tooltip" id="cumTooltip"></div>';
-      wireCumChartHover(cumWrap, seriesList, null, namesForChart, ACCOUNT_COLORS);
-      legendEl.innerHTML = namesForChart.map(function(name, i){
-        return '<span class="edge-legend-item"><span class="edge-legend-dot" style="background:' + ACCOUNT_COLORS[i % ACCOUNT_COLORS.length] + '"></span>' + escapeHtml(name) + '</span>';
-      }).join("");
-    }
+    var dayDecided = dayWins + dayLosses;
+    var dayWinRate = dayDecided ? (dayWins / dayDecided) * 100 : 0;
+
+    var edge = computeEdgeScores(allTrades, days);
+
+    // Gauge 1: Net P&L
+    document.getElementById("gaugeNetPnlValue").textContent = fmtMoneySigned(edge.netPnl);
+    document.getElementById("gaugeNetPnlValue").className = "gauge-value " + (edge.netPnl >= 0 ? "pos" : "neg");
+    document.getElementById("gaugeNetPnlChart").innerHTML = '<svg viewBox="0 0 84 30" width="100%" height="30" preserveAspectRatio="none">' +
+      (function(){
+        var cum = 0, series = edge.dailyPnls.map(function(v){ cum += v; return cum; });
+        if (!series.length) series = [0];
+        var minV = Math.min.apply(null, series.concat([0])), maxV = Math.max.apply(null, series.concat([0]));
+        var range = (maxV - minV) || 1;
+        var pts = series.map(function(v, i){
+          var x = series.length > 1 ? (i / (series.length - 1)) * 84 : 42;
+          var y = 28 - ((v - minV) / range) * 26;
+          return x.toFixed(1) + "," + y.toFixed(1);
+        }).join(" ");
+        return '<polyline points="' + pts + '" fill="none" stroke="' + (edge.netPnl >= 0 ? IJ_GREEN : IJ_RED) + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+      })() + '</svg>';
+    document.getElementById("gaugeNetPnlSub").textContent = "Across " + allTrades.length + " trade" + (allTrades.length === 1 ? "" : "s");
+
+    // Gauge 2: Trade Win %
+    document.getElementById("gaugeWinRateValue").textContent = winRate.toFixed(2) + "%";
+    document.getElementById("gaugeWinRateChart").innerHTML = buildSemiArcGauge(winRate);
+    document.getElementById("gaugeWinRateSub").textContent = wins.length + "W / " + losses.length + "L";
+
+    // Gauge 3: Profit Factor
+    document.getElementById("gaugeProfitFactorValue").textContent = edge.profitFactor.toFixed(2);
+    document.getElementById("gaugeProfitFactorChart").innerHTML = buildRingGauge(edge.profitFactor);
+
+    // Gauge 4: Day Win %
+    document.getElementById("gaugeDayWinRateValue").textContent = dayWinRate.toFixed(2) + "%";
+    document.getElementById("gaugeDayWinRateChart").innerHTML = buildSemiArcGauge(dayWinRate);
+    document.getElementById("gaugeDayWinRateSub").textContent = dayWins + "W / " + dayLosses + "L days";
+
+    // Gauge 5: Avg Win/Loss ratio
+    document.getElementById("gaugeAvgWinLossValue").textContent = avgWinLossRatio.toFixed(2);
+    document.getElementById("gaugeAvgWinLossChart").innerHTML = buildWinLossBar(avgWin, avgLoss);
+
+    // Radar: Edge Profile
+    document.getElementById("radarChartWrap").innerHTML = buildRadarSvg(edge.scores, ["Consistency", "Profit Factor", "Max Drawdown", "Recovery", "Setup Quality"]);
+
+    // Area chart: cumulative P&L across selected accounts/range
+    var cum2 = 0;
+    var cumSeries = [0].concat(allTrades.map(function(t){ cum2 += t.pnl; return cum2; }));
+    var areaWrap = document.getElementById("areaChartWrap");
+    areaWrap.innerHTML = buildAreaChartSvg(cumSeries) +
+      '<div class="edge-crosshair" id="areaCrosshair"></div>' +
+      '<div class="edge-tooltip" id="areaTooltip"></div>';
+    wireAreaChartHover(areaWrap, cumSeries);
+    var areaBadge = document.getElementById("areaChartBadge");
+    areaBadge.textContent = edge.netPnl >= 0 ? "Profitable" : "Unprofitable";
+
+    // Bar chart: net daily P&L
+    document.getElementById("barChartWrap").innerHTML = buildBarChartSvg(edge.dailyPnls);
+
+    // Recent trades ledger (most recent first)
+    var recent = allTrades.slice().reverse().slice(0, 8);
+    document.getElementById("recentTradesBody").innerHTML = recent.length ? recent.map(function(t){
+      var d = t.date ? new Date(t.date + "T00:00:00") : null;
+      var dateStr = d ? (d.getMonth() + 1) + "/" + d.getDate() + "/" + d.getFullYear() : "—";
+      return '<tr><td>' + dateStr + '</td><td class="trades-ledger-symbol">' + escapeHtml((t.symbol || "—").toUpperCase()) + '</td>' +
+        '<td class="' + (t.pnl >= 0 ? "pos" : "neg") + '">' + fmtMoneySigned(t.pnl) + '</td></tr>';
+    }).join("") : '<tr><td colspan="3" style="color:var(--ij-muted-dim); text-align:center; padding:18px 0;">No trades in range</td></tr>';
+
+    // Mini calendar — always shows the current month across every account,
+    // independent of the account/range filters (same "whole trader" pattern
+    // as the greeting pills).
+    var allAccountTrades = [];
+    accounts.forEach(function(acc){ (acc.trades || []).forEach(function(t){ allAccountTrades.push(t); }); });
+    renderMiniCalendar(allAccountTrades);
   }
 
-  // ---------- Greeting header: time-of-day + name, plus a quick this-week
-  // snapshot. Always reflects the whole trader (every account), independent
-  // of the account/range filters above — a personal "how's my week going"
-  // line, not another filtered view.
+  // ---------- Greeting header ----------
   var dashGreetingTitleEl = document.getElementById("dashGreetingTitle");
   var dashGreetingPillsEl = document.getElementById("dashGreetingPills");
-  // Dynamic, timezone-aware greeting: Date().getHours() always reads in the
-  // viewer's own local system timezone, not UTC, so this naturally follows
-  // whatever clock the browser is set to.
-  // Morning 5:00–11:59, Afternoon 12:00–17:59, Evening 18:00–4:59 (wraps past midnight).
   function timeOfDayGreeting(){
     var h = new Date().getHours();
     if (h >= 5 && h < 12) return "Good morning";
@@ -678,7 +812,6 @@
   renderGreeting();
   if (window.EZAuth) EZAuth.onChange(function(){ render(); renderGreeting(); });
 
-  // Pick up changes made in Journal in another tab, or after returning to this tab.
   window.addEventListener("storage", function(e){
     if (e.key === STORAGE_KEY){ load(); populateAccountFilter(); render(); renderGreeting(); }
   });
