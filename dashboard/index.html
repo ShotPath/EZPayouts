@@ -174,6 +174,7 @@
   .radar-axis-label{ font-family:var(--font-mono); font-size:9px; fill:var(--ij-muted); text-anchor:middle; }
   .radar-area{ fill:var(--ij-blue); fill-opacity:0.22; stroke:var(--ij-blue-soft); stroke-width:2; stroke-linejoin:round; filter:drop-shadow(0 0 6px var(--ij-blue-glow)); }
   .radar-dot{ fill:var(--ij-blue-soft); }
+  .radar-vertex-node{ fill:#00d2ff; filter:drop-shadow(0 0 6px var(--ij-blue)); }
 
   .edge-chart-wrap{ position:relative; flex:1; }
   .edge-chart-wrap svg{ display:block; width:100%; height:220px; }
@@ -185,6 +186,68 @@
   }
 
   .bar-chart-wrap svg{ display:block; width:100%; height:220px; }
+
+  /* ---------- Edge Profile / Cumulative P&L: 3D hover tilt + click-to-focus
+     expansion. Only these two cards opt in (.tiltable) — Net Daily P&L
+     stays a plain sibling that just blurs/fades when one of the other two
+     is focused, via .charts-grid.has-focus. ---------- */
+  .charts-grid{ perspective:1200px; }
+  .chart-card.tiltable{
+    position:relative; cursor:pointer; overflow:hidden;
+    transition:transform .7s cubic-bezier(.16,1,.3,1), box-shadow .7s cubic-bezier(.16,1,.3,1),
+      opacity .7s cubic-bezier(.16,1,.3,1), filter .7s cubic-bezier(.16,1,.3,1), grid-column .7s cubic-bezier(.16,1,.3,1);
+    transform:rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+    transform-style:preserve-3d;
+  }
+  .chart-card.tiltable.is-tilting{ transition:box-shadow .3s ease, filter .3s ease; }
+  .chart-card.tiltable:hover{ border-color:var(--ij-border-bright); box-shadow:0 24px 60px -28px var(--ij-blue-glow); }
+  .chart-card-glow{
+    position:absolute; inset:0; pointer-events:none; z-index:0; opacity:0; transition:opacity .25s ease;
+    background:radial-gradient(circle 220px at var(--glow-x, 50%) var(--glow-y, 50%), var(--ij-blue-glow), transparent 70%);
+  }
+  .chart-card.tiltable:hover .chart-card-glow{ opacity:1; }
+  .chart-card-head, .chart-card > .radar-wrap, .chart-card > .edge-chart-wrap, .chart-card > .bar-chart-wrap{ position:relative; z-index:1; }
+  .chart-card-expand-hint{
+    margin-top:10px; font-family:var(--font-mono); font-size:9px; letter-spacing:0.1em; text-transform:uppercase;
+    color:var(--ij-muted-dim); text-align:center; position:relative; z-index:1;
+  }
+  .chart-card.is-focused .chart-card-expand-hint{ display:none; }
+  .chart-card-close{
+    display:none; position:relative; z-index:2; font-family:var(--font-mono); font-size:10px; font-weight:700;
+    padding:6px 12px; border-radius:10px; background:var(--ij-void); border:1px solid var(--ij-border-bright);
+    color:var(--ij-muted); cursor:pointer; transition:color .15s, border-color .15s;
+  }
+  .chart-card-close:hover{ color:var(--ij-ice); border-color:var(--ij-blue); }
+  .chart-card.is-focused .chart-card-close{ display:inline-block; }
+
+  /* Focus state: the grid collapses to one column so the focused card can
+     take the full row; siblings vanish into deep space instead of being
+     removed, so the collapse/restore stays smooth. */
+  .charts-grid.has-focus{ grid-template-columns:1fr; }
+  .charts-grid.has-focus .chart-card.tiltable:not(.is-focused){
+    transform:scale(.9); opacity:0; filter:blur(6px); pointer-events:none; position:absolute; z-index:-1;
+  }
+  .charts-grid.has-focus .chart-card:not(.tiltable){
+    transform:scale(.9); opacity:0; filter:blur(6px); pointer-events:none;
+    transition:transform .7s cubic-bezier(.16,1,.3,1), opacity .7s cubic-bezier(.16,1,.3,1), filter .7s cubic-bezier(.16,1,.3,1);
+  }
+  .chart-card.is-focused{
+    cursor:default; border-color:var(--ij-blue); box-shadow:0 0 60px -16px var(--ij-blue-glow);
+    transform:none !important;
+  }
+  .chart-card.is-focused .radar-wrap svg, .chart-card.is-focused .edge-chart-wrap svg{ height:280px; }
+  .chart-card-stats{
+    display:none; position:relative; z-index:1; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px;
+    margin-top:16px; padding-top:16px; border-top:1px solid var(--ij-border);
+  }
+  .chart-card.is-focused .chart-card-stats{ display:grid; }
+  .chart-card-stat{
+    background:var(--ij-void); border:1px solid var(--ij-border); border-radius:12px; padding:10px 12px;
+  }
+  .chart-card-stat-label{ font-family:var(--font-mono); font-size:9.5px; text-transform:uppercase; letter-spacing:0.06em; color:var(--ij-muted); }
+  .chart-card-stat-value{ font-family:var(--font-display); font-weight:700; font-size:16px; color:var(--ij-ice); margin-top:4px; }
+  .chart-card-stat-value.pos{ color:var(--ij-green-soft); }
+  .chart-card-stat-value.neg{ color:var(--ij-red); }
 
   /* ---------- 3. Recent trades + mini calendar row ---------- */
   .lower-grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:stretch; }
@@ -311,17 +374,27 @@
     </div>
 
     <!-- 2. Split charts -->
-    <div class="charts-grid">
-      <div class="chart-card">
-        <div class="chart-card-head"><h2>Edge Profile</h2></div>
+    <div class="charts-grid" id="chartsGrid">
+      <div class="chart-card tiltable" id="edgeProfileCard" data-module="edge_profile">
+        <div class="chart-card-glow" aria-hidden="true"></div>
+        <div class="chart-card-head">
+          <h2>Edge Profile</h2>
+          <button type="button" class="chart-card-close" data-close-module>&times; Close Focus</button>
+        </div>
         <div class="radar-wrap" id="radarChartWrap"></div>
+        <p class="chart-card-expand-hint">Click to expand &#8599;</p>
+        <div class="chart-card-stats" id="edgeProfileStats"></div>
       </div>
-      <div class="chart-card">
+      <div class="chart-card tiltable" id="cumulativePnlCard" data-module="cumulative_pnl">
+        <div class="chart-card-glow" aria-hidden="true"></div>
         <div class="chart-card-head">
           <h2>Daily Net Cumulative P&amp;L</h2>
           <span class="badge-pill" id="areaChartBadge">&mdash;</span>
+          <button type="button" class="chart-card-close" data-close-module>&times; Close Focus</button>
         </div>
         <div class="edge-chart-wrap" id="areaChartWrap"></div>
+        <p class="chart-card-expand-hint">Click to expand &#8599;</p>
+        <div class="chart-card-stats" id="cumulativePnlStats"></div>
       </div>
       <div class="chart-card">
         <div class="chart-card-head"><h2>Net Daily P&amp;L</h2></div>
@@ -605,9 +678,19 @@
       var p = pointAt(i, 1.26);
       return '<text class="radar-axis-label" x="' + p[0].toFixed(1) + '" y="' + p[1].toFixed(1) + '">' + escapeHtml(label) + '</text>';
     }).join("");
+    // Glowing vertex nodes at the outer ring's 5 (or n) corners — the
+    // boundary frame itself, computed from the exact same pointAt() math as
+    // the grid/axes so they land precisely on it. Deliberately not a
+    // hardcoded clip-path pentagon: that would only line up for n=5 and
+    // drift out of sync the moment this chart's axis count or radius ever
+    // changes, where this stays correct by construction.
+    var vertexNodes = labels.map(function(_, i){
+      var p = pointAt(i, 1);
+      return '<circle class="radar-vertex-node" cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="3.5"/>';
+    }).join("");
     return '<svg viewBox="0 0 300 200" role="img" aria-label="Edge profile radar chart">' +
       rings + axes +
-      '<polygon class="radar-area" points="' + areaPts + '"/>' + dots + labelEls +
+      '<polygon class="radar-area" points="' + areaPts + '"/>' + dots + vertexNodes + labelEls +
     '</svg>';
   }
 
@@ -837,6 +920,7 @@
     var dayWinRate = dayDecided ? (dayWins / dayDecided) * 100 : 0;
 
     var edge = computeEdgeScores(allTrades, days);
+    renderChartCardStats(edge, allTrades, days);
 
     // Gauge 1: Net P&L
     document.getElementById("gaugeNetPnlValue").textContent = fmtMoneySigned(edge.netPnl);
@@ -948,6 +1032,92 @@
       '<span class="dash-greeting-pill">' + weekTrades.length + " trade" + (weekTrades.length === 1 ? "" : "s") + '</span>' +
       '<span class="dash-greeting-pill ' + (weekPnl >= 0 ? "pos" : "neg") + '">' + fmtMoneySigned(weekPnl) + " this week</span>" +
       '<span class="dash-greeting-pill">' + winRate + "% win rate</span>";
+  }
+
+  // ---------- Edge Profile / Cumulative P&L: 3D tilt + click-to-focus ----------
+  var chartsGridEl = document.getElementById("chartsGrid");
+  var tiltableCards = Array.prototype.slice.call(document.querySelectorAll(".chart-card.tiltable"));
+  var focusedModule = null;
+  var TILT_MAX_DEG = 12;
+
+  function handleTiltMove(e){
+    var card = this;
+    if (card.classList.contains("is-focused")) return;
+    var box = card.getBoundingClientRect();
+    var x = e.clientX - box.left;
+    var y = e.clientY - box.top;
+    var rotX = -((y - box.height / 2) / (box.height / 2)) * TILT_MAX_DEG;
+    var rotY = ((x - box.width / 2) / (box.width / 2)) * TILT_MAX_DEG;
+    card.classList.add("is-tilting");
+    card.style.setProperty("--tilt-x", rotX.toFixed(2) + "deg");
+    card.style.setProperty("--tilt-y", rotY.toFixed(2) + "deg");
+    // The backlight tracks the inverse of the cursor position — it reads as
+    // a light source the card is tilting away from, not just following the
+    // pointer underneath it.
+    card.style.setProperty("--glow-x", (100 - (x / box.width) * 100).toFixed(1) + "%");
+    card.style.setProperty("--glow-y", (100 - (y / box.height) * 100).toFixed(1) + "%");
+  }
+  function handleTiltLeave(){
+    this.classList.remove("is-tilting");
+    this.style.setProperty("--tilt-x", "0deg");
+    this.style.setProperty("--tilt-y", "0deg");
+  }
+  function setFocusedModule(moduleName){
+    focusedModule = moduleName;
+    chartsGridEl.classList.toggle("has-focus", !!moduleName);
+    tiltableCards.forEach(function(card){
+      var isThis = card.getAttribute("data-module") === moduleName;
+      card.classList.toggle("is-focused", isThis);
+      if (!isThis){
+        card.style.setProperty("--tilt-x", "0deg");
+        card.style.setProperty("--tilt-y", "0deg");
+      }
+    });
+  }
+  tiltableCards.forEach(function(card){
+    card.addEventListener("mousemove", handleTiltMove);
+    card.addEventListener("mouseleave", handleTiltLeave);
+    card.addEventListener("click", function(e){
+      if (e.target.closest("[data-close-module]")) return;
+      if (focusedModule !== null) return;
+      setFocusedModule(card.getAttribute("data-module"));
+    });
+  });
+  document.querySelectorAll("[data-close-module]").forEach(function(btn){
+    btn.addEventListener("click", function(e){
+      e.stopPropagation();
+      setFocusedModule(null);
+    });
+  });
+  document.addEventListener("keydown", function(e){
+    if (e.key === "Escape" && focusedModule !== null) setFocusedModule(null);
+  });
+
+  // Real numbers, not placeholders — reuses the exact scores already
+  // feeding the radar chart (edge.scores) and the cumulative series
+  // (edge.dailyPnls/netPnl), computed once per render() below.
+  function renderChartCardStats(edge, allTrades, days){
+    var labels = ["Consistency", "Profit Factor", "Max Drawdown", "Recovery", "Setup Quality"];
+    document.getElementById("edgeProfileStats").innerHTML = labels.map(function(label, i){
+      var v = edge.scores[i];
+      return '<div class="chart-card-stat"><div class="chart-card-stat-label">' + label + '</div>' +
+        '<div class="chart-card-stat-value">' + v.toFixed(1) + '%</div></div>';
+    }).join("");
+
+    var dailyPnls = edge.dailyPnls;
+    var bestDay = dailyPnls.length ? Math.max.apply(null, dailyPnls) : 0;
+    var worstDay = dailyPnls.length ? Math.min.apply(null, dailyPnls) : 0;
+    var winDays = dailyPnls.filter(function(v){ return v > 0; }).length;
+    var cumStats = [
+      { label: "Net P&L", value: fmtMoneySigned(edge.netPnl), cls: edge.netPnl >= 0 ? "pos" : "neg" },
+      { label: "Best Day", value: fmtMoneySigned(bestDay), cls: bestDay >= 0 ? "pos" : "neg" },
+      { label: "Worst Day", value: fmtMoneySigned(worstDay), cls: worstDay >= 0 ? "pos" : "neg" },
+      { label: "Winning Days", value: winDays + " / " + dailyPnls.length, cls: "" },
+    ];
+    document.getElementById("cumulativePnlStats").innerHTML = cumStats.map(function(s){
+      return '<div class="chart-card-stat"><div class="chart-card-stat-label">' + s.label + '</div>' +
+        '<div class="chart-card-stat-value ' + s.cls + '">' + s.value + '</div></div>';
+    }).join("");
   }
 
   load();
