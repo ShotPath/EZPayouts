@@ -39,5 +39,5 @@ bucket_name = "ezpayouts-images"
 #   Services IDs. Enable "Sign in with Apple", and under its configuration
 #   add this site's domain and <origin>/oauth-callback.html as the return URL.
 [vars]
-GOOGLE_CLIENT_ID = ""
+GOOGLE_CLIENT_ID = "590928448638-eqaif9bhks2o0j2foba3l7ks0if4odt3.apps.googleusercontent.com"
 APPLE_CLIENT_ID = ""

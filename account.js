@@ -244,7 +244,7 @@
   // trusting it (see verifyIdToken in auth-worker.js). This page never
   // handles a Google/Apple password, and the client ID isn't a secret
   // (it's sent openly in the auth request either way).
-  var GOOGLE_CLIENT_ID = window.EZ_GOOGLE_CLIENT_ID || null;
+  var GOOGLE_CLIENT_ID = window.EZ_GOOGLE_CLIENT_ID || "590928448638-eqaif9bhks2o0j2foba3l7ks0if4odt3.apps.googleusercontent.com";
   var APPLE_CLIENT_ID = window.EZ_APPLE_CLIENT_ID || null;
   var GOOGLE_AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth";
   var APPLE_SDK_URL = "https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js";
