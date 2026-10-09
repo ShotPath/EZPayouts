@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Privacy Policy — EZPayouts</title>
+<meta name="description" content="What EZPayouts collects, why, and how it's handled." />
+<link rel="icon" type="image/png" href="../ezpayouts-icon-only.png">
+<link rel="apple-touch-icon" href="../ezpayouts-icon-only.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
+<style>
+  :root{
+    --void:#05070c; --panel:#090b14; --panel-raised:#0d0f1c; --panel-hi:#111527;
+    --border:#141a33; --border-soft:#11162a; --border-bright:#1d2754;
+    --blue:#3262f6; --blue-soft:#7c9bff; --cyan2:#00d2ff; --mint:#53ba79;
+    --ice:#f4f6fb; --muted:#9aa3b8; --muted-dim:#5b6274;
+    --font-sans:'Inter','Segoe UI',sans-serif;
+    --font-mono:'IBM Plex Mono','SFMono-Regular',Consolas,monospace;
+  }
+  *{ box-sizing:border-box; }
+  html{ color-scheme:dark; scroll-behavior:smooth; }
+  body{ margin:0; min-height:100vh; background:var(--void); color:var(--ice); font-family:var(--font-sans); overflow-x:hidden; }
+  a{ color:var(--blue-soft); }
+
+  .bg-grid{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background-image:linear-gradient(rgba(90,110,210,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(90,110,210,0.05) 1px, transparent 1px);
+    background-size:64px 64px;
+    mask-image:radial-gradient(ellipse 85% 50% at 50% 0%, #000 40%, transparent 85%);
+    -webkit-mask-image:radial-gradient(ellipse 85% 50% at 50% 0%, #000 40%, transparent 85%);
+  }
+
+  .navbar{ position:sticky; top:0; z-index:50; background:rgba(5,7,12,0.72); backdrop-filter:blur(18px); border-bottom:1px solid var(--border-soft); }
+  .navbar-inner{ max-width:820px; margin:0 auto; padding:14px 24px; display:flex; align-items:center; justify-content:space-between; }
+  .brand{ display:flex; align-items:center; gap:9px; text-decoration:none; }
+  .brand-mark{ width:28px; height:28px; border-radius:8px; flex:none; background:linear-gradient(135deg, var(--blue), var(--cyan2)); display:flex; align-items:center; justify-content:center; font-weight:900; font-size:12px; color:#05070c; }
+  .brand-name{ font-weight:800; font-size:15px; letter-spacing:-0.02em; color:var(--ice); }
+  .brand-name b{ color:var(--cyan2); font-weight:900; }
+  .navbar a.back{ font-family:var(--font-mono); font-size:11.5px; font-weight:700; letter-spacing:0.04em; text-decoration:none; color:var(--muted); }
+  .navbar a.back:hover{ color:var(--ice); }
+
+  .doc{ position:relative; z-index:1; max-width:820px; margin:0 auto; padding:56px 24px 96px; }
+  .doc-eyebrow{ font-family:var(--font-mono); font-size:10.5px; font-weight:700; letter-spacing:0.16em; text-transform:uppercase; color:var(--blue-soft); margin:0 0 10px; }
+  .doc h1{ font-weight:900; letter-spacing:-0.02em; font-size:clamp(28px,4vw,40px); margin:0 0 8px; }
+  .doc-updated{ font-family:var(--font-mono); font-size:12px; color:var(--muted-dim); margin:0 0 36px; }
+
+  .tldr{
+    background:var(--panel); border:1px solid var(--border-bright); border-radius:16px; padding:20px 22px; margin-bottom:40px;
+  }
+  .tldr-label{ font-family:var(--font-mono); font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--mint); margin:0 0 10px; }
+  .tldr ul{ margin:0; padding-left:18px; color:var(--muted); font-size:14px; line-height:1.75; }
+  .tldr li{ margin-bottom:4px; }
+  .tldr strong{ color:var(--ice); }
+
+  .doc section{ margin-bottom:38px; }
+  .doc h2{ font-size:19px; font-weight:800; letter-spacing:-0.01em; color:var(--ice); margin:0 0 14px; padding-top:4px; }
+  .doc h3{ font-size:14px; font-weight:700; color:var(--ice); margin:20px 0 8px; }
+  .doc p{ font-size:14.5px; line-height:1.75; color:var(--muted); margin:0 0 14px; }
+  .doc ul{ margin:0 0 14px; padding-left:20px; color:var(--muted); font-size:14.5px; line-height:1.75; }
+  .doc li{ margin-bottom:6px; }
+  .doc li strong{ color:var(--ice); font-weight:600; }
+  .doc code{ font-family:var(--font-mono); font-size:0.92em; background:var(--panel-hi); border:1px solid var(--border); padding:1px 6px; border-radius:5px; color:var(--cyan2); }
+
+  .provider-table{ width:100%; border-collapse:collapse; margin:0 0 14px; font-size:13.5px; }
+  .provider-table th{ text-align:left; font-family:var(--font-mono); font-size:10px; letter-spacing:0.06em; text-transform:uppercase; color:var(--muted-dim); padding:0 10px 10px 0; border-bottom:1px solid var(--border); font-weight:600; }
+  .provider-table td{ padding:10px 10px 10px 0; border-bottom:1px solid var(--border-soft); color:var(--muted); vertical-align:top; }
+  .provider-table td:first-child{ color:var(--ice); font-weight:600; white-space:nowrap; }
+
+  .contact-card{ background:var(--panel); border:1px solid var(--border-bright); border-radius:16px; padding:22px; }
+  .contact-card p{ margin:0; }
+
+  footer{ border-top:1px solid var(--border-soft); padding:24px; text-align:center; }
+  footer p{ font-size:12px; color:var(--muted-dim); margin:0; }
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+
+<header class="navbar">
+  <div class="navbar-inner">
+    <a class="brand" href="/">
+      <span class="brand-mark">EZ</span>
+      <span class="brand-name">EZ<b>PAYOUTS</b></span>
+    </a>
+    <a class="back" href="/">&larr; BACK TO HOME</a>
+  </div>
+</header>
+
+<main class="doc">
+  <p class="doc-eyebrow">Legal</p>
+  <h1>Privacy Policy</h1>
+  <p class="doc-updated">Last updated: October 2026</p>
+
+  <div class="tldr">
+    <p class="tldr-label">The short version</p>
+    <ul>
+      <li>We store the trades, strategies, and notes you log so they sync across your devices — <strong>trade screenshots stay on your own device only</strong>, they're never uploaded.</li>
+      <li>Your password is <strong>hashed</strong>, never stored or visible in plain text. If you sign in with Google or Apple, we never see that password at all.</li>
+      <li>We don't sell data, and we don't run ad trackers or analytics scripts on this site.</li>
+      <li>If you use the AI Coach feature, whatever you send it (messages, your trade stats, screenshots you attach) goes to Anthropic (Claude) to generate a reply. Nothing else on the site does this.</li>
+      <li>Everything runs on Cloudflare's infrastructure. That's it — Cloudflare, and Anthropic only when you use the Coach.</li>
+    </ul>
+  </div>
+
+  <section>
+    <h2>1. Who this covers</h2>
+    <p>This policy covers <code>ezpayouts.xyz</code> and its subdomains (together, "EZPayouts," "we," "us"). EZPayouts is an independent trading-journal and prop-firm-toolkit product, currently free, built and operated by a solo developer ("ShotPath"). It is not affiliated with any prop firm, broker, or exchange.</p>
+  </section>
+
+  <section>
+    <h2>2. What we collect</h2>
+
+    <h3>Account information</h3>
+    <ul>
+      <li><strong>Username &amp; password.</strong> If you create an account with a username and password, the password is salted and hashed (PBKDF2, SHA-256) before it's ever written to storage — we don't store it, log it, or have any way to recover the original value.</li>
+      <li><strong>Google / Apple sign-in.</strong> If you sign in with Google or Apple instead, we receive a signed token from that provider confirming your account's unique ID and (if the provider includes it) a verified email address. We verify that token's signature directly against Google's or Apple's own public keys — your Google/Apple password never passes through EZPayouts.</li>
+    </ul>
+
+    <h3>Trading data you create</h3>
+    <ul>
+      <li>Trades you log in the Journal or Backtest pages — symbol, direction, P&amp;L, strategy tags, notes, grades, and similar fields.</li>
+      <li>Your selected prop-firm plan/account size in the Lucid cockpit.</li>
+      <li><strong>Screenshots are the one exception</strong> — any image you attach to a trade is kept only in your browser's local storage on that device. It is never uploaded to our servers and will not appear if you sign in on a different device or browser.</li>
+    </ul>
+
+    <h3>AI Coach conversations</h3>
+    <p>The Coach chat widget (Backtest page) is opt-in — it only activates when you open it and send a message. When you do, your message, a summary of your recent trade stats, and any screenshot you attach in that conversation are sent to Anthropic's Claude API to generate a response. We rate-limit this per account per day mainly to control our own API costs, not to profile usage.</p>
+
+    <h3>Automatically collected technical data</h3>
+    <p>Like any web request, ordinary technical metadata (IP address, browser user-agent, request timestamps) passes through Cloudflare's network to serve the site and APIs. We don't run any separate analytics, advertising, or tracking scripts, and we don't maintain our own server access logs beyond what Cloudflare retains operationally.</p>
+  </section>
+
+  <section>
+    <h2>3. How we use it</h2>
+    <ul>
+      <li>To create your account, authenticate you, and keep your session signed in.</li>
+      <li>To sync your trades, strategies, and settings across the devices you sign into.</li>
+      <li>To generate AI Coach responses, only when you actively use that feature.</li>
+      <li>To enforce basic abuse/cost controls (e.g. the Coach's daily message cap).</li>
+    </ul>
+    <p>We do not use your trading data to train any AI model, and we do not sell, rent, or share your data with advertisers.</p>
+  </section>
+
+  <section>
+    <h2>4. Who we share it with</h2>
+    <p>We don't sell your data. A small number of infrastructure providers process it on our behalf, strictly to run the service:</p>
+    <table class="provider-table">
+      <thead><tr><th>Provider</th><th>What they handle</th><th>When</th></tr></thead>
+      <tbody>
+        <tr><td>Cloudflare</td><td>Hosting, the account database (Workers KV), and all API traffic</td><td>Always &mdash; this is the whole backend</td></tr>
+        <tr><td>Anthropic (Claude)</td><td>Your message, trade-stat summary, and any attached screenshot, to generate a Coach reply</td><td>Only when you use the AI Coach</td></tr>
+        <tr><td>Google / Apple</td><td>Confirms your identity via a signed token when you choose that sign-in method</td><td>Only if you sign in with Google or Apple</td></tr>
+      </tbody>
+    </table>
+    <p>We'd only disclose data beyond this if legally required to (e.g. a valid court order), and we're not aware of ever having received one.</p>
+  </section>
+
+  <section>
+    <h2>5. Security &amp; honesty about where we are today</h2>
+    <p>We take reasonable, standard precautions: passwords are salted and hashed rather than stored in plain text, all traffic runs over HTTPS, and OAuth sign-ins are cryptographically verified server-side. That said, EZPayouts is presently a solo-built, pre-revenue product — it has not undergone a third-party security audit, and we don't yet offer things like rate-limited login attempts or two-factor authentication on password accounts.</p>
+    <p>As the product matures toward a paid tier, hardening account security (audit logging, stronger session controls, 2FA, and a formal security review) is an explicit priority before we'd ask anyone to trust us with payment information. This section will be updated as that work lands.</p>
+  </section>
+
+  <section>
+    <h2>6. Your choices</h2>
+    <ul>
+      <li><strong>Access or export.</strong> Your trade data is visible to you directly in the app at any time.</li>
+      <li><strong>Correct or delete a trade.</strong> You can edit or delete individual trades yourself from the Journal or Backtest page.</li>
+      <li><strong>Delete your account.</strong> Full account deletion isn't yet self-service in the app. Email us (below) and we'll delete your account record and synced data promptly, by hand, until that's automated.</li>
+      <li><strong>Local data.</strong> Clearing your browser's local storage/site data removes your session and any locally-kept screenshots from that device.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>7. Children's privacy</h2>
+    <p>EZPayouts is not directed at, and is not knowingly used by, anyone under 13. If you believe a child has created an account, contact us and we'll remove it.</p>
+  </section>
+
+  <section>
+    <h2>8. Changes to this policy</h2>
+    <p>If this policy changes in a material way, we'll update the date at the top of this page. Significant changes (e.g. a new data use, or the introduction of paid plans) will be called out clearly, not buried in a routine edit.</p>
+  </section>
+
+  <section>
+    <h2>9. Contact</h2>
+    <div class="contact-card">
+      <p>Questions, deletion requests, or anything else: <a href="mailto:privacy@ezpayouts.xyz">privacy@ezpayouts.xyz</a></p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <p>EZPayouts is an independent, unofficial resource for prop-firm traders. Not financial advice.</p>
+</footer>
+</body>
+</html>
