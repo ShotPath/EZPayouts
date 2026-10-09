@@ -1612,6 +1612,32 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="csvImportModalOverlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-head">
+      <div class="modal-head-left">
+        <span class="modal-head-icon" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M10 13V3M6 7l4-4 4 4" /><path d="M4 16h12" /></svg></span>
+        <div>
+          <span class="modal-title">Import CSV</span>
+          <p class="modal-sub" id="csvImportModalSub">Choose which account these trades belong to.</p>
+        </div>
+      </div>
+      <button type="button" class="modal-close" id="csvImportModalClose" aria-label="Close">&times;</button>
+    </div>
+
+    <div class="field">
+      <label>Import Into Account</label>
+      <ez-select id="csvImportAccount"></ez-select>
+    </div>
+
+    <div class="trade-modal-foot">
+      <span class="spacer"></span>
+      <button type="button" class="ghost-btn" id="cancelCsvImportBtn">Cancel</button>
+      <button type="button" class="primary-btn" id="confirmCsvImportBtn">Import</button>
+    </div>
+  </div>
+</div>
+
 <div class="lightbox-overlay" id="lightboxOverlay" hidden>
   <img id="lightboxImg" alt="Trade screenshot" />
 </div>
@@ -4862,6 +4888,106 @@
   }
 
   importCsvBtn.addEventListener("click", function(){ csvFileInput.click(); });
+
+  // ---------- CSV import account picker ----------
+  // Parsing used to write straight into the ambient `trades` (i.e.
+  // whichever account happened to be activeAccountId at that moment) with
+  // no explicit choice in the import flow itself — activeAccountId is set
+  // implicitly by whatever account a trade was last saved to via the
+  // modal, so from here it looked like CSV import "picked a random
+  // account." Parsing now only builds a plan (what WOULD be imported);
+  // nothing is written to any account until the user explicitly confirms
+  // a target in this modal, same as the modal's own "Select Account" field.
+  var csvImportModalOverlay = document.getElementById("csvImportModalOverlay");
+  var csvImportModalSub = document.getElementById("csvImportModalSub");
+  var csvImportAccountSelect = document.getElementById("csvImportAccount");
+  var csvImportModalClose = document.getElementById("csvImportModalClose");
+  var cancelCsvImportBtn = document.getElementById("cancelCsvImportBtn");
+  var confirmCsvImportBtn = document.getElementById("confirmCsvImportBtn");
+  var pendingCsvImportPlan = null;
+
+  function closeCsvImportModal(){
+    csvImportModalOverlay.hidden = true;
+    pendingCsvImportPlan = null;
+    csvFileInput.value = "";
+  }
+  csvImportModalClose.addEventListener("click", closeCsvImportModal);
+  cancelCsvImportBtn.addEventListener("click", closeCsvImportModal);
+  var csvImportMouseDownOnBackdrop = false;
+  csvImportModalOverlay.addEventListener("mousedown", function(e){ csvImportMouseDownOnBackdrop = e.target === csvImportModalOverlay; });
+  csvImportModalOverlay.addEventListener("click", function(e){
+    if (e.target === csvImportModalOverlay && csvImportMouseDownOnBackdrop) closeCsvImportModal();
+    csvImportMouseDownOnBackdrop = false;
+  });
+
+  function openCsvImportModal(plan){
+    pendingCsvImportPlan = plan;
+    csvImportAccountSelect.innerHTML = accounts.map(function(a){
+      return '<option value="' + escapeHtml(a.id) + '">' + escapeHtml(a.name) + '</option>';
+    }).join("");
+    csvImportAccountSelect.value = activeAccountId;
+    var count = plan.kind === "rows" ? plan.newTrades.length : Object.keys(plan.byDay).length;
+    csvImportModalSub.textContent = "Found " + count + " " + (plan.kind === "rows" ? ("trade" + (count === 1 ? "" : "s")) : ("day" + (count === 1 ? "" : "s"))) + ". Choose which account to import into.";
+    csvImportModalOverlay.hidden = false;
+  }
+
+  function commitCsvImport(plan, targetAccount){
+    var imported = 0, updated = 0;
+    targetAccount.trades = targetAccount.trades || [];
+    if (plan.kind === "rows"){
+      plan.newTrades.forEach(function(t){ targetAccount.trades.unshift(t); imported++; });
+    } else {
+      // Re-exporting Balance/Cash History (daily batches, overlapping date
+      // ranges as new days accumulate) is the normal way to use this
+      // format, so a day that was already imported gets its total
+      // refreshed in place instead of piling up as a duplicate entry.
+      Object.keys(plan.byDay).sort().forEach(function(date){
+        var existing = targetAccount.trades.find(function(t){ return t.date === date && t.title === "Daily import"; });
+        if (existing){
+          existing.pnl = plan.byDay[date];
+          existing.symbol = plan.accountLabel.toUpperCase();
+          updated++;
+        } else {
+          targetAccount.trades.unshift({
+            id: "t_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8),
+            market: "Futures",
+            date: date,
+            symbol: plan.accountLabel.toUpperCase(),
+            strategy: "",
+            direction: "long",
+            pnl: plan.byDay[date],
+            emotions: [],
+            title: "Daily import",
+            notes: "",
+            imageIds: [],
+            createdAt: Date.now()
+          });
+          imported++;
+        }
+      });
+    }
+    activeAccountId = targetAccount.id;
+    trades = targetAccount.trades;
+    save();
+    renderAll();
+    renderAcctFilter();
+    csvFileInput.value = "";
+    var summary = [];
+    if (imported) summary.push(imported + " new trade" + (imported === 1 ? "" : "s"));
+    if (updated) summary.push(updated + " day" + (updated === 1 ? "" : "s") + " updated");
+    if (summary.length) alert("Imported into \"" + targetAccount.name + "\": " + summary.join(", ") + ".");
+    else alert("No valid rows found in that file.");
+  }
+
+  confirmCsvImportBtn.addEventListener("click", function(){
+    if (!pendingCsvImportPlan) return;
+    var targetAccount = accounts.find(function(a){ return a.id === csvImportAccountSelect.value; }) || activeAccount();
+    var plan = pendingCsvImportPlan;
+    csvImportModalOverlay.hidden = true;
+    pendingCsvImportPlan = null;
+    commitCsvImport(plan, targetAccount);
+  });
+
   csvFileInput.addEventListener("change", function(){
     var file = csvFileInput.files && csvFileInput.files[0];
     if (!file) return;
@@ -4882,8 +5008,6 @@
       var exitIdx = findColumn(headers, ["exit price", "exit"]);
       var lotsIdx = findColumn(headers, ["paired qty", "qty", "quantity", "contracts", "lots", "size"]);
       var marketColIdx = findColumn(headers, ["asset class", "asset type"]);
-      var imported = 0;
-      var updated = 0;
 
       function inferDirection(r){
         if (dirIdx !== -1) return parseCsvDirection(r[dirIdx]);
@@ -4895,7 +5019,10 @@
         return "long";
       }
 
+      var plan = null;
+
       if (dateIdx !== -1 && symbolIdx !== -1 && pnlIdx !== -1){
+        var newTrades = [];
         rows.slice(1).forEach(function(r){
           var date = parseCsvDate(r[dateIdx]);
           var symbol = (r[symbolIdx] || "").trim();
@@ -4912,7 +5039,7 @@
             entry = entryIdx !== -1 ? numOrUndef(r[entryIdx]) : undefined;
             exit = exitIdx !== -1 ? numOrUndef(r[exitIdx]) : undefined;
           }
-          trades.unshift({
+          newTrades.push({
             id: "t_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8),
             market: (marketColIdx !== -1 && r[marketColIdx]) ? r[marketColIdx].trim() : "Futures",
             date: date,
@@ -4929,8 +5056,8 @@
             imageIds: [],
             createdAt: Date.now()
           });
-          imported++;
         });
+        plan = { kind: "rows", newTrades: newTrades };
       } else {
         var dailyFormat = detectDailyCsvFormat(headers);
         var byDay = {};
@@ -4978,45 +5105,16 @@
           csvFileInput.value = "";
           return;
         }
-
-        // Re-exporting Balance/Cash History (daily batches, overlapping date
-        // ranges as new days accumulate) is the normal way to use this
-        // format, so a day that was already imported gets its total
-        // refreshed in place instead of piling up as a duplicate entry.
-        Object.keys(byDay).sort().forEach(function(date){
-          var existing = trades.find(function(t){ return t.date === date && t.title === "Daily import"; });
-          if (existing){
-            existing.pnl = byDay[date];
-            existing.symbol = accountLabel.toUpperCase();
-            updated++;
-          } else {
-            trades.unshift({
-              id: "t_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8),
-              market: "Futures",
-              date: date,
-              symbol: accountLabel.toUpperCase(),
-              strategy: "",
-              direction: "long",
-              pnl: byDay[date],
-              emotions: [],
-              title: "Daily import",
-              notes: "",
-              imageIds: [],
-              createdAt: Date.now()
-            });
-            imported++;
-          }
-        });
+        plan = { kind: "daily", byDay: byDay, accountLabel: accountLabel };
       }
 
-      save();
-      renderAll();
-      csvFileInput.value = "";
-      var summary = [];
-      if (imported) summary.push(imported + " new trade" + (imported === 1 ? "" : "s"));
-      if (updated) summary.push(updated + " day" + (updated === 1 ? "" : "s") + " updated");
-      if (summary.length) alert("Imported: " + summary.join(", ") + ".");
-      else alert("No valid rows found in that file.");
+      var count = plan.kind === "rows" ? plan.newTrades.length : Object.keys(plan.byDay).length;
+      if (!count){
+        csvFileInput.value = "";
+        alert("No valid rows found in that file.");
+        return;
+      }
+      openCsvImportModal(plan);
     };
     reader.onerror = function(){ csvFileInput.value = ""; };
     reader.readAsText(file);
