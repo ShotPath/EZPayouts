@@ -1598,6 +1598,14 @@
   var editingTradeId = null;
   var pendingImageIds = [];
   var originalImageIds = [];
+  // While a screenshot is signed-in-uploading, its pendingImageIds entry is
+  // a temporary "pending_..." id whose preview data URL lives here (never
+  // written to the local image store, so it never ends up double-stored
+  // once the real "rimg_..." id comes back). pendingUploadCount gates the
+  // Save button so a trade can never be saved referencing an id that
+  // doesn't exist on the server yet.
+  var pendingUploadCache = {};
+  var pendingUploadCount = 0;
   var currentDirection = "long";
   var currentEmotions = [];
   var currentGrade = "";
@@ -3231,8 +3239,18 @@
     try { localStorage.setItem(IMAGE_STORE_KEY, JSON.stringify(store)); return true; }
     catch (err) { return false; }
   }
+  // Three possible homes for an image id, checked in order: a still-
+  // uploading preview (pendingUploadCache), the local-only store (either a
+  // signed-out screenshot, or one from before sync existed), or — for a
+  // "rimg_..." id — the synced copy on the server, which EZAuth.imageUrl()
+  // turns into a URL for the browser's own <img> loader to fetch (no fetch()
+  // call needed here, this is synchronous).
   function getImageDataUrl(id){
-    return loadImageStore()[id] || null;
+    if (pendingUploadCache[id]) return pendingUploadCache[id];
+    var local = loadImageStore()[id];
+    if (local) return local;
+    if (window.EZAuth && EZAuth.imageUrl) return EZAuth.imageUrl(id);
+    return null;
   }
   function storeImage(id, dataUrl){
     var store = loadImageStore();
@@ -3240,11 +3258,19 @@
     return saveImageStore(store);
   }
   function deleteImage(id){
+    if (pendingUploadCache[id]){ delete pendingUploadCache[id]; return; }
     var store = loadImageStore();
-    delete store[id];
-    saveImageStore(store);
+    if (store[id] !== undefined){
+      delete store[id];
+      saveImageStore(store);
+      return;
+    }
+    if (window.EZAuth && EZAuth.deleteRemoteImage) EZAuth.deleteRemoteImage(id);
   }
 
+  // Resolves { dataUrl, blob } — dataUrl for an instant local preview,
+  // blob for uploading when signed in. Same compression (max width, JPEG
+  // quality) feeds both, just two different outputs off one canvas.
   function compressImageFile(file){
     return new Promise(function(resolve, reject){
       var reader = new FileReader();
@@ -3259,7 +3285,11 @@
           canvas.height = h;
           var ctx = canvas.getContext("2d");
           ctx.drawImage(img, 0, 0, w, h);
-          resolve(canvas.toDataURL("image/jpeg", 0.72));
+          var dataUrl = canvas.toDataURL("image/jpeg", 0.72);
+          canvas.toBlob(function(blob){
+            if (!blob){ reject(new Error("couldn't compress image")); return; }
+            resolve({ dataUrl: dataUrl, blob: blob });
+          }, "image/jpeg", 0.72);
         };
         img.onerror = function(){ reject(new Error("bad image")); };
         img.src = reader.result;
@@ -4139,18 +4169,62 @@
     }
   });
   addImageBtn.addEventListener("click", function(){ imageFileInput.click(); });
+  // While any screenshot for the open trade is still uploading, Save stays
+  // disabled — a trade can't be persisted referencing an image id the
+  // server doesn't have yet.
+  function updateSaveUploadState(){
+    saveTradeBtn.disabled = pendingUploadCount > 0;
+    saveTradeBtn.textContent = pendingUploadCount > 0
+      ? "Uploading screenshot" + (pendingUploadCount > 1 ? "s" : "") + "…"
+      : "⚡ Log Trade";
+  }
+
   imageFileInput.addEventListener("change", function(){
     var files = Array.prototype.slice.call(imageFileInput.files || []);
     var room = MAX_IMAGES_PER_TRADE - pendingImageIds.length;
+    var signedIn = !!(window.EZAuth && EZAuth.isLoggedIn());
     files.slice(0, Math.max(room, 0)).forEach(function(file){
       if (!/^image\//.test(file.type)) return;
-      compressImageFile(file).then(function(dataUrl){
-        var id = "img_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8);
-        var ok = storeImage(id, dataUrl);
-        if (ok){
-          pendingImageIds.push(id);
-          renderImageThumbs();
+      compressImageFile(file).then(function(result){
+        if (!signedIn){
+          var id = "img_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8);
+          if (storeImage(id, result.dataUrl)){
+            pendingImageIds.push(id);
+            renderImageThumbs();
+          }
+          return;
         }
+        // Signed in: preview instantly with the local data URL while the
+        // upload runs in the background, then swap in the real synced id.
+        var tempId = "pending_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8);
+        pendingUploadCache[tempId] = result.dataUrl;
+        pendingImageIds.push(tempId);
+        pendingUploadCount++;
+        updateSaveUploadState();
+        renderImageThumbs();
+        EZAuth.uploadImage(result.blob).then(function(res){
+          delete pendingUploadCache[tempId];
+          var idx = pendingImageIds.indexOf(tempId);
+          if (idx !== -1){
+            pendingImageIds[idx] = res.id;
+          } else {
+            // The modal was discarded while this was still in flight —
+            // nothing references the upload anymore, so clean it up
+            // instead of leaving an orphaned file on the server.
+            EZAuth.deleteRemoteImage(res.id);
+          }
+          pendingUploadCount--;
+          updateSaveUploadState();
+          renderImageThumbs();
+        }).catch(function(err){
+          delete pendingUploadCache[tempId];
+          var idx = pendingImageIds.indexOf(tempId);
+          if (idx !== -1) pendingImageIds.splice(idx, 1);
+          pendingUploadCount--;
+          updateSaveUploadState();
+          renderImageThumbs();
+          showToast(err.message || "Couldn't upload screenshot.");
+        });
       }).catch(function(){});
     });
     imageFileInput.value = "";
@@ -4325,6 +4399,7 @@
     var draft = loadDraft(draftKeyFor(editingTradeId));
     var source = draft || trade || {};
     pendingImageIds = Array.isArray(source.imageIds) ? source.imageIds.slice() : [];
+    updateSaveUploadState();
     currentEmotions = Array.isArray(source.emotions) ? source.emotions.slice() : [];
     tradeModalTitle.textContent = trade ? "Edit Trade" : "Log a Trade";
     tfMarket.value = MARKET_OPTIONS.indexOf(source.market) !== -1 ? source.market : "Futures";
@@ -4418,6 +4493,7 @@
   });
 
   saveTradeBtn.addEventListener("click", function(){
+    if (pendingUploadCount > 0) return;
     var pnl = parseAmount(tfPnl.value);
     if (!tfSymbol.value.trim() || isNaN(pnl)){
       tfSymbol.style.borderColor = tfSymbol.value.trim() ? "" : "var(--red)";

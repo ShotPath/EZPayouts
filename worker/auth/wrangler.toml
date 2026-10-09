@@ -12,6 +12,17 @@ compatibility_date = "2025-01-01"
 binding = "ACCOUNTS"
 id = "REPLACE_WITH_KV_NAMESPACE_ID"
 
+# Optional: enables trade screenshots syncing across devices instead of
+# staying local-only to the browser they were uploaded from. Before the
+# first deploy:
+#   1. cd worker/auth
+#   2. npx wrangler r2 bucket create ezpayouts-images
+# No further config needed — unlike the vars below, nothing here is
+# account-specific. Until this bucket exists, /images/* responds 501.
+[[r2_buckets]]
+binding = "IMAGES"
+bucket_name = "ezpayouts-images"
+
 # Optional: enables "Sign in with Google" / "Sign in with Apple". Neither
 # value is secret — both are just the OAuth client identifier each provider
 # hands you when you register the app, the same string the client-side JS

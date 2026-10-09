@@ -119,6 +119,37 @@
     if (!isLoggedIn()) return Promise.resolve(null);
     return apiFetch("/data", { method: "PUT", json: partial }).catch(function () { return null; });
   }
+  // ---------- Trade screenshot sync ----------
+  // Uploads go straight through as the compressed JPEG blob the caller
+  // already built (apiFetch always JSON-encodes, so this bypasses it and
+  // talks to the API directly). imageUrl() is synchronous and just builds a
+  // URL — no fetch happens here; the <img> tag the caller points at that URL
+  // is what actually loads it, auth token riding along as a query param
+  // since <img> can't send an Authorization header.
+  function uploadImage(blob) {
+    if (!isLoggedIn()) return Promise.reject(new Error("Not signed in."));
+    var token = getToken();
+    return fetch(API_BASE + "/images", {
+      method: "POST",
+      headers: { "Content-Type": blob.type || "image/jpeg", "Authorization": "Bearer " + token },
+      body: blob,
+    }).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (data) {
+        if (!res.ok) throw new Error(data.error || "Upload failed.");
+        return data; // { id }
+      });
+    });
+  }
+  function imageUrl(id) {
+    var token = getToken();
+    if (!id || !token || String(id).indexOf("rimg_") !== 0) return null;
+    return API_BASE + "/images/" + encodeURIComponent(id) + "?t=" + encodeURIComponent(token);
+  }
+  function deleteRemoteImage(id) {
+    if (!id || String(id).indexOf("rimg_") !== 0) return Promise.resolve();
+    return apiFetch("/images/" + encodeURIComponent(id), { method: "DELETE" }).catch(function () {});
+  }
+
   function changePassword(currentPassword, newPassword) {
     return apiFetch("/change-password", { method: "POST", json: { currentPassword: currentPassword, newPassword: newPassword } });
   }
@@ -640,6 +671,9 @@
     logout: logout,
     fetchData: fetchData,
     saveData: saveData,
+    uploadImage: uploadImage,
+    imageUrl: imageUrl,
+    deleteRemoteImage: deleteRemoteImage,
     changePassword: changePassword,
     onChange: onChange,
     mountWidget: mountWidget,

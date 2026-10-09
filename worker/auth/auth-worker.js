@@ -27,6 +27,16 @@
 // secret involved, so GOOGLE_CLIENT_ID/APPLE_CLIENT_ID (set as plain wrangler
 // vars, see wrangler.toml) are the only server-side configuration needed.
 // Until they're set, handleOAuth responds 501 rather than pretending to work.
+//
+// Trade screenshots live in a separate R2 bucket (binding "IMAGES"), one
+// object per image at key "<lowercased username>/<id>", NOT in KV — they're
+// binary and can be a few hundred KB each, which would blow past KV's
+// per-account data budget fast if bundled into the same JSON blob as
+// backtest/cockpit/journal. An <img> tag can't send an Authorization header,
+// so GET /images/:id takes the session token as a query param (?t=) instead
+// of a Bearer header — same session token as everywhere else, just handed to
+// the browser's own image loader instead of fetch(). Until IMAGES is bound,
+// the image endpoints respond 501 rather than pretending to work.
 
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 90; // 90 days
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/;
@@ -34,7 +44,7 @@ const MIN_PASSWORD_LENGTH = 6;
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
 
@@ -176,12 +186,15 @@ async function readJson(request) {
   try { return await request.json(); } catch (err) { return null; }
 }
 
+async function usernameForToken(token, env) {
+  if (!token) return null;
+  var username = await env.ACCOUNTS.get(sessionKey(token));
+  return username || null;
+}
 async function requireSession(request, env) {
   var auth = request.headers.get("Authorization") || "";
   var m = auth.match(/^Bearer\s+(.+)$/i);
-  if (!m) return null;
-  var username = await env.ACCOUNTS.get(sessionKey(m[1]));
-  return username || null;
+  return usernameForToken(m ? m[1] : null, env);
 }
 
 async function handleSignup(request, env) {
@@ -381,6 +394,58 @@ async function handlePutData(request, env) {
   return json(next);
 }
 
+// ---------- Trade screenshot storage (R2) ----------
+var IMAGE_ID_RE = "rimg_[a-f0-9]{32}";
+var MAX_IMAGE_BYTES = 2 * 1024 * 1024; // 2MB — the client already compresses to well under this
+var ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+
+function imageObjectKey(username, id) { return username.toLowerCase() + "/" + id; }
+
+async function handleImageUpload(request, env) {
+  var username = await requireSession(request, env);
+  if (!username) return json({ error: "Not signed in." }, 401);
+  if (!env.IMAGES) return json({ error: "Image sync isn't configured on the server yet." }, 501);
+
+  var contentType = (request.headers.get("Content-Type") || "").split(";")[0].trim();
+  if (ALLOWED_IMAGE_TYPES.indexOf(contentType) === -1) {
+    return json({ error: "Unsupported image type." }, 400);
+  }
+  var buf = await request.arrayBuffer();
+  if (buf.byteLength === 0) return json({ error: "Empty upload." }, 400);
+  if (buf.byteLength > MAX_IMAGE_BYTES) return json({ error: "Image too large (max 2MB)." }, 413);
+
+  var id = "rimg_" + crypto.randomUUID().replace(/-/g, "");
+  await env.IMAGES.put(imageObjectKey(username, id), buf, { httpMetadata: { contentType: contentType } });
+  return json({ id: id });
+}
+
+// Authenticated via ?t=<session token> instead of a Bearer header — an
+// <img src> can't set custom headers, so the token has to ride in the URL.
+// Same session token as the rest of the app; it's just handed to the
+// browser's own image loader here instead of to fetch().
+async function handleImageGet(request, env, id) {
+  if (!env.IMAGES) return json({ error: "Image sync isn't configured on the server yet." }, 501);
+  var url = new URL(request.url);
+  var username = await usernameForToken(url.searchParams.get("t"), env);
+  if (!username) return json({ error: "Not signed in." }, 401);
+
+  var object = await env.IMAGES.get(imageObjectKey(username, id));
+  if (!object) return json({ error: "Not found." }, 404);
+  var headers = Object.assign({
+    "Content-Type": (object.httpMetadata && object.httpMetadata.contentType) || "application/octet-stream",
+    "Cache-Control": "private, max-age=86400",
+  }, CORS_HEADERS);
+  return new Response(object.body, { headers: headers });
+}
+
+async function handleImageDelete(request, env, id) {
+  var username = await requireSession(request, env);
+  if (!username) return json({ error: "Not signed in." }, 401);
+  if (!env.IMAGES) return json({ error: "Image sync isn't configured on the server yet." }, 501);
+  await env.IMAGES.delete(imageObjectKey(username, id));
+  return json({ ok: true });
+}
+
 export default {
   async fetch(request, env) {
     if (request.method === "OPTIONS") {
@@ -402,6 +467,11 @@ export default {
     if (path === "/me" && request.method === "GET") return handleMe(request, env);
     if (path === "/data" && request.method === "GET") return handleGetData(request, env);
     if (path === "/data" && request.method === "PUT") return handlePutData(request, env);
+
+    if (path === "/images" && request.method === "POST") return handleImageUpload(request, env);
+    var imageMatch = path.match(new RegExp("^/images/(" + IMAGE_ID_RE + ")$"));
+    if (imageMatch && request.method === "GET") return handleImageGet(request, env, imageMatch[1]);
+    if (imageMatch && request.method === "DELETE") return handleImageDelete(request, env, imageMatch[1]);
 
     return json({ error: "Not found." }, 404);
   },
