@@ -88,9 +88,14 @@
         return data;
       });
   }
+  // A brand-new Google/Apple identity doesn't create an account right away —
+  // the server hands back { needsUsername, pendingToken, suggestedUsername }
+  // instead so the person can pick their own username (see completeOAuthSignup
+  // below) rather than being silently assigned a random one.
   function oauthGoogle(idToken) {
     return apiFetch("/oauth/google", { method: "POST", json: { idToken: idToken } })
       .then(function (data) {
+        if (data.needsUsername) return data;
         setSession(data.token, data.username);
         emitChange();
         return data;
@@ -99,10 +104,31 @@
   function oauthApple(idToken) {
     return apiFetch("/oauth/apple", { method: "POST", json: { idToken: idToken } })
       .then(function (data) {
+        if (data.needsUsername) return data;
         setSession(data.token, data.username);
         emitChange();
         return data;
       });
+  }
+  function completeOAuthSignup(pendingToken, username) {
+    return apiFetch("/oauth/complete", { method: "POST", json: { pendingToken: pendingToken, username: username } })
+      .then(function (data) {
+        setSession(data.token, data.username);
+        emitChange();
+        return data;
+      });
+  }
+  // Attaches a Google/Apple identity to the account that's currently signed
+  // in, instead of signing in as (or creating) a separate account.
+  function linkGoogle(idToken) {
+    return apiFetch("/oauth/google/link", { method: "POST", json: { idToken: idToken } });
+  }
+  function linkApple(idToken) {
+    return apiFetch("/oauth/apple/link", { method: "POST", json: { idToken: idToken } });
+  }
+  function me() {
+    if (!isLoggedIn()) return Promise.resolve(null);
+    return apiFetch("/me").catch(function () { return null; });
   }
   function logout() {
     var pending = getToken() ? apiFetch("/logout", { method: "POST" }).catch(function () {}) : Promise.resolve();
@@ -458,9 +484,13 @@
         btn.innerHTML = "<span>" + (provider === "google" ? "Connecting to Google…" : "Connecting to Apple…") + "</span>";
         var startFlow = provider === "google" ? startGoogleSignIn : startAppleSignIn;
         var exchangeToken = provider === "google" ? oauthGoogle : oauthApple;
-        startFlow().then(exchangeToken).then(function () {
+        startFlow().then(exchangeToken).then(function (result) {
           closeModal();
           formEl.reset();
+          if (result && result.needsUsername) {
+            openUsernameStepModal(result.suggestedUsername, result.pendingToken);
+            return;
+          }
           if (mountedContainer) renderWidget(mountedContainer);
         }).catch(function (err) {
           errorEl.textContent = err.message || "Something went wrong.";
@@ -600,6 +630,93 @@
     setTimeout(function () { cpModalEls.currentInput.focus(); }, 30);
   }
 
+  // ---------- Choose-a-username modal (the follow-up step for a brand-new
+  // Google/Apple identity; built once, shared across mounts) ----------
+  var usModalBuilt = false;
+  var usModalEls = null;
+
+  function ensureUsernameStepModal() {
+    if (usModalBuilt) return;
+    usModalBuilt = true;
+    ensureStyles();
+
+    var overlay = document.createElement("div");
+    overlay.className = "ez-auth-overlay";
+    overlay.hidden = true;
+    overlay.innerHTML = "" +
+      '<div class="ez-auth-modal" role="dialog" aria-modal="true" aria-label="Choose a username">' +
+        '<button type="button" class="ez-auth-close" aria-label="Close">&times;</button>' +
+        '<p class="ez-auth-eyebrow">One more step</p>' +
+        '<p class="ez-auth-hint" style="text-align:left; margin:0 0 16px;">Pick a username for your EZPayouts account &mdash; this is how your trades and data are keyed.</p>' +
+        '<form novalidate>' +
+          '<label class="ez-auth-field"><span>Username</span>' +
+            '<input type="text" class="ez-us-username" autocomplete="username" maxlength="20" /></label>' +
+          '<p class="ez-auth-error" hidden></p>' +
+          '<button type="submit" class="ez-auth-submit">Continue</button>' +
+        "</form>" +
+      "</div>";
+    document.body.appendChild(overlay);
+
+    var formEl = overlay.querySelector("form");
+    var usernameInput = overlay.querySelector(".ez-us-username");
+    var errorEl = overlay.querySelector(".ez-auth-error");
+    var submitBtn = overlay.querySelector(".ez-auth-submit");
+    var pendingToken = null;
+
+    formEl.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var username = usernameInput.value.trim();
+      errorEl.hidden = true;
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Creating…";
+      completeOAuthSignup(pendingToken, username).then(function () {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Continue";
+        closeUsModal();
+        formEl.reset();
+        if (mountedContainer) renderWidget(mountedContainer);
+      }).catch(function (err) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Continue";
+        errorEl.textContent = err.message || "Something went wrong.";
+        errorEl.hidden = false;
+      });
+    });
+
+    overlay.querySelector(".ez-auth-close").addEventListener("click", closeUsModal);
+    var usMouseDownOnBackdrop = false;
+    overlay.addEventListener("mousedown", function (e) { usMouseDownOnBackdrop = e.target === overlay; });
+    overlay.addEventListener("click", function (e) {
+      if (e.target === overlay && usMouseDownOnBackdrop) closeUsModal();
+      usMouseDownOnBackdrop = false;
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && !overlay.hidden) closeUsModal();
+    });
+
+    function closeUsModal() { overlay.hidden = true; }
+
+    usModalEls = {
+      overlay: overlay,
+      usernameInput: usernameInput,
+      errorEl: errorEl,
+      formEl: formEl,
+      open: function (suggested, token) {
+        pendingToken = token;
+        errorEl.hidden = true;
+        formEl.reset();
+        usernameInput.value = suggested || "";
+        overlay.hidden = false;
+        setTimeout(function () { usernameInput.focus(); usernameInput.select(); }, 30);
+      },
+    };
+  }
+
+  function openUsernameStepModal(suggested, pendingToken) {
+    ensureUsernameStepModal();
+    usModalEls.open(suggested, pendingToken);
+  }
+
   // ---------- Topbar widget ----------
   var globalClickWired = false;
   function ensureGlobalClickHandler() {
@@ -621,16 +738,45 @@
           '<button type="button" class="ez-auth-avatar" aria-label="Account menu">' + escapeHtml(initial) + "</button>" +
           '<div class="ez-auth-menu" hidden>' +
             '<div class="ez-auth-menu-user">Signed in as<strong>@' + escapeHtml(username) + "</strong></div>" +
+            '<button type="button" class="ez-auth-menu-item" data-action="link-google" hidden>Link Google Account</button>' +
             '<button type="button" class="ez-auth-menu-item" data-action="change-password">Change Password</button>' +
             '<button type="button" class="ez-auth-menu-item danger" data-action="sign-out">Sign out</button>' +
           "</div>" +
         "</div>";
       var avatarBtn = container.querySelector(".ez-auth-avatar");
       var menu = container.querySelector(".ez-auth-menu");
+      var linkGoogleBtn = menu.querySelector('[data-action="link-google"]');
       avatarBtn.addEventListener("click", function (e) {
         e.stopPropagation();
+        var opening = menu.hidden;
         menu.hidden = !menu.hidden;
+        // Only Google-eligible accounts (and only ones not already linked)
+        // see this — check on open rather than baking it into every render,
+        // since it needs a round trip to /me to know.
+        if (opening && GOOGLE_CLIENT_ID) {
+          me().then(function (info) {
+            if (info && !info.hasGoogle) linkGoogleBtn.hidden = false;
+          });
+        }
       });
+      if (linkGoogleBtn) {
+        linkGoogleBtn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          var original = linkGoogleBtn.textContent;
+          linkGoogleBtn.disabled = true;
+          linkGoogleBtn.textContent = "Connecting…";
+          startGoogleSignIn().then(function (idToken) {
+            return linkGoogle(idToken);
+          }).then(function () {
+            linkGoogleBtn.textContent = "Google account linked ✓";
+            setTimeout(function () { menu.hidden = true; }, 900);
+          }).catch(function (err) {
+            linkGoogleBtn.disabled = false;
+            linkGoogleBtn.textContent = (err.message || "Could not link Google.").slice(0, 44);
+            setTimeout(function () { linkGoogleBtn.textContent = original; }, 2400);
+          });
+        });
+      }
       menu.querySelector('[data-action="change-password"]').addEventListener("click", function () {
         menu.hidden = true;
         openChangePasswordModal();
@@ -675,6 +821,9 @@
     imageUrl: imageUrl,
     deleteRemoteImage: deleteRemoteImage,
     changePassword: changePassword,
+    me: me,
+    linkGoogle: linkGoogle,
+    linkApple: linkApple,
     onChange: onChange,
     mountWidget: mountWidget,
     openSignIn: function () { openModal("login"); },

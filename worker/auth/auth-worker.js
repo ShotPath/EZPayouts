@@ -90,6 +90,7 @@ function userKey(username) { return "user:" + username.toLowerCase(); }
 function sessionKey(token) { return "session:" + token; }
 function dataKey(username) { return "data:" + username.toLowerCase(); }
 function oauthKey(provider, subjectId) { return "oauth:" + provider + ":" + subjectId; }
+function pendingOauthKey(token) { return "oauthPending:" + token; }
 
 // ---------- OAuth ID token verification (Google / Apple) ----------
 // Both providers hand the client a signed JWT ("ID token") after the user
@@ -315,30 +316,116 @@ async function handleOAuth(request, env, provider) {
   var subjectId = payload.sub;
   var indexKey = oauthKey(provider, subjectId);
   var lookupUsername = await env.ACCOUNTS.get(indexKey); // lowercased, or null
-  var record;
 
   if (!lookupUsername) {
-    var newUsername = await provisionUsername(env);
-    record = { username: newUsername, salt: null, hash: null, createdAt: new Date().toISOString() };
-    record[cfg.idField] = subjectId;
-    if (payload.email) record.verifiedEmail = payload.email;
-    await env.ACCOUNTS.put(userKey(newUsername), JSON.stringify(record));
-    await env.ACCOUNTS.put(indexKey, newUsername.toLowerCase());
-  } else {
-    var raw = await env.ACCOUNTS.get(userKey(lookupUsername));
-    record = raw ? JSON.parse(raw) : null;
-    if (!record) return json({ error: "Account not found." }, 404);
-    // Apple only includes the email claim on a person's very first
-    // authorization — don't overwrite a previously-captured one with nothing.
-    if (payload.email && record.verifiedEmail !== payload.email) {
-      record.verifiedEmail = payload.email;
-      await env.ACCOUNTS.put(userKey(record.username), JSON.stringify(record));
-    }
+    // Brand-new identity: don't create the account yet — let the person
+    // choose their own username first (see handleOAuthComplete) instead of
+    // silently handing them a random trader_xxxxx one. The verified identity
+    // is stashed behind a short-lived pending token rather than re-sending
+    // the ID token on the follow-up call, since Google/Apple ID tokens are
+    // effectively single-use and may already be stale by then.
+    var pendingToken = randomToken();
+    var suggested = await provisionUsername(env);
+    await env.ACCOUNTS.put(pendingOauthKey(pendingToken), JSON.stringify({
+      provider: provider,
+      subjectId: subjectId,
+      email: payload.email || null,
+    }), { expirationTtl: 600 });
+    return json({ needsUsername: true, pendingToken: pendingToken, suggestedUsername: suggested, email: payload.email || null });
+  }
+
+  var raw = await env.ACCOUNTS.get(userKey(lookupUsername));
+  var record = raw ? JSON.parse(raw) : null;
+  if (!record) return json({ error: "Account not found." }, 404);
+  // Apple only includes the email claim on a person's very first
+  // authorization — don't overwrite a previously-captured one with nothing.
+  if (payload.email && record.verifiedEmail !== payload.email) {
+    record.verifiedEmail = payload.email;
+    await env.ACCOUNTS.put(userKey(record.username), JSON.stringify(record));
   }
 
   var token = randomToken();
   await env.ACCOUNTS.put(sessionKey(token), record.username.toLowerCase(), { expirationTtl: SESSION_TTL_SECONDS });
   return json({ token: token, username: record.username });
+}
+
+// Finishes a brand-new Google/Apple signup once the person has picked a
+// username for the pending identity handleOAuth stashed above.
+async function handleOAuthComplete(request, env) {
+  var body = await readJson(request);
+  if (!body || !body.pendingToken) return json({ error: "Missing pendingToken." }, 400);
+  var username = String(body.username || "").trim();
+  if (!USERNAME_RE.test(username)) {
+    return json({ error: "Username must be 3-20 characters: letters, numbers, underscore." }, 400);
+  }
+
+  var pendingRaw = await env.ACCOUNTS.get(pendingOauthKey(body.pendingToken));
+  if (!pendingRaw) return json({ error: "This sign-in has expired — please try again." }, 400);
+  var pending = JSON.parse(pendingRaw);
+
+  var existing = await env.ACCOUNTS.get(userKey(username));
+  if (existing) return json({ error: "That username is already taken." }, 409);
+
+  var cfg = OAUTH_PROVIDERS[pending.provider];
+  var record = { username: username, salt: null, hash: null, createdAt: new Date().toISOString() };
+  record[cfg.idField] = pending.subjectId;
+  if (pending.email) record.verifiedEmail = pending.email;
+
+  await env.ACCOUNTS.put(userKey(username), JSON.stringify(record));
+  await env.ACCOUNTS.put(oauthKey(pending.provider, pending.subjectId), username.toLowerCase());
+  await env.ACCOUNTS.delete(pendingOauthKey(body.pendingToken));
+
+  var token = randomToken();
+  await env.ACCOUNTS.put(sessionKey(token), username.toLowerCase(), { expirationTtl: SESSION_TTL_SECONDS });
+  return json({ token: token, username: username });
+}
+
+// Attaches a Google/Apple identity to the ALREADY SIGNED-IN account instead
+// of signing in as (or creating) a separate one — e.g. someone who first
+// made a username/password account wants "Sign in with Google" to resolve
+// to that same account next time, not a brand-new one.
+async function handleOAuthLink(request, env, provider) {
+  var username = await requireSession(request, env);
+  if (!username) return json({ error: "Not signed in." }, 401);
+
+  var cfg = OAUTH_PROVIDERS[provider];
+  var audience = provider === "google" ? env.GOOGLE_CLIENT_ID : env.APPLE_CLIENT_ID;
+  if (!audience) {
+    return json({ error: (provider === "google" ? "Google" : "Apple") + " sign-in isn't configured on the server yet." }, 501);
+  }
+
+  var body = await readJson(request);
+  if (!body || !body.idToken) return json({ error: "Missing idToken." }, 400);
+
+  var payload;
+  try {
+    payload = await verifyIdToken(body.idToken, { jwksUrl: cfg.jwksUrl, issuers: cfg.issuers, audience: audience });
+  } catch (err) {
+    return json({ error: "Could not verify " + provider + " sign-in (" + err.message + ")." }, 401);
+  }
+
+  var subjectId = payload.sub;
+  var indexKey = oauthKey(provider, subjectId);
+  var existingOwner = await env.ACCOUNTS.get(indexKey);
+  if (existingOwner && existingOwner !== username.toLowerCase()) {
+    return json({ error: "That " + (provider === "google" ? "Google" : "Apple") + " account is already linked to a different EZPayouts account." }, 409);
+  }
+
+  var raw = await env.ACCOUNTS.get(userKey(username));
+  if (!raw) return json({ error: "Account not found." }, 404);
+  var record = JSON.parse(raw);
+  record[cfg.idField] = subjectId;
+  if (payload.email) record.verifiedEmail = payload.email;
+  await env.ACCOUNTS.put(userKey(username), JSON.stringify(record));
+  await env.ACCOUNTS.put(indexKey, username.toLowerCase());
+
+  return json({
+    ok: true,
+    username: record.username,
+    verifiedEmail: record.verifiedEmail || null,
+    hasGoogle: !!record.googleId,
+    hasApple: !!record.appleId,
+  });
 }
 
 async function handleMe(request, env) {
@@ -462,6 +549,9 @@ export default {
     if (path === "/login" && request.method === "POST") return handleLogin(request, env);
     if (path === "/oauth/google" && request.method === "POST") return handleOAuth(request, env, "google");
     if (path === "/oauth/apple" && request.method === "POST") return handleOAuth(request, env, "apple");
+    if (path === "/oauth/complete" && request.method === "POST") return handleOAuthComplete(request, env);
+    if (path === "/oauth/google/link" && request.method === "POST") return handleOAuthLink(request, env, "google");
+    if (path === "/oauth/apple/link" && request.method === "POST") return handleOAuthLink(request, env, "apple");
     if (path === "/logout" && request.method === "POST") return handleLogout(request, env);
     if (path === "/change-password" && request.method === "POST") return handleChangePassword(request, env);
     if (path === "/me" && request.method === "GET") return handleMe(request, env);
