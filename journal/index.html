@@ -417,8 +417,15 @@
   .agg-row-value.neg{ color:var(--red); }
 
   /* ---------- Daily trade cards ---------- */
-  .day-group{ margin-bottom:22px; }
+  .day-group{ margin-bottom:22px; border-radius:16px; transition:box-shadow .3s ease, outline-color .3s ease; outline:2px solid transparent; outline-offset:4px; }
   .day-group:last-child{ margin-bottom:0; }
+  /* Scroll-to-day deep link from the P&L Calendar (?scrollTo=YYYY-MM-DD):
+     a brief neon outline glow that draws the eye to the day it landed on,
+     then fades itself out — see handleScrollToDeepLink. */
+  .day-group.scroll-flash{
+    outline-color:var(--phosphor);
+    box-shadow:0 0 0 1px var(--phosphor), 0 0 28px 4px var(--phosphor-glow);
+  }
   .day-group-head{
     display:flex; align-items:baseline; justify-content:space-between; gap:10px;
     padding:0 2px 10px; border-bottom:1px solid var(--hairline); margin-bottom:12px;
@@ -3773,7 +3780,7 @@
     dailyListEl.innerHTML = dates.map(function(date){
       var dayTrades = groups[date];
       var dayPnl = dayTrades.reduce(function(sum, t){ return sum + t.pnl; }, 0);
-      return '<div class="day-group">' +
+      return '<div class="day-group" data-date="' + escapeHtml(date) + '">' +
         '<div class="day-group-head">' +
           '<span><span class="day-group-date">' + escapeHtml(fmtDateFull(date)) + '</span>' +
           '<span class="day-group-count">' + dayTrades.length + ' trade' + (dayTrades.length === 1 ? '' : 's') + '</span></span>' +
@@ -4881,6 +4888,29 @@
     tfDate.value = dateParam;
     var cleanUrl = window.location.pathname + window.location.hash;
     window.history.replaceState(null, "", cleanUrl);
+  })();
+
+  // ---------- Deep link: ?scrollTo=YYYY-MM-DD switches to the Daily tab,
+  // scrolls that day's trade group into view, and flashes a neon outline
+  // around it for 1.5s. Used by the P&L Calendar — clicking a day that
+  // already has trades lands here instead of opening the trade logger.
+  (function handleScrollToDeepLink(){
+    var params = new URLSearchParams(window.location.search);
+    var dateParam = params.get("scrollTo");
+    if (!dateParam || !/^\d{4}-\d{2}-\d{2}$/.test(dateParam)) return;
+    var cleanUrl = window.location.pathname + window.location.hash;
+    window.history.replaceState(null, "", cleanUrl);
+
+    var dailyTabBtn = journalTabsEl.querySelector('button[data-tab="daily"]');
+    if (dailyTabBtn) dailyTabBtn.click();
+
+    requestAnimationFrame(function(){
+      var group = dailyListEl.querySelector('.day-group[data-date="' + dateParam + '"]');
+      if (!group) return;
+      group.scrollIntoView({ behavior: "smooth", block: "center" });
+      group.classList.add("scroll-flash");
+      setTimeout(function(){ group.classList.remove("scroll-flash"); }, 1500);
+    });
   })();
 })();
 </script>

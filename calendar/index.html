@@ -754,7 +754,27 @@
   // account and a personal one) were silently flattened together into one
   // P&L number with no way to tell them apart. null = "all accounts",
   // which also auto-includes any account added later.
-  var selectedAccountIds = null;
+  //
+  // The selection itself is shared with the Dashboard's identical filter via
+  // localStorage (there's no app-wide state container in this plain
+  // multi-page site, so a shared storage key stands in for one) — ticking
+  // accounts here carries over there, and back, without resetting.
+  var ACCT_FILTER_STORAGE_KEY = "ezpayouts.acctFilter.v1";
+  function loadAcctFilterSelection(){
+    try {
+      var raw = localStorage.getItem(ACCT_FILTER_STORAGE_KEY);
+      if (raw === null) return null;
+      var parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : null;
+    } catch (err) { return null; }
+  }
+  function saveAcctFilterSelection(ids){
+    try {
+      if (ids === null) localStorage.removeItem(ACCT_FILTER_STORAGE_KEY);
+      else localStorage.setItem(ACCT_FILTER_STORAGE_KEY, JSON.stringify(ids));
+    } catch (err) {}
+  }
+  var selectedAccountIds = loadAcctFilterSelection();
   var acctFilterEl = document.getElementById("acctFilter");
   var acctFilterBtn = document.getElementById("acctFilterBtn");
   var acctFilterPopover = document.getElementById("acctFilterPopover");
@@ -809,6 +829,7 @@
   });
   acctFilterAllCb.addEventListener("change", function(){
     selectedAccountIds = acctFilterAllCb.checked ? null : [];
+    saveAcctFilterSelection(selectedAccountIds);
     renderAcctFilter();
     renderPnlCalendar();
   });
@@ -823,6 +844,7 @@
       current = current.filter(function(x){ return x !== id; });
     }
     selectedAccountIds = (current.length === journalAccounts.length) ? null : current;
+    saveAcctFilterSelection(selectedAccountIds);
     renderAcctFilter();
     renderPnlCalendar();
   });
@@ -941,16 +963,21 @@
     }
   }
 
-  // Clicking a day fires a brief neon flash, then hands off to the
-  // Journal's trade logger pre-filled for that date — "triggering the
-  // trade logger state" from the calendar itself.
+  // Clicking a day fires a brief neon flash, then hands off to the Journal.
+  // A day with existing trades routes to the Daily tab, scrolled to and
+  // flash-highlighted on that day's trade group; an empty day still opens
+  // the trade logger pre-filled for that date ("triggering the trade
+  // logger state" from the calendar itself) since there's nothing to show.
   function handleDayCardClick(cardEl){
     if (!cardEl || cardEl.classList.contains("outside")) return;
     var date = cardEl.getAttribute("data-date");
     if (!date) return;
+    var hasTrades = cardEl.classList.contains("has-data");
     cardEl.classList.add("flash");
     setTimeout(function(){
-      window.location.href = "/journal/?logDate=" + encodeURIComponent(date);
+      window.location.href = hasTrades
+        ? "/journal/?scrollTo=" + encodeURIComponent(date)
+        : "/journal/?logDate=" + encodeURIComponent(date);
     }, 380);
   }
   pnlGridEl.addEventListener("click", function(e){
@@ -991,6 +1018,7 @@
 
   window.addEventListener("storage", function(e){
     if (e.key === JOURNAL_STORAGE_KEY){ loadJournal(); renderAcctFilter(); renderPnlCalendar(); }
+    if (e.key === ACCT_FILTER_STORAGE_KEY){ selectedAccountIds = loadAcctFilterSelection(); renderAcctFilter(); renderPnlCalendar(); }
   });
   window.addEventListener("focus", function(){ loadJournal(); renderAcctFilter(); renderPnlCalendar(); });
 
@@ -1004,6 +1032,7 @@
         try { localStorage.removeItem(JOURNAL_STORAGE_KEY); } catch (err) {}
         journalAccounts = [];
         selectedAccountIds = null;
+        saveAcctFilterSelection(null);
       } else {
         loadJournal();
       }

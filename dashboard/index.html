@@ -201,14 +201,18 @@
   .trades-ledger tbody td:last-child{ text-align:right; font-weight:700; }
   .trades-ledger-symbol{ font-weight:700; }
 
+  #miniCalMonthLabel{ cursor:pointer; transition:color .15s; }
+  #miniCalMonthLabel:hover{ color:var(--ij-blue-soft); }
   .mini-cal{ display:grid; grid-template-columns:repeat(7,1fr) auto; gap:6px; align-items:start; }
   .mini-cal-weekday{ font-family:var(--font-mono); font-size:9px; text-transform:uppercase; color:var(--ij-muted-dim); text-align:center; padding-bottom:4px; }
   .mini-cal-cell{
     aspect-ratio:1; border-radius:7px; background:var(--ij-panel-hi); border:1px solid var(--ij-border);
     display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:10px; color:var(--ij-muted-dim);
-    position:relative;
+    position:relative; cursor:pointer; transition:border-color .15s, transform .1s;
   }
-  .mini-cal-cell.outside{ visibility:hidden; }
+  .mini-cal-cell:hover{ border-color:var(--ij-blue); transform:scale(1.06); }
+  .mini-cal-cell.outside{ visibility:hidden; cursor:default; }
+  .mini-cal-cell.outside:hover{ border-color:var(--ij-border); transform:none; }
   .mini-cal-cell.win{ background:rgba(83,186,121,0.18); border-color:var(--ij-green); color:var(--ij-green-soft); box-shadow:0 0 10px -2px var(--ij-green-glow); }
   .mini-cal-cell.loss{ background:rgba(239,90,90,0.14); border-color:var(--ij-red); color:#ffb3b3; box-shadow:0 0 10px -2px var(--ij-red-glow); }
   .mini-cal-cell.today{ box-shadow:inset 0 0 0 1.5px var(--ij-blue-soft); }
@@ -393,7 +397,27 @@
 
   // Trading-account filter (checkboxes; defaults to all). null = "all
   // accounts", which also auto-includes any account added later.
-  var selectedAccountIds = null;
+  //
+  // The selection itself is shared with the Calendar's identical filter via
+  // localStorage (there's no app-wide state container in this plain
+  // multi-page site, so a shared storage key stands in for one) — ticking
+  // accounts here carries over there, and back, without resetting.
+  var ACCT_FILTER_STORAGE_KEY = "ezpayouts.acctFilter.v1";
+  function loadAcctFilterSelection(){
+    try {
+      var raw = localStorage.getItem(ACCT_FILTER_STORAGE_KEY);
+      if (raw === null) return null;
+      var parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : null;
+    } catch (err) { return null; }
+  }
+  function saveAcctFilterSelection(ids){
+    try {
+      if (ids === null) localStorage.removeItem(ACCT_FILTER_STORAGE_KEY);
+      else localStorage.setItem(ACCT_FILTER_STORAGE_KEY, JSON.stringify(ids));
+    } catch (err) {}
+  }
+  var selectedAccountIds = loadAcctFilterSelection();
   var acctFilterEl = document.getElementById("acctFilter");
   var acctFilterBtn = document.getElementById("acctFilterBtn");
   var acctFilterPopover = document.getElementById("acctFilterPopover");
@@ -444,6 +468,7 @@
   });
   acctFilterAllCb.addEventListener("change", function(){
     selectedAccountIds = acctFilterAllCb.checked ? null : [];
+    saveAcctFilterSelection(selectedAccountIds);
     populateAccountFilter();
     render();
   });
@@ -458,6 +483,7 @@
       current = current.filter(function(x){ return x !== id; });
     }
     selectedAccountIds = (current.length === accounts.length) ? null : current;
+    saveAcctFilterSelection(selectedAccountIds);
     populateAccountFilter();
     render();
   });
@@ -743,7 +769,7 @@
         if (isOutside) cls.push("outside");
         if (isToday) cls.push("today");
         if (!isOutside && data) cls.push(data.pnl >= 0 ? "win" : "loss");
-        html += '<div class="' + cls.join(" ") + '">' + (isOutside ? "" : d.getDate()) + '</div>';
+        html += '<div class="' + cls.join(" ") + '" data-date="' + key + '">' + (isOutside ? "" : d.getDate()) + '</div>';
       }
       html += '<div class="mini-cal-week">' +
         '<span class="mini-cal-week-label">Week ' + (row + 1) + '</span>' +
@@ -753,6 +779,19 @@
     }
     document.getElementById("miniCalGrid").innerHTML = html;
   }
+
+  // ---------- Mini calendar -> full Calendar page navigation ----------
+  // The month label and the grid markup get replaced wholesale on every
+  // render, so these listeners live on the always-present parent elements
+  // (event delegation) rather than being rebound inside renderMiniCalendar.
+  document.getElementById("miniCalMonthLabel").addEventListener("click", function(){
+    window.location.href = "/calendar/";
+  });
+  document.getElementById("miniCalGrid").addEventListener("click", function(e){
+    var cell = e.target.closest(".mini-cal-cell");
+    if (!cell || cell.classList.contains("outside")) return;
+    window.location.href = "/calendar/";
+  });
 
   // ---------- Render ----------
   function isSignedIn(){
@@ -926,6 +965,7 @@
         try { localStorage.removeItem(STORAGE_KEY); } catch (err) {}
         accounts = [];
         selectedAccountIds = null;
+        saveAcctFilterSelection(null);
       }
       load();
       populateAccountFilter();
@@ -936,6 +976,7 @@
 
   window.addEventListener("storage", function(e){
     if (e.key === STORAGE_KEY){ load(); populateAccountFilter(); render(); renderGreeting(); }
+    if (e.key === ACCT_FILTER_STORAGE_KEY){ selectedAccountIds = loadAcctFilterSelection(); populateAccountFilter(); render(); }
   });
   window.addEventListener("focus", function(){ load(); render(); renderGreeting(); });
 })();
