@@ -930,6 +930,7 @@
 </head>
 <body>
 <script src="/nav.js"></script>
+<script src="/select.js"></script>
 <script src="/account.js"></script>
 <script src="/coach.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
@@ -1055,26 +1056,26 @@
         <div class="filters-row">
           <div class="field">
             <label>Side</label>
-            <select id="filterSide" class="select">
+            <ez-select id="filterSide">
               <option value="">All</option>
               <option value="long">Long</option>
               <option value="short">Short</option>
-            </select>
+            </ez-select>
           </div>
           <div class="field">
             <label>Market</label>
-            <select id="filterMarket" class="select">
+            <ez-select id="filterMarket">
               <option value="">All</option>
-            </select>
+            </ez-select>
           </div>
         </div>
         <div class="field">
           <label>Outcome</label>
-          <select id="filterOutcome" class="select">
+          <ez-select id="filterOutcome">
             <option value="">All</option>
             <option value="win">Win</option>
             <option value="loss">Loss</option>
-          </select>
+          </ez-select>
         </div>
         <div class="filters-row">
           <div class="field"><label>From</label><input type="date" id="filterFrom" /></div>
@@ -1245,7 +1246,7 @@
       <div class="field-row" id="fullRow1">
         <div class="field">
           <label>Market</label>
-          <select id="tfMarket" class="select"></select>
+          <ez-select id="tfMarket"></ez-select>
         </div>
       </div>
       <div class="field-row" id="fullRow2"></div>

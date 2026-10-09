@@ -195,6 +195,7 @@
 </head>
 <body>
 <script src="/nav.js"></script>
+<script src="/select.js"></script>
 <script src="/account.js"></script>
 <script src="/coach.js"></script>
 <div class="wrap">
@@ -210,13 +211,13 @@
       <p class="page-head-sub">Your trading performance at a glance.</p>
     </div>
     <div class="page-head-actions">
-      <select class="select" id="accountFilter"></select>
-      <select class="select" id="rangeFilter">
+      <ez-select id="accountFilter"></ez-select>
+      <ez-select id="rangeFilter">
         <option value="all">All time</option>
         <option value="month">This month</option>
         <option value="30d">Last 30 days</option>
         <option value="week">This week</option>
-      </select>
+      </ez-select>
     </div>
   </div>
 
