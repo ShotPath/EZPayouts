@@ -2057,8 +2057,8 @@
   // levels) a pixel must stay to what's on screen to be left unchanged.
   // See the GIF section below.
   var SHARE_GIF_QUALITY_TIERS = {
-    fast:    { width: 960,  height: 540, fps: 20, durationMs: 5000, dither: 4, blend: 3, delta: 6, label: "960×540 · 20fps. Usually 4–9 MB. Video matches the preview most closely." },
-    quality: { width: 1280, height: 720, fps: 25, durationMs: 5000, dither: 6, blend: 3, delta: 6, label: "1280×720 · 25fps. Sharpest and smoothest, about 2× Standard (up to ~16 MB)." }
+    fast:    { width: 960,  height: 540, fps: 20, durationMs: 5000, dither: 4, blend: 3, delta: 6, label: "960×540 · 20fps. About 7–12 MB over a moving background. Video matches the preview most closely." },
+    quality: { width: 1280, height: 720, fps: 25, durationMs: 5000, dither: 6, blend: 3, delta: 6, label: "1280×720 · 25fps. Sharpest and smoothest, about 2× Standard (up to ~23 MB)." }
   };
 
   function videoNaturalMs(){
@@ -3764,10 +3764,13 @@
   //    every frame, so gradients pulsed. A palette from only the first
   //    frame (the old gif.js setting) left later frames without the colors
   //    they needed.
+  //  * The palette gives the shadows their fair share of colors (most of a
+  //    dark card is near-black, which the stock quantizer squeezed into a
+  //    handful of shades, lifting and graining the blacks).
   //  * Colors are matched at 7 bits per channel instead of gifenc's
   //    rgb565 (5 bits for red/blue), which banded smooth dark shading.
-  //  * A light ordered dither that stays put between frames instead of
-  //    crawling like grain.
+  //  * A light ordered dither in mid-tones that stays put between frames,
+  //    faded out in the shadows so blacks stay clean.
   //  * Pixels that barely changed are left as they are (transparent), so
   //    still areas, like the calendar panel over the moving background,
   //    stop shimmering (see encodeFrames).
@@ -3924,7 +3927,9 @@
 
     return chain.then(function(){
       // 255 real colors; slot 255 is reserved for "unchanged" (see below).
-      var palette = enc.quantize(pool.subarray(0, filled), 255, { format: "rgb565" });
+      // buildPalette gives the shadows their fair share of colors (see
+      // vendor/gif-palette-map.js).
+      var palette = mods.map.buildPalette(pool.subarray(0, filled), 255, enc.quantize);
       return encodeFrames(palette);
     });
 
@@ -3956,11 +3961,16 @@
         var delta = tier.delta || 0;
         var near = new Uint8Array(nColors * nColors);
         if (delta){
-          var limit = delta * delta * 9;
+          // Stricter in the shadows: a few levels is invisible in a
+          // mid-tone but visibly lifts a black, so near-black pixels only
+          // stay put when they're within ~2-3 levels.
+          var lumOf = palette.map(function(c){ return (c[0] * 3 + c[1] * 6 + c[2]) / 10; });
           for (var a = 0; a < nColors; a++){
             for (var c = 0; c < nColors; c++){
+              var darker = Math.min(lumOf[a], lumOf[c]);
+              var lvl = delta * Math.max(0.4, Math.min(1, (darker + 10) / 60));
               var dr = palette[a][0] - palette[c][0], dg = palette[a][1] - palette[c][1], db = palette[a][2] - palette[c][2];
-              near[a * nColors + c] = (dr * dr * 2 + dg * dg * 4 + db * db * 3) <= limit ? 1 : 0;
+              near[a * nColors + c] = (dr * dr * 2 + dg * dg * 4 + db * db * 3) <= lvl * lvl * 9 ? 1 : 0;
             }
           }
         }
