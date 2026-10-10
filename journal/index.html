@@ -2771,31 +2771,37 @@
   // Builds the path up to `progress` (0..1) measured by arc length, so the
   // head travels at an even speed however the points are spaced. Returns
   // where the head is.
-  function tracePolyline(ctx, pts, progress){
-    ctx.beginPath();
-    if (!pts.length) return null;
-    ctx.moveTo(pts[0][0], pts[0][1]);
-    var head = { x: pts[0][0], y: pts[0][1] };
-    if (pts.length < 2 || progress <= 0) return head;
+  // The points of the line up to `progress` (0..1, by arc length), ending
+  // exactly at the head.
+  function polylineUpTo(pts, progress){
+    if (!pts.length) return [];
+    if (pts.length < 2 || progress <= 0) return [[pts[0][0], pts[0][1]]];
     var lens = [0], total = 0;
     for (var i = 1; i < pts.length; i++){
       total += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
       lens.push(total);
     }
     var target = total * clamp01(progress);
+    var out = [[pts[0][0], pts[0][1]]];
     for (var j = 1; j < pts.length; j++){
-      if (lens[j] <= target){
-        ctx.lineTo(pts[j][0], pts[j][1]);
-        head = { x: pts[j][0], y: pts[j][1] };
-        continue;
-      }
+      if (lens[j] <= target){ out.push([pts[j][0], pts[j][1]]); continue; }
       var segLen = lens[j] - lens[j - 1];
       var f = segLen ? (target - lens[j - 1]) / segLen : 0;
-      head = { x: pts[j - 1][0] + (pts[j][0] - pts[j - 1][0]) * f, y: pts[j - 1][1] + (pts[j][1] - pts[j - 1][1]) * f };
-      ctx.lineTo(head.x, head.y);
+      out.push([pts[j - 1][0] + (pts[j][0] - pts[j - 1][0]) * f, pts[j - 1][1] + (pts[j][1] - pts[j - 1][1]) * f]);
       break;
     }
-    return head;
+    return out;
+  }
+  // Builds the path up to `progress`, so the head travels at an even speed
+  // however the points are spaced. Returns where the head is.
+  function tracePolyline(ctx, pts, progress){
+    var part = polylineUpTo(pts, progress);
+    ctx.beginPath();
+    if (!part.length) return null;
+    ctx.moveTo(part[0][0], part[0][1]);
+    for (var i = 1; i < part.length; i++) ctx.lineTo(part[i][0], part[i][1]);
+    var last = part[part.length - 1];
+    return { x: last[0], y: last[1] };
   }
   // Layered translucent strokes instead of shadowBlur: same soft glow,
   // a fraction of the cost per frame.
@@ -2964,6 +2970,28 @@
     ctx.fillStyle = "#ffffff";
     ctx.fillText(value, px + padX + lw + gap, ay + 1);
   }
+  // Glow between the price line and the entry level, on the side the price
+  // moved toward: a winning long glows beneath the line as it rises, a
+  // losing long glows above it as it falls. Brightest at the far point of
+  // the move, fading to nothing at the entry line. Grows with the line.
+  function drawEntryGlow(ctx, part, allPts, entryY, wentUp, color){
+    if (part.length < 2) return;
+    var farY = entryY;
+    allPts.forEach(function(p){ farY = wentUp ? Math.min(farY, p[1]) : Math.max(farY, p[1]); });
+    if (Math.abs(farY - entryY) < 1) return;
+    var grad = ctx.createLinearGradient(0, farY, 0, entryY);
+    grad.addColorStop(0, hexToRgba(color, 0.5));
+    grad.addColorStop(0.5, hexToRgba(color, 0.2));
+    grad.addColorStop(1, hexToRgba(color, 0));
+    var last = part[part.length - 1];
+    ctx.beginPath();
+    ctx.moveTo(part[0][0], entryY);
+    for (var i = 0; i < part.length; i++) ctx.lineTo(part[i][0], part[i][1]);
+    ctx.lineTo(last[0], entryY);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+  }
   function drawTradePriceChart(ctx, t, x, y, w, h, color){
     var prices = tradePricePath(t);
     var minP = Math.min.apply(null, prices), maxP = Math.max.apply(null, prices);
@@ -2973,6 +3001,7 @@
     function py(p){ return y + h - (p - minP) / (maxP - minP) * h; }
     var pts = prices.map(function(p, i){ return [x + (i / (prices.length - 1)) * w, py(p)]; });
     var entryY = py(t.entry);
+    var wentUp = t.exit > t.entry;
 
     withFade(ctx, seg(T_LINE.start - 500, 1100, FADE), 0, function(){
       ctx.setLineDash([10, 9]);
@@ -2983,13 +3012,16 @@
       ctx.lineTo(x + w + 30, entryY);
       ctx.stroke();
       ctx.setLineDash([]);
-      drawPricePill(ctx, "ENTRY", fmtPrice(t.entry), x + w + 30, entryY - 34, "right", x, x + w + 30);
+      // Just left of the entry point, on the entry line, where the line
+      // can't run through it (it wiggles both ways right after entry).
+      drawPricePill(ctx, "ENTRY", fmtPrice(t.entry), x - 16, entryY, "right", x - 420, x - 16);
       ctx.fillStyle = "#ffffff";
       ctx.beginPath(); ctx.arc(pts[0][0], pts[0][1], 7, 0, Math.PI * 2); ctx.fill();
     });
 
     var prog = seg(T_LINE.start, T_LINE.dur, easeInOutCubic);
     if (prog > 0){
+      drawEntryGlow(ctx, polylineUpTo(pts, prog), pts, entryY, wentUp, color);
       ctx.save();
       var head = tracePolyline(ctx, pts, prog);
       strokeGlowLine(ctx, color, 3.5);
@@ -3038,7 +3070,8 @@
 
     var pnlColor = t.pnl >= 0 ? "#53ba79" : "#ef5a5a";
     var cents = hasCents(t.pnl);
-    var maxW = chart ? w * 0.46 : w - pad * 2;
+    // With a chart, leave room for the ENTRY tag left of the chart.
+    var maxW = chart ? w * 0.385 : w - pad * 2;
     var size = fitFontSize(fmtMoneyCard(t.pnl, cents), "900 ", "'Chakra Petch', sans-serif", chart ? 150 : 165, maxW, 72);
     drawGlowAmount(ctx, fmtMoneyCard(t.pnl * pnlAnimProgress(), cents), pnlColor, pad - 2, pad + 265, size,
       seg(T_PNL_FADE.start, T_PNL_FADE.dur, FADE));
