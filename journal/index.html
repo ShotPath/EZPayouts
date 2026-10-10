@@ -2056,8 +2056,8 @@
   // GIF frames are rendered one at a time at exact timestamps (not sampled
   // from the live preview), and each frame gets its own 256-color palette.
   var SHARE_GIF_QUALITY_TIERS = {
-    fast:    { width: 960,  height: 540, fps: 15, durationMs: 5000, dither: 4, label: "960×540 · 15fps. About 10–15 MB over a moving background (GIF can't compress motion well)." },
-    quality: { width: 1280, height: 720, fps: 20, durationMs: 6000, dither: 6, label: "1280×720 · 20fps. Smoother motion, roughly 2–3× the file size and time." }
+    fast:    { width: 960,  height: 540, fps: 15, durationMs: 5000, dither: 4, blend: 4, label: "960×540 · 15fps. About 10–15 MB over a moving background. Video matches the preview most closely." },
+    quality: { width: 1280, height: 720, fps: 20, durationMs: 6000, dither: 6, blend: 3, label: "1280×720 · 20fps. Smoother motion, roughly 2–3× the file size and time." }
   };
 
   function videoNaturalMs(){
@@ -3858,12 +3858,34 @@
     var LW = shareCardCanvas.width, LH = shareCardCanvas.height;
     var isVideo = shareBg.type === "video" && shareBgVideoEl.duration && isFinite(shareBgVideoEl.duration);
 
-    function drawAt(ms){
+    function drawOnce(ms){
       clockOverrideMs = ms;
       gctx.setTransform(gw / LW, 0, 0, gh / LH, 0, 0);
       drawShareCard(gctx, LW, LH);
       gctx.setTransform(1, 0, 0, 1, 0, 0);
       return gctx.getImageData(0, 0, gw, gh).data;
+    }
+    // Motion blur: the preview runs at ~60fps but a GIF at 15-20, so
+    // moving highlights would jump between frames, which reads as flicker.
+    // Each frame is instead the average of a few moments spread across the
+    // frame interval, like a camera shutter (measured: ~25% less
+    // frame-to-frame jitter; text and chart stay sharp since they're still).
+    // A video background can't be sampled between its own frames, so it
+    // gets one sample.
+    var subFrames = isVideo ? 1 : (tier.blend || 1);
+    var SHUTTER = 1.0;
+    var blendSum = subFrames > 1 ? new Float32Array(gw * gh * 4) : null;
+    function drawAt(ms){
+      if (subFrames === 1) return drawOnce(ms);
+      blendSum.fill(0);
+      for (var j = 0; j < subFrames; j++){
+        var px = drawOnce(Math.max(0, ms + (j / (subFrames - 1) - 0.5) * SHUTTER * delay));
+        for (var k = 0; k < px.length; k++) blendSum[k] += px[k];
+      }
+      var out = new Uint8ClampedArray(blendSum.length);
+      var inv = 1 / subFrames;
+      for (var m = 0; m < out.length; m++) out[m] = blendSum[m] * inv;
+      return out;
     }
 
     stopPreviewLoop();
