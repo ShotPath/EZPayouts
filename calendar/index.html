@@ -376,6 +376,7 @@
 <script src="/nav.js"></script>
 <script src="/select.js"></script>
 <script src="/account.js"></script>
+<script src="/journal-sync.js"></script>
 <script src="/coach.js"></script>
 <div class="wrap">
 
@@ -1041,6 +1042,12 @@
     if (e.key === ACCT_FILTER_STORAGE_KEY){ selectedAccountIds = loadAcctFilterSelection(); renderAcctFilter(); renderPnlCalendar(); }
   });
   window.addEventListener("focus", function(){ loadJournal(); renderAcctFilter(); renderPnlCalendar(); });
+  // Pull in trades logged on other devices (journal-sync.js); re-render if
+  // the merge changed anything.
+  if (window.EZJournalSync){
+    EZJournalSync.onUpdate(function(){ loadJournal(); renderAcctFilter(); renderPnlCalendar(); });
+    EZJournalSync.sync();
+  }
 
   // Signing out clears this page's view back to blank instead of continuing
   // to show whatever account was last synced to this device's shared

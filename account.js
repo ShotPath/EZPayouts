@@ -145,6 +145,12 @@
     if (!isLoggedIn()) return Promise.resolve(null);
     return apiFetch("/data", { method: "PUT", json: partial }).catch(function () { return null; });
   }
+  // Same as saveData, but a failed upload rejects instead of resolving null,
+  // so the caller can tell the person and retry.
+  function saveDataStrict(partial) {
+    if (!isLoggedIn()) return Promise.reject(new Error("Not signed in."));
+    return apiFetch("/data", { method: "PUT", json: partial });
+  }
   // ---------- Trade screenshot sync ----------
   // Uploads go straight through as the compressed JPEG blob the caller
   // already built (apiFetch always JSON-encodes, so this bypasses it and
@@ -817,6 +823,7 @@
     logout: logout,
     fetchData: fetchData,
     saveData: saveData,
+    saveDataStrict: saveDataStrict,
     uploadImage: uploadImage,
     imageUrl: imageUrl,
     deleteRemoteImage: deleteRemoteImage,

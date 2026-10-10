@@ -460,7 +460,10 @@ async function handleGetData(request, env) {
   return json(data);
 }
 
-var MAX_DATA_BYTES = 500000; // ~500KB combined; KV values can hold far more, this is just a sanity cap
+// Sanity cap on the combined synced data (KV allows 25MB per value). 500KB
+// was hit by journals with a few broker CSV imports, and the rejected
+// uploads meant trades silently stopped syncing.
+var MAX_DATA_BYTES = 5000000;
 
 async function handlePutData(request, env) {
   var username = await requireSession(request, env);

@@ -1019,6 +1019,7 @@
 <script src="/nav.js"></script>
 <script src="/select.js"></script>
 <script src="/account.js"></script>
+<script src="/journal-sync.js"></script>
 <script src="/coach.js"></script>
 <div class="wrap">
 
@@ -4128,27 +4129,35 @@
     if (!activeAccount()) activeAccountId = accounts[0].id;
     trades = activeAccount().trades;
   }
+  // Saves to this device, then lets journal-sync.js merge it with the
+  // account's copy (see that file for why it merges instead of uploading
+  // this device's whole journal over the top).
   function save(){
     activeAccount().trades = trades;
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ accounts: accounts, activeAccountId: activeAccountId })); } catch (err) {}
-    if (window.EZAuth && EZAuth.isLoggedIn()) EZAuth.saveData({ journal: { accounts: accounts, activeAccountId: activeAccountId } });
+    if (window.EZJournalSync) EZJournalSync.schedule();
+  }
+  function reloadFromStorage(){
+    accounts = [];
+    load();
+    renderAll();
+    renderAcctFilter();
   }
   function syncFromAccount(){
-    if (!window.EZAuth || !EZAuth.isLoggedIn()) return;
-    EZAuth.fetchData().then(function(remote){
-      if (!remote) return;
-      var migrated = remote.journal ? migrateJournalData(remote.journal) : null;
-      var remoteTradeCount = migrated ? migrated.accounts.reduce(function(s, a){ return s + (a.trades ? a.trades.length : 0); }, 0) : 0;
-      if (migrated && remoteTradeCount){
-        accounts = migrated.accounts;
-        activeAccountId = accounts.some(function(a){ return a.id === activeAccountId; }) ? activeAccountId : migrated.activeAccountId;
-        trades = activeAccount().trades;
-        save();
-        renderAll();
-        renderAcctFilter();
-        return;
-      }
-      if (totalTradeCount()) EZAuth.saveData({ journal: { accounts: accounts, activeAccountId: activeAccountId } });
+    if (window.EZJournalSync) EZJournalSync.sync();
+  }
+  if (window.EZJournalSync){
+    EZJournalSync.onUpdate(reloadFromStorage);
+    var syncFailShown = false;
+    EZJournalSync.onStatus(function(st){
+      if (st.ok){ syncFailShown = false; return; }
+      if (syncFailShown) return;
+      syncFailShown = true;
+      showToast(st.reason === "too-large"
+        ? "Journal is too large to sync. It's saved on this device."
+        : st.reason === "offline"
+          ? "Can't reach your account right now. Trades are saved on this device and will sync when you're back."
+          : "Couldn't sync to your account. Saved on this device, will retry.");
     });
   }
 
@@ -4370,6 +4379,9 @@
   });
   window.addEventListener("storage", function(e){
     if (e.key === ACCT_FILTER_STORAGE_KEY){ selectedAccountIds = loadAcctFilterSelection(); renderAcctFilter(); renderAll(); }
+    // Another tab saved or synced: pick it up, so this tab's next save
+    // doesn't write an older copy back over it.
+    if (e.key === STORAGE_KEY && e.newValue) reloadFromStorage();
   });
 
   function loadImageStore(){

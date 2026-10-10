@@ -380,6 +380,7 @@
 <script src="/nav.js"></script>
 <script src="/select.js"></script>
 <script src="/account.js"></script>
+<script src="/journal-sync.js"></script>
 <script src="/coach.js"></script>
 <div class="wrap">
 
@@ -1429,6 +1430,12 @@
     if (e.key === ACCT_FILTER_STORAGE_KEY){ selectedAccountIds = loadAcctFilterSelection(); populateAccountFilter(); render(); }
   });
   window.addEventListener("focus", function(){ load(); render(); renderGreeting(); });
+  // Pull in trades logged on other devices (journal-sync.js); re-render if
+  // the merge changed anything.
+  if (window.EZJournalSync){
+    EZJournalSync.onUpdate(function(){ load(); populateAccountFilter(); render(); renderGreeting(); });
+    EZJournalSync.sync();
+  }
 })();
 </script>
 </body>
