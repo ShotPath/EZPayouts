@@ -2053,11 +2053,12 @@
     high:     { bps: 5000000, label: "~5 Mbps — clearly sharper, moderate file size." },
     max:      { bps: 8000000, label: "~8 Mbps — matches typical source footage. Largest file." }
   };
-  // GIF frames are rendered one at a time at exact timestamps (not sampled
-  // from the live preview), and each frame gets its own 256-color palette.
+  // blend = motion-blur samples per frame, delta = how close (in color
+  // levels) a pixel must stay to what's on screen to be left unchanged.
+  // See the GIF section below.
   var SHARE_GIF_QUALITY_TIERS = {
-    fast:    { width: 960,  height: 540, fps: 15, durationMs: 5000, dither: 4, blend: 4, label: "960×540 · 15fps. About 10–15 MB over a moving background. Video matches the preview most closely." },
-    quality: { width: 1280, height: 720, fps: 20, durationMs: 6000, dither: 6, blend: 3, label: "1280×720 · 20fps. Smoother motion, roughly 2–3× the file size and time." }
+    fast:    { width: 960,  height: 540, fps: 20, durationMs: 5000, dither: 4, blend: 3, delta: 6, label: "960×540 · 20fps. Usually 4–9 MB. Video matches the preview most closely." },
+    quality: { width: 1280, height: 720, fps: 25, durationMs: 5000, dither: 6, blend: 3, delta: 6, label: "1280×720 · 25fps. Sharpest and smoothest, about 2× Standard (up to ~16 MB)." }
   };
 
   function videoNaturalMs(){
@@ -3767,6 +3768,10 @@
   //    rgb565 (5 bits for red/blue), which banded smooth dark shading.
   //  * A light ordered dither that stays put between frames instead of
   //    crawling like grain.
+  //  * Pixels that barely changed are left as they are (transparent), so
+  //    still areas, like the calendar panel over the moving background,
+  //    stop shimmering (see encodeFrames).
+  //  * Motion blur, so moving highlights glide between frames.
   //  * Frames are drawn at exact timestamps straight at GIF size, and
   //    mapped in a pool of workers while the next frames render.
   function gifDurationMs(tier){
@@ -3918,7 +3923,8 @@
     });
 
     return chain.then(function(){
-      var palette = enc.quantize(pool.subarray(0, filled), 256, { format: "rgb565" });
+      // 255 real colors; slot 255 is reserved for "unchanged" (see below).
+      var palette = enc.quantize(pool.subarray(0, filled), 255, { format: "rgb565" });
       return encodeFrames(palette);
     });
 
@@ -3935,12 +3941,48 @@
         var maxInFlight = poolSize * 2;
         var localMap = null;
 
+        // Temporal stability: after the first frame, any pixel whose new
+        // color is within `tier.delta` levels of what's already on screen is
+        // written as transparent, so the previous frame shows through
+        // unchanged. Without this, the slight shifts of the moving background
+        // seen through translucent panels (like the calendar) landed on a
+        // neighboring palette color every other frame, and still areas
+        // shimmered. Error stays bounded by delta because the comparison is
+        // against what's actually displayed, not the previous frame. Unchanged
+        // runs also compress far better.
+        var nColors = palette.length;
+        var TRANSPARENT = nColors;
+        var gifPalette = palette.concat([[0, 0, 0]]);
+        var delta = tier.delta || 0;
+        var near = new Uint8Array(nColors * nColors);
+        if (delta){
+          var limit = delta * delta * 9;
+          for (var a = 0; a < nColors; a++){
+            for (var c = 0; c < nColors; c++){
+              var dr = palette[a][0] - palette[c][0], dg = palette[a][1] - palette[c][1], db = palette[a][2] - palette[c][2];
+              near[a * nColors + c] = (dr * dr * 2 + dg * dg * 4 + db * db * 3) <= limit ? 1 : 0;
+            }
+          }
+        }
+        var onScreen = null;
+
         function writeReady(){
           while (results[nextToWrite]){
             var r = results[nextToWrite];
             delete results[nextToWrite];
-            // Palette on the first frame only = one global color table.
-            encoder.writeFrame(r.index, gw, gh, nextToWrite === 0 ? { palette: palette, delay: delay, repeat: 0 } : { delay: delay });
+            if (!onScreen){
+              // Palette on the first frame only = one global color table.
+              onScreen = r.index.slice();
+              encoder.writeFrame(r.index, gw, gh, { palette: gifPalette, delay: delay, repeat: 0, dispose: 1 });
+            } else {
+              var idx = r.index;
+              for (var p = 0; p < idx.length; p++){
+                var ni = idx[p], di = onScreen[p];
+                if (ni === di || near[ni * nColors + di]) idx[p] = TRANSPARENT;
+                else onScreen[p] = ni;
+              }
+              encoder.writeFrame(idx, gw, gh, { delay: delay, transparent: true, transparentIndex: TRANSPARENT, dispose: 1 });
+            }
             nextToWrite++;
             setExportProgress(0.08 + 0.92 * nextToWrite / frameCount, "Making GIF… " + Math.round((nextToWrite / frameCount) * 100) + "%");
           }
