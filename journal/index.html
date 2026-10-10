@@ -1328,7 +1328,7 @@
 
     <div class="tm-core">
       <div class="tm-row tm-row-top">
-        <div class="field tm-symbol"><label for="tfSymbol">Symbol</label><input type="text" id="tfSymbol" placeholder="NQ, ES, EURUSD…" autocomplete="off" /></div>
+        <div class="field tm-symbol"><label for="tfSymbol">Symbol</label><input type="text" id="tfSymbol" placeholder="NQ, ES, EURUSD…" autocomplete="off" maxlength="7" /></div>
         <div class="field tm-date"><label for="tfDate">Date</label><input type="date" id="tfDate" /></div>
       </div>
 
@@ -2055,8 +2055,8 @@
   // GIF frames are rendered one at a time at exact timestamps (not sampled
   // from the live preview), and each frame gets its own 256-color palette.
   var SHARE_GIF_QUALITY_TIERS = {
-    fast:    { width: 960,  height: 540, fps: 15, durationMs: 6000, label: "960×540 · 15fps. Moving backgrounds come out around 5–10 MB." },
-    quality: { width: 1280, height: 720, fps: 15, durationMs: 6000, label: "1280×720 · 15fps. Sharper, roughly double the file size and time." }
+    fast:    { width: 960,  height: 540, fps: 15, durationMs: 5000, dither: 4, label: "960×540 · 15fps. About 10–15 MB over a moving background (GIF can't compress motion well)." },
+    quality: { width: 1280, height: 720, fps: 20, durationMs: 6000, dither: 6, label: "1280×720 · 20fps. Smoother motion, roughly 2–3× the file size and time." }
   };
 
   function videoNaturalMs(){
@@ -2138,14 +2138,21 @@
   }
 
   // Intro schedule (ms). Calendar runs its own longer staged sequence.
-  var T_BG = { start: 100, dur: 2200 };
-  var T_TEXT = { start: 0, dur: 650 };
-  var T_COUNT = { start: 250, dur: 1900 };
-  var T_LINE = { start: 450, dur: 2000 };
-  var T_CAL = { panel: 0, panelDur: 1000, cells: 800, cellStagger: 25, cellDur: 500, nums: 1750, numStagger: 20, numDur: 420, vals: 2700, valDur: 1700 };
+  // The background is always fully visible from the first frame; only
+  // what's drawn over it fades in, slowly and gently.
+  function easeInOutSine(x){ return -(Math.cos(Math.PI * x) - 1) / 2; }
+  var FADE = easeInOutSine;
+  var T_TEXT = { start: 0, dur: 1300 };
+  var T_PNL_FADE = { start: 150, dur: 1300 };
+  var T_COUNT = { start: 300, dur: 2100 };
+  var T_ROWS = { start: 600, stagger: 180, dur: 1100 };
+  var T_FOOTER = { start: 900, dur: 1300 };
+  var T_LINE = { start: 700, dur: 2300 };
+  var T_CAL = { panel: 0, panelDur: 1400, cells: 900, cellStagger: 25, cellDur: 700, nums: 1900, numStagger: 20, numDur: 600, vals: 2800, valDur: 1800 };
   function shareIntroMs(){
     if (sharePeriod === "calendar") return T_CAL.vals + T_CAL.valDur + 31 * 10 + 300;
-    return Math.max(T_BG.start + T_BG.dur, T_LINE.start + T_LINE.dur + 500, T_COUNT.start + T_COUNT.dur);
+    return Math.max(T_LINE.start + T_LINE.dur + 900, T_COUNT.start + T_COUNT.dur,
+      T_ROWS.start + 5 * T_ROWS.stagger + T_ROWS.dur, T_FOOTER.start + T_FOOTER.dur);
   }
   function pnlAnimProgress(){ return seg(T_COUNT.start, T_COUNT.dur, easeOutQuart); }
   // Canvas image smoothing for the background video/GIF/image draw is by
@@ -2430,30 +2437,30 @@
     return { render: render, thumb: thumb };
   })();
 
-  // Background fades up from black over the intro, settling from a slight
-  // zoom — the "hidden, then appears" reveal.
-  function bgRevealProgress(){ return seg(T_BG.start, T_BG.dur, easeInOutCubic); }
-
   function drawBackgroundLayer(ctx, w, h){
-    var reveal = bgRevealProgress();
-    var revealZoom = 1 + 0.07 * (1 - reveal);
     if (shareBg.type === "liquid"){
-      // Render at the destination's real pixel density so it's copied 1:1.
+      // Live: rendered at the destination's pixel density, copied 1:1.
+      // Exports: rendered at 2x and scaled down with smoothing, which
+      // anti-aliases the thin bright rims. At 1x they sparkle from frame
+      // to frame, which reads as grain in a GIF.
       var tr = ctx.getTransform ? ctx.getTransform() : { a: 1 };
-      var density = Math.min(tr.a || 1, shareHighQualitySmoothing ? 4 : 1);
+      var density = shareHighQualitySmoothing ? Math.min((tr.a || 1) * 2, 4096 / w) : Math.min(tr.a || 1, 1);
       var src = LiquidChrome.render(shareNowMs(), w * density, h * density,
-        (shareAdjust.zoom / 100) * revealZoom, shareAdjust.panX / 100, 1 - shareAdjust.panY / 100);
+        shareAdjust.zoom / 100, shareAdjust.panX / 100, 1 - shareAdjust.panY / 100);
       if (src){
-        ctx.drawImage(src, 0, 0, w, h);
+        if (shareHighQualitySmoothing){
+          ctx.save();
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = "high";
+          ctx.drawImage(src, 0, 0, w, h);
+          ctx.restore();
+        } else {
+          ctx.drawImage(src, 0, 0, w, h);
+        }
         return;
       }
     }
     var media = shareBg.type === "video" ? shareBgVideoEl : shareBg.type === "gif" ? shareBgGifEl : shareBg.type === "image" ? shareBgImgEl : null;
-    if (media && revealZoom !== 1){
-      ctx.translate(w / 2, h / 2);
-      ctx.scale(revealZoom, revealZoom);
-      ctx.translate(-w / 2, -h / 2);
-    }
     if (media){
       var mw = media.videoWidth || media.naturalWidth || 0;
       var mh = media.videoHeight || media.naturalHeight || 0;
@@ -2501,15 +2508,18 @@
   function bestOf(list){
     return list.length ? list.slice().sort(function(a, b){ return b.pnl - a.pnl; })[0] : null;
   }
+  // Period cards cover every account checked in the header's account
+  // filter (the same trades the journal is showing), not just one account.
+  function shareSourceTrades(){ return viewTrades(); }
   function computeDayAgg(dateStr){
-    var list = trades.filter(function(t){ return t.date === dateStr; });
+    var list = shareSourceTrades().filter(function(t){ return t.date === dateStr; });
     var pnl = list.reduce(function(s, t){ return s + t.pnl; }, 0);
     return { date: dateStr, list: list, pnl: pnl, count: list.length, winRate: winRateOf(list), best: bestOf(list) };
   }
   function computeWeekAgg(dateStr){
     var start = weekStart(dateStr);
     var end = weekEnd(start);
-    var list = trades.filter(function(t){ return t.date >= start && t.date <= end; });
+    var list = shareSourceTrades().filter(function(t){ return t.date >= start && t.date <= end; });
     var pnl = list.reduce(function(s, t){ return s + t.pnl; }, 0);
     var days = [];
     for (var i = 1; i <= 5; i++){
@@ -2536,7 +2546,7 @@
     var d0 = new Date(dateStr + "T00:00:00");
     var year = d0.getFullYear(), month = d0.getMonth();
     var prefix = year + "-" + pad2(month + 1) + "-";
-    var list = trades.filter(function(t){ return t.date.indexOf(prefix) === 0; });
+    var list = shareSourceTrades().filter(function(t){ return t.date && t.date.indexOf(prefix) === 0; });
     var pnl = list.reduce(function(s, t){ return s + t.pnl; }, 0);
     var byDate = {};
     list.forEach(function(t){ byDate[t.date] = (byDate[t.date] || 0) + t.pnl; });
@@ -2559,18 +2569,9 @@
   function drawCardBase(ctx, w, h){
     ctx.imageSmoothingEnabled = shareHighQualitySmoothing;
     if (shareHighQualitySmoothing) ctx.imageSmoothingQuality = shareSmoothingQuality;
-    var reveal = bgRevealProgress();
-    // Once fully revealed the background covers every pixel itself.
-    if (reveal < 1){
-      ctx.fillStyle = "#04060a";
-      ctx.fillRect(0, 0, w, h);
-    }
-    if (reveal > 0){
-      ctx.save();
-      ctx.globalAlpha = reveal;
-      drawBackgroundLayer(ctx, w, h);
-      ctx.restore();
-    }
+    ctx.save();
+    drawBackgroundLayer(ctx, w, h);
+    ctx.restore();
     var vignette = ctx.createLinearGradient(0, 0, 0, h);
     vignette.addColorStop(0, "rgba(0,0,0,0.5)");
     vignette.addColorStop(0.22, "rgba(0,0,0,0.05)");
@@ -2714,7 +2715,7 @@
   }
   function hasCents(n){ return Math.round(n * 100) % 100 !== 0; }
   function drawPeriodHeader(ctx, pad, label, title){
-    withFade(ctx, seg(T_TEXT.start, T_TEXT.dur, easeOutCubic), 14, function(){
+    withFade(ctx, seg(T_TEXT.start, T_TEXT.dur, FADE), 14, function(){
       withLegibilityShadow(ctx, function(){
         ctx.textAlign = "left";
         ctx.textBaseline = "alphabetic";
@@ -2731,10 +2732,10 @@
   function drawStatRows(ctx, rows, x, y, width, rowH, labelSize, valueSize, startMs){
     labelSize = labelSize || 21;
     valueSize = valueSize || 23;
-    var start = startMs === undefined ? 450 : startMs;
+    var start = startMs === undefined ? T_ROWS.start : startMs;
     rows.forEach(function(r, i){
       var ry = y + i * rowH;
-      withFade(ctx, seg(start + i * 110, 520, easeOutCubic), 18, function(){
+      withFade(ctx, seg(start + i * T_ROWS.stagger, T_ROWS.dur, FADE), 18, function(){
         withLegibilityShadow(ctx, function(){
           ctx.textBaseline = "alphabetic";
           ctx.textAlign = "left";
@@ -2750,7 +2751,7 @@
     });
   }
   function drawCardFooter(ctx, w, h, pad){
-    withFade(ctx, seg(350, 700, easeOutCubic), 0, function(){
+    withFade(ctx, seg(T_FOOTER.start, T_FOOTER.dur, FADE), 0, function(){
       withLegibilityShadow(ctx, function(){
         var username = (window.EZAuth && EZAuth.getUsername()) || "trader";
         ctx.textAlign = "left";
@@ -2831,7 +2832,7 @@
     var zeroY = py(0);
     var pts = points.map(function(p, i){ return [px(i), py(p.value)]; });
 
-    withFade(ctx, seg(T_LINE.start - 250, 500, easeOutCubic), 0, function(){
+    withFade(ctx, seg(T_LINE.start - 500, 1100, FADE), 0, function(){
       ctx.strokeStyle = "rgba(255,255,255,0.18)";
       ctx.lineWidth = 1.5;
       ctx.setLineDash([8, 8]);
@@ -2855,7 +2856,7 @@
 
     var last = points[points.length - 1];
     var lastY = py(last.value);
-    withFade(ctx, seg(T_LINE.start + T_LINE.dur - 200, 500, easeOutCubic), 10, function(){
+    withFade(ctx, seg(T_LINE.start + T_LINE.dur - 200, 1100, FADE), 10, function(){
       withLegibilityShadow(ctx, function(){
         ctx.textAlign = "right";
         ctx.textBaseline = "alphabetic";
@@ -2971,7 +2972,7 @@
     var pts = prices.map(function(p, i){ return [x + (i / (prices.length - 1)) * w, py(p)]; });
     var entryY = py(t.entry);
 
-    withFade(ctx, seg(T_LINE.start - 300, 550, easeOutCubic), 0, function(){
+    withFade(ctx, seg(T_LINE.start - 500, 1100, FADE), 0, function(){
       ctx.setLineDash([10, 9]);
       ctx.strokeStyle = "rgba(255,255,255,0.32)";
       ctx.lineWidth = 2;
@@ -2995,7 +2996,7 @@
     }
 
     var end = pts[pts.length - 1];
-    withFade(ctx, seg(T_LINE.start + T_LINE.dur - 200, 550, easeOutCubic), 12, function(){
+    withFade(ctx, seg(T_LINE.start + T_LINE.dur - 200, 1100, FADE), 12, function(){
       var below = end[1] + 52 + 22 <= y + h + 40;
       drawPricePill(ctx, "EXIT", fmtPrice(t.exit), end[0] - 26, below ? end[1] + 52 : end[1] - 52, "right", x, x + w + 30);
     });
@@ -3007,7 +3008,7 @@
     var pad = 64;
     var chart = tradeHasPrices(t);
 
-    withFade(ctx, seg(T_TEXT.start, T_TEXT.dur, easeOutCubic), 14, function(){
+    withFade(ctx, seg(T_TEXT.start, T_TEXT.dur, FADE), 14, function(){
       withLegibilityShadow(ctx, function(){
         ctx.beginPath();
         ctx.arc(pad + 26, pad + 30, 26, 0, Math.PI * 2);
@@ -3017,13 +3018,13 @@
         ctx.font = "700 22px 'Chakra Petch', sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText((t.symbol || "?").slice(0, 2).toUpperCase(), pad + 26, pad + 32);
+        ctx.fillText((shortSymbol(t.symbol) || "?").slice(0, 2), pad + 26, pad + 32);
 
         ctx.textAlign = "left";
         ctx.textBaseline = "alphabetic";
         ctx.fillStyle = "#ffffff";
         ctx.font = "800 56px 'Chakra Petch', sans-serif";
-        ctx.fillText((t.symbol || "").toUpperCase(), pad + 70, pad + 30);
+        ctx.fillText(shortSymbol(t.symbol), pad + 70, pad + 30);
 
         ctx.fillStyle = "rgba(255,255,255,0.78)";
         ctx.font = "700 27px 'IBM Plex Mono', monospace";
@@ -3038,7 +3039,7 @@
     var maxW = chart ? w * 0.46 : w - pad * 2;
     var size = fitFontSize(fmtMoneyCard(t.pnl, cents), "900 ", "'Chakra Petch', sans-serif", chart ? 150 : 165, maxW, 72);
     drawGlowAmount(ctx, fmtMoneyCard(t.pnl * pnlAnimProgress(), cents), pnlColor, pad - 2, pad + 265, size,
-      seg(T_COUNT.start - 200, 400, easeOutCubic));
+      seg(T_PNL_FADE.start, T_PNL_FADE.dur, FADE));
 
     if (chart){
       var rows = [
@@ -3065,13 +3066,13 @@
 
     var pnlColor = agg.pnl >= 0 ? "#53ba79" : "#ef5a5a";
     drawGlowAmount(ctx, fmtMoneySigned(agg.pnl * pnlAnimProgress()), pnlColor, pad - 2, pad + 265, 145,
-      seg(T_COUNT.start - 200, 400, easeOutCubic));
+      seg(T_PNL_FADE.start, T_PNL_FADE.dur, FADE));
 
     var rows = [
       { label: "Trades", value: String(agg.count) },
       { label: "Win rate", value: agg.winRate + "%" }
     ];
-    if (agg.best) rows.push({ label: "Best trade", value: fmtMoneySigned(agg.best.pnl) + " " + (agg.best.symbol || "").toUpperCase() });
+    if (agg.best) rows.push({ label: "Best trade", value: fmtMoneySigned(agg.best.pnl) + " " + shortSymbol(agg.best.symbol) });
     drawStatRows(ctx, rows, pad, pad + 355, 640, 82, 32, 40);
 
     drawCardFooter(ctx, w, h, pad);
@@ -3086,7 +3087,7 @@
 
     var pnlColor = agg.pnl >= 0 ? "#53ba79" : "#ef5a5a";
     drawGlowAmount(ctx, fmtMoneySigned(agg.pnl * pnlAnimProgress()), pnlColor, pad - 2, pad + 250, 125,
-      seg(T_COUNT.start - 200, 400, easeOutCubic));
+      seg(T_PNL_FADE.start, T_PNL_FADE.dur, FADE));
 
     var rows = [
       { label: "Trades", value: String(agg.count) },
@@ -3110,7 +3111,7 @@
     var rightX = w * 0.62, rightY = pad + 335;
     agg.days.forEach(function(d, i){
       var ry = rightY + i * 60;
-      withFade(ctx, seg(650 + i * 110, 520, easeOutCubic), 16, function(){
+      withFade(ctx, seg(T_ROWS.start + 200 + i * T_ROWS.stagger, T_ROWS.dur, FADE), 16, function(){
         withLegibilityShadow(ctx, function(){
           ctx.textBaseline = "alphabetic";
           ctx.textAlign = "left";
@@ -3143,7 +3144,7 @@
 
     var pnlColor = agg.pnl >= 0 ? "#53ba79" : "#ef5a5a";
     drawGlowAmount(ctx, fmtMoneySigned(agg.pnl * pnlAnimProgress()), pnlColor, pad - 2, pad + 250, 125,
-      seg(T_COUNT.start - 200, 400, easeOutCubic));
+      seg(T_PNL_FADE.start, T_PNL_FADE.dur, FADE));
 
     var rows = [
       { label: "Win rate", value: agg.winRate + "%" },
@@ -3175,7 +3176,7 @@
     var year = d0.getFullYear(), month = d0.getMonth();
     var prefix = year + "-" + pad2(month + 1) + "-";
     var byDate = {};
-    trades.forEach(function(t){
+    shareSourceTrades().forEach(function(t){
       if (!t.date || t.date.indexOf(prefix) !== 0) return;
       var e = byDate[t.date] || (byDate[t.date] = { pnl: 0, count: 0 });
       e.pnl += t.pnl;
@@ -3211,7 +3212,7 @@
     var cellW = (gridW - gap * 6) / 7, cellH = (gridH - gap * (cal.rows - 1)) / cal.rows;
 
     // Stage 1: the calendar panel itself.
-    var aPanel = seg(T_CAL.panel, T_CAL.panelDur, easeOutCubic);
+    var aPanel = seg(T_CAL.panel, T_CAL.panelDur, FADE);
     if (aPanel > 0){
       ctx.save();
       ctx.globalAlpha *= aPanel;
@@ -3248,7 +3249,7 @@
 
     // Header total counts up alongside the day values.
     var totalP = seg(T_CAL.vals, T_CAL.valDur + 300, easeOutQuart);
-    withFade(ctx, seg(T_CAL.vals - 150, 400, easeOutCubic), 0, function(){
+    withFade(ctx, seg(T_CAL.vals - 200, 800, FADE), 0, function(){
       ctx.textBaseline = "middle";
       ctx.textAlign = "right";
       ctx.font = "800 44px 'Chakra Petch', sans-serif";
@@ -3270,7 +3271,7 @@
       var win = !!data && data.pnl >= 0;
 
       // Stage 2: the day cell.
-      var aCell = seg(T_CAL.cells + order * T_CAL.cellStagger, T_CAL.cellDur, easeOutCubic);
+      var aCell = seg(T_CAL.cells + order * T_CAL.cellStagger, T_CAL.cellDur, FADE);
       if (aCell <= 0) return;
       ctx.save();
       ctx.globalAlpha *= aCell;
@@ -3287,7 +3288,7 @@
 
       // Stage 4 tint: the cell takes its win/loss color as the value lands.
       var valStart = T_CAL.vals + order * 10;
-      var aVal = seg(valStart, 320, easeOutCubic);
+      var aVal = seg(valStart, 600, FADE);
       if (data && aVal > 0){
         ctx.save();
         ctx.globalAlpha *= aVal;
@@ -3310,7 +3311,7 @@
       }
 
       // Stage 3: the day number.
-      var aNum = seg(T_CAL.nums + order * T_CAL.numStagger, T_CAL.numDur, easeOutCubic);
+      var aNum = seg(T_CAL.nums + order * T_CAL.numStagger, T_CAL.numDur, FADE);
       if (aNum > 0){
         ctx.save();
         ctx.globalAlpha *= aNum;
@@ -3642,7 +3643,7 @@
   function shareCardFileName(ext){
     var t = shareCurrentTrade;
     var periodPart = sharePeriod !== "trade" ? "-" + sharePeriod : "";
-    return "ezpayouts-" + (t && t.symbol ? t.symbol.toLowerCase() : "trade") + periodPart + "-" + (t ? t.date : todayStr()) + "." + ext;
+    return "ezpayouts-" + (t && t.symbol ? shortSymbol(t.symbol).toLowerCase() : "trade") + periodPart + "-" + (t ? t.date : todayStr()) + "." + ext;
   }
   function downloadBlob(blob, filename){
     var url = URL.createObjectURL(blob);
@@ -3753,32 +3754,41 @@
   });
 
   // ---------- GIF ----------
-  // Why the old GIFs looked dark/grainy and took so long:
-  //  * gif.js with globalPalette:true builds ONE 256-color palette from the
-  //    first frame and forces every later frame into it. The first frame is
-  //    the darkest, emptiest one, so later frames got crushed into the
-  //    wrong colors.
-  //  * Frames were sampled off the live preview on a timer, so any hitch
-  //    became a dropped or doubled frame, and encoding only started after
-  //    the whole capture finished.
-  // Now: every frame is drawn at an exact timestamp straight at GIF size,
-  // gets its own palette (gifenc, rgb565), and is quantized in a pool of
-  // workers while the next frames are still rendering.
+  // GIF allows only 256 colors per frame, which is where the "grainy, the
+  // lighting keeps changing" look comes from. What this does about it:
+  //  * One shared palette for the whole GIF, built from frames sampled
+  //    across the entire clip (intro through the finished card). A palette
+  //    per frame made the same shade land on a slightly different color
+  //    every frame, so gradients pulsed. A palette from only the first
+  //    frame (the old gif.js setting) left later frames without the colors
+  //    they needed.
+  //  * Colors are matched at 7 bits per channel instead of gifenc's
+  //    rgb565 (5 bits for red/blue), which banded smooth dark shading.
+  //  * A light ordered dither that stays put between frames instead of
+  //    crawling like grain.
+  //  * Frames are drawn at exact timestamps straight at GIF size, and
+  //    mapped in a pool of workers while the next frames render.
   function gifDurationMs(tier){
     return Math.max(tier.durationMs, shareIntroMs() + 1200);
   }
-  var gifencPromise = null;
-  function loadGifenc(){
-    if (!gifencPromise) gifencPromise = import(new URL("vendor/gifenc.esm.js", document.baseURI).href);
-    return gifencPromise;
+  var gifModulesPromise = null;
+  function loadGifModules(){
+    if (!gifModulesPromise){
+      gifModulesPromise = Promise.all([
+        import(new URL("vendor/gifenc.esm.js", document.baseURI).href),
+        import(new URL("vendor/gif-palette-map.js", document.baseURI).href)
+      ]).then(function(mods){ return { enc: mods[0], map: mods[1] }; });
+    }
+    return gifModulesPromise;
   }
-  function createQuantizePool(size, onResult, onBroken){
+  function createMapPool(size, palette, dither, onResult, onBroken){
     var workers = [];
     try {
       for (var i = 0; i < size; i++){
         var wk = new Worker(new URL("vendor/gif-quantize-worker.js", document.baseURI), { type: "module" });
         wk.onmessage = function(e){ onResult(e.data); };
         wk.onerror = function(){ onBroken(); };
+        wk.postMessage({ type: "palette", palette: palette, dither: dither });
         workers.push(wk);
       }
     } catch (err){
@@ -3787,8 +3797,8 @@
     }
     var next = 0;
     return {
-      post: function(id, buffer){
-        workers[next].postMessage({ id: id, rgba: buffer }, [buffer]);
+      post: function(id, buffer, w, h){
+        workers[next].postMessage({ id: id, rgba: buffer, width: w, height: h }, [buffer]);
         next = (next + 1) % workers.length;
       },
       close: function(){ workers.forEach(function(w){ w.terminate(); }); }
@@ -3798,8 +3808,8 @@
   shareExportGifBtn.addEventListener("click", function(){
     var tier = SHARE_GIF_QUALITY_TIERS[shareAdjust.gifQuality] || SHARE_GIF_QUALITY_TIERS.fast;
     setExportBusy(true, "Preparing GIF…");
-    loadGifenc().then(function(mod){
-      return buildGif(mod, tier);
+    loadGifModules().then(function(mods){
+      return buildGif(mods, tier);
     }).then(function(blob){
       finishGifExport();
       copyBlobToClipboardOrDownload(blob, shareCardFileName("gif"), "GIF downloaded");
@@ -3820,166 +3830,212 @@
     startPreviewLoop();
   }
 
-  function buildGif(mod, tier){
-    return new Promise(function(resolve, reject){
-      var gw = tier.width, gh = tier.height;
-      var delay = Math.round(1000 / tier.fps);
-      var frameCount = Math.max(2, Math.round(gifDurationMs(tier) / delay));
-      var canvas = document.createElement("canvas");
-      canvas.width = gw;
-      canvas.height = gh;
-      var gctx = canvas.getContext("2d", { willReadFrequently: true });
-      var LW = shareCardCanvas.width, LH = shareCardCanvas.height;
-
-      var encoder = mod.GIFEncoder();
-      var results = {};
-      var nextToWrite = 0;
-      var inFlight = 0;
-      var drainWaiters = [];
-      var failed = false;
-      var poolSize = Math.max(1, Math.min(4, (navigator.hardwareConcurrency || 4) - 1));
-      var maxInFlight = poolSize * 2;
-
-      function writeReady(){
-        while (results[nextToWrite]){
-          var r = results[nextToWrite];
-          delete results[nextToWrite];
-          encoder.writeFrame(r.index, gw, gh, { palette: r.palette, delay: delay, repeat: 0 });
-          nextToWrite++;
-          setExportProgress(nextToWrite / frameCount, "Making GIF… " + Math.round((nextToWrite / frameCount) * 100) + "%");
-        }
-        if (nextToWrite >= frameCount && !failed){
-          if (pool) pool.close();
-          encoder.finish();
-          resolve(new Blob([encoder.bytes()], { type: "image/gif" }));
-        }
-      }
-      // Frames posted to a worker keep a copy here until their result comes
-      // back: a module worker that fails to load only reports it later, and
-      // those frames are then quantized on this thread instead.
-      var pending = {};
-      function handleResult(r){
-        if (results[r.id] || r.id < nextToWrite) return;
-        delete pending[r.id];
-        inFlight--;
-        results[r.id] = r;
-        writeReady();
-        while (drainWaiters.length && inFlight < maxInFlight) drainWaiters.shift()();
-      }
-      // Main-thread fallback when module workers aren't available.
-      function quantizeHere(id, buffer){
-        var rgba = new Uint8ClampedArray(buffer);
-        var palette = mod.quantize(rgba, 256, { format: "rgb565" });
-        var index = mod.applyPalette(rgba, palette, "rgb565");
-        inFlight++;
-        handleResult({ id: id, palette: palette, index: index });
-      }
-      function rescuePending(){
-        Object.keys(pending).forEach(function(key){
-          var buf = pending[key];
-          delete pending[key];
-          inFlight--;
-          quantizeHere(Number(key), buf);
-        });
-      }
-      var pool = createQuantizePool(poolSize, function(r){ handleResult(r); }, function(){
-        if (pool){ pool.close(); pool = null; }
-        rescuePending();
-      });
-      function dispatch(id, buffer){
-        if (pool){
-          pending[id] = buffer.slice(0);
-          inFlight++;
-          pool.post(id, buffer);
-        } else {
-          quantizeHere(id, buffer);
-        }
-      }
-
-      function renderFrame(i){
-        clockOverrideMs = i * delay;
-        gctx.setTransform(gw / LW, 0, 0, gh / LH, 0, 0);
-        drawShareCard(gctx, LW, LH);
-        gctx.setTransform(1, 0, 0, 1, 0, 0);
-        dispatch(i, gctx.getImageData(0, 0, gw, gh).data.buffer);
-      }
-      function waitForRoom(){
-        if (!pool){ rescuePending(); return Promise.resolve(); }
-        if (inFlight < maxInFlight) return Promise.resolve();
-        return new Promise(function(res){ drainWaiters.push(res); });
-      }
-
-      stopPreviewLoop();
-      shareHighQualitySmoothing = true;
-      shareSmoothingQuality = "low";
-
-      if (shareBg.type === "video" && shareBgVideoEl.duration && isFinite(shareBgVideoEl.duration)){
-        captureFromVideo();
-      } else {
-        captureStepped(0);
-      }
-
-      // Generated/still backgrounds: render frame by frame, as fast as the
-      // workers can take them.
-      function captureStepped(i){
-        if (failed) return;
-        if (i >= frameCount) return;
-        waitForRoom().then(function(){
-          try { renderFrame(i); } catch (err){ failed = true; if (pool) pool.close(); reject(err); return; }
-          if (i % 4 === 3) setTimeout(function(){ captureStepped(i + 1); }, 0);
-          else captureStepped(i + 1);
-        });
-      }
-
-      // Video backgrounds: seeking a compressed video to every frame is very
-      // slow, so the clip plays through and each GIF frame is taken when the
-      // video reaches its timestamp. The video's own clock drives the card,
-      // so playback is slowed to whatever this machine can render (measured
-      // as it goes) instead of falling behind and doubling frames.
-      function captureFromVideo(){
-        var v = shareBgVideoEl;
-        var dur = v.duration;
-        var nextFrame = 0, loops = 0, lastMedia = -1;
-        var avgRenderMs = delay;
-        var hasRVFC = typeof v.requestVideoFrameCallback === "function";
-        function schedule(){
-          if (hasRVFC) v.requestVideoFrameCallback(function(now, meta){ onVideoFrame(meta.mediaTime); });
-          else requestAnimationFrame(function(){ onVideoFrame(v.currentTime); });
-        }
-        function onVideoFrame(mediaTime){
-          if (failed) return;
-          if (lastMedia >= 0 && mediaTime + 0.05 < lastMedia) loops++;
-          lastMedia = mediaTime;
-          var elapsed = (loops * dur + mediaTime) * 1000;
-          try {
-            while (nextFrame < frameCount && nextFrame * delay <= elapsed + delay * 0.5){
-              var t0 = performance.now();
-              renderFrame(nextFrame++);
-              avgRenderMs = avgRenderMs * 0.7 + (performance.now() - t0) * 0.3;
-            }
-          } catch (err){ failed = true; v.pause(); if (pool) pool.close(); reject(err); return; }
-          v.playbackRate = Math.max(0.15, Math.min(1, delay / (avgRenderMs * 1.3)));
-          if (nextFrame >= frameCount){ v.pause(); return; }
-          if (!pool) rescuePending();
-          if (inFlight >= maxInFlight){
-            v.pause();
-            waitForRoom().then(function(){ v.play().catch(function(){}); schedule(); });
-            return;
-          }
-          schedule();
-        }
-        v.pause();
-        var started = false;
-        var begin = function(){
-          if (started) return;
-          started = true;
-          v.play().then(schedule).catch(function(){ schedule(); });
-        };
-        v.addEventListener("seeked", begin, { once: true });
-        try { v.currentTime = 0; } catch (err) { begin(); }
-        setTimeout(begin, 800);
-      }
+  // Resolves once the background video shows the frame at `ms`.
+  function seekVideoForGif(ms){
+    return new Promise(function(resolve){
+      var v = shareBgVideoEl;
+      var dur = v.duration;
+      if (shareBg.type !== "video" || !dur || !isFinite(dur)){ resolve(); return; }
+      var done = false;
+      var finish = function(){ if (done) return; done = true; resolve(); };
+      v.pause();
+      v.addEventListener("seeked", finish, { once: true });
+      try { v.currentTime = (ms / 1000) % dur; } catch (err){ finish(); }
+      setTimeout(finish, 1500);
     });
+  }
+
+  function buildGif(mods, tier){
+    var enc = mods.enc;
+    var gw = tier.width, gh = tier.height;
+    var delay = Math.round(1000 / tier.fps);
+    var frameCount = Math.max(2, Math.round(gifDurationMs(tier) / delay));
+    var canvas = document.createElement("canvas");
+    canvas.width = gw;
+    canvas.height = gh;
+    var gctx = canvas.getContext("2d", { willReadFrequently: true });
+    var LW = shareCardCanvas.width, LH = shareCardCanvas.height;
+    var isVideo = shareBg.type === "video" && shareBgVideoEl.duration && isFinite(shareBgVideoEl.duration);
+
+    function drawAt(ms){
+      clockOverrideMs = ms;
+      gctx.setTransform(gw / LW, 0, 0, gh / LH, 0, 0);
+      drawShareCard(gctx, LW, LH);
+      gctx.setTransform(1, 0, 0, 1, 0, 0);
+      return gctx.getImageData(0, 0, gw, gh).data;
+    }
+
+    stopPreviewLoop();
+    shareHighQualitySmoothing = true;
+    shareSmoothingQuality = "medium";
+
+    // Pass 1: the shared palette, from frames spread across the clip.
+    // Every other pixel of every other row is plenty to find its colors.
+    var SAMPLES = 14;
+    var sampleTimes = [];
+    for (var s = 0; s < SAMPLES; s++) sampleTimes.push(Math.round((s / (SAMPLES - 1)) * (frameCount - 1)) * delay);
+    var perSample = Math.ceil(gw / 2) * Math.ceil(gh / 2);
+    var pool = new Uint8ClampedArray(perSample * 4 * SAMPLES);
+    var filled = 0;
+    var chain = Promise.resolve();
+    sampleTimes.forEach(function(ms, si){
+      chain = chain.then(function(){
+        return (isVideo ? seekVideoForGif(ms) : Promise.resolve()).then(function(){
+          var px = drawAt(ms);
+          for (var y = 0; y < gh; y += 2){
+            for (var x = 0; x < gw; x += 2){
+              var o = (y * gw + x) * 4;
+              pool[filled++] = px[o]; pool[filled++] = px[o + 1]; pool[filled++] = px[o + 2]; pool[filled++] = 255;
+            }
+          }
+          setExportProgress(0.08 * (si + 1) / SAMPLES, "Picking colors…");
+          return new Promise(function(r){ setTimeout(r, 0); });
+        });
+      });
+    });
+
+    return chain.then(function(){
+      var palette = enc.quantize(pool.subarray(0, filled), 256, { format: "rgb565" });
+      return encodeFrames(palette);
+    });
+
+    // Pass 2: every frame mapped onto that palette.
+    function encodeFrames(palette){
+      return new Promise(function(resolve, reject){
+        var encoder = enc.GIFEncoder();
+        var results = {};
+        var nextToWrite = 0;
+        var inFlight = 0;
+        var drainWaiters = [];
+        var failed = false;
+        var poolSize = Math.max(1, Math.min(4, (navigator.hardwareConcurrency || 4) - 1));
+        var maxInFlight = poolSize * 2;
+        var localMap = null;
+
+        function writeReady(){
+          while (results[nextToWrite]){
+            var r = results[nextToWrite];
+            delete results[nextToWrite];
+            // Palette on the first frame only = one global color table.
+            encoder.writeFrame(r.index, gw, gh, nextToWrite === 0 ? { palette: palette, delay: delay, repeat: 0 } : { delay: delay });
+            nextToWrite++;
+            setExportProgress(0.08 + 0.92 * nextToWrite / frameCount, "Making GIF… " + Math.round((nextToWrite / frameCount) * 100) + "%");
+          }
+          if (nextToWrite >= frameCount && !failed){
+            if (workers) workers.close();
+            encoder.finish();
+            resolve(new Blob([encoder.bytes()], { type: "image/gif" }));
+          }
+        }
+        // Frames posted to a worker keep a copy until their result is back:
+        // a module worker that fails to load only says so later, and those
+        // frames are then mapped on this thread instead.
+        var pending = {};
+        function handleResult(r){
+          if (results[r.id] || r.id < nextToWrite) return;
+          delete pending[r.id];
+          inFlight--;
+          results[r.id] = r;
+          writeReady();
+          while (drainWaiters.length && inFlight < maxInFlight) drainWaiters.shift()();
+        }
+        function mapHere(id, buffer){
+          if (!localMap) localMap = mods.map.createMapper(palette, tier.dither);
+          inFlight++;
+          handleResult({ id: id, index: localMap(new Uint8ClampedArray(buffer), gw, gh) });
+        }
+        function rescuePending(){
+          Object.keys(pending).forEach(function(key){
+            var buf = pending[key];
+            delete pending[key];
+            inFlight--;
+            mapHere(Number(key), buf);
+          });
+        }
+        var workers = createMapPool(poolSize, palette, tier.dither, function(r){ handleResult(r); }, function(){
+          if (workers){ workers.close(); workers = null; }
+          rescuePending();
+        });
+        function dispatch(id, buffer){
+          if (workers){
+            pending[id] = buffer.slice(0);
+            inFlight++;
+            workers.post(id, buffer, gw, gh);
+          } else {
+            mapHere(id, buffer);
+          }
+        }
+        function renderFrame(i){
+          dispatch(i, drawAt(i * delay).buffer);
+        }
+        function waitForRoom(){
+          if (!workers){ rescuePending(); return Promise.resolve(); }
+          if (inFlight < maxInFlight) return Promise.resolve();
+          return new Promise(function(res){ drainWaiters.push(res); });
+        }
+        function fail(err){
+          failed = true;
+          shareBgVideoEl.pause();
+          if (workers) workers.close();
+          reject(err);
+        }
+
+        if (isVideo) captureFromVideo();
+        else captureStepped(0);
+
+        // Generated/still backgrounds: frame by frame, as fast as the
+        // workers take them.
+        function captureStepped(i){
+          if (failed || i >= frameCount) return;
+          waitForRoom().then(function(){
+            try { renderFrame(i); } catch (err){ fail(err); return; }
+            if (i % 4 === 3) setTimeout(function(){ captureStepped(i + 1); }, 0);
+            else captureStepped(i + 1);
+          });
+        }
+
+        // Video backgrounds: seeking a compressed video to every frame is very
+        // slow, so the clip plays through and each GIF frame is taken when the
+        // video reaches its timestamp. Playback is slowed to whatever this
+        // machine can render (measured as it goes) so frames aren't doubled.
+        function captureFromVideo(){
+          var v = shareBgVideoEl;
+          var dur = v.duration;
+          var nextFrame = 0, loops = 0, lastMedia = -1;
+          var avgRenderMs = delay;
+          var hasRVFC = typeof v.requestVideoFrameCallback === "function";
+          function schedule(){
+            if (hasRVFC) v.requestVideoFrameCallback(function(now, meta){ onVideoFrame(meta.mediaTime); });
+            else requestAnimationFrame(function(){ onVideoFrame(v.currentTime); });
+          }
+          function onVideoFrame(mediaTime){
+            if (failed) return;
+            if (lastMedia >= 0 && mediaTime + 0.05 < lastMedia) loops++;
+            lastMedia = mediaTime;
+            var elapsed = (loops * dur + mediaTime) * 1000;
+            try {
+              while (nextFrame < frameCount && nextFrame * delay <= elapsed + delay * 0.5){
+                var t0 = performance.now();
+                renderFrame(nextFrame++);
+                avgRenderMs = avgRenderMs * 0.7 + (performance.now() - t0) * 0.3;
+              }
+            } catch (err){ fail(err); return; }
+            v.playbackRate = Math.max(0.15, Math.min(1, delay / (avgRenderMs * 1.3)));
+            if (nextFrame >= frameCount){ v.pause(); return; }
+            if (!workers) rescuePending();
+            if (inFlight >= maxInFlight){
+              v.pause();
+              waitForRoom().then(function(){ v.play().catch(function(){}); schedule(); });
+              return;
+            }
+            schedule();
+          }
+          seekVideoForGif(0).then(function(){
+            v.play().then(schedule).catch(function(){ schedule(); });
+          });
+        }
+      });
+    }
   }
 
   tradeShareBtn.addEventListener("click", function(){
@@ -4016,18 +4072,22 @@
   // concept — fold that into one "Main" account under a stable id so a
   // first sync between an old local save and an old remote save converges
   // on the same account instead of duplicating it.
-  var ACCOUNT_LABEL_MAX = 7;
-  function shortAccountLabel(name){
-    return String(name || "").trim().slice(0, ACCOUNT_LABEL_MAX).toUpperCase() || "ACCOUNT";
+  // Symbols are capped at 7 characters everywhere: typed, imported, or
+  // already saved. Account Balance imports use the account name as the
+  // symbol, so this also keeps full account numbers off share cards.
+  var SYMBOL_MAX = 7;
+  function shortSymbol(sym){
+    return String(sym || "").trim().toUpperCase().slice(0, SYMBOL_MAX);
   }
-  // Older Account Balance imports stored the full account number as the
-  // symbol; trim those in place so it never reaches a share card.
-  function trimImportedAccountSymbols(accs){
+  function shortAccountLabel(name){
+    return shortSymbol(name) || "ACCOUNT";
+  }
+  function trimLongSymbols(accs){
     var changed = false;
     accs.forEach(function(a){
       (a.trades || []).forEach(function(t){
-        if (t.title === "Daily import" && t.symbol && t.symbol.length > ACCOUNT_LABEL_MAX){
-          t.symbol = shortAccountLabel(t.symbol);
+        if (t.symbol && String(t.symbol).length > SYMBOL_MAX){
+          t.symbol = shortSymbol(t.symbol);
           changed = true;
         }
       });
@@ -4041,7 +4101,7 @@
     } else if (parsed && Array.isArray(parsed.trades)){
       out = { accounts: [{ id: "acc_default", name: "Main", trades: parsed.trades }], activeAccountId: "acc_default" };
     }
-    if (out) out.trimmedSymbols = trimImportedAccountSymbols(out.accounts);
+    if (out) out.trimmedSymbols = trimLongSymbols(out.accounts);
     return out;
   }
   function totalTradeCount(){
@@ -4200,10 +4260,34 @@
       acctFilterLabelEl.textContent = selectedCount + " Accounts";
     }
   }
+  // Keeps the open dropdown on screen and clear of the sidebar. On phones
+  // the button wraps to the left edge, and right-aligning the dropdown to
+  // it pushed it off screen and under the sidebar.
+  function placeAcctFilterPopover(){
+    var pop = acctFilterPopover;
+    pop.style.left = "";
+    pop.style.right = "";
+    pop.style.width = "";
+    if (pop.hidden) return;
+    var side = document.querySelector(".ez-sidebar");
+    var minLeft = (side ? side.getBoundingClientRect().right : 0) + 8;
+    var maxRight = document.documentElement.clientWidth - 8;
+    var r = pop.getBoundingClientRect();
+    if (r.width > maxRight - minLeft) pop.style.width = (maxRight - minLeft) + "px";
+    r = pop.getBoundingClientRect();
+    var shift = r.left < minLeft ? minLeft - r.left : (r.right > maxRight ? maxRight - r.right : 0);
+    if (shift){
+      var box = pop.offsetParent ? pop.offsetParent.getBoundingClientRect() : { left: 0 };
+      pop.style.right = "auto";
+      pop.style.left = (r.left + shift - box.left) + "px";
+    }
+  }
+  window.addEventListener("resize", placeAcctFilterPopover);
   acctFilterBtn.addEventListener("click", function(e){
     e.stopPropagation();
     acctFilterPopover.hidden = !acctFilterPopover.hidden;
     acctFilterBtn.setAttribute("aria-expanded", acctFilterPopover.hidden ? "false" : "true");
+    placeAcctFilterPopover();
   });
   document.addEventListener("click", function(e){
     if (!acctFilterPopover.hidden && !acctFilterEl.contains(e.target)) acctFilterPopover.hidden = true;
@@ -4569,7 +4653,7 @@
       crosshair.style.opacity = "1";
       if (!m){ tooltip.style.opacity = "0"; return; }
       tooltip.innerHTML =
-        '<div class="edge-tooltip-line">#' + m.index + ' &middot; ' + escapeHtml(m.symbol) + '</div>' +
+        '<div class="edge-tooltip-line">#' + m.index + ' &middot; ' + escapeHtml(shortSymbol(m.symbol)) + '</div>' +
         '<div class="edge-tooltip-line">' + (m.direction === "long" ? "Long" : "Short") + ' &middot; ' + fmtMoneySigned(m.pnl) + '</div>' +
         '<div class="edge-tooltip-line">Cumulative: <span class="edge-tooltip-r ' + (m.cum >= 0 ? "pos" : "neg") + '">' + fmtMoneySigned(m.cum) + '</span></div>';
       tooltip.style.left = xPct + "%";
@@ -4632,7 +4716,7 @@
     return '<div class="trades-row" data-id="' + t.id + '">' +
       '<span class="table-checkbox"><input type="checkbox" class="row-checkbox" data-id="' + t.id + '"' + (selectedTradeIds[t.id] ? " checked" : "") + ' /></span>' +
       '<span class="trade-date mono">' + fmtDateShort(t.date) + '</span>' +
-      '<span class="trade-symbol-cell">' + escapeHtml(t.symbol) + '</span>' +
+      '<span class="trade-symbol-cell">' + escapeHtml(shortSymbol(t.symbol)) + '</span>' +
       '<span class="market-badge">' + escapeHtml(t.market || "—") + '</span>' +
       '<span class="trade-dir ' + t.direction + '">' + (t.direction === "long" ? "Long" : "Short") + '</span>' +
       '<span class="grade-badge">' + (t.grade ? escapeHtml(t.grade) : "–") + '</span>' +
@@ -4796,7 +4880,7 @@
         '<div class="trade-card-top-left">' +
           '<span class="trade-card-icon">EZ</span>' +
           (t.grade ? '<span class="trade-card-grade ' + gradeCls + '">' + escapeHtml(t.grade) + '</span>' : '') +
-          '<span class="trade-card-symbol">' + escapeHtml(t.symbol) + '</span>' +
+          '<span class="trade-card-symbol">' + escapeHtml(shortSymbol(t.symbol)) + '</span>' +
           '<span class="trade-dir ' + t.direction + '">' + (t.direction === "long" ? "Long" : "Short") + '</span>' +
         '</div>' +
         '<div class="trade-card-top-right">' +
@@ -5340,7 +5424,7 @@
     if (!trade) return;
     var rr = computeTradeRR(trade);
     var hasEntryExit = hasVal(trade.entry) || hasVal(trade.exit);
-    tdSymbol.textContent = escapeHtml(trade.symbol);
+    tdSymbol.textContent = shortSymbol(trade.symbol);
     if (trade.grade){
       tdGrade.textContent = escapeHtml(trade.grade);
       tdGrade.className = "trade-card-grade grade-" + trade.grade.toLowerCase().replace("+", "plus");
@@ -5528,7 +5612,10 @@
     openTradeModal(null, target);
   });
   headerShareBtn.addEventListener("click", function(){
-    openShareModal({ date: todayStr() }, "daily");
+    // Open on the most recent day with trades (in the checked accounts),
+    // so the cards aren't empty just because nothing was traded today.
+    var latest = viewTrades().reduce(function(m, t){ return t.date && t.date > m ? t.date : m; }, "");
+    openShareModal({ date: latest || todayStr() }, "daily");
   });
   tradeModalClose.addEventListener("click", discardTradeModal);
   cancelTradeBtn.addEventListener("click", discardTradeModal);
@@ -5573,7 +5660,7 @@
       id: editingTradeId || ("t_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8)),
       market: tfMarket.value,
       date: tfDate.value || todayStr(),
-      symbol: tfSymbol.value.trim().toUpperCase(),
+      symbol: shortSymbol(tfSymbol.value),
       strategy: currentStrategyName,
       strategyId: currentStrategyId || undefined,
       direction: currentDirection,
@@ -5828,7 +5915,7 @@
             id: "t_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8),
             market: (marketColIdx !== -1 && r[marketColIdx]) ? r[marketColIdx].trim() : "Futures",
             date: date,
-            symbol: symbol.toUpperCase(),
+            symbol: shortSymbol(symbol),
             strategy: "",
             direction: direction,
             pnl: pnl,

@@ -819,10 +819,34 @@
       acctFilterLabelEl.textContent = selectedCount + " Accounts";
     }
   }
+  // Keeps the open dropdown on screen and clear of the sidebar. On phones
+  // the button wraps to the left edge, and right-aligning the dropdown to
+  // it pushed it off screen and under the sidebar.
+  function placeAcctFilterPopover(){
+    var pop = acctFilterPopover;
+    pop.style.left = "";
+    pop.style.right = "";
+    pop.style.width = "";
+    if (pop.hidden) return;
+    var side = document.querySelector(".ez-sidebar");
+    var minLeft = (side ? side.getBoundingClientRect().right : 0) + 8;
+    var maxRight = document.documentElement.clientWidth - 8;
+    var r = pop.getBoundingClientRect();
+    if (r.width > maxRight - minLeft) pop.style.width = (maxRight - minLeft) + "px";
+    r = pop.getBoundingClientRect();
+    var shift = r.left < minLeft ? minLeft - r.left : (r.right > maxRight ? maxRight - r.right : 0);
+    if (shift){
+      var box = pop.offsetParent ? pop.offsetParent.getBoundingClientRect() : { left: 0 };
+      pop.style.right = "auto";
+      pop.style.left = (r.left + shift - box.left) + "px";
+    }
+  }
+  window.addEventListener("resize", placeAcctFilterPopover);
   acctFilterBtn.addEventListener("click", function(e){
     e.stopPropagation();
     acctFilterPopover.hidden = !acctFilterPopover.hidden;
     acctFilterBtn.setAttribute("aria-expanded", acctFilterPopover.hidden ? "false" : "true");
+    placeAcctFilterPopover();
   });
   document.addEventListener("click", function(e){
     if (!acctFilterPopover.hidden && !acctFilterEl.contains(e.target)) acctFilterPopover.hidden = true;
