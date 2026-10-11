@@ -355,14 +355,11 @@
   .search-input:focus{ border-color:var(--phosphor-dim); }
 
   .trades-table-wrap{ overflow-x:auto; }
-  .trades-table{ min-width:1030px; }
+  .trades-table{ min-width:820px; }
+  /* Market, grade and R:R live on the trade's own page, not in the list. */
   .trades-row{
-    display:grid; grid-template-columns:26px 76px 88px 82px 62px 40px 108px 48px 86px 62px 1fr 88px;
+    display:grid; grid-template-columns:26px 76px 88px 62px 108px 48px 86px 1fr 88px;
     align-items:center; gap:10px; padding:11px 8px; border-bottom:1px solid var(--hairline); border-radius:8px;
-  }
-  .grade-badge{
-    font-family:var(--font-display); font-weight:700; font-size:12px; text-align:center;
-    color:var(--muted-dim);
   }
   .trades-row:hover:not(.trades-row-head){ background:var(--panel-hi); cursor:pointer; }
   .trades-row:last-child{ border-bottom:none; }
@@ -4606,7 +4603,6 @@
     list.sort(function(a, b){
       var av, bv;
       if (sortKey === "pnl"){ av = a.pnl; bv = b.pnl; }
-      else if (sortKey === "rr"){ av = computeTradeRR(a); av = av === null ? -Infinity : av; bv = computeTradeRR(b); bv = bv === null ? -Infinity : bv; }
       else if (sortKey === "symbol"){ av = (a.symbol || "").toUpperCase(); bv = (b.symbol || "").toUpperCase(); }
       else { av = a.date + ":" + String(a.createdAt || 0).padStart(16, "0"); bv = b.date + ":" + String(b.createdAt || 0).padStart(16, "0"); }
       if (av < bv) return sortDir === "asc" ? -1 : 1;
@@ -4833,19 +4829,15 @@
       '<span class="table-checkbox"><input type="checkbox" id="selectAllCheckbox" aria-label="Select all" /></span>' +
       '<span class="sortable" data-sort="date">Date' + sortArrow("date") + '</span>' +
       '<span class="sortable" data-sort="symbol">Symbol' + sortArrow("symbol") + '</span>' +
-      '<span>Market</span>' +
       '<span>Side</span>' +
-      '<span>Grade</span>' +
       '<span>Entry/Exit</span>' +
       '<span>Lots</span>' +
       '<span class="sortable" data-sort="pnl">P&amp;L' + sortArrow("pnl") + '</span>' +
-      '<span class="sortable" data-sort="rr">R:R' + sortArrow("rr") + '</span>' +
       '<span>Strategy</span>' +
       '<span style="text-align:right;">Actions</span>' +
     '</div>';
   }
   function renderTradeRow(t){
-    var rr = computeTradeRR(t);
     var hasEntryExit = hasVal(t.entry) || hasVal(t.exit);
     var entryTxt = hasVal(t.entry) ? Number(t.entry).toLocaleString(undefined, { maximumFractionDigits: 5 }) : "–";
     var exitTxt = hasVal(t.exit) ? Number(t.exit).toLocaleString(undefined, { maximumFractionDigits: 5 }) : "–";
@@ -4854,13 +4846,10 @@
       '<span class="table-checkbox"><input type="checkbox" class="row-checkbox" data-id="' + t.id + '"' + (selectedTradeIds[t.id] ? " checked" : "") + ' /></span>' +
       '<span class="trade-date mono">' + fmtDateShort(t.date) + '</span>' +
       '<span class="trade-symbol-cell">' + escapeHtml(shortSymbol(t.symbol)) + '</span>' +
-      '<span class="market-badge">' + escapeHtml(t.market || "—") + '</span>' +
       '<span class="trade-dir ' + t.direction + '">' + (t.direction === "long" ? "Long" : "Short") + '</span>' +
-      '<span class="grade-badge">' + (t.grade ? escapeHtml(t.grade) : "–") + '</span>' +
       '<span class="entry-exit-cell' + (hasEntryExit ? "" : " dim") + '"><span>' + entryTxt + '</span><span class="sub">' + exitTxt + '</span></span>' +
       '<span class="mono">' + lotsTxt + '</span>' +
       '<span class="trade-pnl ' + (t.pnl >= 0 ? "pos" : "neg") + ' mono">' + fmtMoneySigned(t.pnl) + '</span>' +
-      '<span class="mono dim">' + (rr !== null ? rr.toFixed(2) + "R" : "–") + '</span>' +
       '<span class="trade-strategy-cell">' + (t.strategy ? escapeHtml(t.strategy) : "–") + '</span>' +
       '<span class="row-actions">' +
         '<button type="button" class="row-action share" data-id="' + t.id + '" aria-label="Share"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg></button>' +
@@ -5000,10 +4989,9 @@
     }).join("");
   }
 
+  // Market, grade and R:R show on the trade's own page, not on its card.
   function renderTradeCard(t){
-    var rr = computeTradeRR(t);
     var hasEntryExit = hasVal(t.entry) || hasVal(t.exit);
-    var gradeCls = t.grade ? "grade-" + t.grade.toLowerCase().replace("+", "plus") : "";
     var imgUrl = Array.isArray(t.imageIds) && t.imageIds.length ? getImageDataUrl(t.imageIds[0]) : null;
     var media = imgUrl
       ? '<div class="trade-card-media"><img src="' + imgUrl + '" alt="Trade screenshot" /></div>'
@@ -5016,7 +5004,6 @@
       '<div class="trade-card-top">' +
         '<div class="trade-card-top-left">' +
           '<span class="trade-card-icon">EZ</span>' +
-          (t.grade ? '<span class="trade-card-grade ' + gradeCls + '">' + escapeHtml(t.grade) + '</span>' : '') +
           '<span class="trade-card-symbol">' + escapeHtml(shortSymbol(t.symbol)) + '</span>' +
           '<span class="trade-dir ' + t.direction + '">' + (t.direction === "long" ? "Long" : "Short") + '</span>' +
         '</div>' +
@@ -5029,7 +5016,6 @@
         '</div>' +
       '</div>' +
       '<div class="trade-card-tags">' +
-        (t.market ? '<span class="market-badge">' + escapeHtml(t.market) + '</span>' : '') +
         (t.strategy ? '<span class="market-badge">' + escapeHtml(t.strategy) + '</span>' : '') +
       '</div>' +
       media +
@@ -5039,10 +5025,10 @@
             ? (hasVal(t.entry) ? Number(t.entry).toLocaleString(undefined, { maximumFractionDigits: 5 }) : "–") +
               ' → ' +
               (hasVal(t.exit) ? Number(t.exit).toLocaleString(undefined, { maximumFractionDigits: 5 }) : "–")
-            : escapeHtml(t.market || "")) +
+            : "") +
         '</span>' +
         '<span class="trade-card-outcome ' + (isWin ? "win" : "loss") + '">' + outcomeIcon +
-          (isWin ? "Win" : "Loss") + (rr !== null ? ' · ' + rr.toFixed(2) + 'R' : '') +
+          (isWin ? "Win" : "Loss") +
         '</span>' +
       '</div>' +
     '</div>';
