@@ -440,6 +440,9 @@
       // frame, or for good without WebGL.
       "html[data-ez-bg=\"liquid\"]{ background:#0d0e11 linear-gradient(125deg, #121317 0%, #34363c 22%, #101114 42%, #3b3d44 63%, #121316 82%, #2a2c31 100%) fixed; }" +
       "html[data-ez-bg=\"liquid\"] body.ez-app{ background:transparent; }" +
+      // The pages' faint scanline overlay would read as a screen door over
+      // real metal.
+      "html[data-ez-bg=\"liquid\"] body.ez-app::before{ display:none; }" +
       ".ez-bg-chrome{ position:fixed; inset:0; width:100vw; height:100vh; z-index:-1; pointer-events:none; display:block; }";
     document.head.appendChild(style);
   }
@@ -605,15 +608,25 @@
   }
 
   // ---------- Liquid chrome page background ----------
-  // The same domain-warped metal as the Journal's share card, darker and
-  // slower so the page reads on top of it. Rendered at reduced resolution
-  // (it's soft by nature; CSS scales it up), capped near 30fps, paused by
-  // the browser while the tab is hidden, and a single still frame for
-  // reduced motion. Without WebGL the CSS gradient stand-in stays.
+  // Domain-warped metal: rounded tubes along a flowing field, shaded as a
+  // mirror reflecting a dark studio. Quality matters here, so it renders at
+  // the screen's real resolution (capped on very large hi-DPI screens, and
+  // stepped down only if a device can't hold its frame rate), the surface
+  // is smooth everywhere so edges never break into jagged pixels, and the
+  // output is dithered so the dark gradients don't band. The key light
+  // drifts gently toward the pointer. Paused by the browser while the tab
+  // is hidden; a single still frame with reduced motion. Without WebGL the
+  // CSS gradient stand-in stays.
   var chrome = null;
   var CHROME_FS = [
+    "#ifdef GL_FRAGMENT_PRECISION_HIGH",
+    "precision highp float;",
+    "#else",
     "precision mediump float;",
-    "uniform vec2 uRes; uniform float uTime;",
+    "#endif",
+    "uniform vec2 uRes;",
+    "uniform float uTime;",
+    "uniform vec2 uLight;",
     "float field(vec2 p, float t){",
     "  vec2 q = p;",
     "  q += 0.42 * vec2(sin(q.y * 1.35 + t * 0.50), cos(q.x * 1.15 - t * 0.42));",
@@ -621,30 +634,40 @@
     "  q += 0.12 * vec2(sin(q.y * 3.90 + t * 0.70 + 2.3), cos(q.x * 3.60 - t * 0.62 + 1.1));",
     "  return sin(q.x * 1.7) * cos(q.y * 1.9) + 0.4 * sin(q.x * 2.6 + q.y * 1.4 + t * 0.22);",
     "}",
+    "// Rounded tubes along the field's zero lines. Smooth everywhere (no",
+    "// abs/min creases), so the surface never breaks into jagged pixels.",
     "float height(vec2 p, float t){",
     "  float v = field(p, t);",
-    "  float tube = cos(min(abs(v) / 0.42, 1.0) * 1.5707963);",
-    "  return tube * 0.9 + v * 0.2;",
+    "  return 0.9 * exp(-v * v * 7.5) + 0.2 * v;",
     "}",
+    "float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }",
     "void main(){",
     "  vec2 uv = gl_FragCoord.xy / uRes;",
-    "  vec2 p = (gl_FragCoord.xy - 0.5 * uRes) / uRes.y * 3.1 + vec2(0.6, -0.2);",
-    "  float t = uTime, e = 0.006, h = height(p, t);",
+    "  float s = 3.1 / uRes.y;",
+    "  vec2 p = (gl_FragCoord.xy - 0.5 * uRes) * s + vec2(0.6, -0.2);",
+    "  float t = uTime;",
+    "  float e = max(s, 0.0025);",
+    "  float h = height(p, t);",
     "  float hx = (height(p + vec2(e, 0.0), t) - height(p - vec2(e, 0.0), t)) / (2.0 * e);",
     "  float hy = (height(p + vec2(0.0, e), t) - height(p - vec2(0.0, e), t)) / (2.0 * e);",
     "  vec3 n = normalize(vec3(-hx * 0.5, -hy * 0.5, 1.0));",
     "  vec3 r = reflect(vec3(0.0, 0.0, -1.0), n);",
+    "  vec3 key = normalize(vec3(-0.35 + uLight.x, 0.75 + uLight.y, 0.55));",
     "  float env = 0.16;",
-    "  env += 1.1 * smoothstep(0.57, 0.97, dot(r, normalize(vec3(-0.35, 0.75, 0.55))));",
+    "  env += 1.1 * smoothstep(0.57, 0.97, dot(r, key));",
     "  env += 0.5 * smoothstep(0.60, 0.96, dot(r, normalize(vec3(0.85, -0.15, 0.55))));",
     "  env += 0.2 * smoothstep(0.70, 0.98, dot(r, normalize(vec3(-0.2, -0.85, 0.5))));",
     "  env *= 0.75 + 0.35 * (0.5 + 0.5 * sin((r.x * 2.4 - r.y * 3.2) * 3.0 + 1.3));",
-    "  env += 1.1 * pow(max(dot(r, normalize(vec3(-0.45, 0.55, 0.70))), 0.0), 60.0);",
+    "  env += 1.05 * pow(max(dot(r, normalize(vec3(-0.45 + uLight.x, 0.55 + uLight.y, 0.70))), 0.0), 36.0);",
     "  env += pow(1.0 - n.z, 3.0) * 0.3;",
     "  vec3 col = vec3(env) * vec3(0.86, 0.89, 0.95);",
     "  col *= 0.55 + 0.45 * smoothstep(-0.25, 0.7, h);",
     "  col *= 0.5 + 0.5 * smoothstep(1.25, 0.1, length((uv - vec2(0.55, 0.55)) * vec2(1.2, 1.0)));",
-    "  gl_FragColor = vec4(pow(col * 0.56, vec3(0.95)), 1.0);",
+    "  col *= 0.6;",
+    "  col = col / (1.0 + 0.35 * col);",
+    "  col = pow(col, vec3(0.95));",
+    "  col += (hash(gl_FragCoord.xy) + hash(gl_FragCoord.xy + 19.19) - 1.0) / 255.0;",
+    "  gl_FragColor = vec4(col, 1.0);",
     "}"
   ].join("\n");
   // Sets up the chrome shader on a canvas; null without WebGL.
@@ -671,7 +694,12 @@
       var loc = gl.getAttribLocation(prog, "a");
       gl.enableVertexAttribArray(loc);
       gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-      return { gl: gl, uRes: gl.getUniformLocation(prog, "uRes"), uTime: gl.getUniformLocation(prog, "uTime") };
+      return {
+        gl: gl,
+        uRes: gl.getUniformLocation(prog, "uRes"),
+        uTime: gl.getUniformLocation(prog, "uTime"),
+        uLight: gl.getUniformLocation(prog, "uLight")
+      };
     } catch (err) {
       return null;
     }
@@ -681,14 +709,15 @@
   function chromeStill() {
     if (chromeStillUrl !== null) return chromeStillUrl;
     var canvas = document.createElement("canvas");
-    canvas.width = 480; canvas.height = 300;
+    canvas.width = 640; canvas.height = 400;
     var c = chromeGL(canvas, true);
     if (!c) return (chromeStillUrl = "");
-    c.gl.viewport(0, 0, 480, 300);
-    c.gl.uniform2f(c.uRes, 480, 300);
+    c.gl.viewport(0, 0, 640, 400);
+    c.gl.uniform2f(c.uRes, 640, 400);
     c.gl.uniform1f(c.uTime, 4.0);
+    c.gl.uniform2f(c.uLight, 0, 0);
     c.gl.drawArrays(c.gl.TRIANGLES, 0, 3);
-    chromeStillUrl = canvas.toDataURL("image/jpeg", 0.85);
+    chromeStillUrl = canvas.toDataURL("image/jpeg", 0.9);
     var lose = c.gl.getExtension("WEBGL_lose_context");
     if (lose) lose.loseContext();
     return chromeStillUrl;
@@ -700,36 +729,67 @@
     canvas.setAttribute("aria-hidden", "true");
     var c = chromeGL(canvas, false);
     if (!c) return;
-    var gl = c.gl, uRes = c.uRes, uTime = c.uTime;
+    var gl = c.gl;
     document.body.insertBefore(canvas, document.body.firstChild);
     var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    var raf = 0, last = 0, start = performance.now();
+    var raf = 0, start = performance.now();
+    // Render scale in device pixels per CSS pixel: the screen's own density,
+    // within a pixel budget; lowered if frames run long.
+    var MAX_PIXELS = 3400000;
+    var quality = 1, slowFrames = 0, lastNow = 0;
+    var light = [0, 0], lightTo = [0, 0];
     function size() {
-      var scale = Math.min(0.6, 1100 / Math.max(1, window.innerWidth));
-      var w = Math.max(1, Math.round(window.innerWidth * scale)), h = Math.max(1, Math.round(window.innerHeight * scale));
+      var cssW = Math.max(1, window.innerWidth), cssH = Math.max(1, window.innerHeight);
+      var scale = Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(MAX_PIXELS / (cssW * cssH))) * quality;
+      var w = Math.max(1, Math.round(cssW * scale)), h = Math.max(1, Math.round(cssH * scale));
       if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
       gl.viewport(0, 0, w, h);
-      gl.uniform2f(uRes, w, h);
+      gl.uniform2f(c.uRes, w, h);
     }
     function draw(now) {
-      gl.uniform1f(uTime, 4.0 + (now - start) / 1000 * 0.22);
+      light[0] += (lightTo[0] - light[0]) * 0.04;
+      light[1] += (lightTo[1] - light[1]) * 0.04;
+      gl.uniform2f(c.uLight, light[0], light[1]);
+      gl.uniform1f(c.uTime, 4.0 + (now - start) / 1000 * 0.24);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     }
     function loop(now) {
       raf = requestAnimationFrame(loop);
-      if (now - last < 32) return;
-      last = now;
+      // Long frames in a row mean this device can't keep up at this
+      // resolution: step it down a little (never below 60% of a CSS px).
+      if (lastNow && now - lastNow > 24) {
+        if (++slowFrames > 45 && quality > 0.6) { quality = Math.max(0.6, quality * 0.85); slowFrames = 0; size(); }
+      } else if (slowFrames > 0) {
+        slowFrames--;
+      }
+      lastNow = now;
       draw(now);
     }
     function onResize() { size(); draw(performance.now()); }
+    function onPointer(e) {
+      lightTo[0] = (e.clientX / Math.max(1, window.innerWidth) - 0.5) * 0.3;
+      lightTo[1] = -(e.clientY / Math.max(1, window.innerHeight) - 0.5) * 0.2;
+    }
+    function onVisibility() { lastNow = 0; }
+    canvas.addEventListener("webglcontextlost", function (e) {
+      e.preventDefault();
+      cancelAnimationFrame(raf);
+      canvas.style.display = "none";
+    });
     size();
     draw(performance.now());
-    if (!reduced) raf = requestAnimationFrame(loop);
+    if (!reduced) {
+      raf = requestAnimationFrame(loop);
+      window.addEventListener("pointermove", onPointer, { passive: true });
+    }
     window.addEventListener("resize", onResize);
+    document.addEventListener("visibilitychange", onVisibility);
     chrome = {
       stop: function () {
         cancelAnimationFrame(raf);
         window.removeEventListener("resize", onResize);
+        window.removeEventListener("pointermove", onPointer);
+        document.removeEventListener("visibilitychange", onVisibility);
         var lose = gl.getExtension("WEBGL_lose_context");
         if (lose) lose.loseContext();
         canvas.remove();
