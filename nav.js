@@ -183,7 +183,10 @@
     var style = document.createElement("style");
     style.id = "ezNavStyles";
     style.textContent = "" +
-      ":root{ --ez-header-h:56px; --ez-sidebar-w:212px; --ez-sidebar-collapsed-w:56px; --ez-content-gutter:clamp(16px,4vw,48px); }" +
+      // The sidebar scales with the screen: about 420px on a 1920px display,
+      // ~280px on a 1280px laptop, so it stays substantial without crowding
+      // smaller screens.
+      ":root{ --ez-header-h:56px; --ez-sidebar-w:clamp(272px,22vw,424px); --ez-sidebar-collapsed-w:80px; --ez-content-gutter:clamp(16px,4vw,48px); }" +
       // Each page's own .wrap centers itself with margin:auto inside body's
       // content box — but that only adds breathing room once the viewport is
       // wider than sidebar + wrap + gutter. Below that (most real screens),
@@ -242,11 +245,11 @@
       " overflow-x:hidden; overflow-y:auto; background:var(--ez-sidebar-bg, var(--panel-raised));" +
       " -webkit-backdrop-filter:blur(18px) saturate(1.25); backdrop-filter:blur(18px) saturate(1.25);" +
       " border-right:1px solid var(--hairline-bright); box-shadow:1px 0 0 rgba(255,255,255,0.03), 12px 0 32px -24px rgba(0,0,0,0.8);" +
-      " padding:14px 10px; display:flex; flex-direction:column; gap:2px; transition:width .18s ease, box-shadow .18s ease; }" +
+      " padding:20px 14px; display:flex; flex-direction:column; gap:4px; transition:width .18s ease, box-shadow .18s ease; }" +
       "body[data-sidebar-mode=\"expanded\"] .ez-sidebar{ width:var(--ez-sidebar-w); }" +
       "body[data-sidebar-mode=\"hover\"] .ez-sidebar:hover{ width:var(--ez-sidebar-w); box-shadow:0 20px 50px -12px rgba(0,0,0,0.6); }" +
-      ".ez-sidebar-link{ display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:10px;" +
-      " color:var(--muted); text-decoration:none; font-family:var(--font-display); font-weight:600; font-size:13.5px;" +
+      ".ez-sidebar-link{ display:flex; align-items:center; gap:16px; padding:13px 16px; border-radius:12px;" +
+      " color:var(--muted); text-decoration:none; font-family:var(--font-display); font-weight:600; font-size:15.5px;" +
       " white-space:nowrap; overflow:hidden; transition:background .15s, color .15s; }" +
       ".ez-sidebar-link:hover{ color:var(--ice); background:rgba(255,255,255,0.05); }" +
       ".ez-sidebar-link.active{ color:var(--mint-text); background:var(--mint); }" +
@@ -254,34 +257,34 @@
       ".ez-sidebar-link-soon:hover{ color:var(--muted-dim); background:transparent; }" +
       ".ez-sidebar-link-soon .ez-sidebar-label{ display:flex; align-items:center; gap:7px; }" +
       "body:not([data-sidebar-mode=\"expanded\"]) .ez-sidebar-link-soon .ez-sidebar-label{ display:none; }" +
-      ".ez-sidebar-soon-tag{ font-family:var(--font-mono); font-size:8.5px; font-weight:700; letter-spacing:0.05em;" +
+      ".ez-sidebar-soon-tag{ font-family:var(--font-mono); font-size:9.5px; font-weight:700; letter-spacing:0.05em;" +
       " text-transform:uppercase; color:var(--muted-dim); border:1px solid var(--hairline-bright); border-radius:999px;" +
-      " padding:1.5px 6px; flex:none; }" +
-      ".ez-sidebar-icon{ flex:none; width:20px; height:20px; }" +
+      " padding:2px 7px; flex:none; }" +
+      ".ez-sidebar-icon{ flex:none; width:23px; height:23px; }" +
       ".ez-sidebar-icon svg{ width:100%; height:100%; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }" +
       ".ez-sidebar-label{ overflow:hidden; text-overflow:ellipsis; }" +
       "body:not([data-sidebar-mode=\"expanded\"]) .ez-sidebar-label{ display:none; }" +
-      "body:not([data-sidebar-mode=\"expanded\"]) .ez-sidebar-link{ justify-content:center; padding:12px 0; }" +
+      "body:not([data-sidebar-mode=\"expanded\"]) .ez-sidebar-link{ justify-content:center; padding:14px 0; }" +
       "body[data-sidebar-mode=\"hover\"] .ez-sidebar:hover .ez-sidebar-label{ display:inline; }" +
-      "body[data-sidebar-mode=\"hover\"] .ez-sidebar:hover .ez-sidebar-link{ justify-content:flex-start; padding:10px 12px; }" +
+      "body[data-sidebar-mode=\"hover\"] .ez-sidebar:hover .ez-sidebar-link{ justify-content:flex-start; padding:13px 16px; }" +
 
-      ".ez-sidebar-brand{ display:flex; align-items:center; gap:10px; padding:4px 8px 12px; margin-bottom:4px; text-decoration:none;" +
+      ".ez-sidebar-brand{ display:flex; align-items:center; gap:13px; padding:6px 12px 18px; margin-bottom:6px; text-decoration:none;" +
       " border-bottom:1px solid var(--hairline); white-space:nowrap; overflow:hidden; }" +
-      ".ez-sidebar-brand img{ width:30px; height:30px; object-fit:contain; flex:none; }" +
-      ".ez-sidebar-brand .ez-sidebar-label{ font-family:var(--font-display); font-weight:700; font-size:15px; color:var(--ice); }" +
-      "body:not([data-sidebar-mode=\"expanded\"]) .ez-sidebar-brand{ justify-content:center; padding:4px 0 12px; }" +
-      "body[data-sidebar-mode=\"hover\"] .ez-sidebar:hover .ez-sidebar-brand{ justify-content:flex-start; padding:4px 8px 12px; }" +
-      ".ez-sidebar-section{ display:flex; flex-direction:column; gap:2px;" +
-      " border-top:1px solid var(--hairline); padding-top:8px; margin-top:8px; }" +
+      ".ez-sidebar-brand img{ width:40px; height:40px; object-fit:contain; flex:none; }" +
+      ".ez-sidebar-brand .ez-sidebar-label{ font-family:var(--font-display); font-weight:700; font-size:19px; color:var(--ice); }" +
+      "body:not([data-sidebar-mode=\"expanded\"]) .ez-sidebar-brand{ justify-content:center; padding:6px 0 18px; }" +
+      "body[data-sidebar-mode=\"hover\"] .ez-sidebar:hover .ez-sidebar-brand{ justify-content:flex-start; padding:6px 12px 18px; }" +
+      ".ez-sidebar-section{ display:flex; flex-direction:column; gap:4px;" +
+      " border-top:1px solid var(--hairline); padding-top:12px; margin-top:12px; }" +
 
       // Short windows scroll the sidebar instead of squashing its rows.
       ".ez-sidebar > *{ flex-shrink:0; }" +
       ".ez-sidebar-spacer{ flex:1; }" +
-      ".ez-sidebar-control{ position:relative; border-top:1px solid var(--hairline); padding-top:10px; margin-top:8px; }" +
+      ".ez-sidebar-control{ position:relative; border-top:1px solid var(--hairline); padding-top:12px; margin-top:10px; }" +
       ".ez-sidebar-control-btn{ display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; border-radius:10px;" +
       " background:transparent; border:none; color:var(--muted); cursor:pointer; font-family:var(--font-mono); font-size:11.5px;" +
       " font-weight:600; white-space:nowrap; overflow:hidden; transition:background .15s, color .15s; }" +
-      ".ez-sidebar-control-btn{ justify-content:center; padding:10px 0; }" +
+      ".ez-sidebar-control-btn{ justify-content:center; padding:13px 0; }" +
       ".ez-sidebar-control-btn:hover{ color:var(--ice); background:rgba(255,255,255,0.05); }" +
       ".ez-sidebar-settings{ padding-top:8px; }" +
 
@@ -300,7 +303,23 @@
       ".ez-sidebar-menu-item.selected{ color:var(--ice); }" +
       ".ez-sidebar-menu-item.selected .dot{ background:var(--mint); border-color:var(--mint); box-shadow:0 0 8px 1px rgba(62,224,140,0.5); }" +
 
+      // Shorter screens: same width, tighter rows, so Settings stays in view.
+      "@media (max-height:920px) and (min-width:761px){" +
+      "  .ez-sidebar{ padding:14px 14px; gap:2px; }" +
+      "  .ez-sidebar-link, .ez-sidebar-control-btn{ padding-top:8px !important; padding-bottom:8px !important; }" +
+      "  .ez-sidebar-icon{ width:21px; height:21px; }" +
+      "  .ez-sidebar-brand{ padding-bottom:12px !important; margin-bottom:2px; }" +
+      "  .ez-sidebar-brand img{ width:34px; height:34px; }" +
+      "  .ez-sidebar-section{ gap:2px; padding-top:7px; margin-top:7px; }" +
+      "  .ez-sidebar-control{ padding-top:7px; margin-top:6px; }" +
+      "  .ez-sidebar-settings{ padding-top:6px; }" +
+      "}" +
       "@media (max-width:760px){" +
+      // Phones keep a slim icon rail.
+      "  :root{ --ez-sidebar-collapsed-w:56px; }" +
+      "  .ez-sidebar{ padding:14px 8px !important; }" +
+      "  .ez-sidebar-icon{ width:20px; height:20px; }" +
+      "  .ez-sidebar-brand img{ width:30px; height:30px; }" +
       "  body{ padding-left:calc(var(--ez-sidebar-collapsed-w) + 12px) !important; }" +
       "  .ez-sidebar{ width:var(--ez-sidebar-collapsed-w) !important; box-shadow:none !important; }" +
       "  .ez-sidebar-label{ display:none !important; }" +
