@@ -36,10 +36,14 @@
 
   *{box-sizing:border-box;}
   html{color-scheme:dark; height:100%;}
+  /* The page scrolls whenever it's taller than the screen (a phone on its
+     side, a short laptop window). Only the Economic Calendar pins itself
+     to the window, and only on screens big enough for its own scrolling
+     agenda (see .econ-agenda). */
   body{
     margin:0;
-    height:100vh;
-    overflow:hidden;
+    min-height:100vh;
+    overflow-x:hidden;
     display:flex;
     flex-direction:column;
     background:
@@ -279,8 +283,13 @@
     .econ-section-date, .econ-section-meta{ white-space:nowrap; }
     .econ-section-meta{ flex-basis:100%; margin-left:0; }
     .econ-row{ padding:11px 14px; }
-    /* Phones: the page scrolls as a whole instead of a small inner box. */
-    body.econ-active{ height:auto; min-height:100vh; overflow:visible; }
+  }
+  @media (min-width:721px) and (min-height:641px){
+    body.econ-active{ height:100vh; overflow:hidden; }
+  }
+  /* Phones either way up and short windows: the page scrolls as a whole
+     instead of a small inner box. */
+  @media (max-width:720px), (max-height:640px){
     body.econ-active .wrap, body.econ-active #econView{ flex:none; }
     body.econ-active .econ-agenda{ overflow:visible; flex:none; }
   }
@@ -879,25 +888,38 @@
     }
   }
 
+  // On phones and short windows the whole page scrolls instead of the
+  // agenda (see the CSS); these read and move whichever one does.
+  function agendaPageScrolls(){ return getComputedStyle(gridEl).overflowY === "visible"; }
+  function agendaScrollTop(){ return agendaPageScrolls() ? -gridEl.getBoundingClientRect().top : gridEl.scrollTop; }
+  function agendaAtBottom(){
+    if (!agendaPageScrolls()) return gridEl.scrollTop + gridEl.clientHeight >= gridEl.scrollHeight - 2;
+    return window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
+  }
+  function scrollAgendaTo(top){
+    if (agendaPageScrolls()) window.scrollTo({ top: window.scrollY + gridEl.getBoundingClientRect().top + top, behavior: "smooth" });
+    else gridEl.scrollTo({ top: top, behavior: "smooth" });
+  }
+
   // Highlight the day strip button for the section at the top of the list.
   var pinnedDay = null;
   function markCurrentDay(){
     var sections = gridEl.querySelectorAll(".econ-section");
-    var top = gridEl.scrollTop + 40, current = 0;
+    var scrollTop = agendaScrollTop(), top = scrollTop + 40, current = 0;
     sections.forEach(function(sec){ if (sec.offsetTop <= top) current = Number(sec.getAttribute("data-day")); });
     // A clicked day stays marked, even if it's near the end and the list
     // can't scroll it all the way to the top.
     if (pinnedDay !== null){
       var pinned = gridEl.querySelector('.econ-section[data-day="' + pinnedDay + '"]');
-      var atBottom = gridEl.scrollTop + gridEl.clientHeight >= gridEl.scrollHeight - 2;
-      if (pinned && (Math.abs(pinned.offsetTop - 34 - gridEl.scrollTop) < 4 || (atBottom && pinned.offsetTop > gridEl.scrollTop))) current = pinnedDay;
+      if (pinned && (Math.abs(pinned.offsetTop - 34 - scrollTop) < 4 || (agendaAtBottom() && pinned.offsetTop > scrollTop))) current = pinnedDay;
       else if (pinned && current === pinnedDay) pinnedDay = null;
     }
     daysEl.querySelectorAll(".econ-day-btn").forEach(function(b){ b.classList.toggle("current", Number(b.getAttribute("data-day")) === current); });
   }
   gridEl.addEventListener("scroll", markCurrentDay, { passive: true });
-  gridEl.addEventListener("wheel", function(){ pinnedDay = null; }, { passive: true });
-  gridEl.addEventListener("touchstart", function(){ pinnedDay = null; }, { passive: true });
+  window.addEventListener("scroll", function(){ if (document.body.classList.contains("econ-active") && agendaPageScrolls()) markCurrentDay(); }, { passive: true });
+  document.addEventListener("wheel", function(){ pinnedDay = null; }, { passive: true });
+  document.addEventListener("touchstart", function(){ pinnedDay = null; }, { passive: true });
   daysEl.addEventListener("click", function(e){
     var btn = e.target.closest(".econ-day-btn");
     if (!btn) return;
@@ -906,7 +928,7 @@
     if (!sec) return;
     daysEl.querySelectorAll(".econ-day-btn").forEach(function(b){ b.classList.toggle("current", b === btn); });
     pinnedDay = Number(day);
-    gridEl.scrollTo({ top: sec.offsetTop - 34, behavior: "smooth" });
+    scrollAgendaTo(sec.offsetTop - 34);
   });
 
   function openEventModal(ev){
