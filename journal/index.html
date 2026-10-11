@@ -2991,16 +2991,32 @@
     ctx.fillStyle = grad;
     ctx.fill();
   }
+  // Which way the card's line moves, from the side and the result: a
+  // winning long or a losing short rises from entry to exit; a winning
+  // short or a losing long falls. Breakeven trades follow the prices.
+  function tradeMovesUp(t){
+    var pnl = Number(t.pnl) || 0;
+    if (pnl === 0) return t.exit > t.entry;
+    var won = pnl > 0, isShort = t.direction === "short";
+    return isShort ? !won : won;
+  }
   function drawTradePriceChart(ctx, t, x, y, w, h, color){
     var prices = tradePricePath(t);
     var minP = Math.min.apply(null, prices), maxP = Math.max.apply(null, prices);
     var span = (maxP - minP) || Math.abs(t.entry) * 0.001 || 1;
     minP -= span * 0.16;
     maxP += span * 0.16;
-    function py(p){ return y + h - (p - minP) / (maxP - minP) * h; }
+    var wentUp = tradeMovesUp(t);
+    // If the logged prices run the other way (exit above entry on a
+    // winning short, say), mirror the chart so the line still shows the
+    // move; the ENTRY/EXIT tags keep the real prices.
+    var flip = t.exit !== t.entry && (t.exit > t.entry) !== wentUp;
+    function py(p){
+      var f = (p - minP) / (maxP - minP);
+      return flip ? y + f * h : y + h - f * h;
+    }
     var pts = prices.map(function(p, i){ return [x + (i / (prices.length - 1)) * w, py(p)]; });
     var entryY = py(t.entry);
-    var wentUp = t.exit > t.entry;
 
     withFade(ctx, seg(T_LINE.start - 500, 1100, FADE), 0, function(){
       ctx.setLineDash([10, 9]);
@@ -3030,8 +3046,10 @@
 
     var end = pts[pts.length - 1];
     withFade(ctx, seg(T_LINE.start + T_LINE.dur - 200, 1100, FADE), 12, function(){
-      var below = end[1] + 52 + 22 <= y + h + 40;
-      drawPricePill(ctx, "EXIT", fmtPrice(t.exit), end[0] - 26, below ? end[1] + 52 : end[1] - 52, "right", x, x + w + 30);
+      // On the far side of the line's approach: above a rise, below a fall
+      // (unless that would leave the card).
+      var above = wentUp ? end[1] - 52 - 22 >= y - 40 : !(end[1] + 52 + 22 <= y + h + 40);
+      drawPricePill(ctx, "EXIT", fmtPrice(t.exit), end[0] - 26, above ? end[1] - 52 : end[1] + 52, "right", x, x + w + 30);
     });
   }
 
