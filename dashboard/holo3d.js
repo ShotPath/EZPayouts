@@ -7,10 +7,12 @@
 // text: a 2D canvas strokes those crisply at any width (WebGL lines are
 // stuck at 1px) and the page doesn't have to download a 3D library.
 //
-// While a card is focused: drag to orbit (with inertia), Ctrl/Cmd + wheel or
-// a trackpad/touch pinch to zoom (a plain wheel still scrolls the page),
-// double-click to reset. A view only redraws while something is moving or
-// it is focused, and never while it is scrolled off-screen.
+// A collapsed card shows its view straight on and still, so it reads at a
+// glance. Focusing the card swings the camera round to a 3D angle; then drag
+// to orbit (with inertia), Ctrl/Cmd + wheel or a trackpad/touch pinch to zoom
+// (a plain wheel still scrolls the page), double-click to reset. A view only
+// redraws while something is moving or it is focused, and never while it is
+// scrolled off-screen.
 (function(){
   "use strict";
 
@@ -89,10 +91,12 @@
 
   // ---------- Camera: orbits a target point ----------
   function Camera(){
-    this.yaw = 0; this.pitch = 0; this.dist = 10;
+    this.yaw = 0; this.pitch = 0; this.dist = 10; this.zoom = 1;
     this.tx = 0; this.ty = 0; this.tz = 0;
   }
-  // fit: { f: focal length in px, ox/oy: where the target lands on screen }.
+  // fit: { f: px per world unit at the target, ox/oy: where the target
+  // lands on screen }. `dist` only sets how strong the perspective is;
+  // `zoom` scales.
   Camera.prototype.begin = function(fit){
     this.cY = Math.cos(this.yaw); this.sY = Math.sin(this.yaw);
     this.cP = Math.cos(this.pitch); this.sP = Math.sin(this.pitch);
@@ -109,21 +113,24 @@
     var z2 = -y * this.sP + z1 * this.cP;
     var d = z2 + this.dist;
     if (d < 0.1) d = 0.1;
-    var k = this.f / d;
+    var k = this.f * this.zoom * this.dist / d;
     return [this.ox + x1 * k, this.oy - y2 * k, d];
   };
 
   // ---------- Orbit controls ----------
   function Orbit(el, cam, cfg, kick){
     var self = this;
+    var start = cfg.flat || cfg.home;
     this.cam = cam; this.cfg = cfg;
-    this.yaw = cam.yaw = cfg.home.yaw;
-    this.pitch = cam.pitch = cfg.home.pitch;
-    this.dist = cam.dist = cfg.home.dist;
+    this.yaw = cam.yaw = start.yaw;
+    this.pitch = cam.pitch = start.pitch;
+    this.dist = cam.dist = start.dist;
+    this.zoom = cam.zoom = 1;
     this.vYaw = 0; this.vPitch = 0;
     this.dragging = false;
+    this.ease = 15;
 
-    var pointers = {}, lastX = 0, lastY = 0, lastT = 0, pinchFrom = 0, pinchDist = 0;
+    var pointers = {}, lastX = 0, lastY = 0, lastT = 0, pinchFrom = 0, pinchZoom = 1;
     function ids(){ return Object.keys(pointers); }
     function spread(){
       var k = ids(), a = pointers[k[0]], b = pointers[k[1]];
@@ -135,6 +142,7 @@
       if (e.pointerType === "mouse" && e.button !== 0) return;
       pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
       try { el.setPointerCapture(e.pointerId); } catch (err) {}
+      self.ease = 15;
       var n = ids().length;
       if (n === 1){
         self.dragging = true;
@@ -142,7 +150,7 @@
         lastX = e.clientX; lastY = e.clientY; lastT = performance.now();
         el.classList.add("is-dragging");
       } else if (n === 2){
-        pinchFrom = spread(); pinchDist = self.dist;
+        pinchFrom = spread(); pinchZoom = self.zoom;
       }
       kick();
     });
@@ -151,7 +159,7 @@
       pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
       if (ids().length >= 2){
         var s = spread();
-        if (pinchFrom > 0 && s > 0) self.dist = clamp(pinchDist * pinchFrom / s, cfg.distMin, cfg.distMax);
+        if (pinchFrom > 0) self.zoom = clamp(pinchZoom * s / pinchFrom, cfg.zoomMin, cfg.zoomMax);
       } else {
         var now = performance.now(), dt = Math.max(8, now - lastT) / 1000;
         var dYaw = -(e.clientX - lastX) * 0.0085, dPitch = (e.clientY - lastY) * 0.0065;
@@ -191,7 +199,8 @@
       e.preventDefault();
       var dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
       var rate = Math.abs(dy) < 40 ? 0.012 : 0.0024;
-      self.dist = clamp(self.dist * Math.exp(dy * rate), cfg.distMin, cfg.distMax);
+      self.ease = 15;
+      self.zoom = clamp(self.zoom * Math.exp(-dy * rate), cfg.zoomMin, cfg.zoomMax);
       kick();
     }, { passive: false });
     // Safari's trackpad pinch (its touch pinch already comes through the
@@ -200,18 +209,19 @@
     el.addEventListener("gesturestart", function(e){
       if (!cfg.enabled()) return;
       e.preventDefault();
-      gestureFrom = self.dist;
+      gestureFrom = self.zoom;
     });
     el.addEventListener("gesturechange", function(e){
       if (!cfg.enabled()) return;
       e.preventDefault();
       if (ids().length || !gestureFrom || !e.scale) return;
-      self.dist = clamp(gestureFrom / e.scale, cfg.distMin, cfg.distMax);
+      self.ease = 15;
+      self.zoom = clamp(gestureFrom * e.scale, cfg.zoomMin, cfg.zoomMax);
       kick();
     });
     el.addEventListener("dblclick", function(){
       if (!cfg.enabled()) return;
-      self.reset();
+      self.reset(cfg.home);
       kick();
     });
   }
@@ -221,13 +231,16 @@
     if (c.yawMin != null) this.yaw = clamp(this.yaw, c.yawMin, c.yawMax);
     this.pitch = clamp(this.pitch + dPitch, c.pitchMin, c.pitchMax);
   };
-  Orbit.prototype.reset = function(){
-    var home = this.cfg.home, turn = Math.PI * 2;
+  // Glides (more slowly than a drag settles) to a view.
+  Orbit.prototype.reset = function(home){
+    var turn = Math.PI * 2;
     this.vYaw = this.vPitch = 0;
+    this.ease = 7;
     // Swing back the short way, not back through every turn dragged.
     this.yaw = home.yaw + Math.round((this.cam.yaw - home.yaw) / turn) * turn;
     this.pitch = home.pitch;
     this.dist = home.dist;
+    this.zoom = 1;
   };
   // Eases the camera toward where input put it; true while still moving.
   Orbit.prototype.step = function(dt){
@@ -237,13 +250,16 @@
       this.vYaw *= decay; this.vPitch *= decay;
       if (Math.abs(this.vYaw) < 0.015 && Math.abs(this.vPitch) < 0.015) this.vYaw = this.vPitch = 0;
     }
-    var cam = this.cam, k = 1 - Math.exp(-dt * 15);
+    var cam = this.cam, k = 1 - Math.exp(-dt * this.ease);
     cam.yaw += (this.yaw - cam.yaw) * k;
     cam.pitch += (this.pitch - cam.pitch) * k;
-    cam.dist += (this.dist - cam.dist) * k;
+    // Distance and zoom ease on a log scale so big changes feel even.
+    cam.dist = Math.exp(lerp(Math.log(cam.dist), Math.log(this.dist), k));
+    cam.zoom = Math.exp(lerp(Math.log(cam.zoom), Math.log(this.zoom), k));
     var moving = this.dragging || this.vYaw || this.vPitch ||
-      Math.abs(this.yaw - cam.yaw) > 1e-4 || Math.abs(this.pitch - cam.pitch) > 1e-4 || Math.abs(this.dist - cam.dist) > 1e-3;
-    if (!moving){ cam.yaw = this.yaw; cam.pitch = this.pitch; cam.dist = this.dist; }
+      Math.abs(this.yaw - cam.yaw) > 2e-4 || Math.abs(this.pitch - cam.pitch) > 2e-4 ||
+      Math.abs(this.dist - cam.dist) > this.dist * 2e-3 || Math.abs(this.zoom - cam.zoom) > 5e-4;
+    if (!moving){ cam.yaw = this.yaw; cam.pitch = this.pitch; cam.dist = this.dist; cam.zoom = this.zoom; }
     return !!moving;
   };
 
@@ -263,6 +279,9 @@
     this.intro = 1; this.introStart = -1; this.introPending = false;
     this.introDur = cfg.introDur || 1400;
     this.raf = 0; this.lastT = 0; this.onScreen = true;
+    // 0 = the collapsed card's flat view, 1 = the focused 3D view; eases
+    // between them so parts that only exist in 3D fade in and out.
+    this.depth = 0;
     this.data = null; this.dataKey = null;
     this.hover = null; this.pointer = null;
 
@@ -296,9 +315,10 @@
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ self.drawNow(); });
   }
   View.prototype.resize = function(){
-    var r = this.container.getBoundingClientRect();
+    // Layout size, not getBoundingClientRect: a hidden sibling card is
+    // scaled down by a transform, which mustn't shrink the canvas.
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
-    var w = Math.max(1, Math.round(r.width)), h = Math.max(1, Math.round(r.height));
+    var w = Math.max(1, this.container.clientWidth), h = Math.max(1, this.container.clientHeight);
     if (w === this.w && h === this.h && dpr === this.dpr) return false;
     this.w = w; this.h = h; this.dpr = dpr;
     this.fit = null;
@@ -316,6 +336,12 @@
     this.raf = 0;
     var dt = this.lastT ? Math.min(0.05, (t - this.lastT) / 1000) : 1 / 60;
     var moving = this.orbit.step(dt);
+    var depthTo = this.focused ? 1 : 0;
+    if (this.depth !== depthTo){
+      this.depth += (depthTo - this.depth) * (1 - Math.exp(-dt * 7));
+      if (Math.abs(depthTo - this.depth) < 0.003) this.depth = depthTo;
+      moving = true;
+    }
     if (this.introPending){ this.introPending = false; this.introStart = t; }
     var introRunning = false;
     if (this.introStart >= 0){
@@ -341,15 +367,17 @@
     this.drawNow();
     this.kick();
   };
-  // Replays the draw-on animation only when the numbers actually changed,
-  // not on every re-render of the page.
+  // Only acts when the numbers actually changed, not on every re-render of
+  // the page. A collapsed card just redraws (it stays still); a focused one
+  // replays its draw-on.
   View.prototype.setData = function(data){
     var key = JSON.stringify(data);
     if (key === this.dataKey) return;
     this.dataKey = key;
     this.data = data;
     if (this.prepare) this.prepare();
-    this.playIntro();
+    if (this.focused) this.playIntro();
+    else { this.intro = 1; this.introStart = -1; this.introPending = false; this.drawNow(); }
   };
   View.prototype.setFocused = function(on){
     on = !!on;
@@ -358,7 +386,7 @@
     this.fit = null;
     this.canvas.classList.toggle("is-interactive", on);
     this.pointer = null;
-    this.orbit.reset();
+    this.orbit.reset(on ? this.orbit.cfg.home : this.orbit.cfg.flat);
     if (this.prepare) this.prepare();
     if (on && this.data) this.playIntro();
     this.kick();
@@ -378,8 +406,9 @@
   // inside the margins (left, right, top, bottom: room for the labels).
   // Zooming and orbiting then move the camera from there.
   View.prototype.computeFit = function(){
-    var cam = this.cam, home = this.orbit.cfg.home, keep = [cam.yaw, cam.pitch, cam.dist];
-    cam.yaw = home.yaw; cam.pitch = home.pitch; cam.dist = home.dist;
+    var cfg = this.orbit.cfg, home = this.focused ? cfg.home : cfg.flat;
+    var cam = this.cam, keep = [cam.yaw, cam.pitch, cam.dist, cam.zoom];
+    cam.yaw = home.yaw; cam.pitch = home.pitch; cam.dist = home.dist; cam.zoom = 1;
     cam.begin({ f: 1, ox: 0, oy: 0 });
     var x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
     this.bounds().forEach(function(v){
@@ -387,7 +416,7 @@
       if (p[0] < x0) x0 = p[0]; if (p[0] > x1) x1 = p[0];
       if (p[1] < y0) y0 = p[1]; if (p[1] > y1) y1 = p[1];
     });
-    cam.yaw = keep[0]; cam.pitch = keep[1]; cam.dist = keep[2];
+    cam.yaw = keep[0]; cam.pitch = keep[1]; cam.dist = keep[2]; cam.zoom = keep[3];
     var m = this.margins(), aw = Math.max(20, this.w - m[0] - m[1]), ah = Math.max(20, this.h - m[2] - m[3]);
     var f = Math.min(aw / ((x1 - x0) || 1), ah / ((y1 - y0) || 1));
     return { f: f, ox: m[0] + aw / 2 - f * (x0 + x1) / 2, oy: m[2] + ah / 2 - f * (y0 + y1) / 2 };
@@ -424,8 +453,10 @@
 
   function EdgeProfile(container){
     View.call(this, container, {
+      // Collapsed: straight down onto the pentagon, like a radar chart.
+      flat: { yaw: 0, pitch: Math.PI / 2, dist: 12 },
       home: { yaw: -0.36, pitch: 0.56, dist: 12 },
-      pitchMin: -0.2, pitchMax: 1.4, distMin: 7.5, distMax: 24
+      pitchMin: -0.2, pitchMax: 1.4, zoomMin: 0.55, zoomMax: 2.6
     });
     if (this.ok){ this.cam.ty = 0.5; }
   }
@@ -436,7 +467,8 @@
     var pts = [], n = 5;
     for (var i = 0; i < n; i++){
       var a = -Math.PI / 2 + (i / n) * Math.PI * 2, x = Math.cos(a) * E_R * 1.1, z = -Math.sin(a) * E_R * 1.1;
-      pts.push([x, 0, z], [x, E_CASE_H, z]);
+      pts.push([x, 0, z]);
+      if (this.focused) pts.push([x, E_CASE_H, z]);
     }
     return pts;
   };
@@ -448,7 +480,9 @@
     var ctx = this.begin(), d = this.data, cam = this.cam;
     if (!d || this.w < 2) return;
     var focused = this.focused, n = d.scores.length;
-    var grow = easeOut(this.intro * 1.15), rise = easeOut(this.intro * 1.4 - 0.3);
+    // The prism (and its glass case) only stand up in the 3D view; flat,
+    // it's the score polygon lying on the floor.
+    var depth = easeOut(this.depth), rise = depth * easeOut(this.intro * 1.4 - 0.3);
 
     function ang(i){ return -Math.PI / 2 + (i / n) * Math.PI * 2; }
     function at(i, r, y){ var a = ang(i); return [Math.cos(a) * r, y, -Math.sin(a) * r]; }
@@ -486,23 +520,25 @@
     }
 
     // Glass case: the full-score pentagon as a faint prism.
-    var caseTop = ring(E_R, E_CASE_H * rise);
-    pathPoly(ctx, caseTop, true);
-    glowStroke(ctx, CYAN, 1, 0.13, false);
-    for (var c = 0; c < n; c++){
-      var gEdge = ctx.createLinearGradient(outer[c][0], outer[c][1], caseTop[c][0], caseTop[c][1]);
-      gEdge.addColorStop(0, rgba(CYAN, 0.32 * fade(outer[c][2])));
-      gEdge.addColorStop(1, rgba(CYAN, 0.02));
-      pathLine(ctx, outer[c], caseTop[c]);
-      ctx.lineWidth = 1;
-      ctx.strokeStyle = gEdge;
-      ctx.stroke();
+    if (rise > 0.01){
+      var caseTop = ring(E_R, E_CASE_H * rise);
+      pathPoly(ctx, caseTop, true);
+      glowStroke(ctx, CYAN, 1, 0.13 * depth, false);
+      for (var c = 0; c < n; c++){
+        var gEdge = ctx.createLinearGradient(outer[c][0], outer[c][1], caseTop[c][0], caseTop[c][1]);
+        gEdge.addColorStop(0, rgba(CYAN, 0.32 * depth * fade(outer[c][2])));
+        gEdge.addColorStop(1, rgba(CYAN, 0.02 * depth));
+        pathLine(ctx, outer[c], caseTop[c]);
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = gEdge;
+        ctx.stroke();
+      }
     }
 
     // Score prism.
     var botW = [], topW = [];
     for (var i = 0; i < n; i++){
-      var r = E_R * Math.max(0.05, d.scores[i] / 100) * grow;
+      var r = E_R * Math.max(0.05, d.scores[i] / 100);
       botW.push(at(i, r, 0));
       topW.push(at(i, r, E_PRISM_H * rise));
     }
@@ -528,6 +564,7 @@
         shade: 0.45 + 0.55 * Math.max(0, (mx / ml) * light[0] + (mz / ml) * light[2])
       });
     }
+    if (rise <= 0.01) faces.length = 0;
     faces.push({ pts: top, depth: top.reduce(function(s2, p){ return s2 + p[2]; }, 0) / n - 0.01, top: true });
     faces.sort(function(a, b){ return b.depth - a.depth; });
     faces.forEach(function(face){
@@ -576,8 +613,7 @@
     }
 
     // Labels, billboarded so they always face the viewer.
-    var labelAlpha = easeOut(this.intro * 1.6 - 0.4);
-    if (labelAlpha > 0) this.drawLabels(ring(E_R * 1.1, 0), outer, center, fade, labelAlpha);
+    this.drawLabels(ring(E_R * 1.1, 0), outer, center, fade, 1);
   };
 
   EdgeProfile.prototype.drawLabels = function(anchors, verts, center, fade, alpha){
@@ -657,8 +693,11 @@
   function CumulativePnl(container, fmt){
     this.fmt = fmt || {};
     View.call(this, container, {
+      // Collapsed: face-on and from far enough away that depth doesn't
+      // skew anything, so it reads like a flat chart.
+      flat: { yaw: 0, pitch: 0, dist: 400 },
       home: { yaw: -0.5, pitch: 0.27, dist: 17.5 },
-      yawMin: -1.3, yawMax: 1.3, pitchMin: -0.12, pitchMax: 1.25, distMin: 8, distMax: 34,
+      yawMin: -1.3, yawMax: 1.3, pitchMin: -0.12, pitchMax: 1.25, zoomMin: 0.55, zoomMax: 2.8,
       introDur: 1700
     });
     if (this.ok){ this.cam.tx = -0.1; this.cam.ty = PH * 0.55; this.cam.tz = PD * 0.5; }
@@ -768,6 +807,9 @@
     function yOf(v){ return (v - axisMin) / axisSpan * PH; }
     function xOf(i){ return N > 0 ? -PW / 2 + (i / N) * PW : 0; }
     var reveal = this.intro;
+    // Parts that only make sense in depth (side wall, floor grid, terrain)
+    // fade in with the 3D view; the flat view gets an area fill instead.
+    var depth = easeOut(this.depth);
 
     // ---- Chart box: back wall and left side lines at each value tick,
     // floor grid.
@@ -776,23 +818,27 @@
       var y = yOf(t), isZero = t === 0 && hasNeg;
       pathLine(ctx, P(-PW / 2, y, ZB), P(PW / 2, y, ZB));
       glowStroke(ctx, CYAN, 1, isZero ? 0.32 : 0.11, false);
-      pathLine(ctx, P(-PW / 2, y, 0), P(-PW / 2, y, ZB));
-      glowStroke(ctx, CYAN, 1, isZero ? 0.2 : 0.07, false);
+      if (depth > 0.01){
+        pathLine(ctx, P(-PW / 2, y, 0), P(-PW / 2, y, ZB));
+        glowStroke(ctx, CYAN, 1, (isZero ? 0.2 : 0.07) * depth, false);
+      }
     });
-    pathLine(ctx, P(-PW / 2, 0, ZB), P(-PW / 2, PH, ZB));
-    glowStroke(ctx, CYAN, 1, 0.14, false);
-    pathLine(ctx, P(PW / 2, 0, ZB), P(PW / 2, PH, ZB));
-    glowStroke(ctx, CYAN, 1, 0.1, false);
+    if (depth > 0.01){
+      pathLine(ctx, P(-PW / 2, 0, ZB), P(-PW / 2, PH, ZB));
+      glowStroke(ctx, CYAN, 1, 0.14 * depth, false);
+      pathLine(ctx, P(PW / 2, 0, ZB), P(PW / 2, PH, ZB));
+      glowStroke(ctx, CYAN, 1, 0.1 * depth, false);
+      [PD / 3, PD * 2 / 3, ZB].forEach(function(z){
+        pathLine(ctx, P(-PW / 2, 0, z), P(PW / 2, 0, z));
+        glowStroke(ctx, CYAN, 1, 0.1 * depth, false);
+      });
+      this.xt.forEach(function(t){
+        var x = xOf(t.i);
+        pathLine(ctx, P(x, 0, 0), P(x, 0, ZB));
+        glowStroke(ctx, CYAN, 1, 0.08 * depth, false);
+      });
+    }
     var floorFront = P(-PW / 2, 0, 0);
-    [0, PD / 3, PD * 2 / 3, ZB].forEach(function(z){
-      pathLine(ctx, P(-PW / 2, 0, z), P(PW / 2, 0, z));
-      glowStroke(ctx, CYAN, 1, 0.1, false);
-    });
-    this.xt.forEach(function(t){
-      var x = xOf(t.i);
-      pathLine(ctx, P(x, 0, 0), P(x, 0, ZB));
-      glowStroke(ctx, CYAN, 1, 0.08, false);
-    });
     if (hasNeg){
       // Zero line across the front.
       ctx.save();
@@ -810,9 +856,24 @@
       return;
     }
 
-    // ---- Terrain, back rows first. Each row is revealed left to right a
-    // little behind the row in front of it.
+    // ---- Flat view: a soft area fill under the line.
+    if (depth < 0.99){
+      var area = [];
+      for (var ai = 0; ai <= N; ai++) area.push(P(xOf(ai), yOf(S[ai]), 0));
+      var base0 = P(xOf(0), 0, 0), baseN = P(xOf(N), 0, 0);
+      var areaTop = Math.min.apply(null, area.map(function(p){ return p[1]; }));
+      var areaFill = ctx.createLinearGradient(0, areaTop, 0, base0[1]);
+      areaFill.addColorStop(0, rgba(CYAN, 0.2 * (1 - depth)));
+      areaFill.addColorStop(1, rgba(CYAN, 0.01 * (1 - depth)));
+      pathPoly(ctx, area.concat([baseN, base0]), true);
+      ctx.fillStyle = areaFill;
+      ctx.fill();
+    }
+
+    // ---- Terrain (3D view only), back rows first. Each row is revealed
+    // left to right a little behind the row in front of it.
     var J = ter.rows.length, M = ter.M;
+    ctx.globalAlpha = depth;
     var rowsP = [];
     for (var j = 0; j < J; j++){
       var z = Z0 + (PD - Z0) * (J > 1 ? j / (J - 1) : 0);
@@ -885,25 +946,18 @@
       pathPoly(ctx, rp, false);
       glowStroke(ctx, CYAN, r2 === 0 ? 1.4 : 1, r2 === 0 ? 0.8 : 0.16 + 0.4 * Math.pow(1 - depthT, 1.6), r2 === 0);
     }
+    ctx.globalAlpha = 1;
 
     // ---- The daily line at the front, split by sign at zero crossings.
-    var limitLine = clamp(reveal * 1.1, 0, 1) * N;
     var line = [];
-    for (var i = 0; i <= N; i++){
-      if (i <= limitLine) line.push({ x: xOf(i), v: S[i], i: i });
-      else {
-        var fr2 = limitLine - (i - 1);
-        if (fr2 > 0) line.push({ x: xOf(limitLine), v: lerp(S[i - 1], S[i], fr2), i: limitLine });
-        break;
-      }
-    }
+    for (var i = 0; i <= N; i++) line.push({ x: xOf(i), v: S[i], i: i });
     this.drawLine(line, P, yOf);
 
-    // Drop lines and nodes for each revealed day.
+    // Drop lines and nodes for each day.
     var nodeEvery = Math.max(1, Math.ceil(N / (focused ? 160 : 70)));
     var dropEvery = Math.max(1, Math.ceil(N / (focused ? 60 : 32)));
     var nodes = [];
-    for (var k = 1; k <= N && k <= limitLine + 1e-6; k++){
+    for (var k = 1; k <= N; k++){
       var p = P(xOf(k), yOf(S[k]), 0);
       p.k = k;
       nodes.push(p);
@@ -941,7 +995,7 @@
     }
 
     // Value tag on the latest day.
-    if (limitLine >= N && this.fmt.short){
+    if (this.fmt.short){
       var lastP = nodes[nodes.length - 1];
       var txt = (S[N] >= 0 ? "+" : "") + this.fmt.short(S[N]);
       ctx.font = "700 " + (focused ? 13 : 11) + "px " + FONT_MONO;
@@ -953,7 +1007,7 @@
       ctx.fillText(txt, tx, ty);
     }
 
-    this.drawAxes(P, yOf, xOf, floorFront, easeOut(reveal * 2));
+    this.drawAxes(P, yOf, xOf, floorFront, 1);
     this.drawGlass(P);
     if (hoverK != null) this.drawTooltip(nodes, hoverK);
   };
