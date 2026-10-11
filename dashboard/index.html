@@ -610,6 +610,7 @@
     saveAcctFilterSelection(selectedAccountIds);
     populateAccountFilter();
     render();
+    renderGreeting();
   });
   acctFilterListEl.addEventListener("change", function(e){
     var cb = e.target.closest('input[type="checkbox"][data-id]');
@@ -625,6 +626,7 @@
     saveAcctFilterSelection(selectedAccountIds);
     populateAccountFilter();
     render();
+    renderGreeting();
   });
 
   function rangeStart(key){
@@ -1122,12 +1124,14 @@
         '<td class="' + (t.pnl >= 0 ? "pos" : "neg") + '">' + fmtMoneySigned(t.pnl) + '</td></tr>';
     }).join("") : '<tr><td colspan="3" style="color:var(--ij-muted-dim); text-align:center; padding:18px 0;">No trades in range</td></tr>';
 
-    // Mini calendar — always shows the current month across every account,
-    // independent of the account/range filters (same "whole trader" pattern
-    // as the greeting pills).
-    var allAccountTrades = [];
-    accounts.forEach(function(acc){ (acc.trades || []).forEach(function(t){ allAccountTrades.push(t); }); });
-    renderMiniCalendar(allAccountTrades);
+    // Mini calendar — the current month for the selected accounts (the
+    // range filter doesn't apply: it always shows this month).
+    renderMiniCalendar(selectedAccountTrades());
+  }
+  function selectedAccountTrades(){
+    var out = [];
+    selectedAccounts().forEach(function(acc){ (acc.trades || []).forEach(function(t){ out.push(t); }); });
+    return out;
   }
 
   // ---------- Greeting header ----------
@@ -1148,13 +1152,10 @@
     var name = EZAuth.getUsername() || null;
     dashGreetingTitleEl.textContent = timeOfDayGreeting() + (name ? ", " + name : "");
 
+    // This week, for the selected accounts.
     var weekStart = rangeStart("week");
-    var weekTrades = [];
-    accounts.forEach(function(acc){
-      (acc.trades || []).forEach(function(t){
-        var d = new Date(t.date + "T00:00:00");
-        if (d >= weekStart) weekTrades.push(t);
-      });
+    var weekTrades = selectedAccountTrades().filter(function(t){
+      return new Date(t.date + "T00:00:00") >= weekStart;
     });
 
     if (!weekTrades.length){
@@ -1289,7 +1290,7 @@
 
   window.addEventListener("storage", function(e){
     if (e.key === STORAGE_KEY){ load(); populateAccountFilter(); render(); renderGreeting(); }
-    if (e.key === ACCT_FILTER_STORAGE_KEY){ selectedAccountIds = loadAcctFilterSelection(); populateAccountFilter(); render(); }
+    if (e.key === ACCT_FILTER_STORAGE_KEY){ selectedAccountIds = loadAcctFilterSelection(); populateAccountFilter(); render(); renderGreeting(); }
   });
   window.addEventListener("focus", function(){ load(); render(); renderGreeting(); });
   // Pull in trades logged on other devices (journal-sync.js); re-render if
