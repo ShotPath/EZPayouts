@@ -176,88 +176,24 @@
   .radar-dot{ fill:var(--ij-blue-soft); }
   .radar-vertex-node{ fill:#00d2ff; filter:drop-shadow(0 0 6px var(--ij-blue)); }
 
-  /* ---------- Edge Profile hologram (focused/expanded state only) ----------
-     4 Z-stacked layers sharing one coordinate system with the plain radar
-     above (same pointAt() math), composited via perspective + preserve-3d
-     on this inner stage ONLY — .chart-card itself stays flat even while
-     focused (transform:none!important, set earlier). */
-  .hologram-stage{
-    display:none; position:relative; width:100%; height:420px; margin-top:4px;
-    /* Tighter than the card-level 1200px on purpose — at 1200px the 0-80px
-       Z range originally used here was too shallow relative to the viewing
-       distance to read as separated planes (confirmed: layers computed
-       correct 3D positions but the parallax was only a few percent, so it
-       visually looked like one tilted shape, not a stack). 550px exaggerates
-       the same depth relationships enough to actually see the gaps. */
-    perspective:550px; cursor:grab;
+  /* ---------- 3D views (dashboard/holo3d.js) ---------- */
+  .holo3d{ position:relative; height:240px; margin:0 -8px; }
+  .holo3d-canvas{ display:block; width:100%; height:100%; touch-action:auto; }
+  .holo3d-canvas.is-interactive{ cursor:grab; touch-action:none; }
+  .holo3d-canvas.is-interactive.is-pointing{ cursor:pointer; }
+  .holo3d-canvas.is-dragging{ cursor:grabbing; }
+  .chart-card.is-focused .holo3d{ height:460px; }
+  @media (max-width:720px){
+    .chart-card.is-focused .holo3d-edge{ height:340px; }
+    .chart-card.is-focused .holo3d-pnl{ height:300px; }
   }
-  .hologram-stage.is-dragging{ cursor:grabbing; }
-  .chart-card.is-focused .radar-wrap{ display:none; }
-  .chart-card.is-focused .hologram-stage{ display:block; }
-  .hologram-inner{
-    position:relative; width:100%; height:100%; transform-style:preserve-3d;
-    transform:rotateX(var(--holo-x, 18deg)) rotateY(var(--holo-y, -24deg));
-    transition:transform .4s cubic-bezier(.16,1,.3,1);
+  .chart-card.has-3d > .radar-wrap, .chart-card.has-3d > .edge-chart-wrap{ display:none; }
+  .chart-card:not(.has-3d) > .holo3d{ display:none; }
+  /* The P&L scene carries its own title on the glass panel. */
+  #cumulativePnlCard.has-3d .chart-card-head h2{
+    position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;
   }
-  .hologram-inner.is-tilting{ transition:none; }
-  .hologram-layer{ position:absolute; inset:0; transform-style:preserve-3d; }
-  /* Spread ~6x deeper than the first pass for the same reason — enough
-     physical separation between planes that rotating the stack visibly
-     slides them past each other instead of them staying stuck together. */
-  .hologram-layer-1{ transform:translateZ(0px); }
-  .hologram-layer-2{ transform:translateZ(55px); }
-  .hologram-layer-3{ transform:translateZ(115px); }
-  .hologram-layer-4{ transform:translateZ(210px); }
-  .hologram-layer-svg{ display:block; width:100%; height:100%; overflow:visible; }
-
-  .hologram-floor-ring{ fill:none; stroke:var(--ij-border-bright); stroke-width:1; opacity:.35; }
-  .hologram-wire-ring{ fill:none; stroke:var(--ij-blue-soft); stroke-width:1; opacity:.55; }
-  .hologram-wire-axis{ stroke:var(--ij-blue); stroke-width:.75; opacity:.4; }
-  .hologram-data-area{
-    fill:var(--ij-blue); fill-opacity:.28; stroke:#00d2ff; stroke-width:2; stroke-linejoin:round;
-    filter:drop-shadow(0 0 10px var(--ij-blue-glow));
-  }
-  .hologram-pulse-node{
-    fill:#00d2ff; filter:drop-shadow(0 0 8px #3262f6);
-    animation:hologramPulse 2.4s ease-in-out infinite;
-  }
-  @keyframes hologramPulse{
-    0%, 100%{ opacity:.75; r:4; }
-    50%{ opacity:1; r:5.5; }
-  }
-
-  .hologram-text-layer{ position:absolute; inset:0; font-family:var(--font-mono); }
-  .hologram-branch{ position:absolute; display:flex; align-items:flex-start; gap:8px; width:170px; }
-  .hologram-branch-line{
-    flex:none; display:block; margin-top:6px; height:1px; width:26px;
-    background:repeating-linear-gradient(90deg, #00d2ff 0 4px, transparent 4px 7px);
-    filter:drop-shadow(0 0 3px #3262f6);
-  }
-  .hologram-branch-head{ font-size:10px; font-weight:700; letter-spacing:.04em; color:#eef1fb; white-space:nowrap; }
-  .hologram-branch-score{ color:#00d2ff; }
-  .hologram-branch-sub{ font-size:9px; color:var(--ij-muted); margin-top:2px; white-space:nowrap; }
-  .hologram-branch-body{ min-width:0; }
-
-  /* Right-hand nodes: branch extends right of the vertex, text reads
-     left-to-right starting just past the line. */
-  .hologram-branch-right{ transform:translateY(-50%); }
-  /* Left-hand nodes: branch extends left of the vertex (line + body
-     order reversed), text right-aligned so it "points into" the node
-     instead of running off the card's left edge. */
-  .hologram-branch-left{
-    transform:translate(calc(-100% - 0px), -50%); flex-direction:row-reverse; text-align:right;
-  }
-  .hologram-branch-left .hologram-branch-sub,
-  .hologram-branch-left .hologram-branch-head{ text-align:right; }
-  /* Top apex: centered stack directly above the vertex, no visible branch
-     line (nothing to point sideways at). */
-  .hologram-branch-top{
-    flex-direction:column; align-items:center; text-align:center; width:150px;
-    transform:translate(-50%, calc(-100% - 14px));
-  }
-  .hologram-branch-top .hologram-branch-line{ display:none; }
-  .hologram-branch-top .hologram-branch-sub,
-  .hologram-branch-top .hologram-branch-head{ text-align:center; white-space:normal; }
+  #cumulativePnlCard.has-3d .chart-card-head .badge-pill{ margin-left:auto; }
 
   .edge-chart-wrap{ position:relative; flex:1; }
   .edge-chart-wrap svg{ display:block; width:100%; height:220px; }
@@ -270,33 +206,26 @@
 
   .bar-chart-wrap svg{ display:block; width:100%; height:220px; }
 
-  /* ---------- Edge Profile / Cumulative P&L: 3D hover tilt + click-to-focus
-     expansion. Only these two cards opt in (.tiltable) — Net Daily P&L
-     stays a plain sibling that just blurs/fades when one of the other two
-     is focused, via .charts-grid.has-focus. ---------- */
-  .charts-grid{ perspective:1200px; }
-  .chart-card.tiltable{
+  /* ---------- Edge Profile / Cumulative P&L: click-to-focus expansion.
+     Only these two cards opt in (.focusable) — Net Daily P&L stays a plain
+     sibling that just blurs/fades when one of the other two is focused,
+     via .charts-grid.has-focus. ---------- */
+  .chart-card.focusable{
     position:relative; cursor:pointer; overflow:hidden;
-    transition:transform .7s cubic-bezier(.16,1,.3,1), box-shadow .7s cubic-bezier(.16,1,.3,1),
-      opacity .7s cubic-bezier(.16,1,.3,1), filter .7s cubic-bezier(.16,1,.3,1), grid-column .7s cubic-bezier(.16,1,.3,1);
-    transform:rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
-    transform-style:preserve-3d;
+    transition:border-color .2s ease, box-shadow .7s cubic-bezier(.16,1,.3,1),
+      opacity .7s cubic-bezier(.16,1,.3,1), filter .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1);
   }
-  .chart-card.tiltable.is-tilting{ transition:box-shadow .3s ease, filter .3s ease; }
-  .chart-card.tiltable:hover{ border-color:var(--ij-border-bright); box-shadow:0 24px 60px -28px var(--ij-blue-glow); }
-  .chart-card-glow{
-    position:absolute; inset:0; pointer-events:none; z-index:0; opacity:0; transition:opacity .25s ease;
-    background:radial-gradient(circle 220px at var(--glow-x, 50%) var(--glow-y, 50%), var(--ij-blue-glow), transparent 70%);
-  }
-  .chart-card.tiltable:hover .chart-card-glow{ opacity:1; }
+  .chart-card.focusable:hover{ border-color:var(--ij-border-bright); }
   .chart-card-head, .chart-card > .radar-wrap, .chart-card > .edge-chart-wrap, .chart-card > .bar-chart-wrap{ position:relative; z-index:1; }
   .chart-card-expand-hint{
     margin-top:10px; font-family:var(--font-mono); font-size:9px; letter-spacing:0.1em; text-transform:uppercase;
     color:var(--ij-muted-dim); text-align:center; position:relative; z-index:1;
   }
   .chart-card.is-focused .chart-card-expand-hint{ display:none; }
-  .hologram-drag-hint{ display:none; }
-  .chart-card.is-focused .hologram-drag-hint{ display:block; }
+  .holo3d-hint{ display:none; }
+  .holo3d-hint .hint-touch{ display:none; }
+  @media (hover:none){ .holo3d-hint .hint-mouse{ display:none; } .holo3d-hint .hint-touch{ display:inline; } }
+  .chart-card.has-3d.is-focused .holo3d-hint{ display:block; }
   .chart-card-close{
     display:none; position:relative; z-index:2; font-family:var(--font-mono); font-size:10px; font-weight:700;
     padding:6px 12px; border-radius:10px; background:var(--ij-void); border:1px solid var(--ij-border-bright);
@@ -309,16 +238,15 @@
      take the full row; siblings vanish into deep space instead of being
      removed, so the collapse/restore stays smooth. */
   .charts-grid.has-focus{ grid-template-columns:1fr; }
-  .charts-grid.has-focus .chart-card.tiltable:not(.is-focused){
+  .charts-grid.has-focus .chart-card.focusable:not(.is-focused){
     transform:scale(.9); opacity:0; filter:blur(6px); pointer-events:none; position:absolute; z-index:-1;
   }
-  .charts-grid.has-focus .chart-card:not(.tiltable){
+  .charts-grid.has-focus .chart-card:not(.focusable){
     transform:scale(.9); opacity:0; filter:blur(6px); pointer-events:none;
     transition:transform .7s cubic-bezier(.16,1,.3,1), opacity .7s cubic-bezier(.16,1,.3,1), filter .7s cubic-bezier(.16,1,.3,1);
   }
   .chart-card.is-focused{
     cursor:default; border-color:var(--ij-blue); box-shadow:0 0 60px -16px var(--ij-blue-glow);
-    transform:none !important;
   }
   .chart-card.is-focused .radar-wrap svg, .chart-card.is-focused .edge-chart-wrap svg{ height:280px; }
   .chart-card-stats{
@@ -382,6 +310,7 @@
 <script src="/account.js"></script>
 <script src="/journal-sync.js"></script>
 <script src="/coach.js"></script>
+<script src="/dashboard/holo3d.js"></script>
 <div class="wrap">
 
   <div class="dash-greeting">
@@ -461,32 +390,28 @@
 
     <!-- 2. Split charts -->
     <div class="charts-grid" id="chartsGrid">
-      <div class="chart-card tiltable" id="edgeProfileCard" data-module="edge_profile">
-        <div class="chart-card-glow" aria-hidden="true"></div>
+      <div class="chart-card focusable" id="edgeProfileCard" data-module="edge_profile">
         <div class="chart-card-head">
           <h2>Edge Profile</h2>
           <button type="button" class="chart-card-close" data-close-module>&times; Close Focus</button>
         </div>
+        <!-- 3D view (dashboard/holo3d.js); the flat radar below is the
+             fallback when a canvas isn't available. -->
+        <div class="holo3d holo3d-edge" id="edge3d" role="img"></div>
         <div class="radar-wrap" id="radarChartWrap"></div>
-        <!-- Only rendered/shown once this card is focused — the plain
-             radar above stays the baseline view. perspective lives here,
-             on the inner canvas only; the card itself (.chart-card) never
-             tilts, even while focused (see .chart-card.is-focused). -->
-        <div class="hologram-stage" id="radarHologramStage">
-          <div class="hologram-inner" id="radarHologramInner"></div>
-        </div>
-        <p class="chart-card-expand-hint hologram-drag-hint">Drag to rotate &middot; Double-click to recenter</p>
+        <p class="chart-card-expand-hint holo3d-hint"><span class="hint-mouse">Drag to orbit &middot; Ctrl + scroll or pinch to zoom &middot; Double-click to reset</span><span class="hint-touch">Drag to orbit &middot; Pinch to zoom &middot; Double-tap to reset</span></p>
         <p class="chart-card-expand-hint">Click to expand &#8599;</p>
         <div class="chart-card-stats" id="edgeProfileStats"></div>
       </div>
-      <div class="chart-card tiltable" id="cumulativePnlCard" data-module="cumulative_pnl">
-        <div class="chart-card-glow" aria-hidden="true"></div>
+      <div class="chart-card focusable" id="cumulativePnlCard" data-module="cumulative_pnl">
         <div class="chart-card-head">
           <h2>Daily Net Cumulative P&amp;L</h2>
           <span class="badge-pill" id="areaChartBadge">&mdash;</span>
           <button type="button" class="chart-card-close" data-close-module>&times; Close Focus</button>
         </div>
+        <div class="holo3d holo3d-pnl" id="pnl3d" role="img"></div>
         <div class="edge-chart-wrap" id="areaChartWrap"></div>
+        <p class="chart-card-expand-hint holo3d-hint"><span class="hint-mouse">Drag to orbit &middot; Ctrl + scroll or pinch to zoom &middot; Hover a day for details &middot; Double-click to reset</span><span class="hint-touch">Drag to orbit &middot; Pinch to zoom &middot; Double-tap to reset</span></p>
         <p class="chart-card-expand-hint">Click to expand &#8599;</p>
         <div class="chart-card-stats" id="cumulativePnlStats"></div>
       </div>
@@ -812,11 +737,8 @@
     '</svg>';
   }
 
-  // ---------- Edge Profile hologram: the same radar geometry split into 4
-  // Z-stacked layers (floor grid, pentagon wireframe, live data plot, text
-  // trees) for the focused/expanded card view's 3D parallax. Shares the
-  // exact pointAt() coordinate math with buildRadarSvg above so every layer
-  // stays pixel-aligned with the others and with the plain radar chart. ----
+  // ---------- Edge Profile 3D labels: the real figures behind each score,
+  // shown under each corner's name while the card is focused. ----------
   function scoreGrade(score){
     if (score >= 90) return "A+";
     if (score >= 80) return "A";
@@ -834,78 +756,15 @@
     if (score >= 50) return "Caution";
     return "High Risk";
   }
-  function buildHologramRadar(edge, labels){
-    var cx = 150, cy = 100, R = 72;
-    var n = labels.length;
-    function pointAt(i, radiusFrac){
-      var angle = -Math.PI / 2 + (i / n) * Math.PI * 2;
-      return [cx + Math.cos(angle) * R * radiusFrac, cy + Math.sin(angle) * R * radiusFrac];
-    }
+  function edgeDetails(edge){
     var scores = edge.scores;
-
-    // Layer 1 — faint floor grid, full-extent rings only.
-    var floorPts = labels.map(function(_, i){ return pointAt(i, 1).join(","); }).join(" ");
-    var layer1 = '<svg class="hologram-layer-svg" viewBox="0 0 300 200"><polygon class="hologram-floor-ring" points="' + floorPts + '"/></svg>';
-
-    // Layer 2 — nested concentric pentagon wireframes (the "guide rings").
-    var wireRings = [0.4, 0.7, 1].map(function(frac){
-      var pts = labels.map(function(_, i){ return pointAt(i, frac).join(","); }).join(" ");
-      return '<polygon class="hologram-wire-ring" points="' + pts + '"/>';
-    }).join("");
-    var axes = labels.map(function(_, i){
-      var p = pointAt(i, 1);
-      return '<line class="hologram-wire-axis" x1="' + cx + '" y1="' + cy + '" x2="' + p[0].toFixed(1) + '" y2="' + p[1].toFixed(1) + '"/>';
-    }).join("");
-    var layer2 = '<svg class="hologram-layer-svg" viewBox="0 0 300 200">' + wireRings + axes + '</svg>';
-
-    // Layer 3 — the live data plot: same scores as the plain radar chart,
-    // with pulsing high-intensity vertex nodes (CSS animation, see styles).
-    var dataPts = scores.map(function(s, i){ return pointAt(i, Math.max(0.04, s / 100)); });
-    var areaPts = dataPts.map(function(p){ return p.join(","); }).join(" ");
-    var pulseNodes = dataPts.map(function(p){
-      return '<circle class="hologram-pulse-node" cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="4"/>';
-    }).join("");
-    var layer3 = '<svg class="hologram-layer-svg" viewBox="0 0 300 200">' +
-      '<polygon class="hologram-data-area" points="' + areaPts + '"/>' + pulseNodes +
-    '</svg>';
-
-    // Layer 4 — floating diagnostic text trees. HTML/CSS (not SVG) so each
-    // branch's text can wrap and align naturally. Positioned in percent
-    // coordinates derived from the same pointAt() math, quadrant-aware:
-    // right-side nodes branch rightward with left-aligned text, left-side
-    // nodes branch leftward with right-aligned text, top/bottom nodes stack
-    // centered — so nothing ever reads into the core shape.
-    var subData = [
-      { sub1: "Avg Daily Swing: " + fmtMoneyPlain(edge.avgAbsDaily), sub2: "Score Index: " + scores[0].toFixed(1) + "%" },
-      { sub1: "Ratio: " + edge.profitFactor.toFixed(2), sub2: "Gross Win: " + fmtMoneySigned(edge.grossWin) },
-      { sub1: "Peak Drawdown: " + fmtMoneyPlain(edge.maxDrawdown), sub2: "Status: " + drawdownStatus(scores[2]) },
-      { sub1: "Recovery Factor: " + edge.recoveryFactor.toFixed(2), sub2: "Pace: " + paceLabel(scores[3]) },
-      { sub1: "Compliance Index: " + scores[4].toFixed(1) + "%", sub2: "Grade: " + scoreGrade(scores[4]) }
+    return [
+      ["Avg Daily Swing: " + fmtMoneyPlain(edge.avgAbsDaily), "Score Index: " + scores[0].toFixed(1) + "%"],
+      ["Ratio: " + edge.profitFactor.toFixed(2), "Gross Win: " + fmtMoneySigned(edge.grossWin)],
+      ["Peak Drawdown: " + fmtMoneyPlain(edge.maxDrawdown), "Status: " + drawdownStatus(scores[2])],
+      ["Recovery Factor: " + edge.recoveryFactor.toFixed(2), "Pace: " + paceLabel(scores[3])],
+      ["Compliance Index: " + scores[4].toFixed(1) + "%", "Grade: " + scoreGrade(scores[4])]
     ];
-    var quadrants = ["top", "right", "right", "left", "left"];
-    var branches = labels.map(function(label, i){
-      var p = pointAt(i, 1);
-      var leftPct = (p[0] / 300) * 100;
-      var topPct = (p[1] / 200) * 100;
-      var q = quadrants[i];
-      var sub = subData[i];
-      return '<div class="hologram-branch hologram-branch-' + q + '" style="left:' + leftPct.toFixed(1) + '%; top:' + topPct.toFixed(1) + '%;">' +
-        '<span class="hologram-branch-line" aria-hidden="true"></span>' +
-        '<div class="hologram-branch-body">' +
-          '<div class="hologram-branch-head">' + escapeHtml(label.toUpperCase()) + ' <span class="hologram-branch-score">[' + scores[i].toFixed(1) + '%]</span></div>' +
-          '<div class="hologram-branch-sub">&bull; ' + escapeHtml(sub.sub1) + '</div>' +
-          '<div class="hologram-branch-sub">&bull; ' + escapeHtml(sub.sub2) + '</div>' +
-        '</div>' +
-      '</div>';
-    }).join("");
-    var layer4 = '<div class="hologram-text-layer">' + branches + '</div>';
-
-    return (
-      '<div class="hologram-layer hologram-layer-1">' + layer1 + '</div>' +
-      '<div class="hologram-layer hologram-layer-2">' + layer2 + '</div>' +
-      '<div class="hologram-layer hologram-layer-3">' + layer3 + '</div>' +
-      '<div class="hologram-layer hologram-layer-4">' + layer4 + '</div>'
-    );
   }
 
   // ---------- Area chart: single combined cumulative series ----------
@@ -1183,7 +1042,12 @@
     // Radar: Edge Profile
     var edgeAxisLabels = ["Consistency", "Profit Factor", "Max Drawdown", "Recovery", "Setup Quality"];
     document.getElementById("radarChartWrap").innerHTML = buildRadarSvg(edge.scores, edgeAxisLabels);
-    document.getElementById("radarHologramInner").innerHTML = buildHologramRadar(edge, edgeAxisLabels);
+    if (edge3d){
+      edge3d.setData({ labels: edgeAxisLabels, scores: edge.scores, details: edgeDetails(edge) });
+      document.getElementById("edge3d").setAttribute("aria-label", "Edge profile: " + edgeAxisLabels.map(function(l, i){
+        return l + " " + edge.scores[i].toFixed(0) + "%";
+      }).join(", "));
+    }
 
     // Area chart: cumulative P&L across selected accounts/range
     var cum2 = 0;
@@ -1195,6 +1059,18 @@
     wireAreaChartHover(areaWrap, cumSeries);
     var areaBadge = document.getElementById("areaChartBadge");
     areaBadge.textContent = edge.netPnl >= 0 ? "Profitable" : "Unprofitable";
+    if (pnl3d){
+      var runCum = 0;
+      var cumPoints = days.map(function(d, i){
+        var dayPnl = edge.dailyPnls[i];
+        runCum += dayPnl;
+        return { date: d.date, day: Math.round(dayPnl * 100) / 100, cum: Math.round(runCum * 100) / 100 };
+      });
+      pnl3d.setData({ points: cumPoints });
+      document.getElementById("pnl3d").setAttribute("aria-label", cumPoints.length
+        ? "Daily net cumulative P&L over " + cumPoints.length + " trading day" + (cumPoints.length === 1 ? "" : "s") + ", ending at " + fmtMoneySigned(runCum)
+        : "Daily net cumulative P&L: no trades in this range");
+    }
 
     // Bar chart: net daily P&L
     document.getElementById("barChartWrap").innerHTML = buildBarChartSvg(edge.dailyPnls);
@@ -1258,112 +1134,32 @@
       '<span class="dash-greeting-pill">' + winRate + "% win rate</span>";
   }
 
-  // ---------- Edge Profile / Cumulative P&L: 3D tilt + click-to-focus ----------
+  // ---------- Edge Profile / Cumulative P&L: click-to-focus ----------
   var chartsGridEl = document.getElementById("chartsGrid");
-  var tiltableCards = Array.prototype.slice.call(document.querySelectorAll(".chart-card.tiltable"));
+  var focusableCards = Array.prototype.slice.call(document.querySelectorAll(".chart-card.focusable"));
   var focusedModule = null;
-  var TILT_MAX_DEG = 12;
 
-  function handleTiltMove(e){
-    var card = this;
-    if (card.classList.contains("is-focused")) return;
-    var box = card.getBoundingClientRect();
-    var x = e.clientX - box.left;
-    var y = e.clientY - box.top;
-    var rotX = -((y - box.height / 2) / (box.height / 2)) * TILT_MAX_DEG;
-    var rotY = ((x - box.width / 2) / (box.width / 2)) * TILT_MAX_DEG;
-    card.classList.add("is-tilting");
-    card.style.setProperty("--tilt-x", rotX.toFixed(2) + "deg");
-    card.style.setProperty("--tilt-y", rotY.toFixed(2) + "deg");
-    // The backlight tracks the inverse of the cursor position — it reads as
-    // a light source the card is tilting away from, not just following the
-    // pointer underneath it.
-    card.style.setProperty("--glow-x", (100 - (x / box.width) * 100).toFixed(1) + "%");
-    card.style.setProperty("--glow-y", (100 - (y / box.height) * 100).toFixed(1) + "%");
-  }
-  function handleTiltLeave(){
-    this.classList.remove("is-tilting");
-    this.style.setProperty("--tilt-x", "0deg");
-    this.style.setProperty("--tilt-y", "0deg");
+  function focusedCard(){
+    return focusableCards.filter(function(card){ return card.classList.contains("is-focused"); })[0] || null;
   }
   function setFocusedModule(moduleName){
     focusedModule = moduleName;
     chartsGridEl.classList.toggle("has-focus", !!moduleName);
-    tiltableCards.forEach(function(card){
-      var isThis = card.getAttribute("data-module") === moduleName;
-      card.classList.toggle("is-focused", isThis);
-      if (!isThis){
-        card.style.setProperty("--tilt-x", "0deg");
-        card.style.setProperty("--tilt-y", "0deg");
-      }
+    focusableCards.forEach(function(card){
+      card.classList.toggle("is-focused", card.getAttribute("data-module") === moduleName);
     });
-    // Re-opening the hologram always starts from its default 3/4 angle
-    // rather than wherever a previous drag session left it spun.
-    if (moduleName === "edge_profile") resetHologramRotation();
+    // Each 3D view animates and takes drag/zoom input only while its card
+    // is focused, and swings back to its home angle when it isn't.
+    if (edge3d) edge3d.setFocused(moduleName === "edge_profile");
+    if (pnl3d) pnl3d.setFocused(moduleName === "cumulative_pnl");
   }
-  tiltableCards.forEach(function(card){
-    card.addEventListener("mousemove", handleTiltMove);
-    card.addEventListener("mouseleave", handleTiltLeave);
+  focusableCards.forEach(function(card){
     card.addEventListener("click", function(e){
       if (e.target.closest("[data-close-module]")) return;
       if (focusedModule !== null) return;
       setFocusedModule(card.getAttribute("data-module"));
     });
   });
-  // Drag-to-orbit for the Edge Profile hologram — click and drag turns the
-  // whole stack around on both axes, independent of (and replacing, for
-  // this stage specifically) the passive hover-follows-cursor tilt used on
-  // the flat card faces elsewhere. A passive hover tilt wasn't enough to
-  // *see* the layer separation (rotation stayed tiny and self-cancelled on
-  // mouse leave); dragging lets you actually turn it to an angle and leave
-  // it there, which is what the Z-depth spread is for. The outer
-  // .chart-card is untouched either way — this only ever touches
-  // #radarHologramInner's own --holo-x/--holo-y.
-  var hologramStage = document.getElementById("radarHologramStage");
-  var hologramInner = document.getElementById("radarHologramInner");
-  var HOLOGRAM_DEFAULT_X = 18, HOLOGRAM_DEFAULT_Y = -24;
-  var holoRotX = HOLOGRAM_DEFAULT_X, holoRotY = HOLOGRAM_DEFAULT_Y;
-  var holoDragging = false, holoDragStartX = 0, holoDragStartY = 0, holoStartRotX = 0, holoStartRotY = 0;
-
-  function applyHologramRotation(){
-    hologramInner.style.setProperty("--holo-x", holoRotX.toFixed(2) + "deg");
-    hologramInner.style.setProperty("--holo-y", holoRotY.toFixed(2) + "deg");
-  }
-  hologramStage.addEventListener("mousedown", function(e){
-    holoDragging = true;
-    hologramStage.classList.add("is-dragging");
-    hologramInner.classList.add("is-tilting");
-    holoDragStartX = e.clientX;
-    holoDragStartY = e.clientY;
-    holoStartRotX = holoRotX;
-    holoStartRotY = holoRotY;
-    e.preventDefault();
-  });
-  document.addEventListener("mousemove", function(e){
-    if (!holoDragging) return;
-    var dx = e.clientX - holoDragStartX;
-    var dy = e.clientY - holoDragStartY;
-    // Full freedom on Y (spin it all the way around to see the back);
-    // X stays clamped well short of vertical so it can't flip upside down.
-    holoRotY = holoStartRotY + dx * 0.4;
-    holoRotX = Math.max(-70, Math.min(70, holoStartRotX - dy * 0.4));
-    applyHologramRotation();
-  });
-  document.addEventListener("mouseup", function(){
-    if (!holoDragging) return;
-    holoDragging = false;
-    hologramStage.classList.remove("is-dragging");
-    hologramInner.classList.remove("is-tilting");
-  });
-  function resetHologramRotation(){
-    holoRotX = HOLOGRAM_DEFAULT_X;
-    holoRotY = HOLOGRAM_DEFAULT_Y;
-    hologramInner.classList.remove("is-tilting");
-    applyHologramRotation();
-  }
-  // Double-click to recenter if you spin it somewhere awkward.
-  hologramStage.addEventListener("dblclick", resetHologramRotation);
-
   document.querySelectorAll("[data-close-module]").forEach(function(btn){
     btn.addEventListener("click", function(e){
       e.stopPropagation();
@@ -1373,6 +1169,34 @@
   document.addEventListener("keydown", function(e){
     if (e.key === "Escape" && focusedModule !== null) setFocusedModule(null);
   });
+  // A click anywhere outside the focused card closes it — but not one that
+  // ends a drag started inside it (orbiting the 3D view and letting go
+  // past the card's edge).
+  var pressStartedInFocused = false;
+  document.addEventListener("pointerdown", function(e){
+    var card = focusedCard();
+    pressStartedInFocused = !!(card && card.contains(e.target));
+  }, true);
+  document.addEventListener("click", function(e){
+    var card = focusedCard();
+    if (!card || pressStartedInFocused || card.contains(e.target)) return;
+    setFocusedModule(null);
+  });
+
+  // 3D views (dashboard/holo3d.js). Without them the flat SVG charts show.
+  var edge3d = window.EZHolo3D ? EZHolo3D.edgeProfile(document.getElementById("edge3d")) : null;
+  var pnl3d = window.EZHolo3D ? EZHolo3D.cumulativePnl(document.getElementById("pnl3d"), {
+    signed: fmtMoneySigned,
+    short: fmtMoneyShort,
+    axis: function(v){
+      var a = Math.abs(v), sign = v < 0 ? "-" : "";
+      if (a >= 1e6) return sign + "$" + parseFloat((a / 1e6).toFixed(2)) + "M";
+      if (a >= 1e3) return sign + "$" + parseFloat((a / 1e3).toFixed(1)) + "k";
+      return sign + "$" + Math.round(a);
+    }
+  }) : null;
+  if (edge3d) document.getElementById("edgeProfileCard").classList.add("has-3d");
+  if (pnl3d) document.getElementById("cumulativePnlCard").classList.add("has-3d");
 
   // Real numbers, not placeholders — reuses the exact scores already
   // feeding the radar chart (edge.scores) and the cumulative series
