@@ -1,6 +1,7 @@
-// Shared site chrome: a top header (brand + current page name + NY session
-// clock + account widget mount point) and a left sidebar (primary nav, with
-// an expanded/collapsed/expand-on-hover control). Included as a plain
+// Shared site chrome: a left sidebar (brand + primary nav, with an
+// expanded/collapsed/expand-on-hover control) and, floating in the top-right
+// corner with no bar behind it, the NY session orb + account widget mount
+// point. Included as a plain
 // <script src="/nav.js"> before account.js on every page — no build step,
 // matches the rest of the site. Must run before account.js so the
 // #authWidget mount point it creates already exists when account.js
@@ -153,7 +154,7 @@
     var style = document.createElement("style");
     style.id = "ezNavStyles";
     style.textContent = "" +
-      ":root{ --ez-header-h:60px; --ez-sidebar-w:212px; --ez-sidebar-collapsed-w:56px; --ez-content-gutter:clamp(16px,4vw,48px); }" +
+      ":root{ --ez-header-h:56px; --ez-sidebar-w:212px; --ez-sidebar-collapsed-w:56px; --ez-content-gutter:clamp(16px,4vw,48px); }" +
       // Each page's own .wrap centers itself with margin:auto inside body's
       // content box — but that only adds breathing room once the viewport is
       // wider than sidebar + wrap + gutter. Below that (most real screens),
@@ -164,17 +165,13 @@
       "body{ padding-top:var(--ez-header-h); padding-left:calc(var(--ez-sidebar-collapsed-w) + var(--ez-content-gutter)); transition:padding-left .18s ease; }" +
       "body[data-sidebar-mode=\"expanded\"]{ padding-left:calc(var(--ez-sidebar-w) + var(--ez-content-gutter)); }" +
 
-      ".ez-header{ position:fixed; top:0; left:0; right:0; z-index:500; height:var(--ez-header-h);" +
-      " display:flex; align-items:center; justify-content:space-between; gap:16px;" +
-      " padding:0 20px; background:var(--panel-raised); border-bottom:1px solid var(--hairline-bright);" +
-      " box-shadow:0 10px 30px -20px var(--phosphor-glow); }" +
-      ".ez-brand-group{ display:flex; align-items:center; gap:10px; flex:none; min-width:0; }" +
+      // No bar: just the NY orb + account widget floating top-right. Body
+      // keeps --ez-header-h of top padding so page content never sits under it.
+      ".ez-header{ position:fixed; top:11px; right:16px; z-index:500; height:34px;" +
+      " display:flex; align-items:center; justify-content:flex-end; gap:10px; pointer-events:none; }" +
+      ".ez-header > *{ pointer-events:auto; }" +
       ".ez-brand{ display:flex; align-items:center; gap:8px; flex:none; text-decoration:none; }" +
       ".ez-brand img{ width:30px; height:30px; object-fit:contain; }" +
-      ".ez-page-sep{ color:var(--hairline-bright); font-size:16px; }" +
-      ".ez-page-title{ font-family:var(--font-display); font-weight:600; font-size:15px; color:var(--muted);" +
-      " overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }" +
-      ".ez-header-right{ display:flex; align-items:center; gap:12px; flex:none; }" +
 
       ".market-status{ display:inline-flex; align-items:center; gap:7px; white-space:nowrap;" +
       " padding:6px 12px; border-radius:999px; background:var(--panel); border:1px solid var(--hairline); }" +
@@ -191,8 +188,26 @@
       ".market-status.open strong{ color:var(--phosphor-soft); font-weight:600; }" +
       ".market-status.closed strong{ color:var(--red,#ef5a5a); font-weight:600; }" +
       "@media (max-width:560px){ .market-status .label{ display:none; } }" +
+      // In the floating cluster the session clock shrinks to a glowing orb
+      // and expands into the full pill on hover, keyboard focus, or tap.
+      ".ez-header .market-status{ height:34px; box-sizing:border-box; padding:0 11px; gap:0; cursor:pointer; outline:none;" +
+      " background:transparent; border-color:transparent; transition:padding .3s ease, gap .3s ease, background .25s, border-color .25s; }" +
+      ".ez-header .market-status .dot{ width:12px; height:12px; animation:ez-orb-breathe 2.4s ease-in-out infinite; }" +
+      "@keyframes ez-orb-breathe{ 0%,100%{ opacity:1; transform:scale(1); } 50%{ opacity:0.78; transform:scale(0.86); } }" +
+      ".ez-header .market-status.open .dot{ box-shadow:0 0 10px 3px var(--phosphor-glow), 0 0 22px 6px rgba(62,224,140,0.18); }" +
+      ".ez-header .market-status.closed .dot{ box-shadow:0 0 10px 3px var(--red-glow,rgba(239,90,90,0.5)), 0 0 22px 6px rgba(239,90,90,0.18); }" +
+      ".ez-header .market-status .label, .ez-header .market-status strong{ display:inline-block; max-width:0; opacity:0; overflow:hidden;" +
+      " transition:max-width .35s ease, opacity .2s ease; }" +
+      ".ez-header .market-status:hover, .ez-header .market-status:focus-visible, .ez-header .market-status.expanded{ gap:8px; padding:0 14px; }" +
+      ".ez-header .market-status.open:hover, .ez-header .market-status.open:focus-visible, .ez-header .market-status.open.expanded{" +
+      " background:rgba(62,224,140,0.12); border-color:var(--phosphor-dim); }" +
+      ".ez-header .market-status.closed:hover, .ez-header .market-status.closed:focus-visible, .ez-header .market-status.closed.expanded{" +
+      " background:rgba(239,90,90,0.10); border-color:var(--red,#ef5a5a); }" +
+      ".ez-header .market-status:hover .label, .ez-header .market-status:focus-visible .label, .ez-header .market-status.expanded .label{ max-width:110px; opacity:1; }" +
+      ".ez-header .market-status:hover strong, .ez-header .market-status:focus-visible strong, .ez-header .market-status.expanded strong{ max-width:130px; opacity:1; }" +
+      "@media (max-width:560px){ .ez-header .market-status .label{ display:none; } }" +
 
-      ".ez-sidebar{ position:fixed; top:var(--ez-header-h); left:0; bottom:0; z-index:400; width:var(--ez-sidebar-collapsed-w);" +
+      ".ez-sidebar{ position:fixed; top:0; left:0; bottom:0; z-index:400; width:var(--ez-sidebar-collapsed-w);" +
       " overflow-x:hidden; overflow-y:auto; background:var(--panel-raised); border-right:1px solid var(--hairline-bright);" +
       " padding:14px 10px; display:flex; flex-direction:column; gap:2px; transition:width .18s ease, box-shadow .18s ease; }" +
       "body[data-sidebar-mode=\"expanded\"] .ez-sidebar{ width:var(--ez-sidebar-w); }" +
@@ -217,9 +232,17 @@
       "body[data-sidebar-mode=\"hover\"] .ez-sidebar:hover .ez-sidebar-label{ display:inline; }" +
       "body[data-sidebar-mode=\"hover\"] .ez-sidebar:hover .ez-sidebar-link{ justify-content:flex-start; padding:10px 12px; }" +
 
+      ".ez-sidebar-brand{ display:flex; align-items:center; gap:10px; padding:4px 8px 12px; margin-bottom:4px; text-decoration:none;" +
+      " border-bottom:1px solid var(--hairline); white-space:nowrap; overflow:hidden; }" +
+      ".ez-sidebar-brand img{ width:30px; height:30px; object-fit:contain; flex:none; }" +
+      ".ez-sidebar-brand .ez-sidebar-label{ font-family:var(--font-display); font-weight:700; font-size:15px; color:var(--ice); }" +
+      "body:not([data-sidebar-mode=\"expanded\"]) .ez-sidebar-brand{ justify-content:center; padding:4px 0 12px; }" +
+      "body[data-sidebar-mode=\"hover\"] .ez-sidebar:hover .ez-sidebar-brand{ justify-content:flex-start; padding:4px 8px 12px; }" +
       ".ez-sidebar-section{ display:flex; flex-direction:column; gap:2px;" +
       " border-top:1px solid var(--hairline); padding-top:8px; margin-top:8px; }" +
 
+      // Short windows scroll the sidebar instead of squashing its rows.
+      ".ez-sidebar > *{ flex-shrink:0; }" +
       ".ez-sidebar-spacer{ flex:1; }" +
       ".ez-sidebar-control{ position:relative; border-top:1px solid var(--hairline); padding-top:10px; margin-top:8px; }" +
       ".ez-sidebar-control-btn{ display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; border-radius:10px;" +
@@ -248,6 +271,8 @@
       "  .ez-sidebar{ width:var(--ez-sidebar-collapsed-w) !important; box-shadow:none !important; }" +
       "  .ez-sidebar-label{ display:none !important; }" +
       "  .ez-sidebar-link{ justify-content:center !important; padding:12px 0 !important; }" +
+      "  .ez-sidebar-brand{ justify-content:center !important; padding:4px 0 12px !important; }" +
+      "  .ez-header{ right:12px; }" +
       "}" +
 
       // Welcome-page pill nav: no fixed header/sidebar chrome at all, just a
@@ -322,27 +347,24 @@
     return topbar;
   }
 
-  function buildHeader(activeItem) {
+  function buildHeader() {
     var header = document.createElement("header");
     header.className = "ez-header";
     header.innerHTML = "" +
-      '<div class="ez-brand-group">' +
-        // Inside the app the logo stays inside the app — it goes to the
-        // Dashboard, not back out to the public marketing page.
-        '<a class="ez-brand" href="/dashboard/" aria-label="EZPayouts dashboard">' +
-          '<img src="/ezpayouts-icon-only.png" alt="EZ" />' +
-        "</a>" +
-        '<span class="ez-page-sep" aria-hidden="true">|</span>' +
-        '<span class="ez-page-title">' + activeItem.label + "</span>" +
-      "</div>" +
-      '<div class="ez-header-right">' +
-        '<span class="market-status" id="marketStatus">' +
-          '<span class="dot" aria-hidden="true"></span>' +
-          '<span class="label mono" id="marketLabel">NY OPEN IN</span>' +
-          '<strong class="mono" id="marketOpenIn">--:--:--</strong>' +
-        "</span>" +
-        '<div id="authWidget"></div>' +
-      "</div>";
+      '<span class="market-status" id="marketStatus" tabindex="0" role="timer">' +
+        '<span class="dot" aria-hidden="true"></span>' +
+        '<span class="label mono" id="marketLabel">NY OPEN IN</span>' +
+        '<strong class="mono" id="marketOpenIn">--:--:--</strong>' +
+      "</span>" +
+      '<div id="authWidget"></div>';
+    // Tap toggles the expanded pill on touch screens (no hover there);
+    // tapping anywhere else collapses it again.
+    var orb = header.querySelector(".market-status");
+    orb.addEventListener("click", function (e) {
+      e.stopPropagation();
+      orb.classList.toggle("expanded");
+    });
+    document.addEventListener("click", function () { orb.classList.remove("expanded"); });
     return header;
   }
 
@@ -436,7 +458,13 @@
       "</span>";
     }
 
-    nav.innerHTML = NAV_ITEMS.map(renderLink).join("") +
+    // Inside the app the logo stays inside the app: it goes to the
+    // Dashboard, not back out to the public marketing page.
+    nav.innerHTML = '<a class="ez-sidebar-brand" href="/dashboard/" aria-label="EZPayouts dashboard">' +
+        '<img src="/ezpayouts-icon-only.png" alt="EZ" />' +
+        '<span class="ez-sidebar-label">EZPayouts</span>' +
+      "</a>" +
+      NAV_ITEMS.map(renderLink).join("") +
       NAV_SECTIONS.map(function (section) {
         return '<div class="ez-sidebar-section">' + section.map(renderLink).join("") + "</div>";
       }).join("") +
@@ -535,8 +563,14 @@
       }
       marketOpenInEl.textContent = label;
     }
-    tick();
-    setInterval(tick, 1000);
+    // The orb only shows its dot until hovered, so screen readers get the
+    // full countdown from its label.
+    function update() {
+      tick();
+      marketStatusEl.setAttribute("aria-label", marketLabelEl.textContent + " in " + marketOpenInEl.textContent);
+    }
+    update();
+    setInterval(update, 1000);
   }
 
   ensureStyles();
@@ -553,7 +587,7 @@
     document.body.insertBefore(topbar, document.body.firstChild);
   } else {
     document.body.setAttribute("data-sidebar-mode", getSidebarMode());
-    var header = buildHeader(activeItem);
+    var header = buildHeader();
     var sidebar = buildSidebar(itemKey(activeItem));
     document.body.insertBefore(sidebar, document.body.firstChild);
     document.body.insertBefore(header, document.body.firstChild);
