@@ -121,76 +121,173 @@
   .acct-filter-empty{ padding:10px; font-size:12px; color:var(--muted); text-align:center; }
   .acct-filter-count{ margin-left:auto; font-family:var(--font-mono); font-size:10px; color:var(--muted); flex:none; }
 
-  .cal-toolbar{
-    flex:none; display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
-    margin-bottom:12px;
+  /* ---------- Economic Calendar ----------
+     Up next (live countdown) + the week at a glance, a day strip, then an
+     agenda grouped by day that scrolls inside the panel. */
+  .econ-top{ flex:none; display:grid; grid-template-columns:minmax(0,1.35fr) minmax(0,1fr); gap:14px; margin-bottom:14px; }
+  .econ-card{
+    background:var(--panel); border:1px solid var(--hairline); border-radius:18px;
+    box-shadow:0 18px 40px -30px rgba(0,0,0,0.9);
   }
-  .cal-range{ font-family:var(--font-mono); font-size:13px; letter-spacing:0.04em; color:var(--muted); }
-  .cal-legend{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-  .cal-legend-item{
-    display:flex; align-items:center; gap:6px; font-family:var(--font-mono); font-size:11.5px; color:var(--muted);
-    white-space:nowrap; background:transparent; border:1px solid var(--hairline); border-radius:999px;
-    padding:6px 13px 6px 11px; cursor:pointer; transition:border-color .15s, color .15s, background .15s, opacity .15s;
+  .econ-next{ position:relative; overflow:hidden; padding:18px 22px; display:flex; flex-direction:column; gap:10px; min-height:150px; }
+  .econ-next::before{
+    content:""; position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(ellipse 70% 120% at 100% 0%, rgba(var(--ez-accent-rgb, 62,224,140),0.14), transparent 60%);
   }
-  .cal-legend-item:hover{ border-color:var(--hairline-bright); color:var(--ice); }
-  .cal-legend-item.active{ color:var(--ice); background:var(--panel-raised); border-color:var(--hairline-bright); }
-  .cal-legend-item:not(.active){ opacity:0.45; }
-  .cal-legend-dot{ width:8px; height:8px; border-radius:50%; flex:none; }
-  .cal-legend-dot.high{ background:var(--red); }
-  .cal-legend-dot.medium{ background:var(--amber); }
-  .cal-legend-dot.low{ background:var(--muted-dim); }
+  .econ-next.is-high::before{ background:radial-gradient(ellipse 70% 120% at 100% 0%, rgba(239,90,90,0.16), transparent 60%); }
+  .econ-eyebrow{ display:flex; align-items:center; gap:10px; font-family:var(--font-mono); font-size:10.5px; font-weight:700;
+    letter-spacing:0.14em; text-transform:uppercase; color:var(--muted); position:relative; }
+  .econ-next-main{ position:relative; display:flex; align-items:flex-end; justify-content:space-between; gap:18px; flex-wrap:wrap; }
+  .econ-next-title{ font-family:var(--font-display); font-weight:700; font-size:clamp(19px,2vw,26px); line-height:1.15; color:var(--ice); }
+  .econ-next-when{ margin-top:6px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-family:var(--font-mono); font-size:12px; color:var(--muted); }
+  .econ-countdown{ text-align:right; flex:none; }
+  .econ-countdown-value{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; font-weight:700; font-size:clamp(22px,2.4vw,30px); color:var(--ice); letter-spacing:0.02em; }
+  .econ-countdown-label{ font-family:var(--font-mono); font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted-dim); margin-top:2px; }
+  .econ-next-about{ position:relative; margin:0; max-width:62ch; font-size:13px; line-height:1.55; color:var(--muted);
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .econ-next-stats{ position:relative; margin-top:auto; display:flex; gap:22px; flex-wrap:wrap; font-family:var(--font-mono); font-size:11.5px; color:var(--muted); }
+  .econ-next-stats strong{ color:var(--ice); font-weight:600; margin-left:6px; }
+  .econ-next-empty{ position:relative; color:var(--muted); font-size:13.5px; line-height:1.6; }
 
-  .cal-filter{ display:flex; align-items:center; gap:8px; }
-  .cal-filter span{ font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); }
-  .cal-filter select{
-    padding:8px 30px 8px 13px; border-radius:10px; border:1px solid var(--hairline-bright);
-    background:var(--panel-raised) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 10 10"><path d="M1 3l4 4 4-4" fill="none" stroke="%237c9584" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>') no-repeat right 11px center;
-    color:var(--ice); font-family:var(--font-mono); font-size:13px; font-weight:600; outline:none; cursor:pointer;
-    appearance:none; transition:border-color .15s;
-  }
-  .cal-filter select:focus{ border-color:var(--phosphor-dim); }
+  .econ-week{ padding:16px 18px; display:flex; flex-direction:column; gap:12px; min-width:0; }
+  .econ-week-counts{ display:flex; gap:8px; }
+  .econ-count{ flex:1; border:1px solid var(--hairline); border-radius:12px; padding:9px 11px; background:rgba(0,0,0,0.18); }
+  .econ-count-value{ font-family:var(--font-display); font-weight:700; font-size:20px; color:var(--ice); line-height:1; }
+  .econ-count-label{ display:flex; align-items:center; gap:6px; margin-top:6px; font-family:var(--font-mono); font-size:10px; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); }
+  .econ-key-list{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .econ-key{ display:flex; align-items:center; gap:10px; padding:6px 8px; border-radius:9px; cursor:pointer; min-width:0;
+    background:transparent; border:none; color:var(--ice); text-align:left; font:inherit; }
+  .econ-key:hover{ background:var(--panel-hi); }
+  .econ-key-when{ flex:none; width:96px; font-family:var(--font-mono); font-size:11px; color:var(--muted); }
+  .econ-key-title{ flex:1; min-width:0; font-family:var(--font-display); font-weight:600; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .econ-key.past{ opacity:0.45; }
 
-  .cal-grid{
-    flex:1; min-height:0; display:grid; grid-template-columns:repeat(7, 1fr); gap:12px;
-  }
-  .cal-day{
-    min-width:0; min-height:0; display:flex; flex-direction:column; overflow:hidden;
-    background:var(--panel); border:1px solid var(--hairline-bright); border-radius:14px; padding:15px;
-    box-shadow:0 14px 32px -22px var(--phosphor-glow);
-  }
-  .cal-day.today{ border-color:var(--phosphor); box-shadow:0 14px 32px -18px var(--phosphor-glow); }
-  .cal-day-head{
-    flex:none; display:flex; align-items:baseline; justify-content:space-between;
-    margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid var(--hairline);
-  }
-  .cal-day-name{ font-family:var(--font-mono); font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); }
-  .cal-day.today .cal-day-name{ color:var(--phosphor-soft); }
-  .cal-day-num{ font-family:var(--font-display); font-weight:700; font-size:17px; color:var(--ice); }
-  .cal-day.today .cal-day-num{ color:var(--mint-text); background:var(--mint); padding:1px 10px; border-radius:999px; }
+  /* Impact: three signal bars, lit by level. */
+  .econ-impact{ display:inline-flex; align-items:flex-end; gap:2px; height:13px; flex:none; }
+  .econ-impact i{ display:block; width:3px; border-radius:2px; background:var(--hairline-bright); }
+  .econ-impact i:nth-child(1){ height:5px; } .econ-impact i:nth-child(2){ height:9px; } .econ-impact i:nth-child(3){ height:13px; }
+  .econ-impact.low i:nth-child(-n+1){ background:var(--muted); }
+  .econ-impact.medium i:nth-child(-n+2){ background:var(--amber); box-shadow:0 0 6px var(--amber-glow); }
+  .econ-impact.high i{ background:var(--red); box-shadow:0 0 6px var(--red-glow); }
+  .econ-impact.holiday i{ background:var(--muted-dim); height:9px; }
+  .econ-impact-label{ font-family:var(--font-mono); font-size:10px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; }
+  .econ-impact-label.high{ color:var(--red); } .econ-impact-label.medium{ color:var(--amber); } .econ-impact-label.low, .econ-impact-label.holiday{ color:var(--muted); }
 
-  .cal-day-events{
-    flex:1; min-height:0; overflow-y:auto; overflow-x:hidden;
-    margin-right:-6px; padding-right:6px;
-    scrollbar-width:thin; scrollbar-color:var(--hairline-bright) transparent;
+  .econ-ccy{
+    display:inline-flex; align-items:center; gap:6px; flex:none; font-family:var(--font-mono); font-size:11px; font-weight:700;
+    letter-spacing:0.04em; color:var(--ice); padding:3px 8px 3px 7px; border-radius:7px; border:1px solid var(--hairline-bright); background:rgba(0,0,0,0.22);
   }
-  .cal-day-events::-webkit-scrollbar{ width:5px; }
-  .cal-day-events::-webkit-scrollbar-track{ background:transparent; }
-  .cal-day-events::-webkit-scrollbar-thumb{ background:var(--hairline-bright); border-radius:999px; }
+  .econ-ccy::before{ content:""; width:6px; height:6px; border-radius:50%; background:var(--ccy, var(--muted)); box-shadow:0 0 6px var(--ccy, transparent); }
 
-  .cal-event{
-    display:flex; align-items:flex-start; gap:9px; padding:9px 5px; margin:0 -5px; border-bottom:1px solid var(--hairline);
-    width:100%; background:transparent; border-left:none; border-right:none; border-top:none; text-align:left;
-    font:inherit; color:inherit; cursor:pointer; border-radius:6px; transition:background .12s;
+  .econ-toolbar{ flex:none; display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+  .econ-days{ display:flex; gap:6px; flex:1; min-width:0; overflow-x:auto; scrollbar-width:none; }
+  .econ-days::-webkit-scrollbar{ display:none; }
+  .econ-day-btn{
+    flex:1; min-width:64px; display:flex; flex-direction:column; align-items:center; gap:3px; padding:7px 6px 8px;
+    border-radius:12px; border:1px solid var(--hairline); background:var(--panel); color:var(--muted); cursor:pointer;
+    transition:border-color .15s, background .15s, color .15s;
   }
-  .cal-event:hover, .cal-event:focus-visible{ background:var(--panel-hi); outline:none; }
-  .cal-event:last-child{ border-bottom:none; }
-  .cal-event-dot{ width:8px; height:8px; border-radius:50%; margin-top:5px; flex:none; }
+  .econ-day-btn:hover{ border-color:var(--hairline-bright); color:var(--ice); }
+  .econ-day-btn .dn{ font-family:var(--font-mono); font-size:10px; letter-spacing:0.1em; }
+  .econ-day-btn .dd{ font-family:var(--font-display); font-weight:700; font-size:16px; color:var(--ice); line-height:1; }
+  .econ-day-btn .dm{ display:flex; gap:2px; height:4px; }
+  .econ-day-btn .dm i{ width:4px; height:4px; border-radius:50%; background:var(--red); }
+  .econ-day-btn .dm i.m{ background:var(--amber); }
+  .econ-day-btn.today{ border-color:var(--ez-accent, var(--phosphor)); }
+  .econ-day-btn.current{ background:var(--panel-hi); border-color:var(--hairline-bright); color:var(--ice); }
+  .econ-day-btn.today.current{ border-color:var(--ez-accent, var(--phosphor)); box-shadow:0 0 0 1px var(--ez-accent, var(--phosphor)) inset; }
+  .econ-filters{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .econ-chip{
+    display:flex; align-items:center; gap:7px; font-family:var(--font-mono); font-size:11.5px; color:var(--muted); white-space:nowrap;
+    background:transparent; border:1px solid var(--hairline); border-radius:999px; padding:6px 12px 6px 10px; cursor:pointer;
+    transition:border-color .15s, color .15s, background .15s, opacity .15s;
+  }
+  .econ-chip:hover{ border-color:var(--hairline-bright); color:var(--ice); }
+  .econ-chip.active{ color:var(--ice); background:var(--panel-raised); border-color:var(--hairline-bright); }
+  .econ-chip:not(.active){ opacity:0.5; }
+  .econ-chip b{ font-weight:600; color:var(--muted-dim); }
+
+  .econ-agenda{ flex:1; min-height:0; overflow-y:auto; position:relative; padding:0 0 10px; }
+  .econ-agenda::-webkit-scrollbar{ width:6px; }
+  .econ-agenda::-webkit-scrollbar-thumb{ background:var(--hairline-bright); border-radius:999px; }
+  .econ-cols, .econ-row{
+    display:grid; grid-template-columns:86px 74px 66px minmax(0,1fr) repeat(var(--econ-num-cols, 2), 92px) 18px;
+    align-items:center; column-gap:12px;
+  }
+  .econ-cols{ padding:0 16px 8px; font-family:var(--font-mono); font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted-dim); }
+  .econ-cols .num, .econ-row .num{ text-align:right; }
+  .econ-section{ margin-bottom:12px; background:var(--panel); border:1px solid var(--hairline); border-radius:16px; overflow:hidden; }
+  .econ-section.today{ border-color:var(--hairline-bright); box-shadow:0 18px 40px -30px rgba(var(--ez-accent-rgb, 62,224,140),0.6); }
+  .econ-section-head{
+    position:sticky; top:0; z-index:2; display:flex; align-items:center; gap:12px; padding:11px 16px;
+    background:var(--panel-raised); border-bottom:1px solid var(--hairline);
+  }
+  .econ-section-day{ font-family:var(--font-display); font-weight:700; font-size:14px; letter-spacing:0.08em; text-transform:uppercase; color:var(--ice); }
+  .econ-section-date{ font-family:var(--font-mono); font-size:12px; color:var(--muted); }
+  .econ-section-meta{ margin-left:auto; font-family:var(--font-mono); font-size:11px; color:var(--muted-dim); }
+  .econ-today-badge{ font-family:var(--font-mono); font-size:9.5px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase;
+    padding:3px 8px; border-radius:999px; color:var(--mint-text); background:var(--mint); }
+  .econ-row{
+    width:100%; padding:11px 16px; background:transparent; border:none; border-top:1px solid var(--hairline); color:var(--ice);
+    text-align:left; cursor:pointer; font:inherit; transition:background .12s;
+  }
+  .econ-section-head + .econ-row{ border-top:none; }
+  .econ-row:hover, .econ-row:focus-visible{ background:var(--panel-hi); outline:none; }
+  .econ-row.past{ opacity:0.5; }
+  .econ-row.past:hover{ opacity:0.85; }
+  .econ-row.is-high{ box-shadow:inset 3px 0 0 var(--red); }
+  .econ-time{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; font-size:13px; font-weight:600; color:var(--ice); }
+  .econ-impact-cell{ display:flex; align-items:center; gap:8px; }
+  .econ-title{ font-family:var(--font-display); font-weight:600; font-size:14px; line-height:1.3; min-width:0; }
+  .econ-title small{ display:none; }
+  .econ-row .num{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; font-size:12.5px; color:var(--ice); }
+  .econ-row .num.dim{ color:var(--muted-dim); }
+  .econ-chev{ width:14px; height:14px; color:var(--muted-dim); }
+  .econ-chev svg{ width:100%; height:100%; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .econ-day-empty{ padding:14px 16px; font-size:12.5px; color:var(--muted-dim); }
+  .econ-now{ display:flex; align-items:center; height:22px; padding:0 16px; position:relative; border-top:1px solid var(--hairline); }
+  .econ-now::before{ content:""; position:absolute; left:0; right:0; top:50%; height:2px; margin-top:-1px;
+    background:var(--ez-accent, var(--phosphor)); box-shadow:0 0 10px rgba(var(--ez-accent-rgb, 62,224,140),0.7); }
+  .econ-now span{ position:relative; font-family:var(--font-mono); font-size:9.5px; font-weight:700; letter-spacing:0.12em;
+    padding:2px 8px; border-radius:999px; color:var(--mint-text); background:var(--ez-accent, var(--phosphor)); }
+  .econ-now + .econ-row{ border-top:none; }
+  .econ-message{ padding:40px 20px; text-align:center; color:var(--muted); font-size:13.5px; line-height:1.6; }
+  .econ-message button{ margin-top:12px; font-family:var(--font-display); font-weight:600; font-size:13px; padding:9px 18px; border-radius:10px;
+    background:var(--panel-raised); border:1px solid var(--hairline-bright); color:var(--ice); cursor:pointer; }
+  .econ-message button:hover{ border-color:var(--ez-accent, var(--phosphor)); }
+  .econ-skeleton{ height:44px; margin:8px 16px; border-radius:10px;
+    background:linear-gradient(90deg, var(--panel-raised) 0%, var(--panel-hi) 50%, var(--panel-raised) 100%); background-size:200% 100%;
+    animation:econShimmer 1.4s ease-in-out infinite; }
+  @keyframes econShimmer{ 0%{ background-position:100% 0; } 100%{ background-position:-100% 0; } }
+  .econ-tz{ font-family:var(--font-mono); font-size:10.5px; color:var(--muted-dim); white-space:nowrap; }
+
+  @media (max-width:980px){
+    .econ-top{ grid-template-columns:1fr; }
+    .econ-week{ display:none; }
+  }
+  @media (max-width:720px){
+    .econ-cols{ display:none; }
+    .econ-row{ grid-template-columns:62px minmax(0,1fr) 18px; row-gap:6px; align-items:start; }
+    .econ-row .econ-impact-cell, .econ-row .econ-ccy-cell, .econ-row .num{ display:none; }
+    .econ-title small{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:5px; font-family:var(--font-mono); font-size:11px; font-weight:400; color:var(--muted); }
+    .econ-next{ padding:16px; min-height:0; }
+    .econ-next-main{ flex-wrap:nowrap; align-items:flex-start; }
+    .econ-countdown-value{ font-size:20px; }
+    .econ-next-about{ font-size:12.5px; }
+    .econ-day-btn{ min-width:52px; }
+    .econ-section-head{ flex-wrap:wrap; row-gap:4px; padding:10px 14px; }
+    .econ-section-date, .econ-section-meta{ white-space:nowrap; }
+    .econ-section-meta{ flex-basis:100%; margin-left:0; }
+    .econ-row{ padding:11px 14px; }
+    /* Phones: the page scrolls as a whole instead of a small inner box. */
+    body.econ-active{ height:auto; min-height:100vh; overflow:visible; }
+    body.econ-active .wrap, body.econ-active #econView{ flex:none; }
+    body.econ-active .econ-agenda{ overflow:visible; flex:none; }
+  }
+  .cal-event-dot{ width:8px; height:8px; border-radius:50%; flex:none; }
   .cal-event-dot.high{ background:var(--red); box-shadow:0 0 6px 1px var(--red-glow); }
   .cal-event-dot.medium{ background:var(--amber); box-shadow:0 0 6px 1px var(--amber-glow); }
   .cal-event-dot.low{ background:var(--muted-dim); }
-  .cal-event-title{ display:block; font-family:var(--font-display); font-weight:600; font-size:13.5px; color:var(--ice); line-height:1.35; }
-  .cal-event-time{ display:block; font-family:var(--font-mono); font-size:11px; color:var(--muted); margin-top:4px; }
-  .cal-empty{ color:var(--muted-dim); font-size:12px; text-align:center; padding:18px 0; }
 
   /* ---------- Event detail modal ---------- */
   .cal-overlay{
@@ -236,10 +333,6 @@
   }
   .cal-modal-close-btn:hover{ border-color:var(--phosphor-dim); background:var(--mint); color:var(--mint-text); }
 
-  @media (max-width:820px){
-    .cal-grid{ grid-template-columns:repeat(7, minmax(130px,1fr)); overflow-x:auto; padding-bottom:4px; }
-    .cal-day{ min-width:130px; }
-  }
 
   .cal-view-panel{ flex:1; min-height:0; display:flex; flex-direction:column; }
   .cal-view-panel[hidden]{ display:none; }
@@ -438,17 +531,24 @@
   <div class="pnl-camera-toast" id="pnlCameraToast"></div>
 
   <div class="cal-view-panel" id="econView" hidden>
-    <div class="cal-toolbar">
-      <span class="cal-range mono" id="calRange">Loading...</span>
-      <div class="cal-legend" id="calLegend">
-        <button type="button" class="cal-legend-item active" data-impact="high"><span class="cal-legend-dot high" aria-hidden="true"></span>High</button>
-        <button type="button" class="cal-legend-item active" data-impact="medium"><span class="cal-legend-dot medium" aria-hidden="true"></span>Medium</button>
-        <button type="button" class="cal-legend-item active" data-impact="low"><span class="cal-legend-dot low" aria-hidden="true"></span>Low</button>
-      </div>
-      <label class="cal-filter">
-        <span>Filter</span>
-        <ez-select id="calCountry">
-          <option value="">All Countries</option>
+    <div class="econ-top">
+      <section class="econ-card econ-next" id="econNext" aria-live="polite">
+        <div class="econ-eyebrow">Up next</div>
+        <div class="econ-next-empty">Loading this week&rsquo;s releases&hellip;</div>
+      </section>
+      <section class="econ-card econ-week" id="econWeek" aria-label="This week at a glance"></section>
+    </div>
+
+    <div class="econ-toolbar">
+      <div class="econ-days" id="econDays" role="tablist" aria-label="Jump to day"></div>
+      <div class="econ-filters">
+        <div class="econ-filters" id="calLegend">
+          <button type="button" class="econ-chip active" data-impact="high"><span class="econ-impact high" aria-hidden="true"><i></i><i></i><i></i></span>High <b data-count="high"></b></button>
+          <button type="button" class="econ-chip active" data-impact="medium"><span class="econ-impact medium" aria-hidden="true"><i></i><i></i><i></i></span>Medium <b data-count="medium"></b></button>
+          <button type="button" class="econ-chip active" data-impact="low"><span class="econ-impact low" aria-hidden="true"><i></i><i></i><i></i></span>Low <b data-count="low"></b></button>
+        </div>
+        <ez-select id="calCountry" aria-label="Currency">
+          <option value="">All currencies</option>
           <option value="USD" selected>USD</option>
           <option value="EUR">EUR</option>
           <option value="GBP">GBP</option>
@@ -459,11 +559,12 @@
           <option value="NZD">NZD</option>
           <option value="CNY">CNY</option>
         </ez-select>
-      </label>
+        <span class="econ-tz" id="econTz"></span>
+      </div>
     </div>
 
-    <div class="cal-grid" id="calGrid">
-      <p class="cal-empty">Loading calendar&hellip;</p>
+    <div class="econ-agenda" id="calGrid">
+      <div class="econ-skeleton"></div><div class="econ-skeleton"></div><div class="econ-skeleton"></div><div class="econ-skeleton"></div>
     </div>
   </div>
 
@@ -479,16 +580,24 @@
 
   var FEED_URL = window.EZ_CALENDAR_BASE || "https://ezpayouts-calendar.ezpayouts.workers.dev";
   var gridEl = document.getElementById("calGrid");
-  var rangeEl = document.getElementById("calRange");
+  var nextEl = document.getElementById("econNext");
+  var weekEl = document.getElementById("econWeek");
+  var daysEl = document.getElementById("econDays");
+  var tzEl = document.getElementById("econTz");
   var countrySelect = document.getElementById("calCountry");
   var legendEl = document.getElementById("calLegend");
   var overlayEl = document.getElementById("calOverlay");
   var modalEl = document.getElementById("calModal");
   var DAY_NAMES = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
+  var DAY_LONG = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  var CCY_COLORS = { USD: "#5b8cff", EUR: "#f2c94c", GBP: "#c084fc", JPY: "#f87171", AUD: "#34d399",
+    CAD: "#fb923c", CHF: "#f472b6", NZD: "#2dd4bf", CNY: "#ef4444" };
+  var CHEVRON = '<span class="econ-chev" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M6 3.5L10.5 8 6 12.5"/></svg></span>';
   var allEvents = [];
   var renderedEvents = [];
-  var loadFailed = false;
+  var loadState = "loading";
   var activeImpacts = { high: true, medium: true, low: true };
+  var scrolledToNow = false;
 
   // The feed has no description field, so match common indicator names to a
   // plain-English explanation. Order matters — more specific patterns (Core
@@ -544,11 +653,28 @@
     var i = (impact || "").toLowerCase();
     if (i === "high") return "high";
     if (i === "medium") return "medium";
+    if (i === "holiday") return "holiday";
     return "low";
+  }
+  // Holidays are shown with the low-impact releases.
+  function impactFilterKey(ev){ var c = impactClass(ev.impact); return c === "holiday" ? "low" : c; }
+  function impactLabel(c){ return c === "holiday" ? "Holiday" : c.charAt(0).toUpperCase() + c.slice(1); }
+  function impactBars(c){ return '<span class="econ-impact ' + c + '" aria-hidden="true"><i></i><i></i><i></i></span>'; }
+  function ccyChip(code){
+    return '<span class="econ-ccy" style="--ccy:' + (CCY_COLORS[code] || "var(--muted)") + '">' + escapeHtml(code || "—") + '</span>';
   }
 
   function fmtTime(d){
     return d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  }
+  function eventTime(ev){ return impactClass(ev.impact) === "holiday" ? "All day" : fmtTime(ev.dateObj); }
+  function fmtDayShort(d){ return DAY_NAMES[d.getDay()].charAt(0) + DAY_NAMES[d.getDay()].slice(1).toLowerCase() + " " + d.toLocaleDateString(undefined, { month: "short", day: "numeric" }); }
+  function fmtCountdown(ms){
+    var s = Math.max(0, Math.floor(ms / 1000));
+    var d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+    function p(n){ return String(n).padStart(2, "0"); }
+    if (d > 0) return d + "d " + p(h) + "h " + p(m) + "m";
+    return p(h) + ":" + p(m) + ":" + p(sec);
   }
 
   function currentWeek(){
@@ -565,51 +691,205 @@
     return { today: today, days: days };
   }
 
-  function visibleEvents(){
+  function countryEvents(){
     var country = countrySelect.value;
-    return allEvents.filter(function(e){
-      if (country && e.country !== country) return false;
-      return activeImpacts[impactClass(e.impact)];
-    });
+    return allEvents.filter(function(e){ return !country || e.country === country; });
+  }
+  function visibleEvents(){
+    return countryEvents().filter(function(e){ return activeImpacts[impactFilterKey(e)]; });
+  }
+  // An event counts as done a few minutes after its release time.
+  function isPast(ev, now){ return ev.dateObj.getTime() + 2 * 60000 < now; }
+
+  // ---------- Up next + the week at a glance ----------
+  function renderNext(){
+    var now = Date.now();
+    var list = visibleEvents().filter(function(e){ return impactClass(e.impact) !== "holiday"; })
+      .sort(function(a, b){ return a.dateObj - b.dateObj; });
+    var upcoming = list.filter(function(e){ return !isPast(e, now); });
+    var ev = upcoming[0];
+    if (!ev){
+      nextEl.className = "econ-card econ-next";
+      nextEl.innerHTML = '<div class="econ-eyebrow">Up next</div><div class="econ-next-empty">' +
+        (list.length ? "That&rsquo;s everything for this week. New releases show up when next week&rsquo;s calendar is published."
+                     : "Nothing scheduled for these filters this week.") + "</div>";
+      return;
+    }
+    var c = impactClass(ev.impact);
+    var idx = renderedEvents.indexOf(ev);
+    nextEl.className = "econ-card econ-next" + (c === "high" ? " is-high" : "");
+    var released = ev.dateObj.getTime() <= now;
+    nextEl.innerHTML =
+      '<div class="econ-eyebrow">Up next ' + impactBars(c) + '<span class="econ-impact-label ' + c + '">' + impactLabel(c) + ' impact</span></div>' +
+      '<div class="econ-next-main">' +
+        '<div style="min-width:0">' +
+          '<div class="econ-next-title">' + escapeHtml(ev.title) + '</div>' +
+          '<div class="econ-next-when">' + ccyChip(ev.country) + '<span>' + fmtDayShort(ev.dateObj) + ' &middot; ' + fmtTime(ev.dateObj) + '</span></div>' +
+        '</div>' +
+        '<div class="econ-countdown"><div class="econ-countdown-value" id="econCountdown" data-at="' + ev.dateObj.getTime() + '">' +
+          (released ? "Now" : fmtCountdown(ev.dateObj.getTime() - now)) + '</div>' +
+          '<div class="econ-countdown-label">' + (released ? "Releasing" : "Until release") + '</div></div>' +
+      '</div>' +
+      '<p class="econ-next-about">' + describeEvent(ev) + '</p>' +
+      ((ev.forecast || ev.previous) ? '<div class="econ-next-stats">' +
+        (ev.forecast ? '<span>Forecast<strong>' + escapeHtml(ev.forecast) + '</strong></span>' : "") +
+        (ev.previous ? '<span>Previous<strong>' + escapeHtml(ev.previous) + '</strong></span>' : "") +
+      '</div>' : "");
+    nextEl.style.cursor = idx >= 0 ? "pointer" : "";
+    nextEl.onclick = idx >= 0 ? function(){ openEventModal(ev); } : null;
+  }
+  function tickCountdown(){
+    var el = document.getElementById("econCountdown");
+    if (!el) return;
+    var left = Number(el.getAttribute("data-at")) - Date.now();
+    if (left <= 0){ renderAll(); return; }
+    el.textContent = fmtCountdown(left);
   }
 
-  function render(){
-    if (loadFailed) return;
-    var week = currentWeek();
-    var start = week.days[0];
-    var end = week.days[6];
-    rangeEl.textContent = start.toLocaleDateString(undefined, { month: "short", day: "numeric" }) +
-      " – " + end.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  function renderWeek(list){
+    var now = Date.now();
+    var counts = { high: 0, medium: 0, low: 0 };
+    list.forEach(function(e){ counts[impactFilterKey(e)]++; });
+    var keys = list.filter(function(e){ return impactClass(e.impact) === "high"; })
+      .sort(function(a, b){ return a.dateObj - b.dateObj; }).slice(0, 4);
+    weekEl.innerHTML =
+      '<div class="econ-eyebrow">This week</div>' +
+      '<div class="econ-week-counts">' + ["high", "medium", "low"].map(function(k){
+        return '<div class="econ-count"><div class="econ-count-value">' + counts[k] + '</div>' +
+          '<div class="econ-count-label">' + impactBars(k) + impactLabel(k) + '</div></div>';
+      }).join("") + '</div>' +
+      '<div class="econ-key-list">' + (keys.length ? keys.map(function(e){
+        var idx = renderedEvents.indexOf(e);
+        return '<button type="button" class="econ-key' + (isPast(e, now) ? " past" : "") + '" data-idx="' + idx + '">' +
+          '<span class="econ-key-when">' + fmtDayShort(e.dateObj).slice(0, 3) + ' ' + fmtTime(e.dateObj) + '</span>' +
+          ccyChip(e.country) + '<span class="econ-key-title">' + escapeHtml(e.title) + '</span></button>';
+      }).join("") : '<div class="econ-day-empty" style="padding:6px 8px">No high-impact releases this week.</div>') + '</div>';
+  }
 
+  // ---------- Day strip + agenda ----------
+  function renderAll(){
+    if (loadState !== "ready") return;
+    var week = currentWeek(), now = Date.now();
+    var todayKey = week.today.toDateString();
+    var base = countryEvents();
     var filtered = visibleEvents();
+    var showActual = filtered.some(function(e){ return e.actual; });
+    gridEl.style.setProperty("--econ-num-cols", showActual ? 3 : 2);
+
+    // Impact counts on the filter chips (for the chosen currency).
+    var chipCounts = { high: 0, medium: 0, low: 0 };
+    base.forEach(function(e){ chipCounts[impactFilterKey(e)]++; });
+    legendEl.querySelectorAll("[data-count]").forEach(function(b){ b.textContent = chipCounts[b.getAttribute("data-count")]; });
+
     var byDate = {};
-    filtered.forEach(function(e){
-      var key = e.dateObj.toDateString();
-      (byDate[key] = byDate[key] || []).push(e);
-    });
+    filtered.forEach(function(e){ (byDate[e.dateObj.toDateString()] = byDate[e.dateObj.toDateString()] || []).push(e); });
+
+    daysEl.innerHTML = week.days.map(function(d, i){
+      var key = d.toDateString(), evs = byDate[key] || [];
+      var hi = evs.filter(function(e){ return impactClass(e.impact) === "high"; }).length;
+      var md = evs.filter(function(e){ return impactClass(e.impact) === "medium"; }).length;
+      var marks = "";
+      for (var k = 0; k < Math.min(hi, 3); k++) marks += "<i></i>";
+      for (var j = 0; j < Math.min(md, 3 - Math.min(hi, 3)); j++) marks += '<i class="m"></i>';
+      return '<button type="button" class="econ-day-btn' + (key === todayKey ? " today" : "") + '" data-day="' + i + '" aria-label="' +
+        DAY_LONG[d.getDay()] + ", " + evs.length + ' events">' +
+        '<span class="dn">' + DAY_NAMES[d.getDay()] + '</span><span class="dd">' + d.getDate() + '</span><span class="dm">' + marks + '</span></button>';
+    }).join("");
 
     renderedEvents = [];
-
-    gridEl.innerHTML = week.days.map(function(d){
+    var anyEvents = filtered.length > 0;
+    var cols = '<div class="econ-cols"><span>Time</span><span>Impact</span><span>Cur.</span><span>Event</span>' +
+      (showActual ? '<span class="num">Actual</span>' : "") + '<span class="num">Forecast</span><span class="num">Previous</span><span></span></div>';
+    var html = anyEvents ? cols : "";
+    week.days.forEach(function(d, i){
       var key = d.toDateString();
-      var events = (byDate[key] || []).sort(function(a, b){ return a.dateObj - b.dateObj; });
-      var isToday = key === week.today.toDateString();
-      var body = events.length
-        ? events.map(function(e){
-            var idx = renderedEvents.push(e) - 1;
-            return '<button type="button" class="cal-event" data-idx="' + idx + '">' +
-              '<span class="cal-event-dot ' + impactClass(e.impact) + '" aria-hidden="true"></span>' +
-              '<span><span class="cal-event-title">' + escapeHtml(e.title) + '</span>' +
-              '<span class="cal-event-time">' + fmtTime(e.dateObj) + ' &middot; ' + escapeHtml(e.country) + '</span></span>' +
-            '</button>';
-          }).join("")
-        : '<p class="cal-empty">No events</p>';
-      return '<div class="cal-day' + (isToday ? ' today' : '') + '">' +
-        '<div class="cal-day-head"><span class="cal-day-name">' + DAY_NAMES[d.getDay()] + '</span><span class="cal-day-num">' + d.getDate() + '</span></div>' +
-        '<div class="cal-day-events">' + body + '</div>' +
-      "</div>";
-    }).join("");
+      var evs = (byDate[key] || []).sort(function(a, b){ return a.dateObj - b.dateObj; });
+      var isToday = key === todayKey;
+      var hi = evs.filter(function(e){ return impactClass(e.impact) === "high"; }).length;
+      html += '<section class="econ-section' + (isToday ? " today" : "") + '" data-day="' + i + '">' +
+        '<div class="econ-section-head"><span class="econ-section-day">' + DAY_LONG[d.getDay()] + '</span>' +
+        '<span class="econ-section-date">' + d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + '</span>' +
+        (isToday ? '<span class="econ-today-badge">Today</span>' : "") +
+        '<span class="econ-section-meta">' + (evs.length ? evs.length + " event" + (evs.length === 1 ? "" : "s") + (hi ? " &middot; " + hi + " high" : "") : "") + '</span></div>';
+      if (!evs.length){
+        html += '<div class="econ-day-empty">No releases' + (anyEvents ? " for these filters" : "") + '.</div>';
+      }
+      var nowPlaced = !isToday;
+      evs.forEach(function(e){
+        if (!nowPlaced && !isPast(e, now)){
+          html += '<div class="econ-now" id="econNow"><span>NOW &middot; ' + fmtTime(new Date(now)) + '</span></div>';
+          nowPlaced = true;
+        }
+        var idx = renderedEvents.push(e) - 1;
+        var c = impactClass(e.impact);
+        html += '<button type="button" class="econ-row' + (isPast(e, now) ? " past" : "") + (c === "high" ? " is-high" : "") + '" data-idx="' + idx + '">' +
+          '<span class="econ-time">' + eventTime(e) + '</span>' +
+          '<span class="econ-impact-cell">' + impactBars(c) + '<span class="econ-impact-label ' + c + '">' + impactLabel(c) + '</span></span>' +
+          '<span class="econ-ccy-cell">' + ccyChip(e.country) + '</span>' +
+          '<span class="econ-title">' + escapeHtml(e.title) +
+            '<small>' + ccyChip(e.country) + impactBars(c) +
+              (e.forecast ? '<span>F ' + escapeHtml(e.forecast) + '</span>' : "") +
+              (e.previous ? '<span>P ' + escapeHtml(e.previous) + '</span>' : "") + '</small></span>' +
+          (showActual ? '<span class="num' + (e.actual ? "" : " dim") + '">' + (e.actual ? escapeHtml(e.actual) : "—") + '</span>' : "") +
+          '<span class="num' + (e.forecast ? "" : " dim") + '">' + (e.forecast ? escapeHtml(e.forecast) : "—") + '</span>' +
+          '<span class="num' + (e.previous ? "" : " dim") + '">' + (e.previous ? escapeHtml(e.previous) : "—") + '</span>' +
+          CHEVRON +
+        '</button>';
+      });
+      if (!nowPlaced && evs.length) html += '<div class="econ-now" id="econNow"><span>NOW &middot; ' + fmtTime(new Date(now)) + '</span></div>';
+      html += '</section>';
+    });
+    if (!anyEvents){
+      html = '<div class="econ-message">No releases match these filters this week.' +
+        (countrySelect.value ? '<br><button type="button" id="econShowAll">Show all currencies</button>' : "") + '</div>';
+    }
+    var keepScroll = gridEl.scrollTop;
+    gridEl.innerHTML = html;
+    renderNext();
+    renderWeek(base.filter(function(e){ return activeImpacts[impactFilterKey(e)]; }));
+    markCurrentDay();
+    if (!scrolledToNow){
+      scrolledToNow = true;
+      var target = document.getElementById("econNow") || gridEl.querySelector('.econ-section.today');
+      if (target){
+        gridEl.style.scrollBehavior = "auto";
+        gridEl.scrollTop = Math.max(0, target.offsetTop - 120);
+        gridEl.style.scrollBehavior = "";
+      }
+    } else {
+      gridEl.scrollTop = keepScroll;
+    }
   }
+
+  // Highlight the day strip button for the section at the top of the list.
+  var pinnedDay = null;
+  function markCurrentDay(){
+    var sections = gridEl.querySelectorAll(".econ-section");
+    var top = gridEl.scrollTop + 40, current = 0;
+    sections.forEach(function(sec){ if (sec.offsetTop <= top) current = Number(sec.getAttribute("data-day")); });
+    // A clicked day stays marked, even if it's near the end and the list
+    // can't scroll it all the way to the top.
+    if (pinnedDay !== null){
+      var pinned = gridEl.querySelector('.econ-section[data-day="' + pinnedDay + '"]');
+      var atBottom = gridEl.scrollTop + gridEl.clientHeight >= gridEl.scrollHeight - 2;
+      if (pinned && (Math.abs(pinned.offsetTop - 34 - gridEl.scrollTop) < 4 || (atBottom && pinned.offsetTop > gridEl.scrollTop))) current = pinnedDay;
+      else if (pinned && current === pinnedDay) pinnedDay = null;
+    }
+    daysEl.querySelectorAll(".econ-day-btn").forEach(function(b){ b.classList.toggle("current", Number(b.getAttribute("data-day")) === current); });
+  }
+  gridEl.addEventListener("scroll", markCurrentDay, { passive: true });
+  gridEl.addEventListener("wheel", function(){ pinnedDay = null; }, { passive: true });
+  gridEl.addEventListener("touchstart", function(){ pinnedDay = null; }, { passive: true });
+  daysEl.addEventListener("click", function(e){
+    var btn = e.target.closest(".econ-day-btn");
+    if (!btn) return;
+    var day = btn.getAttribute("data-day");
+    var sec = gridEl.querySelector('.econ-section[data-day="' + day + '"]');
+    if (!sec) return;
+    daysEl.querySelectorAll(".econ-day-btn").forEach(function(b){ b.classList.toggle("current", b === btn); });
+    pinnedDay = Number(day);
+    gridEl.scrollTo({ top: sec.offsetTop - 34, behavior: "smooth" });
+  });
 
   function openEventModal(ev){
     var impactCls = impactClass(ev.impact);
@@ -656,44 +936,71 @@
   });
 
   gridEl.addEventListener("click", function(e){
-    var btn = e.target.closest(".cal-event");
+    if (e.target.id === "econShowAll"){ countrySelect.value = ""; renderAll(); return; }
+    var btn = e.target.closest(".econ-row");
     if (!btn) return;
-    var idx = parseInt(btn.getAttribute("data-idx"), 10);
-    var ev = renderedEvents[idx];
+    var ev = renderedEvents[parseInt(btn.getAttribute("data-idx"), 10)];
+    if (ev) openEventModal(ev);
+  });
+  weekEl.addEventListener("click", function(e){
+    var btn = e.target.closest(".econ-key");
+    if (!btn) return;
+    var ev = renderedEvents[parseInt(btn.getAttribute("data-idx"), 10)];
     if (ev) openEventModal(ev);
   });
 
-  countrySelect.addEventListener("change", render);
+  countrySelect.addEventListener("change", renderAll);
 
   legendEl.addEventListener("click", function(e){
-    var btn = e.target.closest(".cal-legend-item");
+    var btn = e.target.closest(".econ-chip");
     if (!btn) return;
     var impact = btn.getAttribute("data-impact");
     activeImpacts[impact] = !activeImpacts[impact];
     btn.classList.toggle("active", activeImpacts[impact]);
-    render();
+    renderAll();
   });
 
-  fetch(FEED_URL)
-    .then(function(res){ return res.json(); })
-    .then(function(data){
-      allEvents = (Array.isArray(data) ? data : []).map(function(e){
-        return {
-          title: e.title,
-          country: e.country,
-          impact: e.impact,
-          forecast: e.forecast || "",
-          previous: e.previous || "",
-          dateObj: new Date(e.date),
-        };
-      }).filter(function(e){ return e.title && e.dateObj && !isNaN(e.dateObj.getTime()); });
-      render();
-    })
-    .catch(function(){
-      loadFailed = true;
-      rangeEl.textContent = "";
-      gridEl.innerHTML = '<p class="cal-empty">Couldn’t load the calendar right now &mdash; try again shortly.</p>';
-    });
+  try {
+    var tzPart = new Intl.DateTimeFormat(undefined, { timeZoneName: "short" }).formatToParts(new Date())
+      .filter(function(p){ return p.type === "timeZoneName"; })[0];
+    tzEl.textContent = tzPart ? "Times in " + tzPart.value : "";
+  } catch (err) {}
+
+  function load(){
+    loadState = "loading";
+    fetch(FEED_URL)
+      .then(function(res){ return res.json(); })
+      .then(function(data){
+        allEvents = (Array.isArray(data) ? data : []).map(function(e){
+          return {
+            title: e.title,
+            country: e.country,
+            impact: e.impact,
+            actual: e.actual || "",
+            forecast: e.forecast || "",
+            previous: e.previous || "",
+            dateObj: new Date(e.date),
+          };
+        }).filter(function(e){ return e.title && e.dateObj && !isNaN(e.dateObj.getTime()); });
+        loadState = "ready";
+        renderAll();
+      })
+      .catch(function(){
+        loadState = "failed";
+        nextEl.innerHTML = '<div class="econ-eyebrow">Up next</div><div class="econ-next-empty">The calendar feed isn&rsquo;t responding.</div>';
+        weekEl.innerHTML = "";
+        gridEl.innerHTML = '<div class="econ-message">Couldn&rsquo;t load the calendar right now.<br><button type="button" id="econRetry">Try again</button></div>';
+        document.getElementById("econRetry").addEventListener("click", function(){
+          gridEl.innerHTML = '<div class="econ-skeleton"></div><div class="econ-skeleton"></div><div class="econ-skeleton"></div>';
+          load();
+        });
+      });
+  }
+  // Only when the Economic Calendar is the view being shown.
+  if (new URLSearchParams(window.location.search).get("view") === "econ") load();
+  // Live countdown, and past/now markers kept current.
+  setInterval(tickCountdown, 1000);
+  setInterval(function(){ if (loadState === "ready" && !document.hidden) renderAll(); }, 60000);
 
   // Lets the shared coach widget (coach.js) answer questions about the
   // events actually visible on screen right now, respecting the filters.
@@ -730,6 +1037,7 @@
 
   pnlViewEl.hidden = activeView !== "pnl";
   econViewEl.hidden = activeView !== "econ";
+  document.body.classList.toggle("econ-active", activeView === "econ");
   calPageTitleEl.textContent = activeView === "econ" ? "Economic Calendar" : "Calendar";
   document.getElementById("calPageSub").textContent = activeView === "econ"
     ? "Market-moving releases and when they hit."
