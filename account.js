@@ -258,12 +258,12 @@
       " color:#eef1fb; font-family:var(--font-mono); font-size:12px; font-weight:600;" +
       " cursor:pointer; transition:border-color .15s, box-shadow .15s, transform .1s; }" +
       ".ez-auth-oauth-btn svg{ width:16px; height:16px; flex:none; }" +
-      ".ez-auth-oauth-btn:hover{ border-color:#3262f6; box-shadow:0 0 0 1px rgba(50,98,246,0.35), 0 0 18px rgba(50,98,246,0.3); }" +
+      ".ez-auth-oauth-btn:hover{ border-color:var(--ez-accent, #3262f6); box-shadow:0 0 0 1px rgba(var(--ez-accent-rgb, 50,98,246),0.35), 0 0 18px rgba(var(--ez-accent-rgb, 50,98,246),0.3); }" +
       ".ez-auth-oauth-btn:active{ transform:scale(0.98); }" +
       ".ez-auth-oauth-btn:disabled{ opacity:0.5; cursor:default; }" +
       ".ez-auth-oauth-btn:disabled:hover{ border-color:#1a223d; box-shadow:none; }" +
       ".ez-auth-security-note{ display:flex; gap:7px; margin:14px 0 0; padding:10px 12px; border-radius:10px;" +
-      " background:rgba(50,98,246,0.06); border:1px solid #1a223d; font-size:10.5px; line-height:1.55; color:#8d94a6; }" +
+      " background:rgba(var(--ez-accent-rgb, 50,98,246),0.06); border:1px solid var(--hairline, #1a223d); font-size:10.5px; line-height:1.55; color:#8d94a6; }" +
       ".ez-auth-security-note span:first-child{ flex:none; }" +
       ".ez-auth-security-note span:last-child{ flex:1; min-width:0; }";
     document.head.appendChild(style);

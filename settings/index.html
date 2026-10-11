@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>EZPayouts Settings</title>
+<link rel="icon" type="image/png" href="../ezpayouts-icon-only.png">
+<link rel="apple-touch-icon" href="../ezpayouts-icon-only.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
+<style>
+  /* Same page tokens as the other app pages; nav.js swaps them per theme. */
+  :root{
+    --void:#07090a;
+    --panel:#0c1310;
+    --panel-raised:#121b16;
+    --panel-hi:#182319;
+    --hairline:#23332a;
+    --hairline-bright:#345a44;
+    --phosphor:#3ee08c;
+    --phosphor-soft:#8fe6b6;
+    --phosphor-dim:#1c5c3d;
+    --phosphor-glow:rgba(62,224,140,0.35);
+    --mint:#7ee8ac;
+    --mint-text:#062b17;
+    --red:#ef5a5a;
+    --ice:#dcefe2;
+    --muted:#7c9584;
+    --muted-dim:#4d6055;
+    --font-display:'Chakra Petch', 'Segoe UI', sans-serif;
+    --font-body:'IBM Plex Sans', 'Segoe UI', sans-serif;
+    --font-mono:'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+  }
+
+  *{ box-sizing:border-box; }
+  html{ color-scheme:dark; }
+  body{
+    margin:0; min-height:100vh; background:var(--void); color:var(--ice); font-family:var(--font-body);
+    padding:0 clamp(16px,4vw,48px); padding-block:clamp(18px,3.4vw,32px) 60px;
+    position:relative; overflow-x:hidden;
+  }
+  body::before{
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:0; mix-blend-mode:overlay;
+    background:repeating-linear-gradient(to bottom, rgba(var(--ez-accent-rgb, 62,224,140),0.03) 0px, rgba(var(--ez-accent-rgb, 62,224,140),0.03) 1px, transparent 1px, transparent 3px);
+  }
+  .wrap{ max-width:1120px; margin:0 auto; position:relative; z-index:1; }
+  h1, h2, h3{ font-family:var(--font-display); margin:0; }
+  button{ font:inherit; }
+
+  /* ---------- The panel ---------- */
+  .settings-panel{
+    background:var(--panel); border:1px solid var(--hairline); border-radius:24px;
+    box-shadow:0 30px 70px -40px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.02) inset;
+    padding:clamp(16px,2.4vw,26px);
+  }
+  .settings-bar{
+    display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+    padding:6px; border:1px solid var(--hairline); border-radius:16px; background:rgba(0,0,0,0.22);
+  }
+  .settings-tabs{ display:flex; gap:4px; overflow-x:auto; scrollbar-width:none; }
+  .settings-tabs::-webkit-scrollbar{ display:none; }
+  .settings-tab{
+    padding:9px 16px; border-radius:11px; border:1px solid transparent; background:transparent;
+    color:var(--muted); font-family:var(--font-display); font-weight:600; font-size:13px; cursor:pointer; white-space:nowrap;
+    transition:color .15s, background .15s, border-color .15s;
+  }
+  .settings-tab:hover{ color:var(--ice); }
+  .settings-tab[aria-selected="true"]{
+    color:var(--ice); background:var(--panel-hi); border-color:var(--hairline-bright);
+    box-shadow:0 6px 18px -10px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+  @media (max-width:560px){
+    .settings-tabs{ width:100%; }
+    .settings-tab{ flex:1; padding:8px 10px; font-size:12.5px; }
+  }
+  .settings-current{ display:flex; gap:6px; flex-wrap:wrap; padding-right:4px; }
+  .settings-current span{
+    font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.04em; color:var(--muted);
+    padding:6px 10px; border-radius:999px; border:1px solid var(--hairline); white-space:nowrap;
+  }
+  .settings-current strong{ color:var(--ice); font-weight:600; margin-left:4px; }
+
+  .settings-body[hidden]{ display:none; }
+  .settings-section{ padding:26px 4px 6px; }
+  .settings-section + .settings-section{ border-top:1px solid var(--hairline); margin-top:22px; }
+  .settings-section-head{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
+  .settings-section-head h2{ font-size:13px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--ice); }
+  .settings-section-head p{ margin:0; font-size:12.5px; color:var(--muted); }
+
+  /* ---------- Choice cards ---------- */
+  .choice-grid{ display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:14px; }
+  @media (max-width:980px){ .choice-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); } }
+  @media (max-width:460px){ .choice-grid{ grid-template-columns:1fr; } }
+  .choice-grid.three{ grid-template-columns:repeat(3, minmax(0,1fr)); }
+  @media (max-width:720px){ .choice-grid.three{ grid-template-columns:1fr; } }
+  .choice{
+    position:relative; display:flex; flex-direction:column; gap:12px; text-align:left; cursor:pointer;
+    padding:10px 10px 14px; border-radius:16px; border:1px solid var(--hairline); background:rgba(0,0,0,0.18);
+    color:var(--ice); transition:border-color .15s, box-shadow .2s, transform .15s, background .15s;
+  }
+  .choice:hover{ border-color:var(--hairline-bright); background:rgba(255,255,255,0.02); }
+  .choice:focus-visible{ outline:2px solid var(--ez-accent, var(--phosphor)); outline-offset:2px; }
+  .choice[aria-pressed="true"]{
+    border-color:var(--ez-accent, var(--phosphor));
+    box-shadow:0 0 0 1px var(--ez-accent, var(--phosphor)), 0 16px 34px -18px rgba(var(--ez-accent-rgb, 62,224,140),0.7);
+    background:rgba(var(--ez-accent-rgb, 62,224,140),0.06);
+  }
+  .choice-preview{
+    position:relative; display:block; height:118px; border-radius:11px; overflow:hidden;
+    border:1px solid rgba(255,255,255,0.06);
+  }
+  .choice-meta{ display:flex; flex-direction:column; gap:4px; padding:0 4px; }
+  .choice-name{ display:flex; align-items:center; gap:8px; font-family:var(--font-display); font-weight:700; font-size:14px; }
+  .choice-tag{
+    display:none; font-family:var(--font-mono); font-size:9px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;
+    padding:2px 7px; border-radius:999px; color:var(--ez-grad-text, var(--mint-text));
+    background:linear-gradient(90deg, var(--ez-grad-a, var(--mint)), var(--ez-grad-b, var(--mint)));
+  }
+  .choice[aria-pressed="true"] .choice-tag{ display:inline-block; }
+  .choice-desc{ font-size:12px; line-height:1.45; color:var(--muted); }
+  .choice-check{
+    position:absolute; top:18px; right:18px; width:24px; height:24px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; opacity:0; transform:scale(0.6);
+    background:var(--ez-accent, var(--phosphor)); color:#fff; box-shadow:0 4px 14px rgba(0,0,0,0.5);
+    transition:opacity .15s, transform .2s;
+  }
+  .choice-check svg{ width:13px; height:13px; fill:none; stroke:currentColor; stroke-width:2.6; stroke-linecap:round; stroke-linejoin:round; }
+  .choice[aria-pressed="true"] .choice-check{ opacity:1; transform:scale(1); }
+
+  /* Theme previews: a tiny app in that theme's own colors. */
+  .theme-preview{ display:flex; background:var(--p-void); }
+  .tp-side{ width:22%; background:var(--p-side); border-right:1px solid var(--p-border); display:flex; flex-direction:column; gap:6px; padding:10px 7px; }
+  .tp-side i{ display:block; height:6px; border-radius:3px; background:var(--p-border); }
+  .tp-side i:first-child{ background:var(--p-accent); }
+  .tp-main{ flex:1; padding:10px; display:flex; flex-direction:column; gap:8px; min-width:0; }
+  .tp-title{ height:7px; width:46%; border-radius:4px; background:var(--p-text); opacity:0.85; }
+  .tp-card{ flex:1; border-radius:7px; background:var(--p-panel); border:1px solid var(--p-border); position:relative; overflow:hidden; }
+  .tp-card svg{ position:absolute; inset:6px 8px; width:calc(100% - 16px); height:calc(100% - 12px); }
+  .tp-btn{ align-self:flex-start; height:13px; width:44%; border-radius:6px; background:linear-gradient(90deg, var(--p-grad-a), var(--p-grad-b)); box-shadow:0 0 10px var(--p-grad-a); }
+  .theme-swatches{ display:flex; gap:5px; margin-top:4px; }
+  .theme-swatches i{ width:14px; height:14px; border-radius:50%; border:1px solid rgba(255,255,255,0.15); }
+
+  /* Background previews: the background with a translucent sidebar and a
+     card on it, so the effect is visible at a glance. */
+  .bg-preview{ background:#000; }
+  .bg-preview.bg-liquid{ background:#1a1b1f center / cover no-repeat; }
+  .bg-preview.bg-black{ background:#000; }
+  .bg-preview.bg-gray{ background:#2a2c31; }
+  .bg-preview.bg-current{
+    background:
+      radial-gradient(ellipse 120% 60% at 50% -10%, var(--ez-tint-a, rgba(62,224,140,0.1)), transparent 60%),
+      radial-gradient(ellipse 80% 50% at 100% 100%, var(--ez-tint-b, rgba(62,224,140,0.06)), transparent 60%),
+      var(--void);
+  }
+  .bp-side{
+    position:absolute; left:0; top:0; bottom:0; width:22%;
+    background:var(--ez-sidebar-bg, rgba(18,27,22,0.7)); border-right:1px solid var(--hairline-bright);
+    -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
+  }
+  .bp-card{
+    position:absolute; left:30%; right:8%; top:24%; bottom:18%; border-radius:8px;
+    background:var(--panel); border:1px solid var(--hairline); box-shadow:0 10px 24px -12px rgba(0,0,0,0.9);
+  }
+  .bp-card::before{ content:""; position:absolute; left:10px; top:10px; width:40%; height:6px; border-radius:3px; background:var(--ice); opacity:0.7; }
+  .bp-card::after{ content:""; position:absolute; left:10px; right:10px; bottom:10px; height:9px; border-radius:5px; background:linear-gradient(90deg, var(--ez-grad-a, var(--mint)), var(--ez-grad-b, var(--mint))); width:38%; }
+
+  /* Sidebar layout previews */
+  .layout-preview{ background:var(--void); display:flex; }
+  .lp-side{ background:var(--ez-sidebar-bg, var(--panel-raised)); border-right:1px solid var(--hairline-bright); display:flex; flex-direction:column; gap:6px; padding:10px 6px; }
+  .lp-side i{ display:block; height:6px; border-radius:3px; background:var(--hairline-bright); }
+  .lp-side i:first-child{ background:var(--ez-accent, var(--phosphor)); }
+  .lp-main{ flex:1; padding:10px; display:flex; flex-direction:column; gap:8px; }
+  .lp-main i{ display:block; flex:1; border-radius:7px; background:var(--panel); border:1px solid var(--hairline); }
+  .lp-main i:first-child{ flex:none; height:7px; width:40%; background:var(--ice); opacity:0.7; border:none; }
+  .lp-hover{ position:absolute; left:0; top:0; bottom:0; width:46%; background:var(--ez-sidebar-bg, var(--panel-raised)); border-right:1px solid var(--hairline-bright);
+    box-shadow:10px 0 24px -10px rgba(0,0,0,0.8); display:flex; flex-direction:column; gap:6px; padding:10px 8px; }
+  .lp-hover i{ display:block; height:6px; border-radius:3px; background:var(--hairline-bright); }
+  .lp-hover i:first-child{ background:var(--ez-accent, var(--phosphor)); }
+  .lp-cursor{ position:absolute; left:38%; top:44%; width:12px; height:12px; }
+  .lp-cursor svg{ width:100%; height:100%; fill:#fff; stroke:#000; stroke-width:1; }
+  .settings-note{ margin:14px 4px 0; font-size:12px; color:var(--muted-dim); }
+
+  /* ---------- Account ---------- */
+  .account-row{
+    display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    padding:16px; border:1px solid var(--hairline); border-radius:16px; background:rgba(0,0,0,0.18);
+  }
+  .account-avatar{
+    width:44px; height:44px; border-radius:50%; flex:none; display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-display); font-weight:700; font-size:18px; color:var(--ez-grad-text, var(--mint-text));
+    background:linear-gradient(135deg, var(--ez-grad-a, var(--mint)), var(--ez-grad-b, var(--mint)));
+  }
+  .account-info{ flex:1; min-width:160px; }
+  .account-name{ font-family:var(--font-display); font-weight:700; font-size:16px; }
+  .account-status{ margin-top:3px; font-size:12.5px; color:var(--muted); }
+  .settings-btn{
+    padding:10px 18px; border-radius:11px; cursor:pointer; font-family:var(--font-display); font-weight:700; font-size:13px;
+    border:1px solid var(--ez-btn-border, var(--hairline-bright)); background:var(--ez-btn-bg, var(--panel-raised)); color:var(--ez-btn-text, var(--ice));
+    transition:border-color .15s, box-shadow .15s, filter .15s;
+  }
+  .settings-btn:hover{ border-color:var(--ez-accent, var(--phosphor)); box-shadow:0 0 12px rgba(var(--ez-accent-rgb, 62,224,140),0.25); }
+  .settings-btn.primary{
+    border-color:transparent; color:var(--ez-grad-text, var(--mint-text));
+    background:linear-gradient(90deg, var(--ez-grad-a, var(--mint)), var(--ez-grad-b, var(--mint))); box-shadow:0 0 15px var(--ez-grad-glow, transparent);
+  }
+  .settings-btn.primary:hover{ filter:brightness(1.08); }
+</style>
+</head>
+<body>
+<script src="/nav.js"></script>
+<script src="/account.js"></script>
+<script src="/coach.js"></script>
+<div class="wrap">
+
+  <div class="ez-page-head">
+    <h1 class="ez-page-title">Settings</h1>
+    <p class="ez-page-sub">Make EZPayouts yours. Changes apply right away, on every page.</p>
+  </div>
+
+  <section class="settings-panel">
+    <div class="settings-bar">
+      <div class="settings-tabs" role="tablist" aria-label="Settings sections">
+        <button type="button" class="settings-tab" role="tab" id="tab-appearance" aria-controls="panel-appearance" data-tab="appearance">Appearance</button>
+        <button type="button" class="settings-tab" role="tab" id="tab-layout" aria-controls="panel-layout" data-tab="layout">Layout</button>
+        <button type="button" class="settings-tab" role="tab" id="tab-account" aria-controls="panel-account" data-tab="account">Account</button>
+      </div>
+      <div class="settings-current" aria-live="polite">
+        <span>Theme<strong id="currentTheme"></strong></span>
+        <span>Background<strong id="currentBg"></strong></span>
+      </div>
+    </div>
+
+    <div class="settings-body" role="tabpanel" id="panel-appearance" aria-labelledby="tab-appearance" data-panel="appearance">
+      <section class="settings-section">
+        <div class="settings-section-head">
+          <h2>Theme</h2>
+          <p>Buttons, accents and surface undertones across the site.</p>
+        </div>
+        <div class="choice-grid" id="themeChoices" role="group" aria-label="Theme"></div>
+      </section>
+      <section class="settings-section">
+        <div class="settings-section-head">
+          <h2>Background</h2>
+          <p>Behind every page, showing softly through the sidebar.</p>
+        </div>
+        <div class="choice-grid" id="bgChoices" role="group" aria-label="Background"></div>
+      </section>
+    </div>
+
+    <div class="settings-body" role="tabpanel" id="panel-layout" aria-labelledby="tab-layout" data-panel="layout" hidden>
+      <section class="settings-section">
+        <div class="settings-section-head">
+          <h2>Sidebar</h2>
+          <p>How the navigation on the left behaves.</p>
+        </div>
+        <div class="choice-grid three" id="sidebarChoices" role="group" aria-label="Sidebar"></div>
+        <p class="settings-note">On small screens the sidebar always stays compact.</p>
+      </section>
+    </div>
+
+    <div class="settings-body" role="tabpanel" id="panel-account" aria-labelledby="tab-account" data-panel="account" hidden>
+      <section class="settings-section">
+        <div class="settings-section-head">
+          <h2>Account</h2>
+          <p>Signing in keeps your journal in sync across devices.</p>
+        </div>
+        <div class="account-row">
+          <div class="account-avatar" id="accountAvatar" aria-hidden="true">?</div>
+          <div class="account-info">
+            <div class="account-name" id="accountName">Not signed in</div>
+            <div class="account-status" id="accountStatus">Your trades stay on this device until you sign in.</div>
+          </div>
+          <button type="button" class="settings-btn" id="accountBtn">Sign in</button>
+        </div>
+      </section>
+    </div>
+  </section>
+
+</div>
+<script>
+(function(){
+  var A = window.EZAppearance;
+  if (!A) return;
+
+  var CHECK = '<svg viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-7"/></svg>';
+  function escapeHtml(s){
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  // Each theme's own colors for its preview card (mirrors nav.js).
+  var THEME_INFO = {
+    ink:     { desc: "Deep ink with electric blue. The original look.",
+               void: "#050811", side: "#121a2e", panel: "#0d1425", border: "#243153", text: "#e2e8f0",
+               accent: "#3262f6", line: "#38bdf8", gradA: "#0099ff", gradB: "#00d2ff" },
+    magenta: { desc: "Plum undertones with fuchsia-to-pink accents.",
+               void: "#0a0710", side: "#1e1327", panel: "#150d1c", border: "#5c3a74", text: "#efe4f4",
+               accent: "#d63f9d", line: "#f5a3d6", gradA: "#b62fd6", gradB: "#f472b6" },
+    red:     { desc: "Oxblood surfaces, crimson-to-coral buttons, gold highlights.",
+               void: "#0a0707", side: "#1f1313", panel: "#150c0c", border: "#612c2c", text: "#f5e1e1",
+               accent: "#e23744", line: "#f8a0a6", gradA: "#d42a3c", gradB: "#ff7a59" },
+    green:   { desc: "Forest-black surfaces with emerald-to-teal accents.",
+               void: "#050a07", side: "#101a14", panel: "#0b130e", border: "#2b4a38", text: "#e3f3e8",
+               accent: "#22c57a", line: "#8fe6b6", gradA: "#10b981", gradB: "#5eead4" }
+  };
+  var BG_INFO = {
+    liquid:  "Dark, flowing reflective metal that slowly moves.",
+    black:   "Clean, solid black.",
+    current: "The original soft glow, tinted to your theme.",
+    gray:    "Clean, flat gray."
+  };
+  var SIDEBAR_INFO = {
+    expanded:  "Always open, with labels.",
+    collapsed: "Icons only, for more room.",
+    hover:     "Icons only; opens while you point at it."
+  };
+
+  function card(attrs, preview, name, desc, extra){
+    return '<button type="button" class="choice" ' + attrs + '>' +
+      preview +
+      '<span class="choice-meta">' +
+        '<span class="choice-name">' + escapeHtml(name) + '<span class="choice-tag">Active</span></span>' +
+        '<span class="choice-desc">' + escapeHtml(desc) + '</span>' + (extra || "") +
+      '</span>' +
+      '<span class="choice-check" aria-hidden="true">' + CHECK + '</span>' +
+    '</button>';
+  }
+
+  document.getElementById("themeChoices").innerHTML = A.themes.map(function(t){
+    var i = THEME_INFO[t.id];
+    var style = "--p-void:" + i.void + ";--p-side:" + i.side + ";--p-panel:" + i.panel + ";--p-border:" + i.border +
+      ";--p-text:" + i.text + ";--p-accent:" + i.accent + ";--p-grad-a:" + i.gradA + ";--p-grad-b:" + i.gradB;
+    var preview = '<span class="choice-preview theme-preview" style="' + style + '" aria-hidden="true">' +
+      '<span class="tp-side"><i></i><i></i><i></i><i></i></span>' +
+      '<span class="tp-main"><span class="tp-title"></span>' +
+        '<span class="tp-card"><svg viewBox="0 0 100 40" preserveAspectRatio="none"><polyline points="0,34 14,30 26,32 40,22 52,25 66,14 80,16 100,4" fill="none" stroke="' + i.line + '" stroke-width="2.4" vector-effect="non-scaling-stroke"/></svg></span>' +
+        '<span class="tp-btn"></span></span>' +
+    '</span>';
+    var swatches = '<span class="theme-swatches" aria-hidden="true"><i style="background:' + i.void + '"></i><i style="background:' + i.panel + '"></i><i style="background:' + i.accent + '"></i><i style="background:linear-gradient(90deg,' + i.gradA + ',' + i.gradB + ')"></i></span>';
+    return card('data-theme="' + t.id + '"', preview, t.label, i.desc, swatches);
+  }).join("");
+
+  document.getElementById("bgChoices").innerHTML = A.backgrounds.map(function(b){
+    var preview = '<span class="choice-preview bg-preview bg-' + b.id + '" aria-hidden="true"><span class="bp-side"></span><span class="bp-card"></span></span>';
+    return card('data-bg="' + b.id + '"', preview, b.label, BG_INFO[b.id]);
+  }).join("");
+  var still = A.chromeStill && A.chromeStill();
+  if (still) document.querySelector(".bg-preview.bg-liquid").style.backgroundImage = "url(" + still + ")";
+
+  document.getElementById("sidebarChoices").innerHTML = A.sidebarModes.map(function(m){
+    var preview;
+    if (m.id === "expanded"){
+      preview = '<span class="lp-side" style="width:34%"><i></i><i></i><i></i><i></i></span><span class="lp-main"><i></i><i></i></span>';
+    } else if (m.id === "collapsed"){
+      preview = '<span class="lp-side" style="width:12%"><i></i><i></i><i></i><i></i></span><span class="lp-main"><i></i><i></i></span>';
+    } else {
+      preview = '<span class="lp-side" style="width:12%"><i></i><i></i><i></i><i></i></span><span class="lp-main"><i></i><i></i></span>' +
+        '<span class="lp-hover"><i></i><i></i><i></i><i></i></span>' +
+        '<span class="lp-cursor"><svg viewBox="0 0 12 12"><path d="M1 1l9 4-4 1-1 4z"/></svg></span>';
+    }
+    return card('data-sidebar="' + m.id + '"', '<span class="choice-preview layout-preview" aria-hidden="true">' + preview + '</span>', m.label, SIDEBAR_INFO[m.id]);
+  }).join("");
+
+  function label(list, id){
+    for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i].label;
+    return id;
+  }
+  function sync(){
+    var theme = A.getTheme(), bg = A.getBackground(), mode = A.getSidebarMode();
+    document.querySelectorAll("[data-theme]").forEach(function(el){ el.setAttribute("aria-pressed", String(el.getAttribute("data-theme") === theme)); });
+    document.querySelectorAll("[data-bg]").forEach(function(el){ el.setAttribute("aria-pressed", String(el.getAttribute("data-bg") === bg)); });
+    document.querySelectorAll("[data-sidebar]").forEach(function(el){ el.setAttribute("aria-pressed", String(el.getAttribute("data-sidebar") === mode)); });
+    document.getElementById("currentTheme").textContent = label(A.themes, theme);
+    document.getElementById("currentBg").textContent = label(A.backgrounds, bg);
+  }
+  document.querySelector(".settings-panel").addEventListener("click", function(e){
+    var el = e.target.closest(".choice");
+    if (!el) return;
+    if (el.hasAttribute("data-theme")) A.setTheme(el.getAttribute("data-theme"));
+    else if (el.hasAttribute("data-bg")) A.setBackground(el.getAttribute("data-bg"));
+    else if (el.hasAttribute("data-sidebar")) A.setSidebarMode(el.getAttribute("data-sidebar"));
+    sync();
+  });
+  window.addEventListener("ez-appearance", sync);
+  sync();
+
+  // ---------- Tabs (remembered in the URL hash) ----------
+  var tabs = Array.prototype.slice.call(document.querySelectorAll(".settings-tab"));
+  function showTab(name, focus){
+    if (!document.getElementById("panel-" + name)) name = "appearance";
+    tabs.forEach(function(t){
+      var on = t.getAttribute("data-tab") === name;
+      t.setAttribute("aria-selected", String(on));
+      t.tabIndex = on ? 0 : -1;
+      if (on && focus) t.focus();
+    });
+    document.querySelectorAll(".settings-body").forEach(function(p){ p.hidden = p.getAttribute("data-panel") !== name; });
+  }
+  tabs.forEach(function(t, i){
+    t.addEventListener("click", function(){
+      var name = t.getAttribute("data-tab");
+      showTab(name);
+      history.replaceState(null, "", name === "appearance" ? location.pathname : "#" + name);
+    });
+    t.addEventListener("keydown", function(e){
+      var d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+      if (!d) return;
+      e.preventDefault();
+      tabs[(i + d + tabs.length) % tabs.length].click();
+      tabs[(i + d + tabs.length) % tabs.length].focus();
+    });
+  });
+  showTab(location.hash.replace("#", "") || "appearance");
+
+  // ---------- Account ----------
+  function renderAccount(){
+    var auth = window.EZAuth, signedIn = !!(auth && auth.isLoggedIn());
+    var name = signedIn ? (auth.getUsername() || "Signed in") : "Not signed in";
+    document.getElementById("accountName").textContent = name;
+    document.getElementById("accountAvatar").textContent = signedIn ? name.charAt(0).toUpperCase() : "?";
+    document.getElementById("accountStatus").textContent = signedIn
+      ? "Signed in. Your journal syncs across your devices."
+      : "Your trades stay on this device until you sign in.";
+    var btn = document.getElementById("accountBtn");
+    btn.textContent = signedIn ? "Sign out" : "Sign in";
+    btn.classList.toggle("primary", !signedIn);
+  }
+  document.getElementById("accountBtn").addEventListener("click", function(){
+    var auth = window.EZAuth;
+    if (!auth) return;
+    if (auth.isLoggedIn()) auth.logout();
+    else auth.openSignIn();
+  });
+  if (window.EZAuth && EZAuth.onChange) EZAuth.onChange(renderAccount);
+  renderAccount();
+})();
+</script>
+</body>
+</html>

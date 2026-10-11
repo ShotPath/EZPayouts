@@ -1,7 +1,8 @@
-// Shared site chrome: a left sidebar (brand + primary nav, with an
+// Shared site chrome: a left sidebar (brand + primary nav, Settings and an
 // expanded/collapsed/expand-on-hover control) and, floating in the top-right
 // corner with no bar behind it, the NY session orb + account widget mount
-// point. Included as a plain
+// point. Also owns appearance: the color theme and the page background
+// (both chosen on /settings/), applied on every page. Included as a plain
 // <script src="/nav.js"> before account.js on every page — no build step,
 // matches the rest of the site. Must run before account.js so the
 // #authWidget mount point it creates already exists when account.js
@@ -18,23 +19,46 @@
   // financial meaning the reskin shouldn't touch — only the background
   // undertone, accent/brand color, and main text tones change.
   var THEME_KEY = "ezpayouts.theme";
-  var THEMES = ["ink", "green", "red", "magenta"];
-  var THEME_LABELS = { green: "Green", ink: "Inked Japan", red: "Red", magenta: "Magenta" };
-  var THEME_SWATCHES = { green: "#3ee08c", ink: "#3b82f6", red: "#d4323f", magenta: "#d63f9d" };
-  var THEME_ICON = '<path d="M10 3.2c-3.9 0-7 2.9-7 6.5 0 3.4 2.9 6.3 6.6 6.3.6 0 1.1-.4 1.1-1 0-.3-.1-.5-.3-.7-.2-.2-.3-.4-.3-.7 0-.5.5-1 1.1-1H13c2.2 0 4-1.6 4-3.6 0-3.2-3.1-5.8-7-5.8z" /><circle cx="7.3" cy="8.3" r=".9" fill="currentColor" stroke="none" /><circle cx="10" cy="6.3" r=".9" fill="currentColor" stroke="none" /><circle cx="12.7" cy="8.3" r=".9" fill="currentColor" stroke="none" />';
+  var THEMES = ["ink", "magenta", "red", "green"];
+  var THEME_LABELS = { ink: "Inked Japan", magenta: "Magenta", red: "Red", green: "Green" };
 
-  function getTheme() {
+  // Page background, shown behind every app page (and through the
+  // translucent sidebar). "current" is the original themed glow.
+  var BG_KEY = "ezpayouts.background";
+  var BACKGROUNDS = ["liquid", "black", "current", "gray"];
+  var BACKGROUND_LABELS = { liquid: "Liquid Chrome", black: "Black", current: "Current", gray: "Gray" };
+
+  var SETTINGS_ICON = '<circle cx="10" cy="10" r="2.6" /><path d="M10 2.5v2M10 15.5v2M2.5 10h2M15.5 10h2M4.7 4.7l1.4 1.4M13.9 13.9l1.4 1.4M4.7 15.3l1.4-1.4M13.9 6.1l1.4-1.4" /><circle cx="10" cy="10" r="5.4" />';
+
+  function readStored(key, allowed, fallback) {
     try {
-      var stored = localStorage.getItem(THEME_KEY);
-      if (THEMES.indexOf(stored) !== -1) return stored;
+      var stored = localStorage.getItem(key);
+      if (allowed.indexOf(stored) !== -1) return stored;
     } catch (err) {}
-    return "ink";
+    return fallback;
   }
+  function getTheme() { return readStored(THEME_KEY, THEMES, "ink"); }
+  function getBackground() { return readStored(BG_KEY, BACKGROUNDS, "current"); }
 
+  // Lets the page's own widgets (charts, 3D views, the Settings page)
+  // follow a change made here or in another tab.
+  function announceAppearance() {
+    var evt;
+    try { evt = new CustomEvent("ez-appearance", { detail: { theme: getTheme(), background: getBackground() } }); }
+    catch (err) { evt = document.createEvent("CustomEvent"); evt.initCustomEvent("ez-appearance", false, false, null); }
+    window.dispatchEvent(evt);
+  }
   function setTheme(theme) {
     if (THEMES.indexOf(theme) === -1) return;
     document.documentElement.setAttribute("data-ez-theme", theme);
     try { localStorage.setItem(THEME_KEY, theme); } catch (err) {}
+    announceAppearance();
+  }
+  function setBackground(bg) {
+    if (BACKGROUNDS.indexOf(bg) === -1) return;
+    try { localStorage.setItem(BG_KEY, bg); } catch (err) {}
+    applyBackground();
+    announceAppearance();
   }
 
   // The public marketing page. Deliberately NOT in NAV_ITEMS/NAV_SECTIONS —
@@ -103,6 +127,10 @@
     { label: "Mentorship", icon: '<circle cx="10" cy="7" r="3" /><path d="M4 16.5c0-3 2.7-5 6-5s6 2 6 5" />' }
   ];
 
+  // Lives at the bottom of the sidebar with the layout control rather than
+  // in the nav groups above.
+  var SETTINGS_ITEM = { slug: "settings", href: "/settings/", label: "Settings", icon: SETTINGS_ICON };
+
   var ALL_NAV_ITEMS = NAV_ITEMS.concat(NAV_SECTIONS.reduce(function (acc, section) { return acc.concat(section); }, []));
 
   // Plain slug isn't unique — P&L Calendar and Economic Calendar both use
@@ -127,8 +155,9 @@
       var qSlug = qItem.slug;
       if ((path.indexOf("/" + qSlug) === 0 || path.indexOf("/" + qSlug + "/") !== -1) && search === qItem.query) return qItem;
     }
-    for (var j = 0; j < ALL_NAV_ITEMS.length; j++) {
-      var item = ALL_NAV_ITEMS[j];
+    var plain = ALL_NAV_ITEMS.concat([SETTINGS_ITEM]);
+    for (var j = 0; j < plain.length; j++) {
+      var item = plain[j];
       if (item.query) continue;
       if (path.indexOf("/" + item.slug) === 0 || path.indexOf("/" + item.slug + "/") !== -1) return item;
     }
@@ -207,15 +236,19 @@
       ".ez-header .market-status:hover strong, .ez-header .market-status:focus-visible strong, .ez-header .market-status.expanded strong{ max-width:130px; opacity:1; }" +
       "@media (max-width:560px){ .ez-header .market-status .label{ display:none; } }" +
 
+      // ~70% opaque in the theme's panel color, blurred, so the page
+      // background shows through softly while labels stay crisp.
       ".ez-sidebar{ position:fixed; top:0; left:0; bottom:0; z-index:400; width:var(--ez-sidebar-collapsed-w);" +
-      " overflow-x:hidden; overflow-y:auto; background:var(--panel-raised); border-right:1px solid var(--hairline-bright);" +
+      " overflow-x:hidden; overflow-y:auto; background:var(--ez-sidebar-bg, var(--panel-raised));" +
+      " -webkit-backdrop-filter:blur(18px) saturate(1.25); backdrop-filter:blur(18px) saturate(1.25);" +
+      " border-right:1px solid var(--hairline-bright); box-shadow:1px 0 0 rgba(255,255,255,0.03), 12px 0 32px -24px rgba(0,0,0,0.8);" +
       " padding:14px 10px; display:flex; flex-direction:column; gap:2px; transition:width .18s ease, box-shadow .18s ease; }" +
       "body[data-sidebar-mode=\"expanded\"] .ez-sidebar{ width:var(--ez-sidebar-w); }" +
       "body[data-sidebar-mode=\"hover\"] .ez-sidebar:hover{ width:var(--ez-sidebar-w); box-shadow:0 20px 50px -12px rgba(0,0,0,0.6); }" +
       ".ez-sidebar-link{ display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:10px;" +
       " color:var(--muted); text-decoration:none; font-family:var(--font-display); font-weight:600; font-size:13.5px;" +
       " white-space:nowrap; overflow:hidden; transition:background .15s, color .15s; }" +
-      ".ez-sidebar-link:hover{ color:var(--ice); background:var(--panel); }" +
+      ".ez-sidebar-link:hover{ color:var(--ice); background:rgba(255,255,255,0.05); }" +
       ".ez-sidebar-link.active{ color:var(--mint-text); background:var(--mint); }" +
       ".ez-sidebar-link-soon{ color:var(--muted-dim); cursor:default; opacity:0.6; }" +
       ".ez-sidebar-link-soon:hover{ color:var(--muted-dim); background:transparent; }" +
@@ -249,7 +282,8 @@
       " background:transparent; border:none; color:var(--muted); cursor:pointer; font-family:var(--font-mono); font-size:11.5px;" +
       " font-weight:600; white-space:nowrap; overflow:hidden; transition:background .15s, color .15s; }" +
       ".ez-sidebar-control-btn{ justify-content:center; padding:10px 0; }" +
-      ".ez-sidebar-control-btn:hover{ color:var(--ice); background:var(--panel); }" +
+      ".ez-sidebar-control-btn:hover{ color:var(--ice); background:rgba(255,255,255,0.05); }" +
+      ".ez-sidebar-settings{ padding-top:8px; }" +
 
       ".ez-sidebar-menu{ position:fixed; z-index:600; min-width:190px;" +
       " background:var(--panel-raised); border:1px solid var(--hairline-bright); border-radius:12px; padding:8px;" +
@@ -296,31 +330,117 @@
       "  .ez-topbar-actions{ order:3; }" +
       "}" +
 
-      // Theme overrides. html[data-ez-theme] beats a bare :root on
-      // specificity, so these win over each page's own default (green)
-      // tokens without touching --red/--amber (loss/warning stay fixed).
-      // "ink" = the site's default theme (see getTheme()'s fallback) — a
-      // cyber-luminescent blue/cyan reskin matching a specific reference
-      // app's palette exactly (deep sumi-ink backgrounds, blue-500/600
-      // accent, white-on-blue buttons instead of dark-on-mint).
+      // Themes. html[data-ez-theme] beats a page's bare :root, so these win
+      // over each page's own default tokens. --red/--amber (loss/warning)
+      // never change: they carry financial meaning.
+      //  * Page tokens (--void, --panel, --phosphor, --mint, ...).
+      //  * --ez-*: accents several pages used to hard-code in ink blue
+      //    (header buttons, trade modal, popovers), the page glow and the
+      //    translucent sidebar.
+      //  * --holo-*: the dashboard's 3D views (r,g,b).
+      //  * --ij-*: the dashboard's own palette; "ink" leaves the
+      //    dashboard's built-in values alone, which ARE the ink look.
+      // "ink" (Inked Japan) is the default and keeps its exact original
+      // values everywhere.
       "html[data-ez-theme=\"ink\"]{" +
+      " --ez-cal-top:#141b2d; --ez-cal-bottom:#0e1424; --ez-cal-well:#0b0f19; --ez-cal-cell:rgba(14,20,36,0.6); --ez-cal-cell-border:#1b2540; --ez-cal-cell-hover:#2d3a5f; --ez-pnl-accent:#2d5bff; --ez-pnl-bg:#0d0f1a; --ez-pnl-border:#22253f; --ez-pnl-cell:#131527; --ez-pnl-cell-border:#1c1f35; --ez-pnl-cell-active:#191c32;" +
+      " --ez-win-a:rgba(59,130,246,0.3); --ez-win-b:rgba(79,70,229,0.2); --ez-win-c:rgba(30,27,75,0.4); --ez-win-line:rgba(96,165,250,0.4); --ez-win-glow:rgba(59,130,246,0.7);" +
       " --void:#050811; --panel:#0d1425; --panel-raised:#121a2e; --panel-hi:#1a243d;" +
       " --hairline:#1c2742; --hairline-bright:#243153;" +
       " --phosphor:#3b82f6; --phosphor-soft:#38bdf8; --phosphor-dim:#1d3a6e; --phosphor-glow:rgba(59,130,246,0.35);" +
       " --mint:#2563eb; --mint-text:#f8fafc;" +
-      " --ice:#e2e8f0; --muted:#94a3b8; --muted-dim:#64748b; }" +
-      "html[data-ez-theme=\"red\"]{" +
-      " --void:#0a0707; --panel:#150c0c; --panel-raised:#1f1313; --panel-hi:#2a1818;" +
-      " --hairline:#3a2020; --hairline-bright:#612c2c;" +
-      " --phosphor:#d4323f; --phosphor-soft:#f08a93; --phosphor-dim:#6e1a21; --phosphor-glow:rgba(212,50,63,0.35);" +
-      " --mint:#e2525f; --mint-text:#2b0609;" +
-      " --ice:#f3dcdc; --muted:#a67f7f; --muted-dim:#6d4f4f; }" +
+      " --ice:#e2e8f0; --muted:#94a3b8; --muted-dim:#64748b;" +
+      " --ez-accent:#3262f6; --ez-accent-rgb:50,98,246; --ez-accent-soft:#8fa8ff; --ez-accent-strong:#527eff; --ez-focus-rgb:59,130,246;" +
+      " --ez-grad-a:#0099ff; --ez-grad-b:#00d2ff; --ez-grad-text:#050811; --ez-grad-glow:rgba(0,210,255,0.4);" +
+      " --ez-btn-bg:#0d1122; --ez-btn-border:#1c2445; --ez-btn-border-hi:#202b54; --ez-btn-text:#cbd5e1;" +
+      " --ez-surface:#0c0e17; --ez-surface-border:#181e30; --ez-field:#0b1020; --ez-field-border:#1f2a44;" +
+      " --ez-popover-bg:rgba(9,13,24,0.95); --ez-popover-border:#26356e;" +
+      " --ez-foot-bg:#0d1329; --ez-foot-border:#1f2d61; --ez-foot-bg-hi:#121b3a;" +
+      " --ez-tint-a:rgba(50,98,246,0.12); --ez-tint-b:rgba(83,186,121,0.07); --ez-sidebar-bg:rgba(18,26,46,0.7);" +
+      " --holo-wire:70,212,255; --holo-prism:72,160,255; --holo-deep:50,98,246; }" +
+
       "html[data-ez-theme=\"magenta\"]{" +
+      " --ez-sel-bg:#150d1c; --ez-sel-border:#2a1a36; --ez-sel-text:#efe4f4; --ez-sel-border-hi:#46305a; --ez-sel-muted:#9a8bab; --ez-sel-accent-soft:#f5a3d6; --ez-sel-dim:#645271; --ez-sel-opt:#e0d0ea; --ez-sel-glow:rgba(236,72,153,0.5); --ez-sel-active:#2a1736; --ez-sel-disabled:#4a3b57;" +
+      " --ez-cal-top:#1e1327; --ez-cal-bottom:#150d1c; --ez-cal-well:#0f0914; --ez-cal-cell:rgba(26,15,34,0.6); --ez-cal-cell-border:#2c1c39; --ez-cal-cell-hover:#4a3160; --ez-pnl-accent:#d63f9d; --ez-pnl-bg:#120a17; --ez-pnl-border:#33213f; --ez-pnl-cell:#1a1022; --ez-pnl-cell-border:#281a33; --ez-pnl-cell-active:#22152c;" +
+      " --ez-win-a:rgba(16,185,129,0.28); --ez-win-b:rgba(5,150,105,0.18); --ez-win-c:rgba(6,40,30,0.45); --ez-win-line:rgba(52,211,153,0.4); --ez-win-glow:rgba(16,185,129,0.6);" +
       " --void:#0a0710; --panel:#150d1c; --panel-raised:#1e1327; --panel-hi:#281a33;" +
       " --hairline:#3a2748; --hairline-bright:#5c3a74;" +
-      " --phosphor:#d63f9d; --phosphor-soft:#ef8fc7; --phosphor-dim:#6e1e52; --phosphor-glow:rgba(214,63,157,0.35);" +
-      " --mint:#e06bb8; --mint-text:#2b0a1f;" +
-      " --ice:#ede3f2; --muted:#9586a8; --muted-dim:#645271; }";
+      " --phosphor:#d63f9d; --phosphor-soft:#f5a3d6; --phosphor-dim:#6e1e52; --phosphor-glow:rgba(214,63,157,0.35);" +
+      " --mint:#d63f9d; --mint-text:#fff5fb;" +
+      " --ice:#efe4f4; --muted:#9a8bab; --muted-dim:#645271;" +
+      " --ez-accent:#d63f9d; --ez-accent-rgb:214,63,157; --ez-accent-soft:#f5a3d6; --ez-accent-strong:#ec6cbd; --ez-focus-rgb:214,63,157;" +
+      " --ez-grad-a:#b62fd6; --ez-grad-b:#f472b6; --ez-grad-text:#ffffff; --ez-grad-glow:rgba(236,72,153,0.4);" +
+      " --ez-btn-bg:#170e1f; --ez-btn-border:#33213f; --ez-btn-border-hi:#43295a; --ez-btn-text:#e7d9ef;" +
+      " --ez-surface:#120b18; --ez-surface-border:#2a1a36; --ez-field:#170e1f; --ez-field-border:#3a2648;" +
+      " --ez-popover-bg:rgba(20,11,27,0.95); --ez-popover-border:#5c3a74;" +
+      " --ez-foot-bg:#1d1027; --ez-foot-border:#4a2a5e; --ez-foot-bg-hi:#271536;" +
+      " --ez-tint-a:rgba(214,63,157,0.13); --ez-tint-b:rgba(139,92,246,0.08); --ez-sidebar-bg:rgba(30,19,39,0.7);" +
+      " --holo-wire:244,150,226; --holo-prism:220,96,200; --holo-deep:140,48,150;" +
+      " --ij-void:#0a0710; --ij-panel:#150d1c; --ij-panel-hi:#1e1327; --ij-border:#2a1a36; --ij-border-bright:#46305a;" +
+      " --ij-blue:#d63f9d; --ij-blue-soft:#f5a3d6; --ij-blue-glow:rgba(214,63,157,0.35);" +
+      " --ij-soft-glow:rgba(245,163,214,0.6); --ij-track:#2a1a36; --ez-cal-icon:#f5a3d6; --ij-ice:#efe4f4; --ij-muted:#9a8bab; --ij-muted-dim:#645271; }" +
+
+      "html[data-ez-theme=\"red\"]{" +
+      " --ez-sel-bg:#150c0c; --ez-sel-border:#2a1616; --ez-sel-text:#f5e1e1; --ez-sel-border-hi:#4a2226; --ez-sel-muted:#a88383; --ez-sel-accent-soft:#f8a0a6; --ez-sel-dim:#6d4f4f; --ez-sel-opt:#ead2d2; --ez-sel-glow:rgba(255,90,80,0.5); --ez-sel-active:#2c1416; --ez-sel-disabled:#553c3c;" +
+      " --ez-cal-top:#1f1313; --ez-cal-bottom:#150c0c; --ez-cal-well:#0e0808; --ez-cal-cell:rgba(30,14,14,0.6); --ez-cal-cell-border:#351b1d; --ez-cal-cell-hover:#5a2a2e; --ez-pnl-accent:#e23744; --ez-pnl-bg:#120909; --ez-pnl-border:#3a1c20; --ez-pnl-cell:#1a0e0f; --ez-pnl-cell-border:#2a1517; --ez-pnl-cell-active:#231214;" +
+      " --ez-win-a:rgba(16,185,129,0.28); --ez-win-b:rgba(5,150,105,0.18); --ez-win-c:rgba(6,40,30,0.45); --ez-win-line:rgba(52,211,153,0.4); --ez-win-glow:rgba(16,185,129,0.6);" +
+      " --void:#0a0707; --panel:#150c0c; --panel-raised:#1f1313; --panel-hi:#2a1818;" +
+      " --hairline:#3a2020; --hairline-bright:#612c2c;" +
+      " --phosphor:#e23744; --phosphor-soft:#f3c68c; --phosphor-dim:#6e1a21; --phosphor-glow:rgba(226,55,68,0.35);" +
+      " --mint:#e23744; --mint-text:#fff6f6;" +
+      " --ice:#f5e1e1; --muted:#a88383; --muted-dim:#6d4f4f;" +
+      " --ez-accent:#e23744; --ez-accent-rgb:226,55,68; --ez-accent-soft:#f8a0a6; --ez-accent-strong:#ff5c69; --ez-focus-rgb:226,55,68;" +
+      " --ez-grad-a:#d42a3c; --ez-grad-b:#ff7a59; --ez-grad-text:#ffffff; --ez-grad-glow:rgba(255,90,80,0.4);" +
+      " --ez-btn-bg:#170c0d; --ez-btn-border:#3a1c20; --ez-btn-border-hi:#4c2228; --ez-btn-text:#f1d8d8;" +
+      " --ez-surface:#130a0b; --ez-surface-border:#2c1517; --ez-field:#170c0d; --ez-field-border:#3f2125;" +
+      " --ez-popover-bg:rgba(22,10,11,0.95); --ez-popover-border:#612c2c;" +
+      " --ez-foot-bg:#1f0d10; --ez-foot-border:#5a232a; --ez-foot-bg-hi:#2a1215;" +
+      " --ez-tint-a:rgba(226,55,68,0.12); --ez-tint-b:rgba(255,122,89,0.07); --ez-sidebar-bg:rgba(31,19,19,0.7);" +
+      " --holo-wire:255,150,134; --holo-prism:240,88,98; --holo-deep:160,32,48;" +
+      " --ij-void:#0a0707; --ij-panel:#150c0c; --ij-panel-hi:#1f1313; --ij-border:#2a1616; --ij-border-bright:#4a2226;" +
+      " --ij-blue:#e23744; --ij-blue-soft:#f8a0a6; --ij-blue-glow:rgba(226,55,68,0.35);" +
+      " --ij-soft-glow:rgba(248,160,166,0.6); --ij-track:#2a1616; --ez-cal-icon:#f3c68c; --ij-ice:#f5e1e1; --ij-muted:#a88383; --ij-muted-dim:#6d4f4f; }" +
+
+      "html[data-ez-theme=\"green\"]{" +
+      " --ez-sel-bg:#0b130e; --ez-sel-border:#16261c; --ez-sel-text:#e3f3e8; --ez-sel-border-hi:#24402f; --ez-sel-muted:#86a090; --ez-sel-accent-soft:#8fe6b6; --ez-sel-dim:#566b5e; --ez-sel-opt:#cfe5d7; --ez-sel-glow:rgba(62,224,140,0.5); --ez-sel-active:#13261b; --ez-sel-disabled:#3d4f44;" +
+      " --ez-cal-top:#111d16; --ez-cal-bottom:#0b130e; --ez-cal-well:#070d0a; --ez-cal-cell:rgba(12,24,18,0.6); --ez-cal-cell-border:#1a2f23; --ez-cal-cell-hover:#2b4a38; --ez-pnl-accent:#22c57a; --ez-pnl-bg:#09110d; --ez-pnl-border:#1c3326; --ez-pnl-cell:#0e1813; --ez-pnl-cell-border:#17271e; --ez-pnl-cell-active:#13211a;" +
+      " --ez-win-a:rgba(16,185,129,0.28); --ez-win-b:rgba(5,150,105,0.18); --ez-win-c:rgba(6,40,30,0.45); --ez-win-line:rgba(52,211,153,0.4); --ez-win-glow:rgba(16,185,129,0.6);" +
+      " --void:#050a07; --panel:#0b130e; --panel-raised:#101a14; --panel-hi:#16231b;" +
+      " --hairline:#1c2e23; --hairline-bright:#2b4a38;" +
+      " --phosphor:#3ee08c; --phosphor-soft:#8fe6b6; --phosphor-dim:#1c5c3d; --phosphor-glow:rgba(62,224,140,0.35);" +
+      " --mint:#3ee08c; --mint-text:#03200f;" +
+      " --ice:#e3f3e8; --muted:#7f9a89; --muted-dim:#4f6457;" +
+      " --ez-accent:#22c57a; --ez-accent-rgb:34,197,122; --ez-accent-soft:#8fe6b6; --ez-accent-strong:#3ee08c; --ez-focus-rgb:62,224,140;" +
+      " --ez-grad-a:#10b981; --ez-grad-b:#5eead4; --ez-grad-text:#03140b; --ez-grad-glow:rgba(45,212,191,0.4);" +
+      " --ez-btn-bg:#0b1510; --ez-btn-border:#1c3326; --ez-btn-border-hi:#24412f; --ez-btn-text:#d2e9db;" +
+      " --ez-surface:#09110d; --ez-surface-border:#172a20; --ez-field:#0c1611; --ez-field-border:#21392c;" +
+      " --ez-popover-bg:rgba(8,16,12,0.95); --ez-popover-border:#2b4a38;" +
+      " --ez-foot-bg:#0d1c14; --ez-foot-border:#24503a; --ez-foot-bg-hi:#11261a;" +
+      " --ez-tint-a:rgba(62,224,140,0.10); --ez-tint-b:rgba(45,212,191,0.06); --ez-sidebar-bg:rgba(16,26,20,0.7);" +
+      " --holo-wire:94,234,212; --holo-prism:52,211,153; --holo-deep:16,120,80;" +
+      " --ij-void:#050a07; --ij-panel:#0b130e; --ij-panel-hi:#111d16; --ij-border:#16261c; --ij-border-bright:#24402f;" +
+      " --ij-blue:#22c57a; --ij-blue-soft:#8fe6b6; --ij-blue-glow:rgba(34,197,122,0.35);" +
+      " --ij-soft-glow:rgba(143,230,182,0.6); --ij-track:#16261c; --ez-cal-icon:#8fe6b6; --ij-ice:#e3f3e8; --ij-muted:#86a090; --ij-muted-dim:#566b5e; }" +
+
+      // ---- Page titles: one style for every app page.
+      "body.ez-app .ez-page-title{ font-family:var(--font-display); font-weight:700; text-transform:uppercase;" +
+      " font-size:clamp(22px,2.4vw,28px); line-height:1.15; letter-spacing:0.16em; color:var(--ice, #eef1fb); margin:0; }" +
+      "body.ez-app .ez-page-sub{ margin:8px 0 0; font-size:13px; line-height:1.5; color:var(--muted, #848ca3); letter-spacing:0; text-transform:none; }" +
+      "body.ez-app .ez-page-head{ padding:22px 0 18px; }" +
+
+      // ---- Backgrounds (app pages only; the public home page keeps its
+      // own). "current" = the original glow, tinted by the theme.
+      "html[data-ez-bg=\"current\"] body.ez-app{ background:" +
+      " radial-gradient(ellipse 120% 60% at 50% -10%, var(--ez-tint-a), transparent 60%)," +
+      " radial-gradient(ellipse 80% 50% at 100% 100%, var(--ez-tint-b), transparent 60%), var(--void); }" +
+      "html[data-ez-bg=\"black\"] body.ez-app{ background:#000; }" +
+      "html[data-ez-bg=\"gray\"] body.ez-app{ background:#2a2c31; }" +
+      // Liquid chrome: a WebGL canvas fixed behind the page (see
+      // startLiquidChrome); the gradient is its stand-in until the first
+      // frame, or for good without WebGL.
+      "html[data-ez-bg=\"liquid\"]{ background:#0d0e11 linear-gradient(125deg, #121317 0%, #34363c 22%, #101114 42%, #3b3d44 63%, #121316 82%, #2a2c31 100%) fixed; }" +
+      "html[data-ez-bg=\"liquid\"] body.ez-app{ background:transparent; }" +
+      ".ez-bg-chrome{ position:fixed; inset:0; width:100vw; height:100vh; z-index:-1; pointer-events:none; display:block; }";
     document.head.appendChild(style);
   }
 
@@ -373,8 +493,7 @@
   var openControlCloser = null;
 
   // Builds one bottom-of-sidebar icon button that opens a small popover
-  // menu of radio-style choices. Used for both the theme switcher and the
-  // expanded/collapsed/hover control below it.
+  // menu of radio-style choices (the expanded/collapsed/hover control).
   function buildSidebarControl(opts) {
     var wrap = document.createElement("div");
     wrap.className = "ez-sidebar-control";
@@ -402,11 +521,8 @@
       menu.innerHTML = '<div class="ez-sidebar-menu-eyebrow">' + opts.eyebrow + '</div>' +
         opts.items.map(function (item) {
           var selected = item.value === current;
-          var dotStyle = item.swatch
-            ? ' style="background:' + item.swatch + ';border-color:' + item.swatch + (selected ? ";box-shadow:0 0 8px 1px " + item.swatch : "") + '"'
-            : "";
           return '<button type="button" class="ez-sidebar-menu-item' + (selected ? " selected" : "") + '" data-value="' + item.value + '">' +
-            '<span class="dot" aria-hidden="true"' + dotStyle + '></span>' + item.label +
+            '<span class="dot" aria-hidden="true"></span>' + item.label +
           "</button>";
         }).join("");
       menu.querySelectorAll("[data-value]").forEach(function (btn) {
@@ -471,14 +587,11 @@
       '<div class="ez-sidebar-section">' + COMING_SOON_ITEMS.map(renderComingSoon).join("") + "</div>" +
       '<span class="ez-sidebar-spacer"></span>';
 
-    nav.appendChild(buildSidebarControl({
-      icon: THEME_ICON,
-      ariaLabel: "Theme",
-      eyebrow: "Theme",
-      items: THEMES.map(function (t) { return { value: t, label: THEME_LABELS[t], swatch: THEME_SWATCHES[t] }; }),
-      getActive: getTheme,
-      onSelect: setTheme
-    }));
+    // Settings (theme, background, layout) in place of the old color picker.
+    var settingsWrap = document.createElement("div");
+    settingsWrap.className = "ez-sidebar-control ez-sidebar-settings";
+    settingsWrap.innerHTML = renderLink(SETTINGS_ITEM);
+    nav.appendChild(settingsWrap);
     nav.appendChild(buildSidebarControl({
       icon: SIDEBAR_TOGGLE_ICON,
       ariaLabel: "Sidebar control",
@@ -489,6 +602,150 @@
     }));
 
     return nav;
+  }
+
+  // ---------- Liquid chrome page background ----------
+  // The same domain-warped metal as the Journal's share card, darker and
+  // slower so the page reads on top of it. Rendered at reduced resolution
+  // (it's soft by nature; CSS scales it up), capped near 30fps, paused by
+  // the browser while the tab is hidden, and a single still frame for
+  // reduced motion. Without WebGL the CSS gradient stand-in stays.
+  var chrome = null;
+  var CHROME_FS = [
+    "precision mediump float;",
+    "uniform vec2 uRes; uniform float uTime;",
+    "float field(vec2 p, float t){",
+    "  vec2 q = p;",
+    "  q += 0.42 * vec2(sin(q.y * 1.35 + t * 0.50), cos(q.x * 1.15 - t * 0.42));",
+    "  q += 0.26 * vec2(sin(q.y * 2.30 - t * 0.36 + 1.7), cos(q.x * 2.05 + t * 0.55 + 0.4));",
+    "  q += 0.12 * vec2(sin(q.y * 3.90 + t * 0.70 + 2.3), cos(q.x * 3.60 - t * 0.62 + 1.1));",
+    "  return sin(q.x * 1.7) * cos(q.y * 1.9) + 0.4 * sin(q.x * 2.6 + q.y * 1.4 + t * 0.22);",
+    "}",
+    "float height(vec2 p, float t){",
+    "  float v = field(p, t);",
+    "  float tube = cos(min(abs(v) / 0.42, 1.0) * 1.5707963);",
+    "  return tube * 0.9 + v * 0.2;",
+    "}",
+    "void main(){",
+    "  vec2 uv = gl_FragCoord.xy / uRes;",
+    "  vec2 p = (gl_FragCoord.xy - 0.5 * uRes) / uRes.y * 3.1 + vec2(0.6, -0.2);",
+    "  float t = uTime, e = 0.006, h = height(p, t);",
+    "  float hx = (height(p + vec2(e, 0.0), t) - height(p - vec2(e, 0.0), t)) / (2.0 * e);",
+    "  float hy = (height(p + vec2(0.0, e), t) - height(p - vec2(0.0, e), t)) / (2.0 * e);",
+    "  vec3 n = normalize(vec3(-hx * 0.5, -hy * 0.5, 1.0));",
+    "  vec3 r = reflect(vec3(0.0, 0.0, -1.0), n);",
+    "  float env = 0.16;",
+    "  env += 1.1 * smoothstep(0.57, 0.97, dot(r, normalize(vec3(-0.35, 0.75, 0.55))));",
+    "  env += 0.5 * smoothstep(0.60, 0.96, dot(r, normalize(vec3(0.85, -0.15, 0.55))));",
+    "  env += 0.2 * smoothstep(0.70, 0.98, dot(r, normalize(vec3(-0.2, -0.85, 0.5))));",
+    "  env *= 0.75 + 0.35 * (0.5 + 0.5 * sin((r.x * 2.4 - r.y * 3.2) * 3.0 + 1.3));",
+    "  env += 1.1 * pow(max(dot(r, normalize(vec3(-0.45, 0.55, 0.70))), 0.0), 60.0);",
+    "  env += pow(1.0 - n.z, 3.0) * 0.3;",
+    "  vec3 col = vec3(env) * vec3(0.86, 0.89, 0.95);",
+    "  col *= 0.55 + 0.45 * smoothstep(-0.25, 0.7, h);",
+    "  col *= 0.5 + 0.5 * smoothstep(1.25, 0.1, length((uv - vec2(0.55, 0.55)) * vec2(1.2, 1.0)));",
+    "  gl_FragColor = vec4(pow(col * 0.56, vec3(0.95)), 1.0);",
+    "}"
+  ].join("\n");
+  // Sets up the chrome shader on a canvas; null without WebGL.
+  function chromeGL(canvas, keepPixels) {
+    var gl = null;
+    try {
+      gl = canvas.getContext("webgl", { antialias: false, alpha: false, depth: false, powerPreference: "low-power", preserveDrawingBuffer: !!keepPixels });
+      if (!gl) return null;
+      var compile = function (type, src) {
+        var sh = gl.createShader(type);
+        gl.shaderSource(sh, src);
+        gl.compileShader(sh);
+        if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(sh));
+        return sh;
+      };
+      var prog = gl.createProgram();
+      gl.attachShader(prog, compile(gl.VERTEX_SHADER, "attribute vec2 a;void main(){gl_Position=vec4(a,0.0,1.0);}"));
+      gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, CHROME_FS));
+      gl.linkProgram(prog);
+      if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+      gl.useProgram(prog);
+      gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+      var loc = gl.getAttribLocation(prog, "a");
+      gl.enableVertexAttribArray(loc);
+      gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+      return { gl: gl, uRes: gl.getUniformLocation(prog, "uRes"), uTime: gl.getUniformLocation(prog, "uTime") };
+    } catch (err) {
+      return null;
+    }
+  }
+  // A still frame as an image URL, for the Settings page's preview tile.
+  var chromeStillUrl = null;
+  function chromeStill() {
+    if (chromeStillUrl !== null) return chromeStillUrl;
+    var canvas = document.createElement("canvas");
+    canvas.width = 480; canvas.height = 300;
+    var c = chromeGL(canvas, true);
+    if (!c) return (chromeStillUrl = "");
+    c.gl.viewport(0, 0, 480, 300);
+    c.gl.uniform2f(c.uRes, 480, 300);
+    c.gl.uniform1f(c.uTime, 4.0);
+    c.gl.drawArrays(c.gl.TRIANGLES, 0, 3);
+    chromeStillUrl = canvas.toDataURL("image/jpeg", 0.85);
+    var lose = c.gl.getExtension("WEBGL_lose_context");
+    if (lose) lose.loseContext();
+    return chromeStillUrl;
+  }
+  function startLiquidChrome() {
+    if (chrome) return;
+    var canvas = document.createElement("canvas");
+    canvas.className = "ez-bg-chrome";
+    canvas.setAttribute("aria-hidden", "true");
+    var c = chromeGL(canvas, false);
+    if (!c) return;
+    var gl = c.gl, uRes = c.uRes, uTime = c.uTime;
+    document.body.insertBefore(canvas, document.body.firstChild);
+    var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var raf = 0, last = 0, start = performance.now();
+    function size() {
+      var scale = Math.min(0.6, 1100 / Math.max(1, window.innerWidth));
+      var w = Math.max(1, Math.round(window.innerWidth * scale)), h = Math.max(1, Math.round(window.innerHeight * scale));
+      if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+      gl.viewport(0, 0, w, h);
+      gl.uniform2f(uRes, w, h);
+    }
+    function draw(now) {
+      gl.uniform1f(uTime, 4.0 + (now - start) / 1000 * 0.22);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    }
+    function loop(now) {
+      raf = requestAnimationFrame(loop);
+      if (now - last < 32) return;
+      last = now;
+      draw(now);
+    }
+    function onResize() { size(); draw(performance.now()); }
+    size();
+    draw(performance.now());
+    if (!reduced) raf = requestAnimationFrame(loop);
+    window.addEventListener("resize", onResize);
+    chrome = {
+      stop: function () {
+        cancelAnimationFrame(raf);
+        window.removeEventListener("resize", onResize);
+        var lose = gl.getExtension("WEBGL_lose_context");
+        if (lose) lose.loseContext();
+        canvas.remove();
+        chrome = null;
+      }
+    };
+  }
+
+  // App pages only; the public home page keeps its own background.
+  function applyBackground() {
+    var bg = getBackground();
+    var isApp = document.body && document.body.classList.contains("ez-app");
+    if (isApp) document.documentElement.setAttribute("data-ez-bg", bg);
+    else document.documentElement.removeAttribute("data-ez-bg");
+    if (bg === "liquid" && isApp) startLiquidChrome();
+    else if (chrome) chrome.stop();
   }
 
   // ---------- NY session clock (shared across pages) ----------
@@ -586,11 +843,35 @@
     var topbar = buildTopbar(isHome ? itemKey(activeItem) : null);
     document.body.insertBefore(topbar, document.body.firstChild);
   } else {
+    document.body.classList.add("ez-app");
     document.body.setAttribute("data-sidebar-mode", getSidebarMode());
     var header = buildHeader();
     var sidebar = buildSidebar(itemKey(activeItem));
     document.body.insertBefore(sidebar, document.body.firstChild);
     document.body.insertBefore(header, document.body.firstChild);
   }
+  applyBackground();
   startClock();
+
+  // Follow appearance changes made in another tab.
+  window.addEventListener("storage", function (e) {
+    if (e.key === THEME_KEY) {
+      document.documentElement.setAttribute("data-ez-theme", getTheme());
+      announceAppearance();
+    } else if (e.key === BG_KEY) {
+      applyBackground();
+      announceAppearance();
+    }
+  });
+
+  // For the Settings page.
+  window.EZAppearance = {
+    themes: THEMES.map(function (id) { return { id: id, label: THEME_LABELS[id] }; }),
+    backgrounds: BACKGROUNDS.map(function (id) { return { id: id, label: BACKGROUND_LABELS[id] }; }),
+    sidebarModes: SIDEBAR_MODES.map(function (id) { return { id: id, label: SIDEBAR_MODE_LABELS[id] }; }),
+    getTheme: getTheme, setTheme: setTheme,
+    getBackground: getBackground, setBackground: setBackground,
+    getSidebarMode: getSidebarMode, setSidebarMode: setSidebarMode,
+    chromeStill: chromeStill
+  };
 })();

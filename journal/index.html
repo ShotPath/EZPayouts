@@ -172,60 +172,59 @@
   .danger-btn[hidden]{ display:none; }
 
   /* ---------- Journal header action row: cyber-luminescent restyle ----------
-     Scoped to .page-head-actions only — the rest of the site (and the
-     trade modal's own buttons) keep the standard green theme. "+ Log
-     Trade" already opens the modal in Quick Log mode by default (the
-     mode toggle lives inside the modal itself), so this reskins the one
-     real action rather than adding a second button that would do the
-     exact same thing under a different label. */
+     Scoped to .page-head-actions only. "+ Add Trade" already opens the
+     modal in Quick Log mode by default (the mode toggle lives inside the
+     modal itself), so this reskins the one real action rather than adding
+     a second button that would do the same thing under a different label.
+     Colors come from the theme's --ez-* tokens (nav.js). */
   .page-head-actions .primary-btn{
-    border:1px solid transparent; background:linear-gradient(90deg, #0099ff, #00d2ff); color:#050811;
-    font-weight:800; box-shadow:0 0 15px rgba(0,210,255,0.4); transition:filter .15s, transform .1s;
+    border:1px solid transparent; background:linear-gradient(90deg, var(--ez-grad-a), var(--ez-grad-b)); color:var(--ez-grad-text);
+    font-weight:800; box-shadow:0 0 15px var(--ez-grad-glow); transition:filter .15s, transform .1s;
   }
   .page-head-actions .primary-btn:hover{ filter:brightness(1.1); }
   .page-head-actions .primary-btn:active{ transform:scale(0.96); }
   .page-head-actions .ghost-btn{
-    background:#0d1122; border-color:#1c2445; color:#cbd5e1;
+    background:var(--ez-btn-bg); border-color:var(--ez-btn-border); color:var(--ez-btn-text);
     box-shadow:0 0 10px rgba(0,0,0,0.5); transition:border-color .15s, color .15s, box-shadow .15s;
   }
-  .page-head-actions .ghost-btn:hover{ border-color:#3262f6; color:#fff; box-shadow:0 0 12px rgba(50,98,246,0.25); background:#0d1122; }
-  .page-head-actions #acctFilterBtn{ border-color:#202b54; box-shadow:0 0 15px rgba(50,98,246,0.2); }
-  .page-head-actions #acctFilterBtn:hover{ border-color:#3262f6; }
+  .page-head-actions .ghost-btn:hover{ border-color:var(--ez-accent); color:#fff; box-shadow:0 0 12px rgba(var(--ez-accent-rgb),0.25); background:var(--ez-btn-bg); }
+  .page-head-actions #acctFilterBtn{ border-color:var(--ez-btn-border-hi); box-shadow:0 0 15px rgba(var(--ez-accent-rgb),0.2); }
+  .page-head-actions #acctFilterBtn:hover{ border-color:var(--ez-accent); }
   .acct-filter-popover{
-    background:rgba(9,13,24,0.95); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
-    border-color:#26356e; box-shadow:0 10px 30px rgba(50,98,246,0.25);
+    background:var(--ez-popover-bg); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+    border-color:var(--ez-popover-border); box-shadow:0 10px 30px rgba(var(--ez-accent-rgb),0.25);
   }
   .acct-filter-foot .ghost-btn{
-    background:#0d1329; border-color:#1f2d61; color:#3262f6; font-weight:700;
+    background:var(--ez-foot-bg); border-color:var(--ez-foot-border); color:var(--ez-accent); font-weight:700;
   }
-  .acct-filter-foot .ghost-btn:hover{ background:#121b3a; color:#527eff; border-color:#3262f6; }
+  .acct-filter-foot .ghost-btn:hover{ background:var(--ez-foot-bg-hi); color:var(--ez-accent-strong); border-color:var(--ez-accent); }
 
   /* ---------- Log a Trade modal: cyber-luminescent restyle ----------
      Scoped to #tradeModalOverlay only — the Share/Strategy/Help/Filters
-     modals reuse the same base .modal classes and keep the standard
-     green theme. */
+     modals reuse the same base .modal classes and keep the page's own
+     tokens. Colors come from the theme's --ez-* tokens (nav.js). */
   #tradeModalOverlay{ background:rgba(2,4,10,0.78); backdrop-filter:blur(6px); }
   #tradeModalOverlay .modal{
-    background:#0c0e17; border-color:#181e30; border-radius:18px;
-    box-shadow:0 30px 70px -20px rgba(0,0,0,0.7), 0 0 40px -14px rgba(50,98,246,0.25);
+    background:var(--ez-surface); border-color:var(--ez-surface-border); border-radius:18px;
+    box-shadow:0 30px 70px -20px rgba(0,0,0,0.7), 0 0 40px -14px rgba(var(--ez-accent-rgb),0.25);
   }
   #tradeModalOverlay .field input[type="text"], #tradeModalOverlay .field input[type="date"],
   #tradeModalOverlay .field input[type="number"], #tradeModalOverlay .select{
-    background:#0b1020; border-color:#1f2a44; transition:border-color .15s, box-shadow .15s;
+    background:var(--ez-field); border-color:var(--ez-field-border); transition:border-color .15s, box-shadow .15s;
   }
   #tradeModalOverlay .field input:focus, #tradeModalOverlay .select:focus{
-    border-color:rgba(59,130,246,0.7); box-shadow:0 0 0 2px rgba(59,130,246,0.2);
+    border-color:rgba(var(--ez-focus-rgb),0.7); box-shadow:0 0 0 2px rgba(var(--ez-focus-rgb),0.2);
   }
-  #tradeModalOverlay .field textarea{ background:#0b1020; border-color:#1f2a44; transition:border-color .15s, box-shadow .15s; }
-  #tradeModalOverlay .field textarea:focus{ border-color:rgba(59,130,246,0.7); box-shadow:0 0 0 2px rgba(59,130,246,0.2); }
+  #tradeModalOverlay .field textarea{ background:var(--ez-field); border-color:var(--ez-field-border); transition:border-color .15s, box-shadow .15s; }
+  #tradeModalOverlay .field textarea:focus{ border-color:rgba(var(--ez-focus-rgb),0.7); box-shadow:0 0 0 2px rgba(var(--ez-focus-rgb),0.2); }
   #tradeModalOverlay .dir-tile.long.active{
-    border-color:#3262f6; background:rgba(50,98,246,0.12); color:#8fa8ff;
-    box-shadow:0 0 0 1px #3262f6 inset, 0 0 16px rgba(50,98,246,0.35);
+    border-color:var(--ez-accent); background:rgba(var(--ez-accent-rgb),0.12); color:var(--ez-accent-soft);
+    box-shadow:0 0 0 1px var(--ez-accent) inset, 0 0 16px rgba(var(--ez-accent-rgb),0.35);
   }
-  #tradeModalOverlay .grade-tile.active{ box-shadow:0 0 14px rgba(50,98,246,0.4); }
+  #tradeModalOverlay .grade-tile.active{ box-shadow:0 0 14px rgba(var(--ez-accent-rgb),0.4); }
   #tradeModalOverlay #saveTradeBtn{
-    background:linear-gradient(90deg, #0099ff, #00d2ff); border-color:transparent; color:#050811; font-weight:800;
-    box-shadow:0 0 15px rgba(0,210,255,0.4); transition:filter .15s, transform .1s;
+    background:linear-gradient(90deg, var(--ez-grad-a), var(--ez-grad-b)); border-color:transparent; color:var(--ez-grad-text); font-weight:800;
+    box-shadow:0 0 15px var(--ez-grad-glow); transition:filter .15s, transform .1s;
   }
   #tradeModalOverlay #saveTradeBtn:hover{ filter:brightness(1.08); }
   #tradeModalOverlay #saveTradeBtn:active{ transform:scale(0.97); }
@@ -1027,8 +1026,8 @@
   <div class="page-head">
     <div class="page-head-title-group">
       <div>
-        <h1>Journal</h1>
-        <p class="page-head-sub">Your trading history, ready to review.</p>
+        <h1 class="ez-page-title">Journal</h1>
+        <p class="page-head-sub ez-page-sub">Your trading history, ready to review.</p>
       </div>
     </div>
     <div class="page-head-actions">

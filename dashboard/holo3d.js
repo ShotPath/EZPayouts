@@ -20,9 +20,21 @@
   var MONTHS = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
   var MONTHS_LONG = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
+  // Wires, prism and floor glow follow the site theme (--holo-* "r,g,b"
+  // tokens from nav.js); these are the Inked Japan defaults.
   var CYAN = [70, 212, 255];
   var PRISM = [72, 160, 255];
   var BLUE = [50, 98, 246];
+  function readThemeColors(){
+    var cs = getComputedStyle(document.documentElement);
+    function rgb(name, fallback){
+      var parts = cs.getPropertyValue(name).split(",").map(function(v){ return parseInt(v, 10); });
+      return parts.length === 3 && parts.every(function(v){ return v >= 0 && v <= 255; }) ? parts : fallback;
+    }
+    CYAN = rgb("--holo-wire", [70, 212, 255]);
+    PRISM = rgb("--holo-prism", [72, 160, 255]);
+    BLUE = rgb("--holo-deep", [50, 98, 246]);
+  }
   var GREEN = [86, 236, 146];
   var RED = [255, 98, 98];
   var ICE = [232, 240, 255];
@@ -1147,10 +1159,18 @@
     });
   };
 
+  var views = [];
+  readThemeColors();
+  window.addEventListener("ez-appearance", function(){
+    readThemeColors();
+    views.forEach(function(v){ v.drawNow(); });
+  });
+
   function make(Ctor){
     return function(container, opts){
       if (!container) return null;
       var view = new Ctor(container, opts);
+      if (view.ok) views.push(view);
       return view.ok ? view : null;
     };
   }
