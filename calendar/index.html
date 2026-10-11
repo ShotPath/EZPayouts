@@ -458,8 +458,26 @@
   .pnl-day-pnl{ margin-top:8px; font-family:var(--font-display); font-weight:600; font-size:14px; color:#a5f3fc; }
   .pnl-day-pnl.neg{ color:#fda4af; }
   .pnl-day-count{ font-size:11px; color:var(--muted); }
+  .pnl-day-pnl .short{ display:none; }
+  /* Narrow screens keep all seven days across (no sideways scrolling, so
+     the weekday labels always sit over their own column); phones get
+     compact cells with a short P&L. */
   @media (max-width:820px){
-    .pnl-grid, .pnl-weekday-head{ grid-template-columns:repeat(7, minmax(92px,1fr)); overflow-x:auto; }
+    .pnl-grid, .pnl-weekday-head{ grid-template-columns:repeat(7, minmax(0,1fr)); gap:6px; }
+    .pnl-day{ min-height:72px; padding:7px 6px; }
+    .pnl-day-pnl{ font-size:12.5px; white-space:nowrap; }
+  }
+  @media (max-width:560px){
+    .pnl-body{ padding:10px 8px; }
+    .pnl-grid, .pnl-weekday-head{ gap:4px; }
+    .pnl-weekday-head span{ font-size:10.5px; }
+    .pnl-day{ min-height:58px; padding:6px 2px; border-radius:9px; align-items:center; text-align:center; }
+    .pnl-grid.week-view .pnl-day{ min-height:84px; }
+    .pnl-day-num{ font-size:11px; }
+    .pnl-day-pnl{ margin-top:5px; font-size:10.5px; letter-spacing:-0.02em; white-space:nowrap; }
+    .pnl-day-pnl .full{ display:none; }
+    .pnl-day-pnl .short{ display:inline; }
+    .pnl-day-count{ display:none; }
   }
 </style>
 </head>
@@ -1260,6 +1278,12 @@
   // grid, Week gets exactly one row of 7 taller cards (matches the
   // reference exactly: it's one cell renderer, just a different `cells`
   // array and a taller min-height class per view).
+  // "+$791", "-$1.3k", "+$12k": fits a phone-width day cell.
+  function fmtMoneyCompact(n){
+    var a = Math.abs(n), sign = n < 0 ? "-" : "+";
+    if (a < 1000) return sign + "$" + Math.round(a);
+    return sign + "$" + (a / 1000).toFixed(a < 10000 ? 1 : 0).replace(/\.0$/, "") + "k";
+  }
   function renderPnlCalendar(){
     var byDate = pnlByDate();
     var today = new Date(); today.setHours(0, 0, 0, 0);
@@ -1280,7 +1304,8 @@
       var body = "";
       if (data){
         cls.push("has-data", data.pnl >= 0 ? "win" : "loss");
-        body = '<div class="pnl-day-pnl ' + (data.pnl >= 0 ? "pos" : "neg") + '">' + fmtMoneySigned(data.pnl) + '</div>' +
+        body = '<div class="pnl-day-pnl ' + (data.pnl >= 0 ? "pos" : "neg") + '">' +
+            '<span class="full">' + fmtMoneySigned(data.pnl) + '</span><span class="short">' + fmtMoneyCompact(data.pnl) + '</span></div>' +
           '<div class="pnl-day-count">' + data.count + " trade" + (data.count === 1 ? "" : "s") + '</div>';
       }
       return '<div class="' + cls.join(" ") + '" data-date="' + key + '"' + (isOutside ? "" : ' tabindex="0" role="button"') + '>' +

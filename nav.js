@@ -184,9 +184,9 @@
     style.id = "ezNavStyles";
     style.textContent = "" +
       // The sidebar scales with the screen: about 420px on a 1920px display,
-      // ~280px on a 1280px laptop, so it stays substantial without crowding
-      // smaller screens.
-      ":root{ --ez-header-h:56px; --ez-sidebar-w:clamp(272px,22vw,424px); --ez-sidebar-collapsed-w:80px; --ez-content-gutter:clamp(16px,4vw,48px); }" +
+      // ~280px on a 1280px laptop, 212px on tablets, so it stays substantial
+      // without crowding smaller screens.
+      ":root{ --ez-header-h:56px; --ez-sidebar-w:clamp(212px,22vw,424px); --ez-sidebar-collapsed-w:80px; --ez-content-gutter:clamp(16px,4vw,48px); }" +
       // Each page's own .wrap centers itself with margin:auto inside body's
       // content box — but that only adds breathing room once the viewport is
       // wider than sidebar + wrap + gutter. Below that (most real screens),
