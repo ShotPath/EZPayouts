@@ -2329,107 +2329,20 @@
   function isAnimatedBg(){ return shareBg.type === "video" || shareBg.type === "gif" || shareBg.type === "liquid"; }
 
   // ---------- Liquid chrome background ----------
-  // A fragment shader draws a domain-warped height field whose zero
-  // contours become rounded "tubes", then shades it as polished metal by
-  // reflecting a studio light setup off the surface normal. It renders on
-  // the GPU into its own WebGL canvas at the exact pixel size needed, and
-  // the card copies that in 1:1, so it costs almost nothing per frame.
+  // The site's own liquid chrome page background (nav.js), drawn on the GPU
+  // at the exact pixel size needed and copied onto the card. Same surface,
+  // lighting and pace as the page, so the card matches what's behind it.
   var LiquidChrome = (function(){
-    var canvas = null, gl = null, uRes = null, uTime = null, uView = null, failed = false;
-    var VS = "attribute vec2 a;void main(){gl_Position=vec4(a,0.0,1.0);}";
-    var FS = [
-      "precision highp float;",
-      "uniform vec2 uRes; uniform float uTime; uniform vec3 uView;",
-      "float field(vec2 p, float t){",
-      "  vec2 q = p;",
-      "  q += 0.42 * vec2(sin(q.y * 1.35 + t * 0.50), cos(q.x * 1.15 - t * 0.42));",
-      "  q += 0.26 * vec2(sin(q.y * 2.30 - t * 0.36 + 1.7), cos(q.x * 2.05 + t * 0.55 + 0.4));",
-      "  q += 0.12 * vec2(sin(q.y * 3.90 + t * 0.70 + 2.3), cos(q.x * 3.60 - t * 0.62 + 1.1));",
-      "  return sin(q.x * 1.7) * cos(q.y * 1.9) + 0.4 * sin(q.x * 2.6 + q.y * 1.4 + t * 0.22);",
-      "}",
-      "float height(vec2 p, float t){",
-      "  float v = field(p, t);",
-      "  float d = min(abs(v) / 0.36, 1.0);",
-      "  float tube = cos(d * 1.5707963);",
-      "  return tube * 0.9 + v * 0.2;",
-      "}",
-      "void main(){",
-      "  vec2 uv = gl_FragCoord.xy / uRes;",
-      "  vec2 p = (gl_FragCoord.xy - 0.5 * uRes) / uRes.y * 4.3 / uView.x + (uView.yz - 0.5) * 2.0;",
-      "  float t = uTime;",
-      "  float e = 0.004;",
-      "  float h = height(p, t);",
-      "  float hx = (height(p + vec2(e, 0.0), t) - height(p - vec2(e, 0.0), t)) / (2.0 * e);",
-      "  float hy = (height(p + vec2(0.0, e), t) - height(p - vec2(0.0, e), t)) / (2.0 * e);",
-      "  vec3 n = normalize(vec3(-hx * 0.5, -hy * 0.5, 1.0));",
-      "  vec3 r = reflect(vec3(0.0, 0.0, -1.0), n);",
-      "  float env = 0.13;",
-      "  env += 1.25 * smoothstep(0.57, 0.97, dot(r, normalize(vec3(-0.35, 0.75, 0.55))));",
-      "  env += 0.6 * smoothstep(0.60, 0.96, dot(r, normalize(vec3(0.85, -0.15, 0.55))));",
-      "  env += 0.25 * smoothstep(0.70, 0.98, dot(r, normalize(vec3(-0.2, -0.85, 0.5))));",
-      "  float band = 0.5 + 0.5 * sin((r.x * 2.4 - r.y * 3.2) * 3.0 + 1.3);",
-      "  env *= 0.72 + 0.42 * band;",
-      "  env += 1.6 * pow(max(dot(r, normalize(vec3(-0.45, 0.55, 0.70))), 0.0), 60.0);",
-      "  env += pow(1.0 - n.z, 3.0) * 0.35;",
-      "  vec3 col = vec3(env) * vec3(0.88, 0.92, 0.98);",
-      "  col *= 0.55 + 0.45 * smoothstep(-0.25, 0.7, h);",
-      "  float vig = smoothstep(1.15, 0.15, length((uv - 0.5) * vec2(1.35, 1.0)));",
-      "  col *= 0.68 + 0.32 * vig;",
-      "  gl_FragColor = vec4(pow(col, vec3(0.92)), 1.0);",
-      "}"
-    ].join("\n");
-    function init(){
-      if (gl) return true;
-      if (failed) return false;
-      try {
-        canvas = document.createElement("canvas");
-        gl = canvas.getContext("webgl", { preserveDrawingBuffer: true, antialias: false, alpha: false, depth: false });
-        if (!gl) throw new Error("WebGL unavailable");
-        var compile = function(type, src){
-          var s = gl.createShader(type);
-          gl.shaderSource(s, src);
-          gl.compileShader(s);
-          if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
-          return s;
-        };
-        var prog = gl.createProgram();
-        gl.attachShader(prog, compile(gl.VERTEX_SHADER, VS));
-        gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FS));
-        gl.linkProgram(prog);
-        if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
-        gl.useProgram(prog);
-        gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-        var loc = gl.getAttribLocation(prog, "a");
-        gl.enableVertexAttribArray(loc);
-        gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-        uRes = gl.getUniformLocation(prog, "uRes");
-        uTime = gl.getUniformLocation(prog, "uTime");
-        uView = gl.getUniformLocation(prog, "uView");
-        return true;
-      } catch (err){
-        failed = true;
-        gl = null;
-        return false;
-      }
-    }
     // zoom 1 = default framing; panX/panY in 0..1 (0.5 = centered).
     function render(timeMs, w, h, zoom, panX, panY){
-      if (!init()) return null;
-      w = Math.max(1, Math.round(w)); h = Math.max(1, Math.round(h));
-      if (canvas.width !== w || canvas.height !== h){ canvas.width = w; canvas.height = h; }
-      gl.viewport(0, 0, w, h);
-      gl.uniform2f(uRes, w, h);
-      gl.uniform1f(uTime, timeMs / 1000);
-      gl.uniform3f(uView, zoom || 1, panX === undefined ? 0.5 : panX, panY === undefined ? 0.5 : panY);
-      gl.drawArrays(gl.TRIANGLES, 0, 3);
-      return canvas;
+      var app = window.EZAppearance;
+      return app && app.drawChrome ? app.drawChrome(timeMs, w, h, zoom, panX, panY) : null;
     }
-    var thumbUrl = null;
+    var thumbUrl = "";
     function thumb(){
-      if (thumbUrl === null){
-        var c = render(5200, 320, 240, 1, 0.5, 0.5);
-        thumbUrl = c ? c.toDataURL("image/jpeg", 0.85) : "";
+      if (!thumbUrl){
+        var c = render(0, 320, 240, 1, 0.5, 0.5);
+        if (c) thumbUrl = c.toDataURL("image/jpeg", 0.85);
       }
       return thumbUrl;
     }

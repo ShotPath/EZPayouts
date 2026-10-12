@@ -635,8 +635,12 @@
   // output is dithered so the dark gradients don't band. The key light
   // drifts gently toward the pointer. Paused by the browser while the tab
   // is hidden; a single still frame with reduced motion. Without WebGL the
-  // CSS gradient stand-in stays.
+  // CSS gradient stand-in stays. The Journal's share card draws the same
+  // chrome through drawChrome below.
   var chrome = null;
+  // Shader time for a moment in the motion: where it starts, and how fast it
+  // flows per real second.
+  function chromeTime(ms) { return 4.0 + ms / 1000 * 0.24; }
   var CHROME_FS = [
     "#ifdef GL_FRAGMENT_PRECISION_HIGH",
     "precision highp float;",
@@ -646,6 +650,7 @@
     "uniform vec2 uRes;",
     "uniform float uTime;",
     "uniform vec2 uLight;",
+    "uniform vec3 uView; // zoom, then pan x/y (0.5 = centered)",
     "float field(vec2 p, float t){",
     "  vec2 q = p;",
     "  q += 0.42 * vec2(sin(q.y * 1.35 + t * 0.50), cos(q.x * 1.15 - t * 0.42));",
@@ -662,8 +667,8 @@
     "float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }",
     "void main(){",
     "  vec2 uv = gl_FragCoord.xy / uRes;",
-    "  float s = 3.1 / uRes.y;",
-    "  vec2 p = (gl_FragCoord.xy - 0.5 * uRes) * s + vec2(0.6, -0.2);",
+    "  float s = 3.1 / uRes.y / uView.x;",
+    "  vec2 p = (gl_FragCoord.xy - 0.5 * uRes) * s + vec2(0.6, -0.2) + (uView.yz - 0.5) * 2.0;",
     "  float t = uTime;",
     "  float e = max(s, 0.0025);",
     "  float h = height(p, t);",
@@ -713,11 +718,14 @@
       var loc = gl.getAttribLocation(prog, "a");
       gl.enableVertexAttribArray(loc);
       gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+      var uView = gl.getUniformLocation(prog, "uView");
+      gl.uniform3f(uView, 1, 0.5, 0.5);
       return {
         gl: gl,
         uRes: gl.getUniformLocation(prog, "uRes"),
         uTime: gl.getUniformLocation(prog, "uTime"),
-        uLight: gl.getUniformLocation(prog, "uLight")
+        uLight: gl.getUniformLocation(prog, "uLight"),
+        uView: uView
       };
     } catch (err) {
       return null;
@@ -733,13 +741,36 @@
     if (!c) return (chromeStillUrl = "");
     c.gl.viewport(0, 0, 640, 400);
     c.gl.uniform2f(c.uRes, 640, 400);
-    c.gl.uniform1f(c.uTime, 4.0);
+    c.gl.uniform1f(c.uTime, chromeTime(0));
     c.gl.uniform2f(c.uLight, 0, 0);
     c.gl.drawArrays(c.gl.TRIANGLES, 0, 3);
     chromeStillUrl = canvas.toDataURL("image/jpeg", 0.9);
     var lose = c.gl.getExtension("WEBGL_lose_context");
     if (lose) lose.loseContext();
     return chromeStillUrl;
+  }
+  // One frame of the chrome, ms into its motion, at w×h pixels with the
+  // given zoom (1 = the page's framing) and pan (0..1, 0.5 = centered),
+  // drawn into a reusable canvas the caller copies from. The light stays
+  // put so the same moment always looks the same. null without WebGL.
+  var chromeFrame;
+  function drawChrome(ms, w, h, zoom, panX, panY) {
+    if (chromeFrame === undefined) {
+      var canvas = document.createElement("canvas");
+      var c = chromeGL(canvas, true);
+      chromeFrame = c ? { canvas: canvas, c: c } : null;
+    }
+    if (!chromeFrame || chromeFrame.c.gl.isContextLost()) return null;
+    var gl = chromeFrame.c.gl, f = chromeFrame.canvas;
+    w = Math.max(1, Math.round(w)); h = Math.max(1, Math.round(h));
+    if (f.width !== w || f.height !== h) { f.width = w; f.height = h; }
+    gl.viewport(0, 0, w, h);
+    gl.uniform2f(chromeFrame.c.uRes, w, h);
+    gl.uniform1f(chromeFrame.c.uTime, chromeTime(ms));
+    gl.uniform2f(chromeFrame.c.uLight, 0, 0);
+    gl.uniform3f(chromeFrame.c.uView, zoom || 1, panX === undefined ? 0.5 : panX, panY === undefined ? 0.5 : panY);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    return f;
   }
   function startLiquidChrome() {
     if (chrome) return;
@@ -769,7 +800,7 @@
       light[0] += (lightTo[0] - light[0]) * 0.04;
       light[1] += (lightTo[1] - light[1]) * 0.04;
       gl.uniform2f(c.uLight, light[0], light[1]);
-      gl.uniform1f(c.uTime, 4.0 + (now - start) / 1000 * 0.24);
+      gl.uniform1f(c.uTime, chromeTime(now - start));
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     }
     function loop(now) {
@@ -943,7 +974,7 @@
     }
   });
 
-  // For the Settings page.
+  // For the Settings page (and drawChrome for the Journal's share card).
   window.EZAppearance = {
     themes: THEMES.map(function (id) { return { id: id, label: THEME_LABELS[id] }; }),
     backgrounds: BACKGROUNDS.map(function (id) { return { id: id, label: BACKGROUND_LABELS[id] }; }),
@@ -951,6 +982,6 @@
     getTheme: getTheme, setTheme: setTheme,
     getBackground: getBackground, setBackground: setBackground,
     getSidebarMode: getSidebarMode, setSidebarMode: setSidebarMode,
-    chromeStill: chromeStill
+    chromeStill: chromeStill, drawChrome: drawChrome
   };
 })();
