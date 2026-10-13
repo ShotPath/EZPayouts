@@ -63,6 +63,12 @@ section{ margin-top:12px; }
 .section-head{ display:flex; align-items:baseline; justify-content:space-between; margin:0 2px 8px; }
 h2{ margin:0; font-family:var(--mono); font-size:10.5px; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted); }
 .link{ background:none; border:none; padding:0; cursor:pointer; font:inherit; font-size:12px; color:var(--accent-soft); }
+.tabs{ display:flex; gap:14px; }
+.tabs button{ background:none; border:none; padding:0 0 4px; cursor:pointer; font-family:var(--mono); font-size:10.5px; font-weight:600;
+  letter-spacing:0.14em; text-transform:uppercase; color:var(--dim); border-bottom:2px solid transparent; transition:color .15s, border-color .15s; }
+.tabs button:hover{ color:var(--muted); }
+.tabs button[aria-selected="true"]{ color:var(--text); border-bottom-color:var(--accent); }
+.tabs button:focus-visible{ outline:2px solid var(--accent-soft); outline-offset:2px; }
 .link:hover{ color:#fff; }
 
 .grid{ display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:6px; }

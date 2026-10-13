@@ -13,7 +13,8 @@
   var uploadNote = $("uploadNote");
   var settings = EZSkins.defaults();
   var custom = null; // { thumb, name } of the user's own file, if any
-  var chromeThumb = "";
+  var liveThumbs = {};   // liquid chrome and scene stills, made here
+  var skinTab = "live";  // which skins the grid shows: "live" or "video"
 
   var SLIDERS = {
     strength: function (v) { return Math.round(v) + "%"; },
@@ -31,7 +32,8 @@
     b.className = "tile";
     b.setAttribute("role", "radio");
     b.setAttribute("data-id", skin.id);
-    var thumb = skin.type === "liquid" ? chromeThumb : skin.type === "custom" ? (custom && custom.thumb) : skin.thumb;
+    var thumb = skin.type === "liquid" || skin.type === "scene" ? liveThumbs[skin.id]
+      : skin.type === "custom" ? (custom && custom.thumb) : skin.thumb;
     if (skin.type === "custom" && !custom) {
       b.classList.add("empty");
       b.innerHTML = '<span class="plus" aria-hidden="true">+</span>';
@@ -49,11 +51,25 @@
     b.title = skin.type === "custom" && custom ? "Your own: " + custom.name : skin.label;
     return b;
   }
+  // Animated skins and videos each get a tab; your own file shows in both.
+  function inTab(skin) {
+    if (skin.type === "custom") return true;
+    return skinTab === "video" ? skin.type === "video" : skin.type !== "video";
+  }
   function renderGrid() {
     grid.textContent = "";
-    EZSkins.list.forEach(function (skin) { grid.appendChild(tileFor(skin)); });
+    EZSkins.list.filter(inTab).forEach(function (skin) { grid.appendChild(tileFor(skin)); });
+    [].forEach.call($("skinTabs").children, function (b) {
+      b.setAttribute("aria-selected", b.getAttribute("data-tab") === skinTab ? "true" : "false");
+    });
     markSelected();
   }
+  $("skinTabs").addEventListener("click", function (e) {
+    var b = e.target.closest("button");
+    if (!b || b.getAttribute("data-tab") === skinTab) return;
+    skinTab = b.getAttribute("data-tab");
+    renderGrid();
+  });
   function markSelected() {
     [].forEach.call(grid.children, function (t) {
       var on = t.getAttribute("data-id") === settings.skin;
@@ -267,7 +283,10 @@
   });
 
   // ---------- Start ----------
-  chromeThumb = EZChrome.still(240, 150);
+  EZSkins.list.forEach(function (skin) {
+    if (skin.type === "liquid") liveThumbs[skin.id] = EZChrome.still(240, 150);
+    else if (skin.type === "scene") liveThumbs[skin.id] = EZScenes.still(skin.id, 240, 150, 0.6);
+  });
   Promise.all([
     EZSkins.load(),
     EZMedia.getCustom().catch(function () { return null; }),
@@ -276,6 +295,8 @@
     settings = r[0];
     if (r[1] && r[1].blob) custom = { thumb: r[1].thumb, name: r[1].name };
     tab = r[2][0] || null;
+    var current = EZSkins.byId(settings.skin);
+    skinTab = current && current.type === "video" ? "video" : "live";
     renderGrid();
     renderControls();
     refreshSite();

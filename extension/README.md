@@ -1,7 +1,8 @@
 # EZPayouts Chart Skins
 
-A Chrome extension that puts EZPayouts' liquid chrome (or a video, or your
-own clip) behind your TradingView charts. Candles, wicks, indicators,
+A Chrome extension that puts EZPayouts' liquid chrome (or Sakura, Twinkle,
+Matrix, Black Hole, Embers, a video, or your own clip) behind your
+TradingView charts. Candles, wicks, indicators,
 drawings and labels stay on top; turning it off brings back the chart's
 own background.
 
@@ -9,7 +10,9 @@ Works in Chrome, Brave, Edge, Arc and Opera.
 
 ## Install (before it's on the Chrome Web Store)
 
-1. Download this `extension` folder (or unzip `ezpayouts-chart-skins.zip`).
+Step-by-step with pictures: https://ezpayouts.xyz/skins/
+
+1. Download `ezpayouts-chart-skins.zip` from that page and unzip it.
 2. Open `chrome://extensions` and switch on **Developer mode** (top right).
 3. Click **Load unpacked** and pick the folder.
 4. Pin **EZPayouts Chart Skins** from the puzzle-piece menu, then open a
@@ -17,9 +20,10 @@ Works in Chrome, Brave, Edge, Arc and Opera.
 
 ## Using it
 
-- **Skins:** Liquid Chrome (drawn live, same as the site's background),
-  the EZPayouts video templates, or **Upload your own** (MP4, WebM, MOV,
-  GIF, PNG, JPG). Your own file stays on your computer.
+- **Skins:** Animated: Liquid Chrome (same as the site's background),
+  Sakura, Twinkle, Matrix, Black Hole and Embers, all drawn live. Videos:
+  the EZPayouts video templates. Or **Upload your own** (MP4, WebM, MOV,
+  GIF, PNG, JPG); your own file stays on your computer.
 - **Strength:** how much skin vs. the chart's own background color.
 - **Dim:** darkens the skin so candles stand out. **Blur** softens it.
   **Speed** changes how fast it moves.
@@ -50,6 +54,15 @@ from ezpayouts.xyz.
 - `skin/`: the skin itself (an extension page in an iframe).
 - `shared/chrome-gl.js`: the liquid chrome shader, copied from the site's
   `nav.js`. Keep the two in step.
+- `shared/scenes.js`: the animated scenes (Sakura, Twinkle, Matrix, Black
+  Hole, Embers). The download page uses it too, for its live previews.
 - `shared/skins.js`: the skin list and saved settings.
 - `popup/`: the toolbar popup (also the options page).
 - `background.js`: the shortcut and other-site access.
+
+## Updating the download
+
+After changing anything in this folder, rebuild the zip that
+ezpayouts.xyz/skins/ serves, and bump `version` in `manifest.json`:
+
+    python3 tools/build-extension-zip.py

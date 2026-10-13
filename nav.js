@@ -112,6 +112,11 @@
       {
         slug: "calendar", href: "/calendar/?view=econ", label: "Economic Calendar", query: "view=econ",
         icon: '<rect x="3" y="4.5" width="14" height="12.5" rx="1.5" /><path d="M3 8h14M6.5 2.5v4M13.5 2.5v4" /><path d="M6.5 11h1.2M9.4 11h1.2M12.3 11h1.2M6.5 13.5h1.2M9.4 13.5h1.2" />'
+      },
+      {
+        // The browser extension's download page (its own landing page).
+        slug: "skins", href: "/skins/", label: "Chart Skins",
+        icon: '<path d="M9 2.5l1.7 4.3 4.3 1.7-4.3 1.7L9 14.5l-1.7-4.3L3 8.5l4.3-1.7z" /><path d="M15 12.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z" />'
       }
     ]
   ];

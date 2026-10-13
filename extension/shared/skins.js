@@ -15,7 +15,16 @@ var EZSkins = (function () {
     ["pain", "Pain"], ["porsche-2", "Porsche II"], ["wall-street", "Wall Street"],
     ["creed", "Creed"]
   ];
-  var LIST = [{ id: "liquid-chrome", label: "Liquid Chrome", type: "liquid" }]
+  // Animated skins drawn live (shared/chrome-gl.js and shared/scenes.js).
+  var LIVE = [
+    { id: "liquid-chrome", label: "Liquid Chrome", type: "liquid" },
+    { id: "sakura", label: "Sakura", type: "scene" },
+    { id: "twinkle", label: "Twinkle", type: "scene" },
+    { id: "matrix", label: "Matrix", type: "scene" },
+    { id: "black-hole", label: "Black Hole", type: "scene" },
+    { id: "embers", label: "Embers", type: "scene" }
+  ];
+  var LIST = LIVE
     .concat(VIDEOS.map(function (v) {
       return { id: v[0], label: v[1], type: "video", src: MEDIA + v[0] + ".webm", thumb: MEDIA + v[0] + "-thumb.jpg" };
     }))

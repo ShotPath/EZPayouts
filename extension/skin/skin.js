@@ -1,7 +1,8 @@
 // The skin drawn behind a chart (this page runs in an iframe the host
 // script places under the chart). Shows the chosen skin, liquid chrome,
-// a video, or the user's own file, and applies Dim, Blur, Speed and the
-// frame rate. Strength is the iframe's opacity, set by the host.
+// an animated scene, a video, or the user's own file, and applies Dim,
+// Blur, Speed and the frame rate. Strength is the iframe's opacity, set by
+// the host.
 (function () {
   var stage = document.getElementById("stage");
   var canvas = document.getElementById("chrome");
@@ -15,20 +16,24 @@
   var showToken = 0;      // drops a custom file that arrives after a newer pick
   var customUrl = null;
 
-  // ---------- Liquid chrome ----------
+  // ---------- Animated skins: liquid chrome (WebGL) and the 2D scenes ----------
   // Same pixel budget and step-down as the site's page background.
-  var renderer = null, raf = 0;
-  var motionMs = 0, lastNow = 0, lastDraw = 0;
+  var sceneCanvas = document.getElementById("scene");
+  var renderer = null;           // liquid chrome, set up once
+  var anim = null;               // what's running: { draw(dtMs, w, h, u) }
+  var chromeMs = 0;              // liquid chrome resumes where it was
+  var raf = 0, lastNow = 0, lastDraw = 0, pendingMs = 0;
   var MAX_PIXELS = 3400000, quality = 1, slowFrames = 0;
 
+  // Canvas size in pixels, and pixels per CSS pixel.
   function size() {
     var cssW = Math.max(1, window.innerWidth), cssH = Math.max(1, window.innerHeight);
     var scale = Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(MAX_PIXELS / (cssW * cssH))) * quality;
-    return [Math.max(1, Math.round(cssW * scale)), Math.max(1, Math.round(cssH * scale))];
+    return [Math.max(1, Math.round(cssW * scale)), Math.max(1, Math.round(cssH * scale)), scale];
   }
-  function drawChrome() {
+  function drawFrame(dtMs) {
     var s = size();
-    if (!renderer.draw(motionMs, s[0], s[1])) stopChrome();
+    if (anim && anim.draw(dtMs, s[0], s[1], s[2]) === false) stopAnimated();
   }
   function loop(now) {
     raf = requestAnimationFrame(loop);
@@ -36,7 +41,7 @@
     // jumps the picture.
     var dt = lastNow ? Math.min(100, now - lastNow) : 0;
     lastNow = now;
-    motionMs += dt * settings.speed;
+    pendingMs += dt * settings.speed;
     var interval = 1000 / settings.fps;
     if (lastDraw && now - lastDraw < interval - 2) return;
     // Draws coming in well under the chosen rate mean the device can't keep
@@ -47,7 +52,15 @@
       slowFrames--;
     }
     lastDraw = now;
-    drawChrome();
+    drawFrame(pendingMs);
+    pendingMs = 0;
+  }
+  function run(a, el) {
+    anim = a;
+    el.classList.add("show");
+    lastNow = 0; lastDraw = 0; pendingMs = 0;
+    drawFrame(0);
+    if (!reduced && !raf) raf = requestAnimationFrame(loop);
   }
   function startChrome() {
     if (!renderer) renderer = EZChrome.create(canvas, false);
@@ -56,15 +69,19 @@
       stage.style.background = "linear-gradient(125deg, #121317 0%, #34363c 22%, #101114 42%, #3b3d44 63%, #121316 82%, #2a2c31 100%)";
       return;
     }
-    canvas.classList.add("show");
-    lastNow = 0; lastDraw = 0;
-    drawChrome();
-    if (!reduced && !raf) raf = requestAnimationFrame(loop);
+    run({ draw: function (dt, w, h) { chromeMs += dt; return renderer.draw(chromeMs, w, h); } }, canvas);
   }
-  function stopChrome() {
+  function startScene(id) {
+    var scene = EZScenes.create(id, sceneCanvas);
+    if (!scene) { startChrome(); return; }
+    run({ draw: function (dt, w, h, u) { scene.frame(dt, w, h, u); } }, sceneCanvas);
+  }
+  function stopAnimated() {
     cancelAnimationFrame(raf);
     raf = 0;
+    anim = null;
     canvas.classList.remove("show");
+    sceneCanvas.classList.remove("show");
   }
 
   // ---------- Video / image ----------
@@ -88,7 +105,7 @@
   });
 
   function clear() {
-    stopChrome();
+    stopAnimated();
     video.pause();
     video.classList.remove("show");
     video.removeAttribute("src");
@@ -105,6 +122,7 @@
     var skin = EZSkins.byId(id);
     shown = { id: id, version: settings.customVersion };
     if (skin.type === "video") { showVideo(skin.src); return; }
+    if (skin.type === "scene") { startScene(id); return; }
     if (skin.type !== "custom") { startChrome(); return; }
     EZMedia.getCustom().then(function (rec) {
       if (token !== showToken) return;
@@ -142,11 +160,11 @@
     }
   });
   window.addEventListener("resize", function () {
-    if (renderer && canvas.classList.contains("show") && !raf) drawChrome();
+    if (anim && !raf) drawFrame(0);
   });
   canvas.addEventListener("webglcontextlost", function (e) {
     e.preventDefault();
-    stopChrome();
+    stopAnimated();
   });
 
   EZSkins.onChange(apply);

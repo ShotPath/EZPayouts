@@ -32,7 +32,10 @@
 
   <section>
     <div class="section-head">
-      <h2>Skin</h2>
+      <div class="tabs" id="skinTabs" role="tablist" aria-label="Skins">
+        <button type="button" role="tab" data-tab="live">Animated</button>
+        <button type="button" role="tab" data-tab="video">Videos</button>
+      </div>
       <button class="link" id="uploadBtn" type="button">Upload your own</button>
     </div>
     <div class="grid" id="grid" role="radiogroup" aria-label="Skin"></div>
@@ -71,6 +74,7 @@
 </div>
 <script src="../shared/skins.js"></script>
 <script src="../shared/chrome-gl.js"></script>
+<script src="../shared/scenes.js"></script>
 <script src="../shared/media-store.js"></script>
 <script src="popup.js"></script>
 </body>
