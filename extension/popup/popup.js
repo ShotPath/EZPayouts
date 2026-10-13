@@ -64,6 +64,10 @@
     });
     markSelected();
   }
+  // No video skins (the Chrome Web Store build): one list, no Videos tab.
+  if (!EZSkins.list.some(function (s) { return s.type === "video"; })) {
+    $("skinTabs").querySelector('[data-tab="video"]').hidden = true;
+  }
   $("skinTabs").addEventListener("click", function (e) {
     var b = e.target.closest("button");
     if (!b || b.getAttribute("data-tab") === skinTab) return;

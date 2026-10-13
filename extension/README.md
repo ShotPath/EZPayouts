@@ -66,3 +66,8 @@ After changing anything in this folder, rebuild the zip that
 ezpayouts.xyz/skins/ serves, and bump `version` in `manifest.json`:
 
     python3 tools/build-extension-zip.py
+
+For the Chrome Web Store, upload the store build instead. It's the same
+extension without the video skins (clips from films and shows):
+
+    python3 tools/build-extension-zip.py --store   # -> dist/ezpayouts-chart-skins-store.zip

@@ -100,6 +100,7 @@
       <li>We don't sell data, and we don't run ad trackers or analytics scripts on this site.</li>
       <li>If you use the AI Coach feature, whatever you send it (messages, your trade stats, screenshots you attach) goes to Anthropic (Claude) to generate a reply. Nothing else on the site does this.</li>
       <li>Everything runs on Cloudflare's infrastructure. That's it — Cloudflare, and Anthropic only when you use the Coach.</li>
+      <li>The <a href="#chart-skins">Chart Skins browser extension</a> collects nothing. Its settings stay on your computer.</li>
     </ul>
   </div>
 
@@ -182,8 +183,32 @@
     <p>If this policy changes in a material way, we'll update the date at the top of this page. Significant changes (e.g. a new data use, or the introduction of paid plans) will be called out clearly, not buried in a routine edit.</p>
   </section>
 
+  <section id="chart-skins">
+    <h2>9. Chart Skins browser extension</h2>
+    <p>This section covers <strong>EZPayouts Chart Skins</strong>, our extension for Chrome and Chrome-based browsers. It puts an animated background behind the charts on TradingView and on other chart sites you choose to turn it on for.</p>
+    <h3>What it collects</h3>
+    <p><strong>Nothing.</strong> The extension has no accounts, analytics, ads or tracking, and it doesn't send any data to EZPayouts or anyone else.</p>
+    <h3>What stays on your computer</h3>
+    <ul>
+      <li><strong>Your settings</strong>: the skin you picked, the Strength, Dim, Blur, Speed and frame-rate settings, whether it's on, and the sites you turned it on for. These are kept in your browser's extension storage.</li>
+      <li><strong>Your own skin file</strong>, if you upload one. It's kept in the extension's storage in your browser and is never uploaded.</li>
+    </ul>
+    <p>Uninstalling the extension deletes both.</p>
+    <h3>What it does on chart pages</h3>
+    <p>It only changes how the chart looks. It skips the step where the chart paints its background color, notes that color so the skin can blend with it, and places the skin behind the chart. It doesn't read your symbols, prices, orders, positions, account details, browsing history or anything else on the page.</p>
+    <h3>Permissions</h3>
+    <ul>
+      <li><strong>TradingView</strong>: to put the skin behind the chart there.</li>
+      <li><strong>Other sites</strong>: only when you click &ldquo;Turn on here&rdquo;, and only for that one site. You can turn it off again from the extension, which also removes the permission.</li>
+      <li><strong>Storage</strong>: to keep the settings and file above on your computer.</li>
+    </ul>
+    <h3>Network</h3>
+    <p>The Chrome Web Store version makes no network requests of its own. The version downloaded from <code>ezpayouts.xyz</code> can also play video skins, which stream from <code>ezpayouts.xyz</code> like any web page, so your browser sends that request's ordinary technical data (see section 2).</p>
+    <p>If we add paid features later, this section will say exactly what that involves before it happens.</p>
+  </section>
+
   <section>
-    <h2>9. Contact</h2>
+    <h2>10. Contact</h2>
     <div class="contact-card">
       <p>Questions, deletion requests, or anything else: <a href="mailto:privacy@ezpayouts.xyz">privacy@ezpayouts.xyz</a></p>
     </div>

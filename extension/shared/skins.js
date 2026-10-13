@@ -9,12 +9,16 @@ var EZSkins = (function () {
   // Video skins are the same clips as the EZPayouts share-card templates,
   // streamed from the site, so the extension itself stays small.
   var MEDIA = "https://ezpayouts.xyz/journal/share-presets/";
+  // The Chrome Web Store build leaves these out (they're clips from films
+  // and shows): tools/build-extension-zip.py --store empties this list.
+  // store-build: videos start
   var VIDEOS = [
     ["japanese", "Japanese"], ["jjk-1", "JJK I"], ["jjk-2", "JJK II"],
     ["porsche", "Porsche"], ["bruce-wayne", "Bruce Wayne"], ["one-piece", "One Piece"],
     ["pain", "Pain"], ["porsche-2", "Porsche II"], ["wall-street", "Wall Street"],
     ["creed", "Creed"]
   ];
+  // store-build: videos end
   // Animated skins drawn live (shared/chrome-gl.js and shared/scenes.js).
   var LIVE = [
     { id: "liquid-chrome", label: "Liquid Chrome", type: "liquid" },
