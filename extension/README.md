@@ -1,0 +1,55 @@
+# EZPayouts Chart Skins
+
+A Chrome extension that puts EZPayouts' liquid chrome (or a video, or your
+own clip) behind your TradingView charts. Candles, wicks, indicators,
+drawings and labels stay on top; turning it off brings back the chart's
+own background.
+
+Works in Chrome, Brave, Edge, Arc and Opera.
+
+## Install (before it's on the Chrome Web Store)
+
+1. Download this `extension` folder (or unzip `ezpayouts-chart-skins.zip`).
+2. Open `chrome://extensions` and switch on **Developer mode** (top right).
+3. Click **Load unpacked** and pick the folder.
+4. Pin **EZPayouts Chart Skins** from the puzzle-piece menu, then open a
+   chart on tradingview.com.
+
+## Using it
+
+- **Skins:** Liquid Chrome (drawn live, same as the site's background),
+  the EZPayouts video templates, or **Upload your own** (MP4, WebM, MOV,
+  GIF, PNG, JPG). Your own file stays on your computer.
+- **Strength:** how much skin vs. the chart's own background color.
+- **Dim:** darkens the skin so candles stand out. **Blur** softens it.
+  **Speed** changes how fast it moves.
+- **Frame rate:** 30 fps by default, 60 for smoother motion. Motion pauses
+  when the tab is in the background.
+- **Alt+Shift+B** turns it on or off (change it at
+  `chrome://extensions/shortcuts`).
+- Looks best with TradingView's dark theme.
+
+### Other sites
+
+Brokers and prop firms that use TradingView's charts: open the site, click
+the extension, then **Turn on here**. Chrome asks for access to that one
+site; say no and it still works until you leave the page. Some firms don't
+allow browser extensions on evaluation or funded accounts. Check first.
+
+## What it touches
+
+It only changes how the chart looks. On chart pages it skips the one fill
+the chart uses to paint its background, so the skin behind shows through.
+It doesn't read your symbols, orders or account. The video skins stream
+from ezpayouts.xyz.
+
+## Files
+
+- `content/page-hook.js`: runs in the page; makes the chart background clear.
+- `content/skin-host.js`: finds the chart and places the skin behind it.
+- `skin/`: the skin itself (an extension page in an iframe).
+- `shared/chrome-gl.js`: the liquid chrome shader, copied from the site's
+  `nav.js`. Keep the two in step.
+- `shared/skins.js`: the skin list and saved settings.
+- `popup/`: the toolbar popup (also the options page).
+- `background.js`: the shortcut and other-site access.

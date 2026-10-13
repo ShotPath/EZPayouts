@@ -1,0 +1,5 @@
+html, body{ margin:0; width:100%; height:100%; overflow:hidden; background:#000; }
+#stage{ position:absolute; inset:0; transform-origin:50% 50%; }
+#stage > *{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:none; }
+#stage > .show{ display:block; }
+#dim{ position:absolute; inset:0; background:#000; pointer-events:none; }

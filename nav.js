@@ -636,7 +636,8 @@
   // drifts gently toward the pointer. Paused by the browser while the tab
   // is hidden; a single still frame with reduced motion. Without WebGL the
   // CSS gradient stand-in stays. The Journal's share card draws the same
-  // chrome through drawChrome below.
+  // chrome through drawChrome below, and the Chart Skins browser extension
+  // carries a copy of the shader (extension/shared/chrome-gl.js).
   var chrome = null;
   // Shader time for a moment in the motion: where it starts, and how fast it
   // flows per real second.

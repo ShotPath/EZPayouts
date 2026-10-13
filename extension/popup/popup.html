@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EZPayouts Chart Skins</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+<div class="app">
+  <header class="head">
+    <img class="logo" src="../icons/icon-48.png" alt="">
+    <div class="brand">
+      <div class="name">Chart Skins</div>
+      <div class="by">by EZPayouts</div>
+    </div>
+    <label class="switch" title="On or off (Alt+Shift+B)">
+      <input type="checkbox" id="enabled" role="switch" aria-label="Chart skin">
+      <span class="track"><span class="knob"></span></span>
+    </label>
+  </header>
+
+  <div class="site" id="site" hidden>
+    <span class="site-dot" id="siteDot"></span>
+    <span class="site-text" id="siteText"></span>
+    <button class="site-btn" id="siteBtn" type="button" hidden></button>
+  </div>
+  <p class="tip" id="tip" hidden></p>
+
+  <section>
+    <div class="section-head">
+      <h2>Skin</h2>
+      <button class="link" id="uploadBtn" type="button">Upload your own</button>
+    </div>
+    <div class="grid" id="grid" role="radiogroup" aria-label="Skin"></div>
+    <input type="file" id="file" accept="video/mp4,video/webm,video/quicktime,image/gif,image/png,image/jpeg,image/webp" hidden>
+    <p class="note" id="uploadNote" hidden></p>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Adjust</h2>
+      <button class="link" id="resetBtn" type="button">Reset</button>
+    </div>
+    <div class="controls">
+      <label class="ctl"><span class="ctl-label">Strength</span><output id="strengthOut" for="strength"></output>
+        <input type="range" id="strength" min="0" max="100" step="1"></label>
+      <label class="ctl"><span class="ctl-label">Dim</span><output id="dimOut" for="dim"></output>
+        <input type="range" id="dim" min="0" max="90" step="1"></label>
+      <label class="ctl"><span class="ctl-label">Blur</span><output id="blurOut" for="blur"></output>
+        <input type="range" id="blur" min="0" max="20" step="1"></label>
+      <label class="ctl"><span class="ctl-label">Speed</span><output id="speedOut" for="speed"></output>
+        <input type="range" id="speed" min="0.25" max="3" step="0.05"></label>
+      <div class="ctl ctl-row">
+        <span class="ctl-label">Frame rate</span>
+        <div class="seg" id="fps" role="radiogroup" aria-label="Frame rate">
+          <button type="button" role="radio" data-fps="30">30 fps</button>
+          <button type="button" role="radio" data-fps="60">60 fps</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> turns it on or off</span>
+    <a href="https://ezpayouts.xyz" target="_blank" rel="noopener">ezpayouts.xyz</a>
+  </footer>
+</div>
+<script src="../shared/skins.js"></script>
+<script src="../shared/chrome-gl.js"></script>
+<script src="../shared/media-store.js"></script>
+<script src="popup.js"></script>
+</body>
+</html>
