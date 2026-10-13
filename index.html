@@ -241,8 +241,6 @@
   .cine-glow{ position:absolute; inset:0; background:radial-gradient(ellipse at 50% 50%, rgba(0,210,255,0.14), transparent 70%); }
   .cine-badge{ position:relative; font-family:var(--font-mono); font-size:10px; color:var(--cyan2); letter-spacing:0.08em; display:flex; align-items:center; gap:6px; }
   .cine-badge::before{ content:"⚡"; }
-  /* The ⚡ emoji draws in a loud yellow; this mutes it to a soft gold. */
-  .badge-bolt, .cine-badge::before{ display:inline-block; filter:saturate(0.65) brightness(0.78); opacity:0.85; }
 
   /* ---------- Reused sections (prop firms / funded traders / econ calendar) ---------- */
   .glow-standalone{ position:relative; text-align:center; padding:0 24px 92px; max-width:1200px; margin:0 auto; }
@@ -377,7 +375,7 @@
   </header>
 
   <section class="hero">
-    <div class="hero-badge"><span class="badge-bolt" aria-hidden="true">⚡</span> Free Funded-Trader Toolkit</div>
+    <div class="hero-badge">⚡ Free Funded-Trader Toolkit</div>
     <h1>Trade the evaluation.<br /><span class="fade">Get funded faster.</span></h1>
     <p>Free prop-firm payout frameworks, an advanced rule backtester, and a clean automated trading journal &mdash; built by a funded trader, for funded traders. No paywall.</p>
     <div class="hero-cta">
