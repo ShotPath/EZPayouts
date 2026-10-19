@@ -1485,8 +1485,9 @@
              without it, drawing a cross-origin video/image onto the canvas taints
              it and Photo/GIF/Video export throws a SecurityError. Preview starts
              muted so autoplay is never blocked by the browser; Video export
-             records its sound through Web Audio (see shareAudioGraph), so
-             exports have sound whatever the preview's mute says. -->
+             records the sound from the clip's own file (see
+             loadExportSound), so exports have sound whatever the preview's
+             mute says. -->
         <video id="shareBgVideoEl" muted loop playsinline crossorigin="anonymous" hidden></video>
         <img id="shareBgGifEl" alt="" crossorigin="anonymous" hidden />
         <img id="shareBgImgEl" alt="" crossorigin="anonymous" hidden />
@@ -2031,17 +2032,22 @@
   // thumb is the small grid tile image, src is the real background. type is
   // "image" or "video" — a .gif works fine as type "image", since <img>
   // animates it on its own and the canvas draws whatever frame is showing.
+  // audio (videos with sound): the clip's sound on its own as AAC, the one
+  // format every browser can decode, padded to the clip's length:
+  //   ffmpeg -i clip.webm -vn -af apad -t <clip seconds> -c:a aac -b:a 128k clip.m4a
+  // Video export records the sound from it (see loadExportSound). JJK I,
+  // JJK II and Porsche have none: their clips are silent.
   var SHARE_BG_PRESET_MEDIA = [
-    { id: "japanese", label: "Japanese", type: "video", thumb: "share-presets/japanese-thumb.jpg", src: "share-presets/japanese.webm" },
+    { id: "japanese", label: "Japanese", type: "video", thumb: "share-presets/japanese-thumb.jpg", src: "share-presets/japanese.webm", audio: "share-presets/japanese.m4a" },
     { id: "jjk-1", label: "JJK I", type: "video", thumb: "share-presets/jjk-1-thumb.jpg", src: "share-presets/jjk-1.webm" },
     { id: "jjk-2", label: "JJK II", type: "video", thumb: "share-presets/jjk-2-thumb.jpg", src: "share-presets/jjk-2.webm" },
     { id: "porsche", label: "Porsche", type: "video", thumb: "share-presets/porsche-thumb.jpg", src: "share-presets/porsche.webm" },
-    { id: "bruce-wayne", label: "Bruce Wayne", type: "video", thumb: "share-presets/bruce-wayne-thumb.jpg", src: "share-presets/bruce-wayne.webm" },
-    { id: "one-piece", label: "One Piece", type: "video", thumb: "share-presets/one-piece-thumb.jpg", src: "share-presets/one-piece.webm" },
-    { id: "pain", label: "Pain", type: "video", thumb: "share-presets/pain-thumb.jpg", src: "share-presets/pain.webm" },
-    { id: "porsche-2", label: "Porsche II", type: "video", thumb: "share-presets/porsche-2-thumb.jpg", src: "share-presets/porsche-2.webm" },
-    { id: "wall-street", label: "Wall Street", type: "video", thumb: "share-presets/wall-street-thumb.jpg", src: "share-presets/wall-street.webm" },
-    { id: "creed", label: "Creed", type: "video", thumb: "share-presets/creed-thumb.jpg", src: "share-presets/creed.webm" }
+    { id: "bruce-wayne", label: "Bruce Wayne", type: "video", thumb: "share-presets/bruce-wayne-thumb.jpg", src: "share-presets/bruce-wayne.webm", audio: "share-presets/bruce-wayne.m4a" },
+    { id: "one-piece", label: "One Piece", type: "video", thumb: "share-presets/one-piece-thumb.jpg", src: "share-presets/one-piece.webm", audio: "share-presets/one-piece.m4a" },
+    { id: "pain", label: "Pain", type: "video", thumb: "share-presets/pain-thumb.jpg", src: "share-presets/pain.webm", audio: "share-presets/pain.m4a" },
+    { id: "porsche-2", label: "Porsche II", type: "video", thumb: "share-presets/porsche-2-thumb.jpg", src: "share-presets/porsche-2.webm", audio: "share-presets/porsche-2.m4a" },
+    { id: "wall-street", label: "Wall Street", type: "video", thumb: "share-presets/wall-street-thumb.jpg", src: "share-presets/wall-street.webm", audio: "share-presets/wall-street.m4a" },
+    { id: "creed", label: "Creed", type: "video", thumb: "share-presets/creed-thumb.jpg", src: "share-presets/creed.webm", audio: "share-presets/creed.m4a" }
   ];
   // The picker only shows the video/image presets now — SHARE_BG_GRADIENTS
   // stays defined as an internal fallback color (see drawBackgroundLayer)
@@ -2107,10 +2113,13 @@
   var shareBg = { type: "gradient", stops: SHARE_BG_GRADIENTS[0].stops };
   var shareBgActiveId = null;
   var shareUploadedUrl = null;
+  // Where Video export gets the background's sound: files to try in order
+  // (see loadExportSound). Empty when the background has none.
+  var shareBgSoundSrcs = [];
   var sharePreviewRAF = null;
   // Preview always starts muted so autoplay is never blocked by the
   // browser; this only affects what you hear. Video export records the
-  // sound either way (see shareAudioGraph).
+  // sound either way (see loadExportSound).
   var shareIsMuted = true;
   var shareBgExpanded = false;
 
@@ -3381,15 +3390,7 @@
   }
   shareMuteBtn.addEventListener("click", function(){
     shareIsMuted = !shareIsMuted;
-    if (shareAudio){
-      if (shareAudio.ctx.state !== "running") shareAudio.ctx.resume().catch(function(){});
-      // While recording, the video stays unmuted (so the recording gets
-      // sound) and the speaker volume carries the mute instead.
-      if (shareAudioRecording) shareAudio.monitor.gain.value = shareIsMuted ? 0 : 1;
-      else shareBgVideoEl.muted = shareIsMuted;
-    } else {
-      shareBgVideoEl.muted = shareIsMuted;
-    }
+    shareBgVideoEl.muted = shareIsMuted;
     updateMuteBtnUI();
   });
   function applyShareBgChange(){
@@ -3519,6 +3520,9 @@
   function selectPresetBg(entry){
     releaseUploadedBgUrl();
     if (entry.type !== "video") shareBgVideoEl.pause();
+    // AAC first (what Safari, so every iPhone browser, decodes), then the
+    // clip itself for a browser without AAC.
+    shareBgSoundSrcs = entry.type === "video" && entry.audio ? [entry.audio, entry.src] : [];
     if (entry.type === "gradient"){
       shareBg = { type: "gradient", stops: entry.stops };
     } else if (entry.type === "liquid"){
@@ -3551,10 +3555,12 @@
     releaseUploadedBgUrl();
     var url = URL.createObjectURL(file);
     shareUploadedUrl = url;
+    shareBgSoundSrcs = [];
     if (file.type.indexOf("video/") === 0){
       shareBgVideoEl.src = url;
       shareBgVideoEl.load();
       shareBg = { type: "video" };
+      shareBgSoundSrcs = [url];
     } else if (file.type === "image/gif"){
       shareBgVideoEl.pause();
       shareBgGifEl.src = url;
@@ -3688,62 +3694,177 @@
   // MediaRecorder can only record in real time, so a video export takes as
   // long as the clip; the default "Short" length keeps that to ~8s.
   //
-  // Sound: the video background's audio goes through Web Audio, one source
-  // feeding both the speakers (the preview) and a stream the recorder takes.
-  // Unlike the video element's captureStream(), this works in every current
-  // browser, including Safari, which every browser on iPhone and iPad is
-  // built on and which has no captureStream() for video. Set up on the first
-  // Video export, from the tap itself (browsers only start audio after one).
-  // A muted video feeds silence into Web Audio, so while recording the video
-  // is unmuted and the preview's mute is carried by the speaker volume.
-  var shareAudio = null, shareAudioFailed = false, shareAudioRecording = false;
-  function shareAudioGraph(){
-    if (shareAudio || shareAudioFailed) return shareAudio;
-    var AC = window.AudioContext || window.webkitAudioContext;
+  // Sound: the canvas stream has none, so the background's sound is added
+  // as a second track. It comes from decoding the clip's own sound file
+  // (shareBgSoundSrcs) and playing it through Web Audio into a stream the
+  // recorder takes, in step with the video. Tapping the <video> element
+  // instead (captureStream(), or Web Audio's createMediaElementSource())
+  // records silence on iPhone and iPad, where every browser is Safari
+  // underneath; a decoded file plays the same everywhere. Older browsers
+  // without Web Audio streams fall back to the element's captureStream().
+  var shareAudioCtx = null;
+  // iPhone treats Web Audio like a game's sound, which the silent switch
+  // turns off; while recording, Safari is asked (where it supports it) to
+  // treat it as media instead, and put back afterwards. Only changed while
+  // the context isn't running, so it can't interrupt the sound.
+  var shareAudioSessionWas = null;
+  function setExportAudioSession(recording){
+    var session = navigator.audioSession;
+    if (!session) return;
     try {
-      var ctx = new AC();
-      // Checked before the video is wired in: once it is, its sound only
-      // plays through this graph.
-      if (!ctx.createMediaStreamDestination) throw new Error("no stream destination");
-      var source = ctx.createMediaElementSource(shareBgVideoEl);
-      var monitor = ctx.createGain();
-      var dest = ctx.createMediaStreamDestination();
-      source.connect(dest);
-      source.connect(monitor);
-      monitor.connect(ctx.destination);
-      shareAudio = { ctx: ctx, monitor: monitor, dest: dest };
-      // iPhone mutes Web Audio with the silent switch, though not video
-      // sound; asking for "playback" keeps the preview behaving like a
-      // video (Safari 17+).
-      try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (err2){}
-    } catch (err){
-      shareAudioFailed = true;
-    }
-    return shareAudio;
+      if (recording){
+        if (shareAudioSessionWas === null) shareAudioSessionWas = session.type;
+        session.type = "playback";
+      } else if (shareAudioSessionWas !== null){
+        session.type = shareAudioSessionWas;
+        shareAudioSessionWas = null;
+      }
+    } catch (err){}
   }
-  // The audio tracks for a Video export, starting the sound if needed.
-  function startExportAudio(){
-    if (shareBg.type !== "video") return [];
-    var graph = shareAudioGraph();
-    if (graph){
-      if (graph.ctx.state !== "running") graph.ctx.resume().catch(function(){});
-      graph.monitor.gain.value = shareIsMuted ? 0 : 1;
-      shareBgVideoEl.muted = false;
-      shareAudioRecording = true;
-      return graph.dest.stream.getAudioTracks();
+  // Created (or woken) from the Video button tap itself: browsers only let
+  // Web Audio make sound after a tap.
+  function wakeExportAudioCtx(){
+    var AC = window.AudioContext || window.webkitAudioContext;
+    setExportAudioSession(true);
+    if (!shareAudioCtx && AC){
+      try {
+        var ctx = new AC();
+        if (ctx.createMediaStreamDestination) shareAudioCtx = ctx;
+        else if (ctx.close) ctx.close();
+      } catch (err){}
     }
-    // No Web Audio: older Chrome/Firefox can still tap the video directly.
-    var tap = shareBgVideoEl.captureStream || shareBgVideoEl.mozCaptureStream;
-    if (tap){
-      try { return tap.call(shareBgVideoEl).getAudioTracks(); } catch (err){}
+    if (!shareAudioCtx){
+      setExportAudioSession(false);
+      return null;
     }
-    return [];
+    if (shareAudioCtx.state !== "running") shareAudioCtx.resume().catch(function(){});
+    // Older iPhones only unlock Web Audio once something plays during a tap.
+    try {
+      var blip = shareAudioCtx.createBufferSource();
+      blip.buffer = shareAudioCtx.createBuffer(1, 1, shareAudioCtx.sampleRate);
+      blip.connect(shareAudioCtx.destination);
+      blip.start(0);
+    } catch (err){}
+    return shareAudioCtx;
   }
-  function stopExportAudio(){
-    if (!shareAudioRecording) return;
-    shareAudioRecording = false;
-    shareBgVideoEl.muted = shareIsMuted;
-    shareAudio.monitor.gain.value = 1;
+  // After a Video export: let the context sleep until the next one.
+  function sleepExportAudioCtx(){
+    if (!shareAudioCtx || shareAudioCtx.state === "closed") return;
+    shareAudioCtx.suspend().catch(function(){}).then(function(){
+      setExportAudioSession(false);
+    });
+  }
+  function decodeSound(ctx, bytes){
+    return new Promise(function(resolve, reject){
+      // Older Safari only answers through the callbacks.
+      var p = ctx.decodeAudioData(bytes, resolve, reject);
+      if (p && p.then) p.then(resolve, reject);
+    });
+  }
+  // Decoded sound, kept for the last background so exporting again is
+  // instant. Resolves to an AudioBuffer, or null when there's none to get.
+  var shareSoundCache = { key: null, promise: null };
+  // Decoded sound takes about 11 MB a minute; past this an uploaded clip is
+  // too big to decode on a phone.
+  var EXPORT_SOUND_MAX_SECONDS = 180;
+  function loadExportSound(ctx){
+    var srcs = shareBgSoundSrcs.slice();
+    var key = srcs.join("|");
+    if (!srcs.length || (shareBgVideoEl.duration > EXPORT_SOUND_MAX_SECONDS)) return Promise.resolve(null);
+    if (shareSoundCache.key === key) return shareSoundCache.promise;
+    function attempt(i){
+      if (i >= srcs.length) return Promise.resolve(null);
+      return fetch(srcs[i]).then(function(r){
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.arrayBuffer();
+      }).then(function(bytes){
+        return decodeSound(ctx, bytes);
+      }).catch(function(){
+        return attempt(i + 1);
+      });
+    }
+    var promise = attempt(0);
+    shareSoundCache = { key: key, promise: promise };
+    promise.then(function(buf){
+      // Don't keep a failure; the next try might work.
+      if (!buf && shareSoundCache.key === key) shareSoundCache = { key: null, promise: null };
+    });
+    return promise;
+  }
+  // Calls back once the background video is actually playing (after
+  // restartShareClock's jump back to the start), so the sound can start on
+  // the same frame. Gives up waiting after 1.5s.
+  function whenBgVideoRolling(cb){
+    var v = shareBgVideoEl, done = false;
+    var events = ["playing", "seeked", "canplay", "timeupdate"];
+    function finish(){
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      events.forEach(function(type){ v.removeEventListener(type, check); });
+      cb();
+    }
+    function check(){
+      if (!v.paused && !v.seeking && v.readyState >= 3) finish();
+    }
+    events.forEach(function(type){ v.addEventListener(type, check); });
+    var timer = setTimeout(finish, 1500);
+    check();
+  }
+  // Plays the decoded sound into a recordable stream, looping with the
+  // video. start() begins it in step with the video; stop() ends it.
+  function exportSoundTrack(ctx, buffer){
+    var dest = ctx.createMediaStreamDestination();
+    var source = null, stopped = false;
+    return {
+      tracks: dest.stream.getAudioTracks(),
+      start: function(){
+        whenBgVideoRolling(function(){
+          if (stopped) return;
+          var v = shareBgVideoEl;
+          var loopEnd = buffer.duration;
+          if (v.duration && isFinite(v.duration)) loopEnd = Math.min(loopEnd, v.duration);
+          if (!(loopEnd > 0)) return;
+          source = ctx.createBufferSource();
+          source.buffer = buffer;
+          source.loop = true;
+          source.loopStart = 0;
+          source.loopEnd = loopEnd;
+          source.connect(dest);
+          source.start(0, (v.currentTime || 0) % loopEnd);
+        });
+      },
+      stop: function(){
+        stopped = true;
+        if (source){
+          try { source.stop(); } catch (err){}
+          source.disconnect();
+        }
+        dest.stream.getAudioTracks().forEach(function(t){ t.stop(); });
+      }
+    };
+  }
+  // The sound for a Video export: { tracks, start(), stop() }, with no
+  // tracks when the background has no sound or it couldn't be had.
+  // `missing` says the background has sound that couldn't be added.
+  function prepareExportSound(ctx){
+    var none = { tracks: [], start: function(){}, stop: function(){}, missing: false };
+    if (shareBg.type !== "video" || !shareBgSoundSrcs.length) return Promise.resolve(none);
+    var viaWebAudio = ctx ? loadExportSound(ctx) : Promise.resolve(null);
+    return viaWebAudio.then(function(buffer){
+      if (buffer) return exportSoundTrack(ctx, buffer);
+      // No Web Audio streams (or the file wouldn't decode): Chrome and
+      // Firefox can still tap the video directly.
+      var tap = shareBgVideoEl.captureStream || shareBgVideoEl.mozCaptureStream;
+      if (tap){
+        try {
+          var tracks = tap.call(shareBgVideoEl).getAudioTracks();
+          if (tracks.length) return { tracks: tracks, start: function(){}, stop: function(){}, missing: false };
+        } catch (err){}
+      }
+      none.missing = true;
+      return none;
+    });
   }
   // With sound, ask for AAC (MP4) or Opus (WebM) by name: a codec list that
   // names only the video codec can leave the sound out, and AAC is the one
@@ -3759,31 +3880,42 @@
     return null;
   }
   shareExportVideoBtn.addEventListener("click", function(){
-    if (!window.MediaRecorder || !shareCardCanvas.captureStream){
+    if (!window.MediaRecorder || !shareCardCanvas.captureStream || !pickVideoMimeType(false)){
       showToast("Video export isn't supported in this browser");
       return;
     }
-    var audioTracks = startExportAudio();
-    var mimeType = pickVideoMimeType(audioTracks.length > 0);
-    if (!mimeType){
-      stopExportAudio();
-      showToast("Video export isn't supported in this browser");
-      return;
-    }
+    var hasSound = shareBg.type === "video" && shareBgSoundSrcs.length > 0;
+    var ctx = hasSound ? wakeExportAudioCtx() : null;
+    setExportBusy(true, hasSound ? "Preparing sound…" : "Recording video…");
+    prepareExportSound(ctx).then(function(sound){
+      recordShareVideo(sound);
+    }, function(){
+      recordShareVideo({ tracks: [], start: function(){}, stop: function(){}, missing: true });
+    });
+  });
+  function recordShareVideo(sound){
+    var mimeType = pickVideoMimeType(sound.tracks.length > 0);
     var stream = shareCardCanvas.captureStream(60);
-    audioTracks.forEach(function(track){ stream.addTrack(track); });
+    sound.tracks.forEach(function(track){ stream.addTrack(track); });
     var bitrateTier = SHARE_VIDEO_BITRATE_TIERS[shareAdjust.videoQuality] || SHARE_VIDEO_BITRATE_TIERS.standard;
     var recorder;
     try {
       recorder = new MediaRecorder(stream, { mimeType: mimeType, videoBitsPerSecond: bitrateTier.bps });
     } catch (err){
       try { recorder = new MediaRecorder(stream, { mimeType: mimeType }); }
-      catch (err2){ stopExportAudio(); showToast("Video export isn't supported in this browser"); return; }
+      catch (err2){
+        sound.stop();
+        sleepExportAudioCtx();
+        setExportBusy(false);
+        showToast("Video export isn't supported in this browser");
+        return;
+      }
     }
     var chunks = [];
     var durationMs = getVideoExportDurationMs();
     setExportBusy(true, "Recording video…");
     restartShareClock();
+    sound.start();
     var recordStartedAt = performance.now();
     var progressTimer = setInterval(function(){
       var elapsed = performance.now() - recordStartedAt;
@@ -3793,15 +3925,16 @@
     recorder.ondataavailable = function(e){ if (e.data && e.data.size) chunks.push(e.data); };
     recorder.onstop = function(){
       clearInterval(progressTimer);
-      stopExportAudio();
+      sound.stop();
+      sleepExportAudioCtx();
       var blob = new Blob(chunks, { type: mimeType.split(";")[0] });
       var ext = mimeType.indexOf("mp4") !== -1 ? "mp4" : "webm";
       setExportBusy(false);
-      copyBlobToClipboardOrDownload(blob, shareCardFileName(ext), "Video downloaded");
+      copyBlobToClipboardOrDownload(blob, shareCardFileName(ext), sound.missing ? "Video downloaded without sound (couldn't load it)" : "Video downloaded");
     };
     recorder.start(250);
     setTimeout(function(){ recorder.stop(); }, durationMs + 150);
-  });
+  }
 
   // ---------- GIF ----------
   // GIF allows only 256 colors per frame, which is where the "grainy, the
