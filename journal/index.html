@@ -642,6 +642,20 @@
   .share-period-tabs button[hidden]{ display:none; }
   .share-period-tabs.is-locked{ pointer-events:none; opacity:0.55; }
   .share-card-wrap{ position:relative; margin-bottom:10px; }
+  /* Square cards keep the Standard preview's height (9/16 of its width),
+     so the window doesn't change size when switching. */
+  .share-card-wrap.is-square{ width:56.25%; margin-left:auto; margin-right:auto; }
+  .share-card-wrap.is-square .share-card-canvas{ aspect-ratio:1/1; }
+  @media (max-width:760px){ .share-card-wrap.is-square{ width:100%; } }
+  .share-format{ flex:none; display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .share-format-label{
+    flex:none; font-family:var(--font-mono); font-size:10.5px; font-weight:700;
+    letter-spacing:0.05em; text-transform:uppercase; color:var(--muted);
+  }
+  .share-sub-tabs.share-format-tabs{ flex:1 1 auto; width:auto; min-width:0; margin-bottom:0; }
+  .share-format-tabs button{ display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+  .share-format-tabs svg{ width:14px; height:14px; flex:none; fill:none; stroke:currentColor; stroke-width:2; }
+  .share-format-tabs.is-locked{ pointer-events:none; opacity:0.55; }
 
   /* Frame picker under the preview */
   .share-frame-bar{ display:flex; align-items:center; gap:8px; }
@@ -1457,7 +1471,7 @@
 
     <div class="share-workspace">
       <div class="share-workspace-main">
-        <div class="share-card-wrap">
+        <div class="share-card-wrap" id="shareCardWrap">
           <canvas id="shareCardCanvas" width="1920" height="1080" class="share-card-canvas"></canvas>
           <button type="button" class="share-mute-btn" id="shareMuteBtn" hidden aria-label="Unmute preview">
             <svg class="icon-muted" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><line x1="23" y1="9" x2="17" y2="15" /><line x1="17" y1="9" x2="23" y2="15" /></svg>
@@ -1494,6 +1508,18 @@
       </div>
 
       <div class="share-workspace-aside">
+        <div class="share-format">
+          <span class="share-format-label" id="shareFormatLabel">Format</span>
+          <div class="share-sub-tabs share-format-tabs seg-track" id="shareFormatTabs" role="group" aria-labelledby="shareFormatLabel">
+            <span class="seg-thumb" aria-hidden="true"></span>
+            <button type="button" class="active" data-format="standard" title="16:9, 1920×1080">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6.5" width="20" height="11" rx="2" /></svg>Standard
+            </button>
+            <button type="button" data-format="square" title="1:1, 1080×1080">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="2" /></svg>Square
+            </button>
+          </div>
+        </div>
         <div class="share-sub-tabs seg-track" id="shareSubTabs">
           <span class="seg-thumb" aria-hidden="true"></span>
           <button type="button" class="active" data-subtab="background">Background</button>
@@ -1975,6 +2001,8 @@
   var shareBgPanel = document.getElementById("shareBgPanel");
   var shareAdjustPanel = document.getElementById("shareAdjustPanel");
   var shareCardCanvas = document.getElementById("shareCardCanvas");
+  var shareCardWrap = document.getElementById("shareCardWrap");
+  var shareFormatTabs = document.getElementById("shareFormatTabs");
   var shareMuteBtn = document.getElementById("shareMuteBtn");
   var shareBgVideoEl = document.getElementById("shareBgVideoEl");
   var shareBgGifEl = document.getElementById("shareBgGifEl");
@@ -2075,10 +2103,19 @@
   // blend = motion-blur samples per frame, delta = how close (in color
   // levels) a pixel must stay to what's on screen to be left unchanged.
   // See the GIF section below.
+  // width/height are for a Standard card; a Square one gets the same
+  // number of pixels (see gifSize).
   var SHARE_GIF_QUALITY_TIERS = {
-    fast:    { width: 960,  height: 540, fps: 20, durationMs: 5000, dither: 4, blend: 3, delta: 6, label: "960×540 · 20fps. About 7–12 MB over a moving background. Video matches the preview most closely." },
-    quality: { width: 1280, height: 720, fps: 25, durationMs: 5000, dither: 6, blend: 3, delta: 6, label: "1280×720 · 25fps. Sharpest and smoothest, about 2× Standard (up to ~23 MB)." }
+    fast:    { width: 960,  height: 540, fps: 20, durationMs: 5000, dither: 4, blend: 3, delta: 6, label: "20fps. About 7–12 MB over a moving background. Video matches the preview most closely." },
+    quality: { width: 1280, height: 720, fps: 25, durationMs: 5000, dither: 6, blend: 3, delta: 6, label: "25fps. Sharpest and smoothest, about 2× Standard (up to ~23 MB)." }
   };
+  // A GIF's size for the current card format: 960×540 becomes 720×720,
+  // 1280×720 becomes 960×960, so file sizes stay about the same.
+  function gifSize(tier){
+    if (shareFormat !== "square") return { w: tier.width, h: tier.height };
+    var side = Math.round(Math.sqrt(tier.width * tier.height));
+    return { w: side, h: side };
+  }
 
   function videoNaturalMs(){
     var d = shareBgVideoEl.duration;
@@ -2268,7 +2305,8 @@
         match: { label: "The background clip's full length, once through. Records in real time." },
         fill:  { label: "A fixed " + (SHARE_VIDEO_LENGTH_FILL_MS / 1000) + "s window, looping the clip. Takes a full minute to record." }
       } },
-    { key: "gifQuality", el: document.getElementById("adjGifQualitySeg"), hint: document.getElementById("adjGifQualityHint"), tiers: SHARE_GIF_QUALITY_TIERS }
+    { key: "gifQuality", el: document.getElementById("adjGifQualitySeg"), hint: document.getElementById("adjGifQualityHint"), tiers: SHARE_GIF_QUALITY_TIERS,
+      hintFor: function(tier){ var size = gifSize(tier); return size.w + "×" + size.h + " · " + tier.label; } }
   ];
 
   function syncAdjustUI(){
@@ -2283,7 +2321,7 @@
       seg.el.querySelectorAll("button[data-val]").forEach(function(b){
         b.classList.toggle("active", b.getAttribute("data-val") === val);
       });
-      if (seg.hint && seg.tiers[val]) seg.hint.textContent = seg.tiers[val].label;
+      if (seg.hint && seg.tiers[val]) seg.hint.textContent = seg.hintFor ? seg.hintFor(seg.tiers[val]) : seg.tiers[val].label;
     });
   }
   SHARE_ADJUST_SEGMENTS.forEach(function(seg){
@@ -2322,6 +2360,43 @@
     syncAdjustUI();
     saveShareAdjust();
   });
+  // ---------- Card format ----------
+  // Standard is 16:9 (1920×1080). Square is 1:1 (1080×1080), the shape
+  // Instagram and most feeds show without cropping. Every card has a
+  // layout for each (see isSquareCard), and Photo, GIF and Video all take
+  // the card canvas's size. Remembered on its own, so Reset all keeps it.
+  var SHARE_FORMATS = { standard: { w: 1920, h: 1080 }, square: { w: 1080, h: 1080 } };
+  var SHARE_FORMAT_STORAGE_KEY = "ezpayouts.shareFormat";
+  var shareFormat = "standard";
+  try {
+    var savedFormat = localStorage.getItem(SHARE_FORMAT_STORAGE_KEY);
+    if (SHARE_FORMATS[savedFormat]) shareFormat = savedFormat;
+  } catch (err) {}
+  function applyShareFormat(){
+    var size = SHARE_FORMATS[shareFormat];
+    if (shareCardCanvas.width !== size.w || shareCardCanvas.height !== size.h){
+      shareCardCanvas.width = size.w;
+      shareCardCanvas.height = size.h;
+    }
+    shareCardWrap.classList.toggle("is-square", shareFormat === "square");
+    shareFormatTabs.querySelectorAll("button[data-format]").forEach(function(b){
+      b.classList.toggle("active", b.getAttribute("data-format") === shareFormat);
+    });
+    layoutSegThumb(shareFormatTabs);
+  }
+  shareFormatTabs.addEventListener("click", function(e){
+    var btn = e.target.closest("button[data-format]");
+    if (!btn || shareExporting || btn.getAttribute("data-format") === shareFormat) return;
+    shareFormat = btn.getAttribute("data-format");
+    try { localStorage.setItem(SHARE_FORMAT_STORAGE_KEY, shareFormat); } catch (err) {}
+    applyShareFormat();
+    syncAdjustUI();
+    // Resizing clears the canvas; redraw now rather than on the next frame,
+    // so a paused preview doesn't blink.
+    drawShareCard();
+  });
+  applyShareFormat();
+
   // Reflect whatever was loaded (saved from last time, or defaults) in the
   // slider/color-picker UI immediately — otherwise the inputs would show
   // their hardcoded HTML attribute values until the user touched one.
@@ -2665,24 +2740,50 @@
       });
     });
   }
-  // Rows rise in one after another, starting at `startMs`.
+  // Square cards (1080×1080) have their own layouts; Standard is 1920×1080.
+  function isSquareCard(w, h){ return w < h * 1.3; }
+  // Rows rise in one after another, starting at `startMs`. A value too
+  // long for the row shrinks rather than running into its label.
   function drawStatRows(ctx, rows, x, y, width, rowH, labelSize, valueSize, startMs){
     labelSize = labelSize || 21;
     valueSize = valueSize || 23;
     var start = startMs === undefined ? T_ROWS.start : startMs;
+    var labelFont = "600 " + labelSize + "px 'IBM Plex Mono', monospace";
     rows.forEach(function(r, i){
       var ry = y + i * rowH;
       withFade(ctx, seg(start + i * T_ROWS.stagger, T_ROWS.dur, FADE), 18, function(){
         withLegibilityShadow(ctx, function(){
+          var room = width - textWidthFor(labelFont, r.label) - 24;
+          var vSize = fitFontSize(r.value, "700 ", "'IBM Plex Mono', monospace", valueSize, room, Math.round(valueSize * 0.6));
           ctx.textBaseline = "alphabetic";
           ctx.textAlign = "left";
           ctx.fillStyle = shareAdjust.labelColor;
-          ctx.font = "600 " + labelSize + "px 'IBM Plex Mono', monospace";
+          ctx.font = labelFont;
           ctx.fillText(r.label, x, ry);
           ctx.textAlign = "right";
           ctx.fillStyle = r.color || shareAdjust.valueColor;
-          ctx.font = "700 " + valueSize + "px 'IBM Plex Mono', monospace";
+          ctx.font = "700 " + vSize + "px 'IBM Plex Mono', monospace";
           ctx.fillText(r.value, x + width, ry);
+        });
+      });
+    });
+  }
+  // The same stats side by side, label above value (Square trade card).
+  function drawStatColumns(ctx, items, x, y, width, startMs){
+    var colW = width / items.length;
+    items.forEach(function(it, i){
+      var cx = x + i * colW;
+      withFade(ctx, seg(startMs + i * T_ROWS.stagger, T_ROWS.dur, FADE), 18, function(){
+        withLegibilityShadow(ctx, function(){
+          var vSize = fitFontSize(it.value, "700 ", "'IBM Plex Mono', monospace", 34, colW - 24, 20);
+          ctx.textBaseline = "alphabetic";
+          ctx.textAlign = "left";
+          ctx.fillStyle = shareAdjust.labelColor;
+          ctx.font = "600 26px 'IBM Plex Mono', monospace";
+          ctx.fillText(it.label, cx, y);
+          ctx.fillStyle = it.color || shareAdjust.valueColor;
+          ctx.font = "700 " + vSize + "px 'IBM Plex Mono', monospace";
+          ctx.fillText(it.value, cx, y + 48);
         });
       });
     });
@@ -3023,10 +3124,14 @@
 
     var pnlColor = t.pnl >= 0 ? "#53ba79" : "#ef5a5a";
     var cents = hasCents(t.pnl);
-    // With a chart, leave room for the ENTRY tag left of the chart.
-    var maxW = chart ? w * 0.385 : w - pad * 2;
+    var square = isSquareCard(w, h);
+    // Standard with a chart: leave room for the ENTRY tag left of the
+    // chart. Square puts the chart below the amount instead.
+    var maxW = chart && !square ? w * 0.385 : w - pad * 2;
     var size = fitFontSize(fmtMoneyCard(t.pnl, cents), "900 ", "'Chakra Petch', sans-serif", chart ? 150 : 165, maxW, 72);
-    drawGlowAmount(ctx, fmtMoneyCard(t.pnl * pnlAnimProgress(), cents), pnlColor, pad - 2, pad + 265, size,
+    // Square with no chart: the amount sits in the middle of the card.
+    var amountY = !square ? pad + 265 : chart ? pad + 236 : Math.round(h / 2 + size * 0.35);
+    drawGlowAmount(ctx, fmtMoneyCard(t.pnl * pnlAnimProgress(), cents), pnlColor, pad - 2, amountY, size,
       seg(T_PNL_FADE.start, T_PNL_FADE.dur, FADE));
 
     if (chart){
@@ -3035,9 +3140,17 @@
         { label: "Exit", value: fmtPrice(t.exit) }
       ];
       if (hasVal(t.lots)) rows.push({ label: "Size", value: fmtSize(t) });
-      drawStatRows(ctx, rows, pad, pad + 370, Math.min(520, w * 0.36), 64, 28, 32, 500);
-      var chartX = w * 0.55, chartY = pad + 96;
-      drawTradePriceChart(ctx, t, chartX, chartY, w - chartX - pad - 30, h - chartY - pad - 120, pnlColor);
+      if (square){
+        // Chart across the middle (the ENTRY tag in the gap on its left),
+        // the stats in a strip along the bottom.
+        var sqChartX = pad + 260, sqChartY = pad + 326;
+        drawTradePriceChart(ctx, t, sqChartX, sqChartY, w - sqChartX - pad - 30, 300, pnlColor);
+        drawStatColumns(ctx, rows, pad, h - pad - 176, w - pad * 2, 500);
+      } else {
+        drawStatRows(ctx, rows, pad, pad + 370, Math.min(520, w * 0.36), 64, 28, 32, 500);
+        var chartX = w * 0.55, chartY = pad + 96;
+        drawTradePriceChart(ctx, t, chartX, chartY, w - chartX - pad - 30, h - chartY - pad - 120, pnlColor);
+      }
     }
 
     drawCardFooter(ctx, w, h, pad);
@@ -3053,7 +3166,10 @@
     drawPeriodHeader(ctx, pad, "DAILY", title);
 
     var pnlColor = agg.pnl >= 0 ? "#53ba79" : "#ef5a5a";
-    drawGlowAmount(ctx, fmtMoneySigned(agg.pnl * pnlAnimProgress()), pnlColor, pad - 2, pad + 265, 145,
+    // Square: the amount and stats, full width, in the middle of the card.
+    var square = isSquareCard(w, h);
+    var size = square ? fitFontSize(fmtMoneySigned(agg.pnl), "900 ", "'Chakra Petch', sans-serif", 165, w - pad * 2, 72) : 145;
+    drawGlowAmount(ctx, fmtMoneySigned(agg.pnl * pnlAnimProgress()), pnlColor, pad - 2, square ? 460 : pad + 265, size,
       seg(T_PNL_FADE.start, T_PNL_FADE.dur, FADE));
 
     var rows = [
@@ -3061,7 +3177,8 @@
       { label: "Win rate", value: agg.winRate + "%" }
     ];
     if (agg.best) rows.push({ label: "Best trade", value: fmtMoneySigned(agg.best.pnl) + " " + shortSymbol(agg.best.symbol) });
-    drawStatRows(ctx, rows, pad, pad + 355, 640, 82, 32, 40);
+    if (square) drawStatRows(ctx, rows, pad, 600, w - pad * 2, 92, 32, 40);
+    else drawStatRows(ctx, rows, pad, pad + 355, 640, 82, 32, 40);
 
     drawCardFooter(ctx, w, h, pad);
   }
@@ -3074,7 +3191,9 @@
     drawPeriodHeader(ctx, pad, "WEEKLY", "Week of " + fmtDateShort(agg.start));
 
     var pnlColor = agg.pnl >= 0 ? "#53ba79" : "#ef5a5a";
-    drawGlowAmount(ctx, fmtMoneySigned(agg.pnl * pnlAnimProgress()), pnlColor, pad - 2, pad + 250, 125,
+    var square = isSquareCard(w, h);
+    var size = square ? fitFontSize(fmtMoneySigned(agg.pnl), "900 ", "'Chakra Petch', sans-serif", 125, w - pad * 2, 64) : 125;
+    drawGlowAmount(ctx, fmtMoneySigned(agg.pnl * pnlAnimProgress()), pnlColor, pad - 2, square ? pad + 226 : pad + 250, size,
       seg(T_PNL_FADE.start, T_PNL_FADE.dur, FADE));
 
     var rows = [
@@ -3083,7 +3202,6 @@
       { label: "Green days", value: agg.greenDays + " of " + agg.tradedDaysCount }
     ];
     if (agg.bestDay) rows.push({ label: "Best day", value: fmtMoneySigned(agg.bestDay.pnl) + " " + agg.bestDay.label });
-    drawStatRows(ctx, rows, pad, pad + 335, 560, 82, 32, 40);
 
     // Cumulative P&L across the week, drawn Mon → Fri.
     var cum = 0;
@@ -3093,33 +3211,45 @@
     }));
     curvePoints[0].label = agg.days.length ? agg.days[0].label : "";
     curvePoints[curvePoints.length - 1].label = agg.days.length ? agg.days[agg.days.length - 1].label : "";
-    var chartX = w * 0.62, chartY = pad + 30, chartW = w - chartX - pad, chartH = 190;
-    drawEquityLine(ctx, curvePoints, chartX, chartY, chartW, chartH, pnlColor);
+    if (square){
+      // The week's line full width under the amount; stats and days in two
+      // columns below it.
+      var colW = (w - pad * 2 - 80) / 2;
+      drawEquityLine(ctx, curvePoints, pad, 360, w - pad * 2, 170, pnlColor);
+      drawStatRows(ctx, rows, pad, 650, colW, 66, 26, 30);
+      drawWeekDayList(ctx, agg.days, pad + colW + 80, 650, colW, 52, 26, 28);
+    } else {
+      drawStatRows(ctx, rows, pad, pad + 335, 560, 82, 32, 40);
+      var chartX = w * 0.62, chartY = pad + 30, chartW = w - chartX - pad, chartH = 190;
+      drawEquityLine(ctx, curvePoints, chartX, chartY, chartW, chartH, pnlColor);
+      drawWeekDayList(ctx, agg.days, w * 0.62, pad + 335, 260, 60, 28, 30);
+    }
 
-    var rightX = w * 0.62, rightY = pad + 335;
-    agg.days.forEach(function(d, i){
-      var ry = rightY + i * 60;
+    drawCardFooter(ctx, w, h, pad);
+  }
+  // Mon–Fri, each day's P&L (or "No trades"), rising in one after another.
+  function drawWeekDayList(ctx, days, x, y, width, rowH, labelSize, valueSize){
+    days.forEach(function(d, i){
+      var ry = y + i * rowH;
       withFade(ctx, seg(T_ROWS.start + 200 + i * T_ROWS.stagger, T_ROWS.dur, FADE), 16, function(){
         withLegibilityShadow(ctx, function(){
           ctx.textBaseline = "alphabetic";
           ctx.textAlign = "left";
           ctx.fillStyle = "rgba(255,255,255,0.6)";
-          ctx.font = "600 28px 'IBM Plex Mono', monospace";
-          ctx.fillText(d.label, rightX, ry);
+          ctx.font = "600 " + labelSize + "px 'IBM Plex Mono', monospace";
+          ctx.fillText(d.label, x, ry);
           ctx.textAlign = "right";
-          ctx.font = "700 30px 'IBM Plex Mono', monospace";
+          ctx.font = "700 " + valueSize + "px 'IBM Plex Mono', monospace";
           if (d.hasTrades){
             ctx.fillStyle = d.pnl >= 0 ? "#53ba79" : "#ef5a5a";
-            ctx.fillText(fmtMoneySigned(d.pnl), rightX + 260, ry);
+            ctx.fillText(fmtMoneySigned(d.pnl), x + width, ry);
           } else {
             ctx.fillStyle = "rgba(255,255,255,0.35)";
-            ctx.fillText("No trades", rightX + 260, ry);
+            ctx.fillText("No trades", x + width, ry);
           }
         });
       });
     });
-
-    drawCardFooter(ctx, w, h, pad);
   }
 
   function drawMonthlyCard(ctx, w, h){
@@ -3131,7 +3261,9 @@
     drawPeriodHeader(ctx, pad, "MONTHLY", title);
 
     var pnlColor = agg.pnl >= 0 ? "#53ba79" : "#ef5a5a";
-    drawGlowAmount(ctx, fmtMoneySigned(agg.pnl * pnlAnimProgress()), pnlColor, pad - 2, pad + 250, 125,
+    var square = isSquareCard(w, h);
+    var size = square ? fitFontSize(fmtMoneySigned(agg.pnl), "900 ", "'Chakra Petch', sans-serif", 125, w - pad * 2, 64) : 125;
+    drawGlowAmount(ctx, fmtMoneySigned(agg.pnl * pnlAnimProgress()), pnlColor, pad - 2, square ? pad + 226 : pad + 250, size,
       seg(T_PNL_FADE.start, T_PNL_FADE.dur, FADE));
 
     var rows = [
@@ -3140,7 +3272,9 @@
       { label: "Best day", value: agg.bestDate ? (fmtMoneySigned(agg.bestPnl) + " " + fmtDateShort(agg.bestDate)) : "–" },
       { label: "Trades", value: String(agg.count) }
     ];
-    drawStatRows(ctx, rows, pad, pad + 335, 580, 82, 32, 40);
+    // Square: the month's line full width under the amount, stats below.
+    if (square) drawStatRows(ctx, rows, pad, 700, w - pad * 2, 68, 30, 36);
+    else drawStatRows(ctx, rows, pad, pad + 335, 580, 82, 32, 40);
 
     var curvePoints = [{ date: null, label: "", value: 0 }].concat(
       agg.curve.map(function(p){ return { date: p.date, label: fmtDateShort(p.date), value: p.value }; })
@@ -3149,8 +3283,11 @@
       curvePoints[0].label = curvePoints[1].label;
       for (var i = 1; i < curvePoints.length - 1; i++) curvePoints[i].label = "";
     }
-    var chartX = w * 0.60, chartY = pad + 40, chartW = w - chartX - pad, chartH = 260;
-    drawEquityLine(ctx, curvePoints, chartX, chartY, chartW, chartH, pnlColor);
+    if (square) drawEquityLine(ctx, curvePoints, pad, 360, w - pad * 2, 230, pnlColor);
+    else {
+      var chartX = w * 0.60, chartY = pad + 40, chartW = w - chartX - pad, chartH = 260;
+      drawEquityLine(ctx, curvePoints, chartX, chartY, chartW, chartH, pnlColor);
+    }
 
     drawCardFooter(ctx, w, h, pad);
   }
@@ -3193,7 +3330,8 @@
     var pad = 64;
     var cal = computeCalendarMonth(t.date);
 
-    var panelX = 150, panelY = 52, panelW = w - 300, panelH = h - 52 - 130;
+    // Square: the panel takes nearly the card's full width.
+    var panelX = isSquareCard(w, h) ? 40 : 150, panelY = 52, panelW = w - panelX * 2, panelH = h - 52 - 130;
     var innerPad = 30, headerH = 76, weekdayH = 40, gap = 12;
     var gridX = panelX + innerPad, gridY = panelY + innerPad + headerH + weekdayH;
     var gridW = panelW - innerPad * 2, gridH = panelH - innerPad * 2 - headerH - weekdayH;
@@ -3337,8 +3475,9 @@
 
   // ctx/w/h are optional — omitted, this draws into the live preview
   // canvas. Passed explicitly (an offscreen canvas's context, pre-scaled,
-  // plus the logical 1920×1080 size), it renders the same card at that
-  // canvas's resolution — how Photo and GIF export work.
+  // plus the logical size: 1920×1080, or 1080×1080 for Square), it renders
+  // the same card at that canvas's resolution — how Photo and GIF export
+  // work.
   function drawShareCard(ctx, w, h){
     if (!shareCurrentTrade || !shareCardCanvas.getContext) return;
     ctx = ctx || shareCardCanvas.getContext("2d");
@@ -3470,6 +3609,7 @@
     shareFrameBar.hidden = busy;
     shareExportStatus.hidden = !busy;
     sharePeriodTabs.classList.toggle("is-locked", busy);
+    shareFormatTabs.classList.toggle("is-locked", busy);
     if (busy) setExportProgress(0, label || "Working…");
   }
   function setExportProgress(frac, label){
@@ -3606,6 +3746,7 @@
     shareModalOverlay.hidden = false;
     layoutSegThumb(sharePeriodTabs, true);
     layoutSegThumb(shareSubTabs, true);
+    layoutSegThumb(shareFormatTabs, true);
     renderBgGrid();
     var isKnownPreset = SHARE_BG_LIST.some(function(e){ return e.id === shareBgActiveId; });
     if (!isKnownPreset && SHARE_BG_LIST.length) selectPresetBg(SHARE_BG_LIST[0]);
@@ -4037,7 +4178,8 @@
 
   function buildGif(mods, tier){
     var enc = mods.enc;
-    var gw = tier.width, gh = tier.height;
+    var size = gifSize(tier);
+    var gw = size.w, gh = size.h;
     var delay = Math.round(1000 / tier.fps);
     var frameCount = Math.max(2, Math.round(gifDurationMs(tier) / delay));
     var canvas = document.createElement("canvas");
