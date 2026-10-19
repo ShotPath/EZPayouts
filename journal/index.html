@@ -608,10 +608,26 @@
   .share-subpanel-scroll::-webkit-scrollbar-track{ background:transparent; }
   .share-subpanel-scroll::-webkit-scrollbar-thumb{ background:var(--hairline-bright); border-radius:999px; }
   .share-modal .trade-modal-foot{ flex:none; }
-  @media (max-width:760px){
-    .share-modal{ width:100%; height:auto; max-height:calc(100vh - 24px); overflow-y:auto; }
-    .share-workspace{ grid-template-columns:1fr; }
+  /* Phones, either way up: the whole panel scrolls as one page, with the
+     export buttons pinned to its bottom edge. The settings column used to
+     be squeezed to fit, spilling out under the buttons, which hid things
+     like the background picker's "More". dvh is the visible height on
+     phones, where browser bars make 100vh taller than the screen. */
+  @media (max-width:760px), (max-height:520px){
+    .share-modal{ width:100%; height:auto; max-height:calc(100vh - 24px); max-height:calc(100dvh - 24px); overflow-y:auto;
+      scroll-padding-bottom:96px; }
+    .share-workspace{ grid-template-columns:1fr; flex:none; }
     .share-subpanel-scroll{ overflow:visible; }
+    .share-modal .trade-modal-foot{
+      position:sticky; bottom:-20px; z-index:5; margin:6px -20px -20px; padding:12px 20px 20px;
+      background:var(--panel-raised); box-shadow:0 -16px 24px -18px rgba(0,0,0,0.85);
+    }
+    /* Three buttons share a phone's width without running off the edge. */
+    .share-export-row{ gap:8px; }
+    .share-export-btn{ min-width:0; padding:9px 6px; gap:7px; }
+  }
+  @media (max-width:400px){
+    .share-export-btn svg{ display:none; }
   }
   .share-period-tabs{
     display:inline-flex; align-items:stretch; width:100%; margin-bottom:14px;
