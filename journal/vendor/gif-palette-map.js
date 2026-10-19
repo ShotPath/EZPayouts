@@ -8,6 +8,13 @@
 // across many more buckets, then refined (k-means) against the real pixels
 // so each palette color sits exactly where the image needs it.
 //
+// Flat colors: text and other solid fills (the P&L amount, labels, white
+// text) cover many pixels with one exact color, where a moving background
+// almost never repeats one exactly. Those colors get palette entries of
+// their own, placed first, kept exact (k-means doesn't move them) and never
+// dithered, so the amount comes out the same solid green or red as the
+// preview instead of a speckled, slightly shifted one.
+//
 // createMapper: matches pixels at 7 bits per channel (gifenc's applyPalette
 // also works at rgb565) via a lookup cache. A light ordered (Bayer) dither
 // breaks up banding in mid-tones; it fades out in the shadows, where it
@@ -32,8 +39,50 @@ function channels(palette){
   return { pr: pr, pg: pg, pb: pb, n: n };
 }
 
-// pixels: RGBA samples. quantize: gifenc's quantize function.
+var MAX_FLAT = 24;
+
+// The most common exact colors, if they're common enough to be fills.
+// Counted in a fixed-size hash table (no per-color objects), on every
+// other sample, which is plenty for colors this frequent.
+function flatColors(pixels){
+  var SIZE = 1 << 19, keys = new Int32Array(SIZE).fill(-1), counts = new Uint32Array(SIZE);
+  var used = 0, total = 0;
+  for (var i = 0; i < pixels.length; i += 8){
+    var key = (pixels[i] << 16) | (pixels[i + 1] << 8) | pixels[i + 2];
+    total++;
+    var h = Math.imul(key, 0x9E3779B1) >>> 13;
+    while (keys[h] !== -1 && keys[h] !== key) h = (h + 1) & (SIZE - 1);
+    if (keys[h] === key){ counts[h]++; }
+    else if (used < SIZE * 0.7){ keys[h] = key; counts[h] = 1; used++; }
+  }
+  // A fill needs real area: about 0.05% of the card, at least 40 samples.
+  var min = Math.max(40, total * 0.0005), found = [];
+  for (var j = 0; j < SIZE; j++){
+    if (keys[j] === -1 || counts[j] < min) continue;
+    // Text is bright or colored; frequent dark greys are just background,
+    // already well served by the shadow-weighted quantizer.
+    var kv = keys[j], hi = Math.max(kv >> 16, (kv >> 8) & 255, kv & 255);
+    if (hi >= 70) found.push(j);
+  }
+  found.sort(function(a, b){ return counts[b] - counts[a]; });
+  var out = [];
+  for (var k = 0; k < found.length && out.length < MAX_FLAT; k++){
+    var v = keys[found[k]], c = [v >> 16, (v >> 8) & 255, v & 255];
+    // Skip near-twins (one antialiasing step away) of a color already kept.
+    var twin = out.some(function(o){
+      var dr = o[0] - c[0], dg = o[1] - c[1], db = o[2] - c[2];
+      return dr * dr + dg * dg + db * db < 48;
+    });
+    if (!twin) out.push(c);
+  }
+  return out;
+}
+
+// pixels: RGBA samples. quantize: gifenc's quantize function. Returns the
+// palette with its flat colors first; palette.flat is how many there are.
 export function buildPalette(pixels, maxColors, quantize){
+  var flat = flatColors(pixels);
+  maxColors -= flat.length;
   var len = pixels.length;
   var curved = new Uint8ClampedArray(len);
   var toCurve = new Uint8Array(256), fromCurve = new Uint8Array(256);
@@ -47,9 +96,9 @@ export function buildPalette(pixels, maxColors, quantize){
     curved[i + 2] = toCurve[pixels[i + 2]];
     curved[i + 3] = 255;
   }
-  var palette = quantize(curved, maxColors, { format: "rgb565" }).map(function(c){
+  var palette = flat.concat(quantize(curved, maxColors, { format: "rgb565" }).map(function(c){
     return [fromCurve[c[0]], fromCurve[c[1]], fromCurve[c[2]]];
-  });
+  }));
 
   // k-means refinement on a subsample, in plain RGB with the same weights
   // the mapper uses, so palette colors are true centroids of what they map.
@@ -67,17 +116,21 @@ export function buildPalette(pixels, maxColors, quantize){
       if (k < 0){ k = nearestIndex(ch.pr, ch.pg, ch.pb, ch.n, r, g, b); cache[key] = k; }
       sr[k] += r; sg[k] += g; sb[k] += b; cnt[k]++;
     }
-    for (var c = 0; c < ch.n; c++){
+    for (var c = flat.length; c < ch.n; c++){
       if (cnt[c]) palette[c] = [Math.round(sr[c] / cnt[c]), Math.round(sg[c] / cnt[c]), Math.round(sb[c] / cnt[c])];
     }
   }
+  palette.flat = flat.length;
   return palette;
 }
 
-export function createMapper(palette, dither){
+// flat: how many of the palette's first colors are flat colors (above).
+export function createMapper(palette, dither, flat){
   var ch = channels(palette);
   var cache = new Int16Array(1 << 21).fill(-1);
   var amp = dither || 0;
+  var exact = new Map();
+  for (var f = 0; f < (flat || 0); f++) exact.set((palette[f][0] << 16) | (palette[f][1] << 8) | palette[f][2], f);
 
   return function map(rgba, width, height){
     var out = new Uint8Array(width * height);
@@ -87,6 +140,11 @@ export function createMapper(palette, dither){
       for (var x = 0; x < width; x++, p++){
         var o = p << 2;
         var r = rgba[o], g = rgba[o + 1], b = rgba[o + 2];
+        if (amp && exact.size){
+          // A flat color maps straight to its own entry, undithered.
+          var e = exact.get((r << 16) | (g << 8) | b);
+          if (e !== undefined){ out[p] = e; continue; }
+        }
         if (amp){
           // Full strength from mid-tones up, none in deep shadows.
           var lum = (r * 3 + g * 6 + b) / 10;

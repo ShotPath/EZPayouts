@@ -7,7 +7,7 @@ var map = null;
 self.onmessage = function(e){
   var msg = e.data;
   if (msg.type === "palette"){
-    map = createMapper(msg.palette, msg.dither);
+    map = createMapper(msg.palette, msg.dither, msg.flat);
     return;
   }
   var index = map(new Uint8ClampedArray(msg.rgba), msg.width, msg.height);

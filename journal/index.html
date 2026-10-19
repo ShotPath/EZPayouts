@@ -3829,7 +3829,7 @@
         var wk = new Worker(new URL("vendor/gif-quantize-worker.js", document.baseURI), { type: "module" });
         wk.onmessage = function(e){ onResult(e.data); };
         wk.onerror = function(){ onBroken(); };
-        wk.postMessage({ type: "palette", palette: palette, dither: dither });
+        wk.postMessage({ type: "palette", palette: palette, dither: dither, flat: palette.flat || 0 });
         workers.push(wk);
       }
     } catch (err){
@@ -3987,6 +3987,13 @@
         // shimmered. Error stays bounded by delta because the comparison is
         // against what's actually displayed, not the previous frame. Unchanged
         // runs also compress far better.
+        //
+        // Flat colors (the P&L amount and other solid text, see
+        // vendor/gif-palette-map.js) are the exception: they're always
+        // written exactly. Otherwise text fading in got stuck a shade or two
+        // off its final color wherever a fade step landed within delta of it,
+        // which left the amount mottled instead of solid.
+        var nFlat = palette.flat || 0;
         var nColors = palette.length;
         var TRANSPARENT = nColors;
         var gifPalette = palette.concat([[0, 0, 0]]);
@@ -4020,7 +4027,7 @@
               var idx = r.index;
               for (var p = 0; p < idx.length; p++){
                 var ni = idx[p], di = onScreen[p];
-                if (ni === di || near[ni * nColors + di]) idx[p] = TRANSPARENT;
+                if (ni === di || (ni >= nFlat && near[ni * nColors + di])) idx[p] = TRANSPARENT;
                 else onScreen[p] = ni;
               }
               encoder.writeFrame(idx, gw, gh, { delay: delay, transparent: true, transparentIndex: TRANSPARENT, dispose: 1 });
@@ -4047,7 +4054,7 @@
           while (drainWaiters.length && inFlight < maxInFlight) drainWaiters.shift()();
         }
         function mapHere(id, buffer){
-          if (!localMap) localMap = mods.map.createMapper(palette, tier.dither);
+          if (!localMap) localMap = mods.map.createMapper(palette, tier.dither, palette.flat || 0);
           inFlight++;
           handleResult({ id: id, index: localMap(new Uint8ClampedArray(buffer), gw, gh) });
         }
