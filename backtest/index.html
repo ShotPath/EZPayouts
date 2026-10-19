@@ -514,6 +514,7 @@
 <body>
 <script src="/nav.js"></script>
 <script src="/account.js"></script>
+<script src="/sync.js"></script>
 <script src="/coach.js"></script>
 <div class="wrap">
 
@@ -752,11 +753,18 @@
     });
   }
 
+  // MAX_STRATEGIES only limits adding one here: strategies made on two
+  // devices can add up to more once synced, and dropping one would delete
+  // it everywhere. _u is the sync's edit stamp (see sync.js).
   function normalizeStrategies(strategies){
     var list = Array.isArray(strategies) ? strategies : [];
-    list = list.filter(function(s){ return s && s.id; }).slice(0, MAX_STRATEGIES);
+    list = list.filter(function(s){ return s && s.id; });
     if (!list.length) list = [{ id: "s1", name: "Strategy 1" }];
-    return list.map(function(s){ return { id: String(s.id), name: String(s.name || "Strategy") }; });
+    return list.map(function(s){
+      var out = { id: String(s.id), name: String(s.name || "Strategy") };
+      if (s._u) out._u = s._u;
+      return out;
+    });
   }
 
   function applyStrategyPayload(payload){
@@ -799,40 +807,33 @@
       }
     } catch (err) {}
   }
+  // Saves to this device, then lets sync.js merge it with the account's
+  // copy. Uploading this device's whole log over the account's meant a
+  // phone left open could wipe trades logged on a computer.
   function save(){
     var payload = buildSyncPayload();
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(payload)); } catch (err) {}
-    if (window.EZAuth && EZAuth.isLoggedIn()) EZAuth.saveData({ backtest: payload });
+    if (window.EZSync) EZSync.schedule();
   }
 
   function syncFromAccount(){
-    if (!window.EZAuth || !EZAuth.isLoggedIn()) return;
-    EZAuth.fetchData().then(function(remote){
-      if (!remote) return;
-      var remoteBacktest = remote.backtest;
-      if (remoteBacktest && typeof remoteBacktest === "object" && !Array.isArray(remoteBacktest) && remoteBacktest.entriesByStrategy){
-        var hasAny = Object.keys(remoteBacktest.entriesByStrategy).some(function(id){
-          return Array.isArray(remoteBacktest.entriesByStrategy[id]) && remoteBacktest.entriesByStrategy[id].length;
-        });
-        if (hasAny){
-          applyStrategyPayload(remoteBacktest);
-          save();
-          renderStrategyTabs(true);
-          renderAll();
-          return;
-        }
-      } else if (Array.isArray(remoteBacktest) && remoteBacktest.length){
-        // Legacy single-log format saved by an older version of this page.
-        entriesByStrategy[state.activeId] = remoteBacktest;
-        entries = entriesByStrategy[state.activeId];
-        save();
-        renderAll();
-        return;
-      }
-      var anyLocal = Object.keys(entriesByStrategy).some(function(id){ return entriesByStrategy[id].length; });
-      if (anyLocal) EZAuth.saveData({ backtest: buildSyncPayload() });
+    if (window.EZSync) EZSync.sync();
+  }
+  // A sync brought in another device's changes, or another tab saved: pick
+  // them up, so this page's next save doesn't write an older copy back.
+  function reloadFromStorage(){
+    load();
+    renderStrategyTabs(true);
+    renderAll();
+  }
+  if (window.EZSync){
+    EZSync.onUpdate(function(e){
+      if (!e.channels || e.channels.indexOf("backtest") !== -1) reloadFromStorage();
     });
   }
+  window.addEventListener("storage", function(e){
+    if (e.key === STORAGE_KEY && e.newValue) reloadFromStorage();
+  });
 
   function resetFilterAndFormUI(){
     currentFilter = "all";

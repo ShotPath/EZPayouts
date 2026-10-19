@@ -328,7 +328,7 @@
 <script src="/nav.js"></script>
 <script src="/select.js"></script>
 <script src="/account.js"></script>
-<script src="/journal-sync.js"></script>
+<script src="/sync.js"></script>
 <script src="/coach.js"></script>
 <script src="/dashboard/holo3d.js"></script>
 <div class="wrap">
@@ -1293,11 +1293,13 @@
     if (e.key === ACCT_FILTER_STORAGE_KEY){ selectedAccountIds = loadAcctFilterSelection(); populateAccountFilter(); render(); renderGreeting(); }
   });
   window.addEventListener("focus", function(){ load(); render(); renderGreeting(); });
-  // Pull in trades logged on other devices (journal-sync.js); re-render if
+  // Pull in trades logged on other devices (sync.js); re-render if
   // the merge changed anything.
-  if (window.EZJournalSync){
-    EZJournalSync.onUpdate(function(){ load(); populateAccountFilter(); render(); renderGreeting(); });
-    EZJournalSync.sync();
+  if (window.EZSync){
+    EZSync.onUpdate(function(e){
+      if (e.channels.indexOf("journal") !== -1){ load(); populateAccountFilter(); render(); renderGreeting(); }
+    });
+    EZSync.sync();
   }
 })();
 </script>

@@ -10,9 +10,10 @@
 // Storage: a single KV namespace (binding "ACCOUNTS") holds four kinds of
 // keys —
 //   user:<lowercased username>    -> { username, salt, hash, createdAt,
-//                                      googleId?, appleId?, verifiedEmail? }
+//                                      googleId?, appleId?, verifiedEmail?,
+//                                      mergedInto? (see handleOAuthLink) }
 //   session:<token>               -> lowercased username   (TTL'd)
-//   data:<lowercased username>    -> { backtest, cockpit, updatedAt }
+//   data:<lowercased username>    -> { backtest, cockpit, journal, updatedAt }
 //   oauth:<provider>:<subjectId>  -> lowercased username
 //       (provider is "google" or "apple"; subjectId is that provider's
 //       stable user id, the JWT's `sub` claim — this index is how a
@@ -407,8 +408,25 @@ async function handleOAuthLink(request, env, provider) {
   var subjectId = payload.sub;
   var indexKey = oauthKey(provider, subjectId);
   var existingOwner = await env.ACCOUNTS.get(indexKey);
+  var movedFrom = null;
   if (existingOwner && existingOwner !== username.toLowerCase()) {
-    return json({ error: "That " + (provider === "google" ? "Google" : "Apple") + " account is already linked to a different EZPayouts account." }, 409);
+    // Signing in with Google before linking it makes a second account
+    // (handleOAuthComplete). If that account has no password, this Google
+    // sign-in is its only key, and the person holding it just proved it's
+    // theirs: move the link here and bring that account's trades along.
+    // An account with a password is someone's own login; leave it alone.
+    var otherRaw = await env.ACCOUNTS.get(userKey(existingOwner));
+    var other = otherRaw ? JSON.parse(otherRaw) : null;
+    if (other && other.hash) {
+      return json({ error: "That " + (provider === "google" ? "Google" : "Apple") + " account is already linked to a different EZPayouts account." }, 409);
+    }
+    if (other) {
+      await moveSyncedData(env, other.username, username);
+      delete other[cfg.idField];
+      other.mergedInto = username.toLowerCase();
+      await env.ACCOUNTS.put(userKey(other.username), JSON.stringify(other));
+      movedFrom = other.username;
+    }
   }
 
   var raw = await env.ACCOUNTS.get(userKey(username));
@@ -425,7 +443,90 @@ async function handleOAuthLink(request, env, provider) {
     verifiedEmail: record.verifiedEmail || null,
     hasGoogle: !!record.googleId,
     hasApple: !!record.appleId,
+    movedFrom: movedFrom,
   });
+}
+
+// ---------- Moving one account's synced trades into another ----------
+// Used when a Google link moves off a Google-only account (above). The
+// journal and Backtest log are merged the way the site's sync merges two
+// devices (sync.js): items both have keep the newer edit (`_u`), anything
+// only one has is kept, and deletions either recorded still apply. The
+// source account's copy is left as it was.
+function newerItem(a, b) { return (a._u || 0) >= (b._u || 0) ? a : b; }
+function unionById(into, from, tomb, mergeBoth) {
+  var out = [];
+  var fromMap = {};
+  (from || []).forEach(function (x) { if (x && x.id) fromMap[x.id] = x; });
+  var used = {};
+  function alive(item) { return !tomb[item.id] || (item._u || 0) > tomb[item.id]; }
+  (into || []).forEach(function (x) {
+    if (!x || !x.id) return;
+    used[x.id] = true;
+    var m = fromMap[x.id] ? (mergeBoth ? mergeBoth(x, fromMap[x.id]) : newerItem(x, fromMap[x.id])) : x;
+    if (alive(m)) out.push(m);
+  });
+  (from || []).forEach(function (x) {
+    if (x && x.id && !used[x.id] && alive(x)) out.push(x);
+  });
+  return out;
+}
+function unionTombstones(a, b) {
+  var out = {};
+  [a, b].forEach(function (t) {
+    if (!t || typeof t !== "object") return;
+    Object.keys(t).forEach(function (id) { if (!out[id] || t[id] > out[id]) out[id] = t[id]; });
+  });
+  return out;
+}
+function journalShape(j) {
+  if (!j || typeof j !== "object") return null;
+  if (Array.isArray(j.accounts)) return j;
+  if (Array.isArray(j.trades)) return { accounts: [{ id: "acc_default", name: "Main", trades: j.trades }], activeAccountId: "acc_default" };
+  return null;
+}
+function backtestShape(b) {
+  if (Array.isArray(b)) return { strategies: [{ id: "s1", name: "Strategy 1" }], activeId: "s1", entriesByStrategy: { s1: b } };
+  return b && typeof b === "object" && b.entriesByStrategy ? b : null;
+}
+function mergeJournal(into, from) {
+  into = journalShape(into); from = journalShape(from);
+  if (!from) return into;
+  if (!into) return from;
+  var tomb = unionTombstones(into.tombstones, from.tombstones);
+  var accounts = unionById(into.accounts, from.accounts, tomb, function (a, b) {
+    var out = Object.assign({}, newerItem(a, b));
+    out.trades = unionById(a.trades, b.trades, tomb);
+    if (Array.isArray(a.strategies) || Array.isArray(b.strategies)) out.strategies = unionById(a.strategies, b.strategies, tomb);
+    return out;
+  });
+  return { accounts: accounts, activeAccountId: into.activeAccountId || from.activeAccountId || null, tombstones: tomb };
+}
+function mergeBacktest(into, from) {
+  into = backtestShape(into); from = backtestShape(from);
+  if (!from) return into;
+  if (!into) return from;
+  var tomb = unionTombstones(into.tombstones, from.tombstones);
+  var strategies = unionById(into.strategies, from.strategies, tomb);
+  var entriesByStrategy = {};
+  strategies.forEach(function (s) {
+    entriesByStrategy[s.id] = unionById((into.entriesByStrategy || {})[s.id], (from.entriesByStrategy || {})[s.id], tomb);
+  });
+  return { strategies: strategies, activeId: into.activeId || from.activeId || null, entriesByStrategy: entriesByStrategy, tombstones: tomb };
+}
+async function moveSyncedData(env, fromUsername, intoUsername) {
+  var fromRaw = await env.ACCOUNTS.get(dataKey(fromUsername));
+  if (!fromRaw) return;
+  var from = JSON.parse(fromRaw);
+  var intoRaw = await env.ACCOUNTS.get(dataKey(intoUsername));
+  var into = intoRaw ? JSON.parse(intoRaw) : {};
+  var next = {
+    backtest: mergeBacktest(into.backtest, from.backtest),
+    cockpit: into.cockpit || from.cockpit || null,
+    journal: mergeJournal(into.journal, from.journal),
+    updatedAt: new Date().toISOString(),
+  };
+  await env.ACCOUNTS.put(dataKey(intoUsername), JSON.stringify(next));
 }
 
 async function handleMe(request, env) {

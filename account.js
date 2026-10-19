@@ -130,9 +130,29 @@
     if (!isLoggedIn()) return Promise.resolve(null);
     return apiFetch("/me").catch(function () { return null; });
   }
+  // Signing out takes this device's journal and Backtest log off the site,
+  // so the next person here doesn't see them, but keeps them aside under
+  // the account's name: signing back in to that account merges them back
+  // (sync.js). Trades that hadn't reached the server yet used to be lost.
+  // Each sign-out gets its own key, so an earlier copy that hasn't been
+  // merged back yet isn't overwritten.
+  var SIGN_OUT_KEEP = { journal: "ezpayouts.journal.v1", backtest: "ezpayouts.backtest.v2" };
+  function setAsideLocalData(username) {
+    var stamp = Date.now();
+    Object.keys(SIGN_OUT_KEEP).forEach(function (name) {
+      try {
+        var raw = localStorage.getItem(SIGN_OUT_KEEP[name]);
+        if (!raw) return;
+        localStorage.setItem("ezpayouts.signedOut." + username.toLowerCase() + "." + name + "." + stamp, raw);
+        localStorage.removeItem(SIGN_OUT_KEEP[name]);
+      } catch (err) {}
+    });
+  }
   function logout() {
+    var username = getUsername();
     var pending = getToken() ? apiFetch("/logout", { method: "POST" }).catch(function () {}) : Promise.resolve();
     return pending.then(function () {
+      if (username) setAsideLocalData(username);
       clearSession();
       emitChange();
     });
@@ -243,6 +263,11 @@
       " transition:filter .15s, opacity .15s; }" +
       ".ez-auth-submit:hover{ filter:brightness(1.08); }" +
       ".ez-auth-submit:disabled{ opacity:0.6; cursor:default; filter:none; }" +
+      ".ez-auth-secondary{ width:100%; margin-top:10px; font-family:var(--font-display); font-weight:600; font-size:14px; padding:11px 16px;" +
+      " border-radius:10px; border:1px solid var(--hairline-bright); background:transparent; color:var(--ice); cursor:pointer; transition:border-color .15s; }" +
+      ".ez-auth-secondary:hover{ border-color:var(--phosphor-dim); }" +
+      ".ez-auth-warning{ text-align:left; margin:0 0 16px; font-size:13px; line-height:1.5; color:var(--ice); }" +
+      ".ez-auth-warning strong{ color:#f5c25b; }" +
       ".ez-auth-hint{ margin:16px 0 0; font-size:11.5px; color:var(--muted-dim); line-height:1.5; text-align:center; }" +
       // ---------- OAuth block (Inked Japan++): deliberately its own fixed
       // dark/blue palette rather than the page's --mint/--phosphor theme
@@ -652,13 +677,17 @@
     overlay.innerHTML = "" +
       '<div class="ez-auth-modal" role="dialog" aria-modal="true" aria-label="Choose a username">' +
         '<button type="button" class="ez-auth-close" aria-label="Close">&times;</button>' +
-        '<p class="ez-auth-eyebrow">One more step</p>' +
-        '<p class="ez-auth-hint" style="text-align:left; margin:0 0 16px;">Pick a username for your EZPayouts account &mdash; this is how your trades and data are keyed.</p>' +
+        '<p class="ez-auth-eyebrow">New account</p>' +
+        // Picking a username here makes a second, empty account for anyone
+        // who already had one, and their trades look gone. Say so.
+        '<p class="ez-auth-warning">This Google account isn&rsquo;t connected to an EZPayouts account yet, so continuing makes a <strong>new, empty account</strong>.</p>' +
+        '<p class="ez-auth-hint" style="text-align:left; margin:0 0 16px;">Already have one? Sign in with its username and password, then choose <em>Link Google Account</em> from your account menu, so Google opens it next time.</p>' +
         '<form novalidate>' +
-          '<label class="ez-auth-field"><span>Username</span>' +
+          '<label class="ez-auth-field"><span>Username for the new account</span>' +
             '<input type="text" class="ez-us-username" autocomplete="username" maxlength="20" /></label>' +
           '<p class="ez-auth-error" hidden></p>' +
-          '<button type="submit" class="ez-auth-submit">Continue</button>' +
+          '<button type="submit" class="ez-auth-submit">Create new account</button>' +
+          '<button type="button" class="ez-auth-secondary ez-us-existing">I already have an account</button>' +
         "</form>" +
       "</div>";
     document.body.appendChild(overlay);
@@ -677,16 +706,20 @@
       submitBtn.textContent = "Creating…";
       completeOAuthSignup(pendingToken, username).then(function () {
         submitBtn.disabled = false;
-        submitBtn.textContent = "Continue";
+        submitBtn.textContent = "Create new account";
         closeUsModal();
         formEl.reset();
         if (mountedContainer) renderWidget(mountedContainer);
       }).catch(function (err) {
         submitBtn.disabled = false;
-        submitBtn.textContent = "Continue";
+        submitBtn.textContent = "Create new account";
         errorEl.textContent = err.message || "Something went wrong.";
         errorEl.hidden = false;
       });
+    });
+    overlay.querySelector(".ez-us-existing").addEventListener("click", function () {
+      closeUsModal();
+      openModal("login");
     });
 
     overlay.querySelector(".ez-auth-close").addEventListener("click", closeUsModal);
@@ -773,9 +806,12 @@
           linkGoogleBtn.textContent = "Connecting…";
           startGoogleSignIn().then(function (idToken) {
             return linkGoogle(idToken);
-          }).then(function () {
+          }).then(function (res) {
             linkGoogleBtn.textContent = "Google account linked ✓";
             setTimeout(function () { menu.hidden = true; }, 900);
+            // Google came off a separate Google-only account, whose trades
+            // the server just added to this one: bring them in now.
+            if (res && res.movedFrom && window.EZSync) EZSync.sync();
           }).catch(function (err) {
             linkGoogleBtn.disabled = false;
             linkGoogleBtn.textContent = (err.message || "Could not link Google.").slice(0, 44);

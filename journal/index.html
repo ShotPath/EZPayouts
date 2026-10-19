@@ -1045,7 +1045,7 @@
 <script src="/nav.js"></script>
 <script src="/select.js"></script>
 <script src="/account.js"></script>
-<script src="/journal-sync.js"></script>
+<script src="/sync.js"></script>
 <script src="/coach.js"></script>
 <div class="wrap">
 
@@ -4533,13 +4533,13 @@
     if (!activeAccount()) activeAccountId = accounts[0].id;
     trades = activeAccount().trades;
   }
-  // Saves to this device, then lets journal-sync.js merge it with the
+  // Saves to this device, then lets sync.js merge it with the
   // account's copy (see that file for why it merges instead of uploading
   // this device's whole journal over the top).
   function save(){
     activeAccount().trades = trades;
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ accounts: accounts, activeAccountId: activeAccountId })); } catch (err) {}
-    if (window.EZJournalSync) EZJournalSync.schedule();
+    if (window.EZSync) EZSync.schedule();
   }
   function reloadFromStorage(){
     accounts = [];
@@ -4548,12 +4548,12 @@
     renderAcctFilter();
   }
   function syncFromAccount(){
-    if (window.EZJournalSync) EZJournalSync.sync();
+    if (window.EZSync) EZSync.sync();
   }
-  if (window.EZJournalSync){
-    EZJournalSync.onUpdate(reloadFromStorage);
+  if (window.EZSync){
+    EZSync.onUpdate(function(e){ if (e.channels.indexOf("journal") !== -1) reloadFromStorage(); });
     var syncFailShown = false;
-    EZJournalSync.onStatus(function(st){
+    EZSync.onStatus(function(st){
       if (st.ok){ syncFailShown = false; return; }
       if (syncFailShown) return;
       syncFailShown = true;
