@@ -1468,9 +1468,9 @@
              required for remotely-hosted presets (e.g. a GitHub/jsDelivr URL) —
              without it, drawing a cross-origin video/image onto the canvas taints
              it and Photo/GIF/Video export throws a SecurityError. Preview starts
-             muted so autoplay is never blocked by the browser; captureStream()
-             below for Video export captures the real decoded audio regardless
-             of this element's muted flag, so exports always have sound. -->
+             muted so autoplay is never blocked by the browser; Video export
+             records its sound through Web Audio (see shareAudioGraph), so
+             exports have sound whatever the preview's mute says. -->
         <video id="shareBgVideoEl" muted loop playsinline crossorigin="anonymous" hidden></video>
         <img id="shareBgGifEl" alt="" crossorigin="anonymous" hidden />
         <img id="shareBgImgEl" alt="" crossorigin="anonymous" hidden />
@@ -2093,8 +2093,8 @@
   var shareUploadedUrl = null;
   var sharePreviewRAF = null;
   // Preview always starts muted so autoplay is never blocked by the
-  // browser; this only affects local playback — captureStream() for
-  // Video export reads the real decoded audio regardless of this flag.
+  // browser; this only affects what you hear. Video export records the
+  // sound either way (see shareAudioGraph).
   var shareIsMuted = true;
   var shareBgExpanded = false;
 
@@ -3365,7 +3365,15 @@
   }
   shareMuteBtn.addEventListener("click", function(){
     shareIsMuted = !shareIsMuted;
-    shareBgVideoEl.muted = shareIsMuted;
+    if (shareAudio){
+      if (shareAudio.ctx.state !== "running") shareAudio.ctx.resume().catch(function(){});
+      // While recording, the video stays unmuted (so the recording gets
+      // sound) and the speaker volume carries the mute instead.
+      if (shareAudioRecording) shareAudio.monitor.gain.value = shareIsMuted ? 0 : 1;
+      else shareBgVideoEl.muted = shareIsMuted;
+    } else {
+      shareBgVideoEl.muted = shareIsMuted;
+    }
     updateMuteBtnUI();
   });
   function applyShareBgChange(){
@@ -3663,8 +3671,72 @@
   // ---------- Video ----------
   // MediaRecorder can only record in real time, so a video export takes as
   // long as the clip; the default "Short" length keeps that to ~8s.
-  function pickVideoMimeType(){
-    var candidates = ["video/mp4;codecs=avc1", "video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm", "video/mp4"];
+  //
+  // Sound: the video background's audio goes through Web Audio, one source
+  // feeding both the speakers (the preview) and a stream the recorder takes.
+  // Unlike the video element's captureStream(), this works in every current
+  // browser, including Safari, which every browser on iPhone and iPad is
+  // built on and which has no captureStream() for video. Set up on the first
+  // Video export, from the tap itself (browsers only start audio after one).
+  // A muted video feeds silence into Web Audio, so while recording the video
+  // is unmuted and the preview's mute is carried by the speaker volume.
+  var shareAudio = null, shareAudioFailed = false, shareAudioRecording = false;
+  function shareAudioGraph(){
+    if (shareAudio || shareAudioFailed) return shareAudio;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    try {
+      var ctx = new AC();
+      // Checked before the video is wired in: once it is, its sound only
+      // plays through this graph.
+      if (!ctx.createMediaStreamDestination) throw new Error("no stream destination");
+      var source = ctx.createMediaElementSource(shareBgVideoEl);
+      var monitor = ctx.createGain();
+      var dest = ctx.createMediaStreamDestination();
+      source.connect(dest);
+      source.connect(monitor);
+      monitor.connect(ctx.destination);
+      shareAudio = { ctx: ctx, monitor: monitor, dest: dest };
+      // iPhone mutes Web Audio with the silent switch, though not video
+      // sound; asking for "playback" keeps the preview behaving like a
+      // video (Safari 17+).
+      try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (err2){}
+    } catch (err){
+      shareAudioFailed = true;
+    }
+    return shareAudio;
+  }
+  // The audio tracks for a Video export, starting the sound if needed.
+  function startExportAudio(){
+    if (shareBg.type !== "video") return [];
+    var graph = shareAudioGraph();
+    if (graph){
+      if (graph.ctx.state !== "running") graph.ctx.resume().catch(function(){});
+      graph.monitor.gain.value = shareIsMuted ? 0 : 1;
+      shareBgVideoEl.muted = false;
+      shareAudioRecording = true;
+      return graph.dest.stream.getAudioTracks();
+    }
+    // No Web Audio: older Chrome/Firefox can still tap the video directly.
+    var tap = shareBgVideoEl.captureStream || shareBgVideoEl.mozCaptureStream;
+    if (tap){
+      try { return tap.call(shareBgVideoEl).getAudioTracks(); } catch (err){}
+    }
+    return [];
+  }
+  function stopExportAudio(){
+    if (!shareAudioRecording) return;
+    shareAudioRecording = false;
+    shareBgVideoEl.muted = shareIsMuted;
+    shareAudio.monitor.gain.value = 1;
+  }
+  // With sound, ask for AAC (MP4) or Opus (WebM) by name: a codec list that
+  // names only the video codec can leave the sound out, and AAC is the one
+  // every phone and social app plays.
+  function pickVideoMimeType(withAudio){
+    var candidates = (withAudio ? [
+      "video/mp4;codecs=avc1,mp4a.40.2", "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
+      "video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus"
+    ] : []).concat(["video/mp4;codecs=avc1", "video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm", "video/mp4"]);
     for (var i = 0; i < candidates.length; i++){
       if (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(candidates[i])) return candidates[i];
     }
@@ -3675,24 +3747,22 @@
       showToast("Video export isn't supported in this browser");
       return;
     }
-    var mimeType = pickVideoMimeType();
+    var audioTracks = startExportAudio();
+    var mimeType = pickVideoMimeType(audioTracks.length > 0);
     if (!mimeType){
+      stopExportAudio();
       showToast("Video export isn't supported in this browser");
       return;
     }
     var stream = shareCardCanvas.captureStream(60);
-    if (shareBg.type === "video" && shareBgVideoEl.captureStream){
-      try {
-        shareBgVideoEl.captureStream().getAudioTracks().forEach(function(track){ stream.addTrack(track); });
-      } catch (err) {}
-    }
+    audioTracks.forEach(function(track){ stream.addTrack(track); });
     var bitrateTier = SHARE_VIDEO_BITRATE_TIERS[shareAdjust.videoQuality] || SHARE_VIDEO_BITRATE_TIERS.standard;
     var recorder;
     try {
       recorder = new MediaRecorder(stream, { mimeType: mimeType, videoBitsPerSecond: bitrateTier.bps });
     } catch (err){
       try { recorder = new MediaRecorder(stream, { mimeType: mimeType }); }
-      catch (err2){ showToast("Video export isn't supported in this browser"); return; }
+      catch (err2){ stopExportAudio(); showToast("Video export isn't supported in this browser"); return; }
     }
     var chunks = [];
     var durationMs = getVideoExportDurationMs();
@@ -3707,6 +3777,7 @@
     recorder.ondataavailable = function(e){ if (e.data && e.data.size) chunks.push(e.data); };
     recorder.onstop = function(){
       clearInterval(progressTimer);
+      stopExportAudio();
       var blob = new Blob(chunks, { type: mimeType.split(";")[0] });
       var ext = mimeType.indexOf("mp4") !== -1 ? "mp4" : "webm";
       setExportBusy(false);
