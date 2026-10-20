@@ -21,8 +21,8 @@ function syncSiteScripts() {
       if (!origins.length) return;
       var matches = origins.map(function (o) { return o + "/*"; });
       return chrome.scripting.registerContentScripts([
-        { id: "ez-site-hook", matches: matches, js: ["content/page-hook.js"], runAt: "document_start", world: "MAIN", allFrames: true },
-        { id: "ez-site-host", matches: matches, js: ["shared/skins.js", "content/skin-host.js"], runAt: "document_idle", allFrames: true }
+        { id: "ez-site-hook", matches: matches, js: ["content/page-hook.js"], runAt: "document_start", world: "MAIN", allFrames: true, matchOriginAsFallback: true },
+        { id: "ez-site-host", matches: matches, js: ["shared/skins.js", "content/skin-host.js"], runAt: "document_idle", allFrames: true, matchOriginAsFallback: true }
       ]);
     });
   });
@@ -57,7 +57,7 @@ chrome.permissions.onRemoved.addListener(syncSiteScripts);
 chrome.permissions.onAdded.addListener(function (perms) {
   var origins = (perms.origins || [])
     .map(function (p) { return p.replace(/\/\*$/, ""); })
-    .filter(function (o) { return /^https?:\/\/[^*]+$/.test(o) && !/(^|\.)tradingview\.com$/.test(new URL(o).hostname); });
+    .filter(function (o) { return /^https?:\/\/[^*]+$/.test(o) && !/(^|\.)tradingview(-widget)?\.com$/.test(new URL(o).hostname); });
   if (!origins.length) return;
   EZSkins.load().then(function (s) {
     origins.forEach(function (o) { if (s.sites.indexOf(o) === -1) s.sites.push(o); });

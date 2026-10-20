@@ -2,9 +2,10 @@
 
 A Chrome extension that puts EZPayouts' liquid chrome (or Sakura, Twinkle,
 Matrix, Black Hole, Embers, a video, or your own clip) behind your
-TradingView charts. Candles, wicks, indicators,
-drawings and labels stay on top; turning it off brings back the chart's
-own background.
+TradingView charts, and can restyle the chart's order and position tags.
+Candles, wicks, indicators, drawings and labels stay on top; turning it
+off brings back the chart's own background. The wallpaper and the tags
+each have their own switch.
 
 Works in Chrome, Brave, Edge, Arc and Opera.
 
@@ -29,7 +30,12 @@ Step-by-step with pictures: https://ezpayouts.xyz/skins/
   **Speed** changes how fast it moves.
 - **Frame rate:** 30 fps by default, 60 for smoother motion. Motion pauses
   when the tab is in the background.
-- **Alt+Shift+B** turns it on or off (change it at
+- **Order tags** (the second card in the popup): restyles the Buy and Sell
+  limit and stop tags, your open position and its P&L, the TP and SL
+  buttons, and their lines. Pick a color set (or Match wallpaper) and a
+  style: Outline, Filled, Glow or Minimal. On or off on its own, with or
+  without the wallpaper.
+- **Alt+Shift+B** turns the wallpaper on or off (change it at
   `chrome://extensions/shortcuts`).
 - Looks best with TradingView's dark theme.
 
@@ -44,12 +50,14 @@ allow browser extensions on evaluation or funded accounts. Check first.
 
 It only changes how the chart looks. On chart pages it skips the one fill
 the chart uses to paint its background, so the skin behind shows through.
-It doesn't read your symbols, orders or account. The video skins stream
-from ezpayouts.xyz.
+With order tags on, it swaps the colors the chart draws its tags in as
+they're drawn. It doesn't read your symbols, orders or account. The video
+skins stream from ezpayouts.xyz.
 
 ## Files
 
-- `content/page-hook.js`: runs in the page; makes the chart background clear.
+- `content/page-hook.js`: runs in the page; makes the chart background
+  clear and recolors the order tags.
 - `content/skin-host.js`: finds the chart and places the skin behind it.
 - `skin/`: the skin itself (an extension page in an iframe).
 - `shared/chrome-gl.js`: the liquid chrome shader, copied from the site's

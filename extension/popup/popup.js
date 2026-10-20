@@ -8,6 +8,7 @@
 
   var $ = function (id) { return document.getElementById(id); };
   var enabledEl = $("enabled");
+  var tagsEnabledEl = $("tagsEnabled");
   var grid = $("grid");
   var fileEl = $("file");
   var uploadNote = $("uploadNote");
@@ -24,6 +25,165 @@
   };
 
   function save() { return EZSkins.save(settings); }
+
+  // ---------- Wallpaper / Order tags cards ----------
+  var MODE_KEY = "ezPopupMode";
+  var mode = "wallpaper";
+  try { if (localStorage.getItem(MODE_KEY) === "tags") mode = "tags"; } catch (err) {}
+  function showMode() {
+    [].forEach.call(document.querySelectorAll(".mode"), function (m) {
+      m.setAttribute("aria-selected", m.getAttribute("data-mode") === mode ? "true" : "false");
+    });
+    $("wallPanel").hidden = mode !== "wallpaper";
+    $("tagsPanel").hidden = mode !== "tags";
+  }
+  [].forEach.call(document.querySelectorAll(".mode"), function (m) {
+    function pick() {
+      mode = m.getAttribute("data-mode");
+      try { localStorage.setItem(MODE_KEY, mode); } catch (err) {}
+      showMode();
+    }
+    m.addEventListener("click", pick);
+    m.addEventListener("keydown", function (e) {
+      if (e.target === m && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); pick(); }
+    });
+  });
+  function renderModeSubs() {
+    var skin = EZSkins.byId(settings.skin);
+    $("wallSub").textContent = settings.enabled ? (skin ? skin.label : "") : "Off";
+    var pal = EZSkins.tagColors.filter(function (c) { return c.id === settings.tagColors; })[0];
+    var style = EZSkins.tagStyles.filter(function (t) { return t.id === settings.tagStyle; })[0];
+    $("tagsSub").textContent = settings.tagsEnabled ? (pal ? pal.label : "") + " · " + (style ? style.label : "") : "Off";
+  }
+
+  // ---------- Order tags ----------
+  function rgba(hex, a) {
+    var n = parseInt(hex.slice(1), 16);
+    return "rgba(" + (n >> 16) + "," + ((n >> 8) & 255) + "," + (n & 255) + "," + a + ")";
+  }
+  function el(tag, cls, text, css) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text) e.textContent = text;
+    if (css) Object.keys(css).forEach(function (k) { if (css[k] != null) e.style[k] = css[k]; });
+    return e;
+  }
+  // The same colors content/page-hook.js gives each part of a tag.
+  function look(T, cls) {
+    var c = T[cls], st = T.style;
+    return {
+      color: c,
+      border: st === "minimal" ? rgba(c, 0.22) : c,
+      bg: st === "filled" ? T.tint[cls] : st === "minimal" ? T.bgSoft : T.bg,
+      text: st === "filled" ? T.ink : c,
+      div: rgba(c, st === "filled" ? 0.45 : 0.3),
+      glow: st === "glow" ? c : null
+    };
+  }
+  function glowText(L) { return L.glow ? "0 0 6px " + L.glow : null; }
+  function tagEl(T, cls, qty, label, labelColor, qtyFilled) {
+    var L = look(T, cls);
+    var t = el("span", "tp-tag", null, { borderColor: L.border, background: L.bg, boxShadow: L.glow ? "0 0 7px " + L.glow : null });
+    t.style.setProperty("--div", L.div);
+    t.appendChild(qtyFilled
+      ? el("span", null, qty, { background: T.style === "minimal" ? rgba(L.color, 0.22) : L.color, color: T.on[cls] })
+      : el("span", null, qty, { color: L.text, textShadow: glowText(L) }));
+    t.appendChild(el("span", null, label, { color: labelColor || L.text, textShadow: glowText({ glow: L.glow && (labelColor || L.text) }) }));
+    t.appendChild(el("span", null, "×", { color: L.color, textShadow: glowText(L) }));
+    return t;
+  }
+  function buttonEl(T, cls, text) {
+    var L = look(T, cls);
+    return el("span", "tp-btn", text, { borderColor: L.color, color: L.color, background: T.style === "minimal" ? T.bgSoft : T.bg, textShadow: glowText(L) });
+  }
+  function lineEl(T, cls, solid) {
+    var L = look(T, cls);
+    return el("span", "tp-line" + (solid ? " solid" : ""), null, { borderTopColor: L.color, boxShadow: L.glow ? "0 0 6px " + L.glow : null });
+  }
+  function renderTagPreview() {
+    var T = EZSkins.tagTheme(settings);
+    var box = $("tagPreview");
+    box.textContent = "";
+    var sell = el("div", "tp-row");
+    sell.append(lineEl(T, "sell"), tagEl(T, "sell", "1", "Sell limit"));
+    var pos = el("div", "tp-row");
+    var rev = el("span", "tp-rev", "⇅", { borderColor: look(T, "buy").border, color: T.buy, background: T.style === "minimal" ? T.bgSoft : T.bg });
+    pos.append(lineEl(T, "buy", true), rev, tagEl(T, "buy", "2", "+156.00 USD", T.profit, true));
+    var buy = el("div", "tp-row");
+    buy.append(lineEl(T, "buy"), buttonEl(T, "profit", "TP"), buttonEl(T, "warn", "SL"), tagEl(T, "buy", "1", "Buy limit"));
+    box.append(sell, pos, buy);
+    // Over the wallpaper, when it's on, the way it'll look on the chart.
+    var skin = EZSkins.byId(settings.skin);
+    var thumb = !settings.enabled || !skin ? null
+      : skin.type === "liquid" || skin.type === "scene" ? liveThumbs[skin.id] : skin.type === "custom" ? (custom && custom.thumb) : skin.thumb;
+    box.style.backgroundImage = thumb ? "linear-gradient(rgba(10,12,16,0.45), rgba(10,12,16,0.45)), url(\"" + thumb + "\")" : "";
+    box.style.backgroundSize = "cover";
+    box.style.backgroundPosition = "center";
+  }
+  function renderTagColors() {
+    var grid = $("tagColorGrid");
+    grid.textContent = "";
+    EZSkins.tagColors.forEach(function (c) {
+      var p = EZSkins.tagPalette(c.id, settings.skin);
+      var b = el("button", "swatch");
+      b.type = "button";
+      b.setAttribute("role", "radio");
+      b.setAttribute("data-id", c.id);
+      b.setAttribute("aria-checked", c.id === settings.tagColors ? "true" : "false");
+      b.tabIndex = c.id === settings.tagColors ? 0 : -1;
+      var dots = el("span", "swatch-dots");
+      ["buy", "sell", "profit", "warn"].forEach(function (k) { dots.appendChild(el("i", null, null, { background: p[k] })); });
+      b.append(dots, el("span", "swatch-name", c.label));
+      b.title = c.id === "match" ? "Match wallpaper (" + p.label + " for this one)" : c.label;
+      grid.appendChild(b);
+    });
+  }
+  function renderTagStyle() {
+    var seg = $("tagStyle");
+    seg.textContent = "";
+    EZSkins.tagStyles.forEach(function (t) {
+      var b = el("button", null, t.label);
+      b.type = "button";
+      b.setAttribute("role", "radio");
+      b.setAttribute("data-id", t.id);
+      b.setAttribute("aria-checked", t.id === settings.tagStyle ? "true" : "false");
+      seg.appendChild(b);
+    });
+  }
+  function renderTags() {
+    tagsEnabledEl.checked = settings.tagsEnabled;
+    renderTagColors();
+    renderTagStyle();
+    renderTagPreview();
+    renderModeSubs();
+  }
+  $("tagColorGrid").addEventListener("click", function (e) {
+    var b = e.target.closest(".swatch");
+    if (!b) return;
+    settings.tagColors = b.getAttribute("data-id");
+    renderTags();
+    save();
+  });
+  $("tagColorGrid").addEventListener("keydown", function (e) {
+    var keys = { ArrowRight: 1, ArrowDown: 3, ArrowLeft: -1, ArrowUp: -3 };
+    if (!(e.key in keys)) return;
+    e.preventDefault();
+    var tiles = [].slice.call($("tagColorGrid").children);
+    var next = tiles[Math.max(0, Math.min(tiles.length - 1, tiles.indexOf(document.activeElement) + keys[e.key]))];
+    if (next) { next.click(); $("tagColorGrid").querySelector('[data-id="' + next.getAttribute("data-id") + '"]').focus(); }
+  });
+  $("tagStyle").addEventListener("click", function (e) {
+    var b = e.target.closest("button");
+    if (!b) return;
+    settings.tagStyle = b.getAttribute("data-id");
+    renderTags();
+    save();
+  });
+  tagsEnabledEl.addEventListener("change", function () {
+    settings.tagsEnabled = tagsEnabledEl.checked;
+    renderModeSubs();
+    save().then(refreshSite);
+  });
 
   // ---------- Skins ----------
   function tileFor(skin) {
@@ -88,6 +248,8 @@
     if (id === "custom" && !custom) { startUpload(); return; }
     settings.skin = id;
     markSelected();
+    renderModeSubs();
+    renderTagPreview();
     save();
   });
   // Arrow keys move through the skins, like any radio group.
@@ -204,6 +366,8 @@
   });
   enabledEl.addEventListener("change", function () {
     settings.enabled = enabledEl.checked;
+    renderModeSubs();
+    renderTagPreview();
     save().then(refreshSite);
   });
   $("resetBtn").addEventListener("click", function () {
@@ -217,7 +381,7 @@
   var tab = null;
   var siteEl = $("site"), siteText = $("siteText"), siteBtn = $("siteBtn"), siteDot = $("siteDot"), tipEl = $("tip");
 
-  function isTradingView(u) { return /(^|\.)tradingview\.com$/.test(u.hostname); }
+  function isTradingView(u) { return /(^|\.)tradingview(-widget)?\.com$/.test(u.hostname); }
   function setSite(html, on, button, quiet) {
     siteEl.hidden = false;
     siteText.innerHTML = html;
@@ -245,14 +409,15 @@
     }
     var u = new URL(tab.url);
     var listed = settings.sites.indexOf(u.origin) !== -1;
+    var anyOn = settings.enabled || settings.tagsEnabled;
     askTab().then(function (st) {
       var host = esc(u.hostname.replace(/^www\./, ""));
       if (isTradingView(u)) {
         if (!st) setSite("Open a chart on <b>TradingView</b> to see your skin.", false);
-        else if (!settings.enabled) setSite("Off on <b>TradingView</b>. Flip the switch.", false);
+        else if (!anyOn) setSite("Off on <b>TradingView</b>. Flip a switch below.", false);
         else setSite("Skinning your <b>TradingView</b> chart.", true);
       } else if (listed || st) {
-        if (!settings.enabled) setSite("Off. Flip the switch to skin <b>" + host + "</b>.", false, "Turn off here", true);
+        if (!anyOn) setSite("Off. Flip a switch below to skin <b>" + host + "</b>.", false, "Turn off here", true);
         else if (st && st.charts) setSite("Skinning the chart on <b>" + host + "</b>.", true, "Turn off here", true);
         else setSite("On for <b>" + host + "</b>, waiting for a chart.", false, "Turn off here", true);
       } else {
@@ -303,15 +468,18 @@
     skinTab = current && current.type === "video" ? "video" : "live";
     renderGrid();
     renderControls();
+    renderTags();
+    showMode();
     refreshSite();
     if (IN_TAB && /tab=upload/.test(location.search)) note("Pick a video (MP4, WebM, MOV), a GIF or an image. It stays on this computer.");
   });
   // The shortcut, or another window, changed something.
   EZSkins.onChange(function (s) {
     var skinChanged = s.skin !== settings.skin;
-    var enabledChanged = s.enabled !== settings.enabled;
+    var enabledChanged = s.enabled !== settings.enabled || s.tagsEnabled !== settings.tagsEnabled;
     settings = s;
     renderControls();
+    renderTags();
     if (skinChanged) markSelected();
     if (enabledChanged) refreshSite();
   });

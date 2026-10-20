@@ -2,8 +2,8 @@
   "manifest_version": 3,
   "name": "EZPayouts Chart Skins",
   "short_name": "EZ Skins",
-  "version": "1.2.0",
-  "description": "Liquid chrome, sakura, stars, Matrix rain, a black hole and more behind your TradingView charts. Candles stay on top.",
+  "version": "1.3.0",
+  "description": "Liquid chrome, sakura, stars, Matrix rain, a black hole and more behind your TradingView charts, plus restyled order tags.",
   "icons": {
     "16": "icons/icon-16.png",
     "32": "icons/icon-32.png",
@@ -33,7 +33,8 @@
     "unlimitedStorage"
   ],
   "host_permissions": [
-    "https://*.tradingview.com/*"
+    "https://*.tradingview.com/*",
+    "https://*.tradingview-widget.com/*"
   ],
   "optional_host_permissions": [
     "https://*/*",
@@ -42,25 +43,29 @@
   "content_scripts": [
     {
       "matches": [
-        "https://*.tradingview.com/*"
+        "https://*.tradingview.com/*",
+        "https://*.tradingview-widget.com/*"
       ],
       "js": [
         "content/page-hook.js"
       ],
       "run_at": "document_start",
       "world": "MAIN",
-      "all_frames": true
+      "all_frames": true,
+      "match_origin_as_fallback": true
     },
     {
       "matches": [
-        "https://*.tradingview.com/*"
+        "https://*.tradingview.com/*",
+        "https://*.tradingview-widget.com/*"
       ],
       "js": [
         "shared/skins.js",
         "content/skin-host.js"
       ],
       "run_at": "document_idle",
-      "all_frames": true
+      "all_frames": true,
+      "match_origin_as_fallback": true
     }
   ],
   "web_accessible_resources": [
@@ -78,7 +83,7 @@
       "suggested_key": {
         "default": "Alt+Shift+B"
       },
-      "description": "Turn the chart skin on or off"
+      "description": "Turn the wallpaper on or off"
     }
   }
 }

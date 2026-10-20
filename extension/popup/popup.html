@@ -15,10 +15,6 @@
       <div class="name">Chart Skins</div>
       <div class="by">by EZPayouts</div>
     </div>
-    <label class="switch" title="On or off (Alt+Shift+B)">
-      <input type="checkbox" id="enabled" role="switch" aria-label="Chart skin">
-      <span class="track"><span class="knob"></span></span>
-    </label>
   </header>
 
   <div class="site" id="site" hidden>
@@ -28,6 +24,26 @@
   </div>
   <p class="tip" id="tip" hidden></p>
 
+  <!-- Two things, each with its own switch: the wallpaper behind the chart
+       and the order tags on it. A card shows that one's settings below. -->
+  <div class="modes" role="tablist" aria-label="Settings">
+    <div class="mode" role="tab" data-mode="wallpaper" tabindex="0">
+      <div class="mode-text"><span class="mode-name">Wallpaper</span><span class="mode-sub" id="wallSub"></span></div>
+      <label class="switch" title="Wallpaper on or off (Alt+Shift+B)">
+        <input type="checkbox" id="enabled" role="switch" aria-label="Wallpaper">
+        <span class="track"><span class="knob"></span></span>
+      </label>
+    </div>
+    <div class="mode" role="tab" data-mode="tags" tabindex="0">
+      <div class="mode-text"><span class="mode-name">Order tags</span><span class="mode-sub" id="tagsSub"></span></div>
+      <label class="switch" title="Order tags on or off">
+        <input type="checkbox" id="tagsEnabled" role="switch" aria-label="Order tags">
+        <span class="track"><span class="knob"></span></span>
+      </label>
+    </div>
+  </div>
+
+  <div id="wallPanel" role="tabpanel">
   <section>
     <div class="section-head">
       <div class="tabs" id="skinTabs" role="tablist" aria-label="Skins">
@@ -64,9 +80,23 @@
       </div>
     </div>
   </section>
+  </div>
+
+  <div id="tagsPanel" role="tabpanel" hidden>
+    <div class="tag-preview" id="tagPreview" aria-hidden="true"></div>
+    <section>
+      <div class="section-head"><h2>Colors</h2></div>
+      <div class="swatches" id="tagColorGrid" role="radiogroup" aria-label="Tag colors"></div>
+    </section>
+    <section>
+      <div class="section-head"><h2>Style</h2></div>
+      <div class="seg seg-wide" id="tagStyle" role="radiogroup" aria-label="Tag style"></div>
+    </section>
+    <p class="note" title="Limit and stop orders, your open position and its P&amp;L, TP and SL, and their lines.">Restyles your order, position and P&amp;L tags and their lines.</p>
+  </div>
 
   <footer class="foot">
-    <span><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> turns it on or off</span>
+    <span><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> turns the wallpaper on or off</span>
     <a href="https://ezpayouts.xyz" target="_blank" rel="noopener">ezpayouts.xyz</a>
   </footer>
 </div>

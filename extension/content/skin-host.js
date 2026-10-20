@@ -3,13 +3,18 @@
 // page hook on (data-ez-skin) so the chart's own background goes
 // see-through. The skin itself is an extension page in an iframe
 // (skin/skin.html): it draws on its own, so this script only places it
-// and sets Strength and the base color.
+// and sets Strength and the base color. Order tags are separate: with
+// them on, data-ez-tags hands the page hook the tag theme, whether or not
+// the wallpaper is on.
 (function () {
   if (window.__ezSkinHost) return;
   window.__ezSkinHost = true;
 
   var root = document.documentElement;
-  var TRADINGVIEW = /(^|\.)tradingview\.com$/.test(location.hostname);
+  // By origin, so a chart frame loaded from a blob: URL counts as its site.
+  var TRADINGVIEW = /(^|\.)tradingview(-widget)?\.com$/.test((function () {
+    try { return new URL(location.origin).hostname; } catch (err) { return location.hostname; }
+  })());
   var DEFAULT_BASE = "#131722"; // TradingView's dark chart background
   var settings = null;
   var layers = new Map(); // host element -> { layer, frame }
@@ -35,6 +40,7 @@
     return TRADINGVIEW || window.__ezSkinForce === true || s.sites.indexOf(location.origin) !== -1;
   }
   function active() { return !!(settings && settings.enabled && allowedHere(settings)); }
+  function tagsActive() { return !!(settings && settings.tagsEnabled && allowedHere(settings)); }
 
   // The area every chart in the layout sits in; one skin behind them all.
   function findHosts() {
@@ -95,6 +101,10 @@
 
   function update() {
     var was = root.getAttribute("data-ez-skin") === "on";
+    var tagsWas = root.getAttribute("data-ez-tags") || "";
+    var tags = tagsActive() ? JSON.stringify(EZSkins.tagTheme(settings)) : "";
+    if (tags) root.setAttribute("data-ez-tags", tags);
+    else root.removeAttribute("data-ez-tags");
     if (active()) {
       if (!style.isConnected) (document.head || root).appendChild(style);
       layers.forEach(function (l, host) { if (!host.isConnected) detach(host); });
@@ -107,12 +117,12 @@
       root.removeAttribute("data-ez-skin");
       style.remove();
     }
-    if (was !== (root.getAttribute("data-ez-skin") === "on")) repaint();
+    if (was !== (root.getAttribute("data-ez-skin") === "on") || tagsWas !== tags) repaint();
   }
 
   // Charts are built after the page loads and rebuilt when the layout
   // changes; a light check every second keeps the skin in place.
-  setInterval(function () { if (active()) update(); }, 1000);
+  setInterval(function () { if (active() || tagsActive()) update(); }, 1000);
   new MutationObserver(function () { if (layers.size) paintLayers(); })
     .observe(root, { attributes: true, attributeFilter: ["data-ez-chart-bg"] });
 
@@ -124,7 +134,7 @@
   chrome.runtime.onMessage.addListener(function (msg, sender, reply) {
     if (!msg || msg.type !== "ez-skin-status") return;
     if (!layers.size && !findHosts().length) return;
-    reply({ charts: Math.max(layers.size, findHosts().length), on: layers.size > 0, base: root.getAttribute("data-ez-chart-bg") || "" });
+    reply({ charts: Math.max(layers.size, findHosts().length), on: layers.size > 0, tags: root.hasAttribute("data-ez-tags"), base: root.getAttribute("data-ez-chart-bg") || "" });
   });
 
   window.__ezSkinRefresh = update;
