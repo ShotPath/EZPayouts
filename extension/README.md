@@ -32,12 +32,13 @@ Step-by-step with pictures: https://ezpayouts.xyz/skins/
   when the tab is in the background.
 - **Order tags** (the second card in the popup): restyles the Buy and Sell
   limit and stop tags, your open position and its P&L, the TP and SL
-  buttons, and their lines. Pick a color set (or Match wallpaper) and a
-  style. **Modern** (a glass ticket with a color block) and **Frosted
-  Glass** (blurred pills with a glowing underline) redraw the tags from
-  scratch, and their prices on the price scale too; Outline, Filled, Glow
-  and Minimal recolor TradingView's own. On or off on its own, with or
-  without the wallpaper.
+  buttons and lines, a new order's place button, and their lines. Pick a
+  color set (or Match wallpaper) and a style. **Modern** (a glass ticket
+  with a color block) and **Frosted Glass** (blurred pills with a glowing
+  underline) redraw the tags from scratch, and every price box on the
+  price scale too (orders and the position with a dot, the rest with
+  their own color); Outline, Filled, Glow and Minimal recolor
+  TradingView's own. On or off on its own, with or without the wallpaper.
 - **Alt+Shift+B** turns the wallpaper on or off (change it at
   `chrome://extensions/shortcuts`).
 - Looks best with TradingView's dark theme.

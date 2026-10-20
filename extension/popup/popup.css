@@ -169,7 +169,7 @@ kbd{ font-family:var(--mono); font-size:10px; padding:1px 5px; border-radius:5px
 .m-tag{ display:inline-flex; align-items:stretch; height:22px; border-radius:6px; overflow:hidden;
   background:linear-gradient(180deg, rgba(38,44,58,.97), rgba(13,16,22,.97));
   box-shadow:0 0 0 1px rgba(255,255,255,.11), 0 3px 10px rgba(0,0,0,.55), 0 0 14px -2px var(--g); }
-.m-side{ display:flex; align-items:center; gap:5px; padding:0 8px; color:#fff; font:700 10px var(--display); letter-spacing:.1em;
+.m-side{ display:flex; align-items:center; gap:5px; padding:0 8px; color:var(--ink); font:700 10px var(--display); letter-spacing:.1em;
   background:linear-gradient(180deg, var(--c1), var(--c) 55%, var(--c2)); box-shadow:inset 0 1px 0 rgba(255,255,255,.35); }
 .m-body{ display:flex; align-items:center; gap:6px; padding:0 8px; color:#eef2fa; font:600 11px var(--body); }
 .m-tag .pv-x{ display:flex; align-items:center; justify-content:center; width:20px; border-left:1px solid rgba(255,255,255,.09); }
@@ -181,7 +181,7 @@ kbd{ font-family:var(--mono); font-size:10px; padding:1px 5px; border-radius:5px
 .m-ax{ display:inline-flex; align-items:center; gap:6px; height:20px; padding:0 7px 0 5px; margin-left:6px; border-radius:6px;
   font:600 10.5px var(--mono); color:#eef2fa;
   background:linear-gradient(180deg, rgba(38,44,58,.97), rgba(13,16,22,.97)); box-shadow:0 0 0 1px rgba(255,255,255,.11); }
-.m-ax i{ width:2.5px; height:12px; border-radius:1px; background:var(--c); }
+.m-ax i{ width:6px; height:6px; border-radius:50%; background:var(--c); box-shadow:0 0 6px var(--c); }
 .f-pill{ position:relative; display:inline-flex; align-items:center; height:22px; padding:0 9px; border-radius:11px; overflow:hidden;
   color:#eef2fa; font:600 11px var(--body); backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px);
   background:linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.04) 50%, rgba(255,255,255,0)), rgba(16,20,28,.42);
@@ -199,5 +199,5 @@ kbd{ font-family:var(--mono); font-size:10px; padding:1px 5px; border-radius:5px
 .f-pair span:last-child{ background:var(--tb); }
 .f-pair::after{ background:linear-gradient(90deg, var(--a) 0 48%, transparent 48% 52%, var(--b) 52%); box-shadow:none; }
 .f-icon{ padding:0 7px; font-size:12px; }
-.f-ax{ display:inline-flex; align-items:center; height:20px; padding:0 8px; margin-left:6px; border-radius:10px; color:#fff; font:600 10.5px var(--mono);
+.f-ax{ display:inline-flex; align-items:center; height:20px; padding:0 8px; margin-left:6px; border-radius:10px; color:var(--ink); font:600 10.5px var(--mono);
   background:linear-gradient(180deg, var(--c1), var(--c) 55%, var(--c2)); box-shadow:0 0 12px var(--g), inset 0 1px 0 rgba(255,255,255,.4); }

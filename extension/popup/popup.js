@@ -113,6 +113,7 @@
     e.style.setProperty("--c1", hexMix(c, "#ffffff", 0.22));
     e.style.setProperty("--c2", hexMix(c, "#000000", 0.25));
     e.style.setProperty("--lt", hexMix(c, "#ffffff", 0.62));
+    e.style.setProperty("--ink", T.on[cls]);
     e.style.setProperty("--g", rgba(c, 0.32));
     e.style.setProperty("--tint", rgba(c, 0.24));
     e.style.setProperty("--u", "linear-gradient(90deg, " + c + ", " + (under || c) + ")");
@@ -124,6 +125,7 @@
     var side = [arrowEl(up), el("span", null, o.position ? "LONG " + o.qty : up ? "BUY" : "SELL")];
     var body = o.position
       ? [el("span", "pv-pnl", o.pnl, { color: T.profit, textShadow: "0 0 8px " + rgba(T.profit, 0.5) }), el("span", "pv-q", "USD")]
+      : o.short ? [el("span", null, o.type), el("span", "pv-q", o.qty)]
       : [el("span", null, o.type), el("span", "pv-q", "QTY"), el("span", "pv-q2", o.qty)];
     var x = el("span", "pv-x", "×");
     if (!frosted) {
@@ -178,7 +180,7 @@
       var rv = vars(el("span", T.style === "frosted" ? "f-pill f-icon" : "m-btn m-icon", "⇅"), T, "buy");
       r2.append.apply(r2, [lineEl(T, "buy", true), rv].concat(redrawnTag(T, "buy", { position: true, qty: "2", pnl: "+156.00" }), [priceBox(T, "buy", "339.80")]));
       var r3 = el("div", "tp-row");
-      r3.append.apply(r3, [lineEl(T, "buy")].concat(redrawnButtons(T), redrawnTag(T, "buy", { type: "Limit", qty: "1" }), [priceBox(T, "buy", "337.00")]));
+      r3.append.apply(r3, [lineEl(T, "buy")].concat(redrawnButtons(T), redrawnTag(T, "buy", { type: "Limit", qty: "1", short: true }), [priceBox(T, "buy", "337.00")]));
       box.append(r1, r2, r3);
     } else {
       var sell = el("div", "tp-row");
