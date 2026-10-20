@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "EZPayouts Chart Skins",
   "short_name": "EZ Skins",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Liquid chrome, sakura, stars, Matrix rain, a black hole and more behind your TradingView charts, plus restyled order tags.",
   "icons": {
     "16": "icons/icon-16.png",
@@ -71,7 +71,8 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "skin/skin.html"
+        "skin/skin.html",
+        "popup/fonts/*.woff2"
       ],
       "matches": [
         "<all_urls>"

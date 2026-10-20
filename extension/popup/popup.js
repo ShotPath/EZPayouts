@@ -100,18 +100,96 @@
     var L = look(T, cls);
     return el("span", "tp-line" + (solid ? " solid" : ""), null, { borderTopColor: L.color, boxShadow: L.glow ? "0 0 6px " + L.glow : null });
   }
+  // Modern and Frosted Glass, as content/page-hook.js draws them on the
+  // chart (tags and price-scale boxes), in HTML.
+  function hexMix(a, b, t) {
+    var x = parseInt(a.slice(1), 16), y = parseInt(b.slice(1), 16);
+    var ch = function (sh) { return Math.round(((x >> sh) & 255) * (1 - t) + ((y >> sh) & 255) * t); };
+    return "#" + ((1 << 24) | (ch(16) << 16) | (ch(8) << 8) | ch(0)).toString(16).slice(1);
+  }
+  function vars(e, T, cls, under) {
+    var c = T[cls];
+    e.style.setProperty("--c", c);
+    e.style.setProperty("--c1", hexMix(c, "#ffffff", 0.22));
+    e.style.setProperty("--c2", hexMix(c, "#000000", 0.25));
+    e.style.setProperty("--lt", hexMix(c, "#ffffff", 0.62));
+    e.style.setProperty("--g", rgba(c, 0.32));
+    e.style.setProperty("--tint", rgba(c, 0.24));
+    e.style.setProperty("--u", "linear-gradient(90deg, " + c + ", " + (under || c) + ")");
+    return e;
+  }
+  function arrowEl(up) { return el("span", "pv-arrow" + (up ? "" : " down")); }
+  function redrawnTag(T, cls, o) {
+    var frosted = T.style === "frosted", up = cls === "buy";
+    var side = [arrowEl(up), el("span", null, o.position ? "LONG " + o.qty : up ? "BUY" : "SELL")];
+    var body = o.position
+      ? [el("span", "pv-pnl", o.pnl, { color: T.profit, textShadow: "0 0 8px " + rgba(T.profit, 0.5) }), el("span", "pv-q", "USD")]
+      : [el("span", null, o.type), el("span", "pv-q", "QTY"), el("span", "pv-q2", o.qty)];
+    var x = el("span", "pv-x", "×");
+    if (!frosted) {
+      var t = vars(el("span", "m-tag"), T, cls);
+      var sd = el("span", "m-side"); sd.append.apply(sd, side);
+      var bd = el("span", "m-body"); bd.append.apply(bd, body);
+      t.append(sd, bd, x);
+      return [t];
+    }
+    if (o.position) {
+      var p = vars(el("span", "f-pill f-pos"), T, cls, hexMix(T[cls], "#22d3ee", 0.6));
+      var ps = el("span", "f-side"); ps.append.apply(ps, side);
+      var pb = el("span", "f-body"); pb.append.apply(pb, body.concat([x]));
+      p.append(ps, pb);
+      return [p];
+    }
+    var a = vars(el("span", "f-pill f-tint"), T, cls);
+    var as = el("span", "f-side"); as.append.apply(as, side); a.append(as);
+    var b = vars(el("span", "f-pill"), T, cls, hexMix(T[cls], "#8b5cf6", 0.55));
+    var bb = el("span", "f-body"); bb.append.apply(bb, body.concat([x])); b.append(bb);
+    return [a, b];
+  }
+  function redrawnButtons(T) {
+    if (T.style === "frosted") {
+      var pair = el("span", "f-pill f-pair");
+      pair.style.setProperty("--a", T.profit); pair.style.setProperty("--b", T.warn);
+      pair.style.setProperty("--ta", rgba(T.profit, 0.24)); pair.style.setProperty("--tb", rgba(T.warn, 0.24));
+      pair.append(el("span", null, "TP", { color: hexMix(T.profit, "#ffffff", 0.3) }), el("span", null, "SL", { color: hexMix(T.warn, "#ffffff", 0.3) }));
+      return [pair];
+    }
+    return [["TP", "profit"], ["SL", "warn"]].map(function (b) {
+      var e = vars(el("span", "m-btn"), T, b[1]);
+      e.append(el("i"), el("span", null, b[0]));
+      return e;
+    });
+  }
+  function priceBox(T, cls, price) {
+    var e = vars(el("span", T.style === "frosted" ? "f-ax" : "m-ax"), T, cls);
+    if (T.style !== "frosted") e.appendChild(el("i"));
+    e.appendChild(el("span", null, price));
+    return e;
+  }
   function renderTagPreview() {
     var T = EZSkins.tagTheme(settings);
     var box = $("tagPreview");
     box.textContent = "";
-    var sell = el("div", "tp-row");
-    sell.append(lineEl(T, "sell"), tagEl(T, "sell", "1", "Sell limit"));
-    var pos = el("div", "tp-row");
-    var rev = el("span", "tp-rev", "⇅", { borderColor: look(T, "buy").border, color: T.buy, background: T.style === "minimal" ? T.bgSoft : T.bg });
-    pos.append(lineEl(T, "buy", true), rev, tagEl(T, "buy", "2", "+156.00 USD", T.profit, true));
-    var buy = el("div", "tp-row");
-    buy.append(lineEl(T, "buy"), buttonEl(T, "profit", "TP"), buttonEl(T, "warn", "SL"), tagEl(T, "buy", "1", "Buy limit"));
-    box.append(sell, pos, buy);
+    box.classList.toggle("redrawn", T.style === "modern" || T.style === "frosted");
+    if (T.style === "modern" || T.style === "frosted") {
+      var r1 = el("div", "tp-row");
+      r1.append.apply(r1, [lineEl(T, "sell")].concat(redrawnTag(T, "sell", { type: "Limit", qty: "1" }), [priceBox(T, "sell", "345.00")]));
+      var r2 = el("div", "tp-row");
+      var rv = vars(el("span", T.style === "frosted" ? "f-pill f-icon" : "m-btn m-icon", "⇅"), T, "buy");
+      r2.append.apply(r2, [lineEl(T, "buy", true), rv].concat(redrawnTag(T, "buy", { position: true, qty: "2", pnl: "+156.00" }), [priceBox(T, "buy", "339.80")]));
+      var r3 = el("div", "tp-row");
+      r3.append.apply(r3, [lineEl(T, "buy")].concat(redrawnButtons(T), redrawnTag(T, "buy", { type: "Limit", qty: "1" }), [priceBox(T, "buy", "337.00")]));
+      box.append(r1, r2, r3);
+    } else {
+      var sell = el("div", "tp-row");
+      sell.append(lineEl(T, "sell"), tagEl(T, "sell", "1", "Sell limit"));
+      var pos = el("div", "tp-row");
+      var rev = el("span", "tp-rev", "⇅", { borderColor: look(T, "buy").border, color: T.buy, background: T.style === "minimal" ? T.bgSoft : T.bg });
+      pos.append(lineEl(T, "buy", true), rev, tagEl(T, "buy", "2", "+156.00 USD", T.profit, true));
+      var buy = el("div", "tp-row");
+      buy.append(lineEl(T, "buy"), buttonEl(T, "profit", "TP"), buttonEl(T, "warn", "SL"), tagEl(T, "buy", "1", "Buy limit"));
+      box.append(sell, pos, buy);
+    }
     // Over the wallpaper, when it's on, the way it'll look on the chart.
     var skin = EZSkins.byId(settings.skin);
     var thumb = !settings.enabled || !skin ? null

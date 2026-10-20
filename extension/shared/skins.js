@@ -43,9 +43,12 @@ var EZSkins = (function () {
     { id: "mono", label: "Mono", buy: "#ffffff", sell: "#9aa3b5", profit: "#e5e7eb", warn: "#cbd5e1" }
   ];
   var MATCH = { "liquid-chrome": "chrome", sakura: "sakura", twinkle: "ocean", matrix: "matrix", "black-hole": "ember", embers: "ember" };
-  // How a tag uses its color: Outline (TradingView's look), Filled (a
-  // tinted box), Glow, Minimal (no border, see-through).
+  // How tags look. Modern (a glass ticket with a color block) and Frosted
+  // Glass (blurred pills with a glowing underline) are drawn from scratch,
+  // price-scale boxes too; the rest recolor TradingView's own tags:
+  // Outline (its look), Filled (a tinted box), Glow, Minimal (see-through).
   var TAG_STYLES = [
+    { id: "modern", label: "Modern" }, { id: "frosted", label: "Frosted Glass" },
     { id: "outline", label: "Outline" }, { id: "filled", label: "Filled" },
     { id: "glow", label: "Glow" }, { id: "minimal", label: "Minimal" }
   ];
@@ -95,7 +98,7 @@ var EZSkins = (function () {
   var DEFAULTS = {
     enabled: true, skin: "liquid-chrome",
     strength: 100, dim: 25, blur: 0, speed: 1, fps: 30,
-    tagsEnabled: false, tagColors: "ez", tagStyle: "outline",
+    tagsEnabled: false, tagColors: "ez", tagStyle: "modern",
     sites: [], customVersion: 0
   };
 

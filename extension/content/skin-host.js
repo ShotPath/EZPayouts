@@ -99,10 +99,32 @@
     });
   }
 
+  // The tag looks use the extension's own typefaces (popup/fonts), given to
+  // the chart page under names of their own; it redraws once they load.
+  var fontsAdded = false;
+  function addFonts() {
+    if (fontsAdded) return;
+    fontsAdded = true;
+    var url = function (f) { return chrome.runtime.getURL("popup/fonts/" + f); };
+    var css = document.createElement("style");
+    css.id = "ez-tag-fonts";
+    css.textContent =
+      "@font-face{font-family:'EZ Chakra';font-weight:700;src:url(" + url("chakra-petch-700.woff2") + ") format('woff2');}" +
+      "@font-face{font-family:'EZ Plex Sans';font-weight:400 600;src:url(" + url("ibm-plex-sans.woff2") + ") format('woff2');}" +
+      "@font-face{font-family:'EZ Plex Mono';font-weight:600;src:url(" + url("ibm-plex-mono-600.woff2") + ") format('woff2');}";
+    (document.head || root).appendChild(css);
+    if (document.fonts && document.fonts.load) {
+      Promise.all(["700 10px 'EZ Chakra'", "600 10px 'EZ Plex Sans'", "600 10px 'EZ Plex Mono'"].map(function (f) {
+        return document.fonts.load(f);
+      })).then(repaint, function () {});
+    }
+  }
+
   function update() {
     var was = root.getAttribute("data-ez-skin") === "on";
     var tagsWas = root.getAttribute("data-ez-tags") || "";
     var tags = tagsActive() ? JSON.stringify(EZSkins.tagTheme(settings)) : "";
+    if (tags) addFonts();
     if (tags) root.setAttribute("data-ez-tags", tags);
     else root.removeAttribute("data-ez-tags");
     if (active()) {

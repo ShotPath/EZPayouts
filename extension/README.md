@@ -33,7 +33,10 @@ Step-by-step with pictures: https://ezpayouts.xyz/skins/
 - **Order tags** (the second card in the popup): restyles the Buy and Sell
   limit and stop tags, your open position and its P&L, the TP and SL
   buttons, and their lines. Pick a color set (or Match wallpaper) and a
-  style: Outline, Filled, Glow or Minimal. On or off on its own, with or
+  style. **Modern** (a glass ticket with a color block) and **Frosted
+  Glass** (blurred pills with a glowing underline) redraw the tags from
+  scratch, and their prices on the price scale too; Outline, Filled, Glow
+  and Minimal recolor TradingView's own. On or off on its own, with or
   without the wallpaper.
 - **Alt+Shift+B** turns the wallpaper on or off (change it at
   `chrome://extensions/shortcuts`).
@@ -51,7 +54,8 @@ allow browser extensions on evaluation or funded accounts. Check first.
 It only changes how the chart looks. On chart pages it skips the one fill
 the chart uses to paint its background, so the skin behind shows through.
 With order tags on, it swaps the colors the chart draws its tags in as
-they're drawn. It doesn't read your symbols, orders or account. The video
+they're drawn, or, for Modern and Frosted Glass, draws them itself in the
+same spot. It doesn't read your symbols, orders or account. The video
 skins stream from ezpayouts.xyz.
 
 ## Files
