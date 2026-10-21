@@ -166,7 +166,7 @@
     var s = tagState.get(ctx);
     if (!s) {
       s = { depth: 0, tagDepth: -1, tagCls: null, tinted: false, grp: null, axis: isAxis(ctx.canvas),
-        path: { n: 0, arcs: 0, r: 0, x0: 0, y0: 0, x1: 0, y1: 0 } };
+        path: { n: 0, arcs: 0, r: 0, circle: 0, x0: 0, y0: 0, x1: 0, y1: 0 } };
       tagState.set(ctx, s);
     }
     return s;
@@ -297,7 +297,7 @@
   };
   var origBeginPath = proto.beginPath;
   proto.beginPath = function () {
-    if (tracking(this)) { var p = stateOf(this).path; p.n = 0; p.arcs = 0; p.r = 0; }
+    if (tracking(this)) { var p = stateOf(this).path; p.n = 0; p.arcs = 0; p.r = 0; p.circle = 0; }
     return origBeginPath.apply(this, arguments);
   };
   ["moveTo", "lineTo"].forEach(function (name) {
@@ -316,6 +316,12 @@
       if (r > p.r) p.r = r;
     }
     return origArcTo.apply(this, arguments);
+  };
+  // A circle (arc) counts by its bounds (the add-order button has one).
+  var origArc = proto.arc;
+  proto.arc = function (x, y, r) {
+    if (tracking(this)) { var p = stateOf(this).path; addPoint(p, x - r, y - r); addPoint(p, x + r, y + r); p.circle++; }
+    return origArc.apply(this, arguments);
   };
   var origRect = proto.rect;
   proto.rect = function (x, y, w, h) {
@@ -383,12 +389,15 @@
   // group TradingView's own drawing is skipped and noted down instead: its
   // box, its words (side and type, the size, the P&L, the price) and any
   // icon. Once the chart has drawn everything, each row is drawn again in
-  // the chosen look, in the same spots, the × where TradingView's is, so
-  // clicking and dragging still work. A row is its tag and the buttons on
-  // it: TP and SL (Frosted Glass joins them into one pill), icon buttons,
-  // and a new order's place button (its side and a check mark; the order's
-  // tag then leaves its side out, so it isn't said twice). A TP or SL
-  // line's own tag (its size and P&L) is drawn like a position's.
+  // the chosen look, in the same spots: the × on TradingView's, the size,
+  // order type and P&L each over TradingView's own, so clicking and
+  // dragging do what they look like they do. A row is its tag and the
+  // buttons on it: TP and SL (Frosted Glass joins them into one pill), icon
+  // buttons, a new order's place button (its side and a check mark; the
+  // order's tag then leaves its side out, so it isn't said twice), and a
+  // moved order's Confirm and Discard. Buttons stay inside TradingView's
+  // own, so a click never lands on a neighbor. A TP or SL line's own tag
+  // (its size and P&L) is drawn like a position's.
   // On the price scale every price box is redrawn: an order's (outlined in
   // its color) and the position's (filled in its color) with a dot, the
   // rest (the live price, indicators, drawings, the crosshair) with their
@@ -427,7 +436,8 @@
       } else {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         var r = h.rect, p = new Path2D();
-        p.roundRect(r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0, h.radii);
+        if (h.circle) p.arc((r.x0 + r.x1) / 2, (r.y0 + r.y1) / 2, (r.x1 - r.x0) / 2, 0, Math.PI * 2);
+        else p.roundRect(r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0, h.radii);
         if (h.stroke) {
           ctx.strokeStyle = h.style; ctx.lineWidth = h.lw; ctx.setLineDash(h.dash);
           origStroke.call(ctx, p);
@@ -442,7 +452,7 @@
   }
   function hold(ctx, st, stroke) {
     var s = Math.abs(ctx.getTransform().a) || 1, R = st.path.r * s;
-    return { rect: devRect(ctx, st.path), radii: st.axis ? [0, R, R, 0] : R, stroke: stroke,
+    return { rect: devRect(ctx, st.path), radii: st.axis ? [0, R, R, 0] : R, stroke: stroke, circle: !!st.path.circle,
       style: stroke ? ctx.strokeStyle : ctx.fillStyle, lw: ctx.lineWidth * s, dash: ctx.getLineDash().map(function (d) { return d * s; }) };
   }
   function holdText(ctx, args) {
@@ -458,11 +468,16 @@
   }
   function rectOf(ctx, a) { return devRect(ctx, { x0: +a[0], y0: +a[1], x1: +a[0] + +a[2], y1: +a[1] + +a[3] }); }
   function inside(r, o) { return r.x0 >= o.x0 - 1 && r.x1 <= o.x1 + 1 && r.y0 >= o.y0 - 1 && r.y1 <= o.y1 + 1; }
-  // A word as drawn: where (device px), its color class and size.
+  function overlaps(r, o) { return r.x0 < o.x1 && r.x1 > o.x0 && r.y0 < o.y1 && r.y1 > o.y0; }
+  // A word as drawn: where (device px; cx its middle), its color class
+  // and size.
   function noteText(ctx, g, args, c) {
-    var m = ctx.getTransform(), x = +args[1] || 0, y = +args[2] || 0, px = /([\d.]+)px/.exec(ctx.font);
-    g.texts.push({ t: String(args[0]), x: m.a * x + m.c * y + m.e, y: m.b * x + m.d * y + m.f,
-      cls: c ? c.cls : null, style: ctx.fillStyle, size: (px ? +px[1] : 12) * (Math.abs(m.a) || 1) });
+    var m = ctx.getTransform(), x = +args[1] || 0, y = +args[2] || 0, k = Math.abs(m.a) || 1;
+    var t = String(args[0]), px = /([\d.]+)px/.exec(ctx.font), w = ctx.measureText(t).width * k, al = ctx.textAlign;
+    var X = m.a * x + m.c * y + m.e;
+    g.texts.push({ t: t, x: X, y: m.b * x + m.d * y + m.f, w: w,
+      cx: al === "center" ? X : al === "right" || al === "end" ? X - w / 2 : X + w / 2,
+      cls: c ? c.cls : null, style: ctx.fillStyle, size: (px ? +px[1] : 12) * k });
   }
   function goNative(ctx, g, orig, args) {
     replayHeld(ctx, g);
@@ -496,6 +511,8 @@
         g.held.push(holdText(ctx, args));
         return;
       }
+      // A mark beside it (the handle of an order being dragged): as it is.
+      if (kind === "fill" && args.length === 0 && g.box && !overlaps(devRect(ctx, st.path), g.box.rect)) return orig.apply(ctx, args);
       return goNative(ctx, g, orig, args);
     }
 
@@ -511,6 +528,7 @@
         if (!first) {
           if (accent) {
             g.mode = "pane"; g.outer = devRect(ctx, st.path); g.outerCls = c.cls; tagColors.add(style);
+            g.held.push(hold(ctx, st, false));
             return;
           }
           g.held.push(hold(ctx, st, false));
@@ -529,7 +547,7 @@
       }
       if (kind === "text") {
         if (!g.texts.length && SIDE_WORD.test(String(args[0]))) {
-          g.mode = "place"; g.disabled = true; g.outer = first.rect; g.held = []; g.icons = [];
+          g.mode = "place"; g.disabled = true; g.outer = first.rect; g.held = [first]; g.icons = [];
           return groupOp(ctx, st, kind, orig, args);
         }
         noteText(ctx, g, args, c);
@@ -539,6 +557,10 @@
       if (kind === "stroke" && args[0] && typeof args[0] === "object") {
         g.icons.push(iconOf(ctx, args[0], c));
         g.held.push(holdPath(ctx, args[0]));
+        return;
+      }
+      if (kind === "stroke" && args.length === 0 && !accent && !g.edge && inside(devRect(ctx, st.path), first.rect)) {
+        g.edge = true; g.held.push(hold(ctx, st, true));
         return;
       }
       if (kind === "stroke" && args.length === 0 && accent) {
@@ -554,10 +576,13 @@
     if (g.mode === "place") {
       // Greyed out: only its word is redrawn; anything else (a warning
       // icon beside it) is drawn as it is.
-      if (kind === "text" && SIDE_WORD.test(String(args[0]))) { noteText(ctx, g, args, c); return; }
+      if (kind === "text" && SIDE_WORD.test(String(args[0]))) { noteText(ctx, g, args, c); g.held.push(holdText(ctx, args)); return; }
       return orig.apply(ctx, args);
     }
 
+    // A tag's parts are noted, and held as they'd be drawn, in case it
+    // turns out not to be one (a session label, say) and is put back.
+    var keep = g.mode === "pane";
     if (kind === "text") {
       var t = String(args[0]);
       if (g.mode === "button") {
@@ -567,12 +592,18 @@
         else if (t.trim().length > 4) return goNative(ctx, g, orig, args);
         else g.held.push(holdText(ctx, args));
       }
+      if (keep) g.held.push(holdText(ctx, args));
       noteText(ctx, g, args, c);
       return;
     }
     if (kind === "stroke" && args[0] && typeof args[0] === "object") {
       g.icons.push(iconOf(ctx, args[0], c));
+      if (keep) g.held.push(holdPath(ctx, args[0]));
       return;
+    }
+    if (keep) {
+      if (kind === "rect") g.held.push({ rect: rectOf(ctx, args), radii: 0, stroke: false, style: ctx.fillStyle });
+      else if (args.length === 0) g.held.push(hold(ctx, st, kind === "stroke"));
     }
     if (g.mode === "pane" && kind === "fill" && args.length === 0 && !st.path.arcs && accent && c.a >= 0.9 && !g.filled) {
       // The size box filled in the tag's color: a position's. (Hovering a
@@ -597,24 +628,49 @@
     try {
       if (g.mode === "axis?") return finishAxis(ctx, g);
       if (g.mode === "pane?") {
-        // A dark box with just an icon in a color: an icon button.
+        // A dark box with just an icon in a color: an icon button. With
+        // just words (Discard): a plain button, if a tag shares its row.
         var ic = g.held.length && !g.texts.length && g.icons.filter(function (i) { return GLOWS[i.cls]; })[0];
-        if (!ic) return replayHeld(ctx, g);
-        g.mode = "button"; g.outer = g.held[0].rect; g.strokeCls = ic.cls;
+        var words = g.held.length && g.texts.length && !g.icons.length &&
+          g.texts.every(function (t) { return !/\d/.test(t.t); }) && g.texts.some(function (t) { return t.t.trim(); });
+        if (ic) { g.mode = "button"; g.outer = g.held[0].rect; g.strokeCls = ic.cls; }
+        else if (words) { g.mode = "text"; g.outer = g.held[0].rect; }
+        else if (isPlus(ctx, g)) { g.mode = "plus"; g.outer = g.held[0].rect; }
+        else return replayHeld(ctx, g);
       }
       if (!g.outer || g.mode === "native") return;
       if (g.mode === "button" && !g.texts.length && !g.icons.length) return replayHeld(ctx, g);
-      g.held = [];
+      // Kept for the ones that may yet be put back.
+      if (g.mode !== "text" && g.mode !== "pane" && g.mode !== "place") g.held = [];
       g.cy = (g.outer.y0 + g.outer.y1) / 2;
+      if (g.mode === "pane" && !g.texts.length && isPlus(ctx, g)) g.mode = "plus";
       if (g.mode === "pane" || g.mode === "bracket" || g.mode === "place") {
         g.info = readTag(g);
+        // Just Buy or Sell: a new order's place button. Other words and no
+        // size (Confirm): an action button. Both stay in TradingView's spot,
+        // and are only redrawn beside a tag. A tag has a size or a P&L;
+        // anything else is put back.
         if (g.mode === "place" || g.info.place) g.place = true;
-        else g.isTag = true;
+        else if (g.info.action) g.action = true;
+        else if (g.info.position || g.info.qty) g.isTag = true;
+        else return replayHeld(ctx, g);
         if (g.info.position && g.filledStyle) positionColors.add(g.filledStyle);
       }
       pending.push({ ctx: ctx, g: g });
       if (!flushQueued) { flushQueued = true; queueMicrotask(flushPending); }
     } catch (err) {}
+  }
+  // TradingView's add-order button by the price scale: a small square
+  // against the pane's right edge, with a circle and a plus (two thin bars).
+  function isPlus(ctx, g) {
+    var b = g.held[0] && g.held[0].rect, s = g.s;
+    if (!b || g.texts.length) return false;
+    var w = b.x1 - b.x0, h = b.y1 - b.y0;
+    if (w < 14 * s || w > 30 * s || Math.abs(w - h) > 4 * s || b.x1 < ctx.canvas.width - 2) return false;
+    return g.held.filter(function (it) {
+      var r = it.rect;
+      return r && !it.stroke && (r.x1 - r.x0 <= 2.5 * s) !== (r.y1 - r.y0 <= 2.5 * s);
+    }).length >= 2;
   }
   function flushPending() {
     flushQueued = false;
@@ -752,24 +808,32 @@
     origStroke.call(ctx, seg(x0, y + 1.1 * s, x1, y + 1.1 * s));
   }
   function themeInk(cls) { return (tagTheme.on && tagTheme.on[cls]) || "#ffffff"; }
+  // A tag or button's height: about TradingView's own, so rows close
+  // together overlap no more than they do there.
+  function tagH(g) { return Math.max(17 * g.s, Math.min(22 * g.s, g.outer.y1 - g.outer.y0 + 2 * g.s)); }
 
   // What a tag says: side and type, or the size and P&L (a position's, or
   // a TP or SL line's). Just "Buy" or "Sell": a new order's place button.
   function readTag(g) {
     var texts = g.texts.filter(function (t) { return t.t.trim(); }).sort(function (a, b) { return a.x - b.x; });
-    var qty = "", words = [];
+    var qty = "", qtyX, words = [], wx0 = Infinity, wx1 = -Infinity;
     texts.forEach(function (t) {
       var v = t.t.replace(/[  ]/g, " ").trim();
-      if (!qty && /^[\d.,\s]+$/.test(v)) qty = v; else words.push({ t: v, cls: t.cls });
+      if (!qty && /^[\d.,\s]+$/.test(v)) { qty = v; qtyX = t.cx; return; }
+      words.push({ t: v, cls: t.cls, cx: t.cx });
+      wx0 = Math.min(wx0, t.cx - t.w / 2); wx1 = Math.max(wx1, t.cx + t.w / 2);
     });
     // A P&L is a number, maybe signed, maybe with its unit (USD, ticks, %).
     var pnl = words.filter(function (w) { return /^[+\-−]?\s*[\d.,\s]*\d[\d.,\s]*\s*[A-Za-z%]{0,6}$/.test(w.t); })[0];
-    var info = { qty: qty, cls: g.filled || g.outerCls || g.strokeCls || "buy" };
+    // Where TradingView put the size and the words: ours go over them, so
+    // a click lands on the part it looks like.
+    var info = { qty: qty, qtyX: qtyX, wordsX: words.length ? (wx0 + wx1) / 2 : undefined,
+      cls: g.filled || g.outerCls || g.strokeCls || "buy" };
     if (pnl || g.mode === "bracket") {
       info.position = true;
       var p = pnl ? pnl.t : "", m = /^(.*?\d)\s*([A-Za-z]+|%)$/.exec(p);
       info.pnl = (m ? m[1] : p).replace(/^([+\-−])\s+/, "$1"); info.ccy = m ? m[2] : "";
-      info.pnlCls = pnl && pnl.cls;
+      info.pnlCls = pnl && pnl.cls; info.pnlX = pnl && pnl.cx;
       if (g.mode === "bracket") {
         info.bracket = true; info.cls = g.strokeCls || "profit";
         info.side = info.cls === "profit" ? "TP" : "SL";
@@ -782,7 +846,8 @@
       info.side = sm ? sm[1].toUpperCase() : info.cls === "sell" ? "SELL" : "BUY";
       info.type = sm ? sm[2] : label;
       info.type = info.type ? info.type.charAt(0).toUpperCase() + info.type.slice(1).toLowerCase() : "";
-      info.place = !info.type;
+      info.place = !!sm && !info.type;
+      info.action = !qty && !sm && !!info.type;
       if (g.mode === "place" || (info.place && sm)) info.cls = info.side === "SELL" ? "sell" : "buy";
     }
     info.up = info.side === "BUY" || info.side === "LONG";
@@ -797,93 +862,136 @@
     return /^[\-−]/.test(info.pnl) ? T.sell : /^\+/.test(info.pnl) ? T.profit : "#c9d1e0";
   }
 
-  // A row: its buttons and its tag, left to right. A row with a place
-  // button is a new order: its tag leaves the side to the button.
+  // A row: its buttons and its tag(s), left to right. A row with a place
+  // button is a new order: its tag leaves the side to the button. Tags
+  // TradingView stacks (orders at about the same price) stay stacked.
   function drawRow(ctx, row) {
     row.sort(function (a, b) { return a.outer.x0 - b.outer.x0; });
     var frosted = tagTheme.style === "frosted";
     var draft = row.some(function (g) { return g.place; });
-    var prev = null;
+    var tagged = row.some(function (g) { return g.isTag || g.place || g.action; });
     pen(ctx);
     try {
       for (var i = 0; i < row.length; i++) {
         var a = row[i], b = row[i + 1];
         if (a.isTag) {
           a.info.draft = draft && !a.info.position;
-          var left = prev ? prev.outer.x1 + 3 * a.s : a.outer.x0 - 70 * a.s;
+          // Its room: up to whatever sits wholly to its left on the row.
+          var left = a.outer.x0 - 70 * a.s;
+          for (var j = 0; j < row.length; j++) {
+            var o = row[j];
+            if (o !== a && o.outer.x1 <= a.outer.x0 + 2 * a.s) left = Math.max(left, o.outer.x1 + 3 * a.s);
+          }
           if (frosted) drawFrostedTag(ctx, a, a.info, left); else drawModernTag(ctx, a, a.info, left);
-        } else if (a.place) {
-          drawPlaceButton(ctx, a, frosted);
-        } else if (frosted && b && !b.isTag && !b.place && a.texts.length && b.texts.length && b.outer.x0 - a.outer.x1 <= 4 * a.s) {
-          drawFrostedPair(ctx, a, b); a = b; i++;
+        } else if (a.mode === "plus") {
+          drawPlusButton(ctx, a, frosted);
+        } else if (a.place || a.action) {
+          if (row.some(function (o) { return o.isTag; })) drawActionButton(ctx, a, frosted); else replayHeld(ctx, a);
+        } else if (a.mode === "text") {
+          if (tagged) drawTextButton(ctx, a, frosted); else replayHeld(ctx, a);
+        } else if (frosted && b && a.mode === "button" && b.mode === "button" && a.texts.length && b.texts.length &&
+          b.outer.x0 - a.outer.x1 <= 4 * a.s) {
+          drawFrostedPair(ctx, a, b); i++;
         } else if (a.texts.length) {
           drawLabelButton(ctx, a, frosted);
         } else {
           drawIconButton(ctx, a, frosted);
         }
-        prev = a;
       }
     } finally { origRestore.call(ctx); }
   }
 
-  // A tag's parts measured at one size. v: [type scale, "QTY" shown,
-  // side (2: its words, 1: just the size, 0: just the arrow), type shown].
-  function measure(ctx, g, info, v, frosted) {
+  // A tag's parts measured at one size, and placed. v: [type scale, "QTY"
+  // shown, side (2: its words, 1: just the size, 0: just the arrow, -1:
+  // none, its color says it), type shown]. The × sits on TradingView's; the body's parts (the size, the
+  // order type, the P&L) each sit over TradingView's own, in its order, so
+  // a click lands on the part it looks like; the side goes to their left.
+  function measure(ctx, g, info, v, frosted, left) {
     var s = g.s, k = v[0] * s;
-    var L = { k: k, showQty: !!v[1], H: 22 * s,
+    var L = { k: k, showQty: !!v[1], H: tagH(g),
       fSide: "700 " + 10.5 * k + "px " + FONT_SIDE, lsSide: 1.05 * k,
       fLabel: "600 " + 11 * k + "px " + FONT_SANS, fMono: "600 " + 10 * k + "px " + FONT_MONO,
       fPnl: "600 " + 12.5 * k + "px " + FONT_MONO, arrowW: 7.5 * k };
     L.type = v[3] ? info.type : "";
-    if (info.draft) {
+    if (info.draft || v[2] < 0) {
       L.sideText = ""; L.sideW = 0; L.stripW = frosted ? 0 : 3 * s;
     } else {
       L.sideText = v[2] === 2 ? (info.position ? info.side + " " + info.qty : info.side) : v[2] === 1 ? info.qty : "";
       L.sideW = 8 * s + L.arrowW + (L.sideText ? 5 * s + tw(ctx, L.sideText, L.fSide, L.lsSide) : 0) + 9 * s;
       L.stripW = 0;
     }
-    if (info.position) {
-      L.bodyW = 9 * s + tw(ctx, info.pnl, L.fPnl) + (info.ccy ? 5 * s + tw(ctx, info.ccy, L.fMono) : 0) + 8 * s;
-    } else {
-      L.bodyW = 9 * s + (L.type ? tw(ctx, L.type, L.fLabel) + 8 * s : 0) +
-        (L.showQty ? tw(ctx, "QTY", L.fMono) + 4 * s : 0) + tw(ctx, info.qty, L.fMono) + 9 * s;
-    }
     L.xW = 22 * s;
-    L.gap = frosted && !info.position && !info.draft ? 4 * s : 0;
-    L.W = L.sideW + L.gap + L.stripW + L.bodyW + L.xW;
+    L.gap = frosted && !info.position && L.sideW ? 4 * s : 0;
+    var items = [];
+    if (info.position) {
+      items.push({ k: "pnl", cx: info.pnlX,
+        w: tw(ctx, info.pnl, L.fPnl) + (info.ccy ? 5 * s + tw(ctx, info.ccy, L.fMono) : 0) });
+    } else {
+      items.push({ k: "qty", cx: info.qtyX,
+        w: (L.showQty ? tw(ctx, "QTY", L.fMono) + 4 * s : 0) + tw(ctx, info.qty, L.fMono) });
+      if (L.type) items.push({ k: "type", cx: info.wordsX, w: tw(ctx, L.type, L.fLabel) });
+      if (items.every(function (it) { return it.cx !== undefined; })) items.sort(function (a, b) { return a.cx - b.cx; });
+    }
+    var right = g.outer.x1 - L.xW - 8 * s;
+    for (var i = items.length - 1; i >= 0; i--) {
+      var it = items[i], end = it.cx !== undefined ? Math.min(it.cx + it.w / 2, right) : right;
+      it.x0 = end - it.w;
+      right = it.x0 - 13 * s;
+    }
+    // Short of room on the left, the first part moves right a little (as
+    // far as the next one lets it; it stays over its own part).
+    var lead = L.sideW + L.gap + L.stripW + 9 * s, first = items[0];
+    var limit = (items[1] ? items[1].x0 - 13 * s : g.outer.x1 - L.xW - 8 * s) - first.w;
+    if (first.x0 - lead < left) first.x0 = Math.max(first.x0, Math.min(left + lead, limit));
+    L.items = items;
+    L.x1 = g.outer.x1;
+    L.bodyX = items[0].x0 - 9 * s;
+    L.x0 = L.bodyX - L.stripW - L.gap - L.sideW;
+    L.W = L.x1 - L.x0;
     return L;
   }
-  // Lays a tag out right to left from TradingView's right edge, giving up
-  // words until it fits the room it has (buttons sit to its left): first
-  // "QTY", then a position's "LONG", then size, then the side's word, then
-  // the type. If nothing fits, the narrowest.
+  // Fits a tag in the room it has (buttons sit to its left), giving up
+  // words until it fits: first "QTY", then a position's "LONG", then the
+  // side's word, then the side, before going smaller, then the type. If
+  // nothing fits, the narrowest.
   function layout(ctx, g, info, left, frosted) {
-    var room = g.outer.x1 - left, best = null;
+    var best = null;
     var steps = info.position
       ? [[1, 0, 2, 1], [0.9, 0, 2, 1], [1, 0, 1, 1], [0.9, 0, 1, 1], [0.8, 0, 1, 1], [0.72, 0, 1, 1], [0.72, 0, 0, 1]]
-      : [[1, 1, 2, 1], [1, 0, 2, 1], [0.9, 0, 2, 1], [0.8, 0, 2, 1], [0.8, 0, 0, 1], [0.72, 0, 0, 1], [0.72, 0, 0, 0]];
+      : [[1, 1, 2, 1], [1, 0, 2, 1], [0.9, 0, 2, 1], [1, 0, 0, 1], [0.9, 0, 0, 1],
+        [1, 0, -1, 1], [0.9, 0, -1, 1], [0.8, 0, -1, 1], [0.72, 0, -1, 1], [0.72, 0, -1, 0]];
     for (var i = 0; i < steps.length; i++) {
-      var L = measure(ctx, g, info, steps[i], frosted);
-      if (L.W <= room) { best = L; break; }
-      if (!best || L.W < best.W) best = L;
+      var L = measure(ctx, g, info, steps[i], frosted, left);
+      if (L.x0 >= left) { best = L; break; }
+      if (!best || L.x0 > best.x0) best = L;
     }
-    best.x1 = g.outer.x1; best.x0 = best.x1 - best.W;
     best.y = g.cy - best.H / 2;
     return best;
   }
-  function bodyText(ctx, L, info, x, cy, s) {
-    if (info.position) {
-      var pc = pnlColor(info);
-      origSave.call(ctx); shadow(ctx, rgba(pc, 0.5), 8 * s, 0);
-      text(ctx, info.pnl, x, cy, L.fPnl, pc);
-      origRestore.call(ctx);
-      x += tw(ctx, info.pnl, L.fPnl) + 5 * s;
-      if (info.ccy) text(ctx, info.ccy, x, cy, L.fMono, "#8790a5");
-      return;
-    }
-    if (L.type) { text(ctx, L.type, x, cy, L.fLabel, "#eef2fa"); x += tw(ctx, L.type, L.fLabel) + 8 * s; }
-    if (L.showQty) { text(ctx, "QTY", x, cy, L.fMono, "#8790a5"); x += tw(ctx, "QTY", L.fMono) + 4 * s; }
-    text(ctx, info.qty, x, cy, L.fMono, L.showQty ? "#c6ccda" : "#8790a5");
+  function bodyText(ctx, L, info, cy, s) {
+    var prevEnd = null;
+    L.items.forEach(function (it) {
+      if (prevEnd !== null) {
+        var mid = (prevEnd + it.x0) / 2;
+        ctx.strokeStyle = "rgba(255,255,255,0.08)"; ctx.lineWidth = s;
+        origStroke.call(ctx, seg(mid, L.y + 6 * s, mid, L.y + L.H - 6 * s));
+      }
+      var x = it.x0;
+      if (it.k === "pnl") {
+        var pc = pnlColor(info);
+        origSave.call(ctx); shadow(ctx, rgba(pc, 0.5), 8 * s, 0);
+        text(ctx, info.pnl, x, cy, L.fPnl, pc);
+        origRestore.call(ctx);
+        x += tw(ctx, info.pnl, L.fPnl) + 5 * s;
+        if (info.ccy) text(ctx, info.ccy, x, cy, L.fMono, "#8790a5");
+      } else if (it.k === "type") {
+        text(ctx, L.type, x, cy, L.fLabel, "#eef2fa");
+      } else {
+        if (L.showQty) { text(ctx, "QTY", x, cy, L.fMono, "#8790a5"); x += tw(ctx, "QTY", L.fMono) + 4 * s; }
+        text(ctx, info.qty, x, cy, L.fMono, "#c6ccda");
+      }
+      prevEnd = it.x0 + it.w;
+    });
   }
 
   function drawModernTag(ctx, g, info, left) {
@@ -895,7 +1003,7 @@
     if (L.sideW) {
       block(ctx, rr(x0, y, L.sideW, H, [R, 0, 0, R]), x0 + R * 0.7, x0 + L.sideW - 1 * s, y, H, s, c);
     } else if (L.stripW) {
-      // A new order's tag: a strip of its color where the side would be.
+      // No side (a new order's, or no room): a strip of its color instead.
       origSave.call(ctx); ctx.clip(whole); shadow(ctx, c, 6 * s, 0);
       ctx.fillStyle = c; origFill.call(ctx, rr(x0, y, L.stripW, H, 0));
       origRestore.call(ctx);
@@ -907,7 +1015,7 @@
       mark(ctx, info, x0 + 8 * s, cy, L.arrowW, ink);
       if (L.sideText) text(ctx, L.sideText, x0 + 8 * s + L.arrowW + 5 * s, cy, L.fSide, ink, L.lsSide);
     }
-    bodyText(ctx, L, info, x0 + L.sideW + L.stripW + 9 * s, cy, s);
+    bodyText(ctx, L, info, cy, s);
     cross(ctx, L.x1 - L.xW / 2, cy, 6.5 * s, "#8790a5", 1.5 * s);
   }
 
@@ -924,7 +1032,7 @@
       ctx.strokeStyle = "rgba(255,255,255,0.14)"; ctx.lineWidth = s;
       origStroke.call(ctx, seg(x0 + L.sideW, y + 4 * s, x0 + L.sideW, y + H - 4 * s));
       underline(ctx, x0 + R * 0.8, L.x1 - R * 0.8, yb, s, c, mix(c, "#22d3ee", 0.6));
-    } else if (info.draft) {
+    } else if (!L.sideW) {
       var one = rr(x0, y, L.W, H, R);
       frost(ctx, one, x0, y, L.W, H, s, null);
       underline(ctx, x0 + R * 0.8, L.x1 - R * 0.8, yb, s, c, mix(c, "#8b5cf6", 0.55));
@@ -932,7 +1040,7 @@
       var sideP = rr(x0, y, L.sideW, H, R);
       frost(ctx, sideP, x0, y, L.sideW, H, s, c);
       underline(ctx, x0 + R * 0.8, x0 + L.sideW - R * 0.8, yb, s, c);
-      var bx = x0 + L.sideW + L.gap, bw = L.bodyW + L.xW, bodyP = rr(bx, y, bw, H, R);
+      var bx = L.bodyX, bw = L.x1 - bx, bodyP = rr(bx, y, bw, H, R);
       frost(ctx, bodyP, bx, y, bw, H, s, null);
       underline(ctx, bx + R * 0.8, bx + bw - R * 0.8, yb, s, c, mix(c, "#8b5cf6", 0.55));
     }
@@ -940,27 +1048,32 @@
       mark(ctx, info, x0 + 9 * s, cy, L.arrowW, light);
       if (L.sideText) text(ctx, L.sideText, x0 + 9 * s + L.arrowW + 5 * s, cy, L.fSide, light, L.lsSide);
     }
-    bodyText(ctx, L, info, x0 + L.sideW + L.gap + 9 * s, cy, s);
+    bodyText(ctx, L, info, cy, s);
     cross(ctx, L.x1 - L.xW / 2 - 2 * s, cy, 6.5 * s, "#aeb5c4", 1.5 * s);
   }
 
-  // A new order's place button: its side and a check mark, in its color
-  // (grey while TradingView has it greyed out). It gives up its arrow,
-  // then shrinks, to fit TradingView's button; lit, it may grow a little
-  // to the left (greyed out, a warning icon sits there).
-  function drawPlaceButton(ctx, g, frosted) {
+  // A button TradingView fills in a color: a new order's place button (its
+  // side) or another action (Confirm), with a check mark; greyed out while
+  // TradingView has it so. It stays inside TradingView's own button, so a
+  // click lands on it and nothing else: it gives up its arrow, then
+  // shrinks, then gives up the check mark, to fit.
+  function drawActionButton(ctx, g, frosted) {
     var s = g.s, info = g.info, off = !!g.disabled, c = tagTheme[info.cls] || tagTheme.buy;
-    var H = 22 * s, y = g.cy - H / 2, x1 = g.outer.x1, room = x1 - g.outer.x0 + (off ? 4 : 14) * s;
-    // [type size, arrow, check ring size, side padding]
-    var steps = [[10.5, 1, 15, 7.5], [10.5, 0, 15, 7.5], [10, 0, 13, 6], [9.5, 0, 0, 6], [9, 0, 0, 5]], L;
+    var H = tagH(g), y = g.cy - H / 2, x0 = g.outer.x0, x1 = g.outer.x1, W = x1 - x0;
+    var word = g.place ? info.side : info.type;
+    // [type size, arrow, check ring size, side padding, check shown]
+    var steps = [[10.5, 1, 15, 7.5, 1], [10.5, 0, 15, 7.5, 1], [10, 0, 13, 6, 1], [9.5, 0, 0, 5, 1],
+      [9, 0, 0, 4, 1], [8.5, 0, 0, 3, 1], [9, 0, 0, 4, 0], [8, 0, 0, 3, 0]], L;
     for (var i = 0; i < steps.length; i++) {
-      var v = steps[i], f = "700 " + v[0] * s + "px " + FONT_SIDE, ls = v[0] / 10 * s;
-      L = { f: f, ls: ls, arrow: !!v[1], ring: v[2] * s, word: tw(ctx, info.side, f, ls), pad: v[3] * s };
-      L.ck = L.ring || 9 * s;
-      L.content = (L.arrow ? 7.5 * s + 5 * s : 0) + L.word + (L.ring ? 5 : 5.5) * s + L.ck;
-      if (L.content + 2 * L.pad <= room) break;
+      var v = steps[i];
+      L = { f: (g.place ? "700 " : "600 ") + v[0] * s + "px " + (g.place ? FONT_SIDE : FONT_SANS),
+        ls: g.place ? v[0] / 10 * s : 0, arrow: g.place && !!v[1], ring: v[2] * s, pad: v[3] * s, check: !!v[4] };
+      L.word = tw(ctx, word, L.f, L.ls);
+      L.ck = L.check ? L.ring || 9 * s : 0;
+      L.gap = L.check ? (L.ring ? 5 : 4.5) * s : 0;
+      L.content = (L.arrow ? 12.5 * s : 0) + L.word + L.gap + L.ck;
+      if (L.content + 2 * L.pad <= W) break;
     }
-    var W = Math.max(x1 - g.outer.x0, L.content + 2 * L.pad), x0 = x1 - W;
     var p = rr(x0, y, W, H, frosted ? H / 2 : 6 * s), ink;
     if (frosted) {
       frost(ctx, p, x0, y, W, H, s, off ? null : c);
@@ -974,12 +1087,32 @@
       block(ctx, p, x0 + 4 * s, x1 - 4 * s, y, H, s, c);
       ink = themeInk(info.cls);
     }
-    var x = x0 + (W - L.content) / 2;
+    origSave.call(ctx); ctx.clip(p);
+    var x = x0 + Math.max(0, (W - L.content) / 2);
     if (L.arrow) { arrow(ctx, x, g.cy, 7.5 * s, info.up, ink); x += 12.5 * s; }
-    text(ctx, info.side, x, g.cy, L.f, ink, L.ls);
-    x += L.word + (L.ring ? 5 : 5.5) * s + L.ck / 2;
-    if (L.ring) dot(ctx, x, g.cy, L.ring / 2, rgba(hexOf(ink) || "#ffffff", 0.18));
-    check(ctx, x, g.cy, (L.ring ? 7.5 : 8.5) * s, ink, 1.7 * s);
+    text(ctx, word, x, g.cy, L.f, ink, L.ls);
+    if (L.check) {
+      x += L.word + L.gap + L.ck / 2;
+      if (L.ring) dot(ctx, x, g.cy, L.ring / 2, rgba(hexOf(ink) || "#ffffff", 0.18));
+      check(ctx, x, g.cy, (L.ring ? 7.5 : 8.5) * s, ink, 1.7 * s);
+    }
+    origRestore.call(ctx);
+  }
+  // A plain button beside a tag (Discard): its words, in TradingView's spot.
+  function drawTextButton(ctx, g, frosted) {
+    var s = g.s, ins = frosted ? 0 : inset(g), x0 = g.outer.x0 + ins, x1 = g.outer.x1 - ins, W = x1 - x0;
+    var H = tagH(g), y = g.cy - H / 2, px = 11, f;
+    var word = g.texts.slice().sort(function (a, b) { return a.x - b.x; })
+      .map(function (t) { return t.t.trim(); }).filter(Boolean).join(" ");
+    do { f = "600 " + px * s + "px " + FONT_SANS; px -= 0.5; } while (px > 8 && tw(ctx, word, f) > W - 8 * s);
+    var p = rr(x0, y, W, H, frosted ? H / 2 : 6 * s);
+    if (frosted) frost(ctx, p, x0, y, W, H, s, null);
+    else { glass(ctx, p, y, H, s, null); edge(ctx, p, s); }
+    origSave.call(ctx); ctx.clip(p);
+    ctx.textAlign = "center";
+    text(ctx, word, (x0 + x1) / 2, g.cy, f, "#c6ccda");
+    ctx.textAlign = "left";
+    origRestore.call(ctx);
   }
   function btnFont(s) { return "700 " + 10 * s + "px " + FONT_SIDE; }
   // Modern's buttons sit a little in from TradingView's edges, so ones side
@@ -987,7 +1120,7 @@
   function inset(g) { var W = g.outer.x1 - g.outer.x0; return Math.min(1.5 * g.s, Math.max(0, (W - 20 * g.s) / 2)); }
   function drawLabelButton(ctx, g, frosted) {
     var s = g.s, c = tagTheme[g.strokeCls] || tagTheme.profit, label = g.texts[0].t.trim().toUpperCase();
-    var H = 22 * s, f = btnFont(s), d = frosted ? 0 : 5 * s, pad = 5 * s, ins = frosted ? 0 : inset(g);
+    var H = tagH(g), f = btnFont(s), d = frosted ? 0 : 5 * s, pad = 5 * s, ins = frosted ? 0 : inset(g);
     var x0 = g.outer.x0 + ins, x1 = g.outer.x1 - ins, W = x1 - x0, y = g.cy - H / 2;
     var need = 2 * pad + d + (d ? 3.5 * s : 0) + tw(ctx, label, f, 0.8 * s);
     if (need > W) { f = "700 " + 9 * s + "px " + FONT_SIDE; need = 2 * pad + d + (d ? 3.5 * s : 0) + tw(ctx, label, f, 0.6 * s); }
@@ -1007,7 +1140,7 @@
     text(ctx, label, cx + d + 3.5 * s, g.cy, f, "#eef2fa", 0.6 * s);
   }
   function drawFrostedPair(ctx, a, b) {
-    var s = a.s, H = 22 * s, f = btnFont(s), y = a.cy - H / 2;
+    var s = a.s, H = tagH(a), f = btnFont(s), y = a.cy - H / 2;
     var ca = tagTheme[a.strokeCls] || tagTheme.profit, cb = tagTheme[b.strokeCls] || tagTheme.warn;
     var la = a.texts[0].t.trim().toUpperCase(), lb = b.texts[0].t.trim().toUpperCase();
     var x0 = a.outer.x0, x1 = b.outer.x1, mid = (a.outer.x1 + b.outer.x0) / 2;
@@ -1027,7 +1160,7 @@
     ctx.textAlign = "left";
   }
   function drawIconButton(ctx, g, frosted) {
-    var s = g.s, H = 22 * s, ins = frosted ? 0 : inset(g), x0 = g.outer.x0 + ins, W = g.outer.x1 - ins - x0, y = g.cy - H / 2;
+    var s = g.s, H = tagH(g), ins = frosted ? 0 : inset(g), x0 = g.outer.x0 + ins, W = g.outer.x1 - ins - x0, y = g.cy - H / 2;
     var c = tagTheme[g.strokeCls] || tagTheme.buy;
     if (frosted) {
       var p = rr(x0, y, W, H, H / 2);
@@ -1038,6 +1171,32 @@
       glass(ctx, pm, y, H, s, null); edge(ctx, pm, s);
     }
     icons(ctx, g, "#e9edf5");
+  }
+
+  // The add-order button by the price scale, in the tags' look: a glass
+  // square (Modern) or a frosted ring (Frosted Glass), its plus glowing in
+  // the buy color.
+  function drawPlusButton(ctx, g, frosted) {
+    var s = g.s, b = g.outer, c = tagTheme.buy, cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2;
+    var size = Math.min(b.x1 - b.x0, b.y1 - b.y0), arm = size * 0.22, ink;
+    if (frosted) {
+      var r = size / 2 - 0.5 * s, p = new Path2D();
+      p.arc(cx, cy, r, 0, Math.PI * 2);
+      frost(ctx, p, cx - r, cy - r, 2 * r, 2 * r, s, c);
+      origSave.call(ctx); shadow(ctx, c, 8 * s, 0);
+      ctx.strokeStyle = rgba(c, 0.85); ctx.lineWidth = 1.4 * s; origStroke.call(ctx, p);
+      origRestore.call(ctx);
+      ink = mix(c, "#ffffff", 0.62);
+    } else {
+      var pm = rr(b.x0 + 1 * s, b.y0 + 1 * s, b.x1 - b.x0 - 2 * s, b.y1 - b.y0 - 2 * s, 6 * s);
+      glass(ctx, pm, b.y0, b.y1 - b.y0, s, c); edge(ctx, pm, s);
+      ink = c;
+    }
+    var plus = new Path2D();
+    plus.moveTo(cx - arm, cy); plus.lineTo(cx + arm, cy); plus.moveTo(cx, cy - arm); plus.lineTo(cx, cy + arm);
+    origSave.call(ctx); shadow(ctx, rgba(c, 0.8), 6 * s, 0);
+    ctx.strokeStyle = ink; ctx.lineWidth = 1.8 * s; ctx.lineCap = "round"; origStroke.call(ctx, plus);
+    origRestore.call(ctx);
   }
 
   // ---------- The price scale ----------

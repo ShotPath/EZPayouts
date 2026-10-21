@@ -32,7 +32,8 @@ Step-by-step with pictures: https://ezpayouts.xyz/skins/
   when the tab is in the background.
 - **Order tags** (the second card in the popup): restyles the Buy and Sell
   limit and stop tags, your open position and its P&L, the TP and SL
-  buttons and lines, a new order's place button, and their lines. Pick a
+  buttons and lines, a new order's place button, a moved order's Confirm
+  and Discard, the add-order (+) button, and their lines. Pick a
   color set (or Match wallpaper) and a style. **Modern** (a glass ticket
   with a color block) and **Frosted Glass** (blurred pills with a glowing
   underline) redraw the tags from scratch, and every price box on the
