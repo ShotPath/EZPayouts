@@ -819,7 +819,8 @@
     var qty = "", qtyX, words = [], wx0 = Infinity, wx1 = -Infinity;
     texts.forEach(function (t) {
       var v = t.t.replace(/[  ]/g, " ").trim();
-      if (!qty && /^[\d.,\s]+$/.test(v)) { qty = v; qtyX = t.cx; return; }
+      // The size comes first; a short's is negative (-3).
+      if (!qty && /^[+\-−]?\s*\d[\d.,\s]*$/.test(v)) { qty = v; qtyX = t.cx; return; }
       words.push({ t: v, cls: t.cls, cx: t.cx });
       wx0 = Math.min(wx0, t.cx - t.w / 2); wx1 = Math.max(wx1, t.cx + t.w / 2);
     });
@@ -827,6 +828,8 @@
     var pnl = words.filter(function (w) { return /^[+\-−]?\s*[\d.,\s]*\d[\d.,\s]*\s*[A-Za-z%]{0,6}$/.test(w.t); })[0];
     // Where TradingView put the size and the words: ours go over them, so
     // a click lands on the part it looks like.
+    var short = /^[\-−]/.test(qty);
+    qty = qty.replace(/^[+\-−]\s*/, "");
     var info = { qty: qty, qtyX: qtyX, wordsX: words.length ? (wx0 + wx1) / 2 : undefined,
       cls: g.filled || g.outerCls || g.strokeCls || "buy" };
     if (pnl || g.mode === "bracket") {
@@ -834,11 +837,13 @@
       var p = pnl ? pnl.t : "", m = /^(.*?\d)\s*([A-Za-z]+|%)$/.exec(p);
       info.pnl = (m ? m[1] : p).replace(/^([+\-−])\s+/, "$1"); info.ccy = m ? m[2] : "";
       info.pnlCls = pnl && pnl.cls; info.pnlX = pnl && pnl.cx;
-      if (g.mode === "bracket") {
-        info.bracket = true; info.cls = g.strokeCls || "profit";
+      // A TP or SL line's own tag: outlined, or filled in the TP's green
+      // or the SL's orange (a position's is in the buy or sell color).
+      if (g.mode === "bracket" || info.cls === "profit" || info.cls === "warn") {
+        info.bracket = true; info.cls = g.mode === "bracket" ? g.strokeCls || "profit" : info.cls;
         info.side = info.cls === "profit" ? "TP" : "SL";
       } else {
-        info.side = info.cls === "sell" ? "SHORT" : "LONG";
+        info.side = info.cls === "sell" || short ? "SHORT" : "LONG";
       }
     } else {
       var label = words.map(function (w) { return w.t; }).join(" ");
