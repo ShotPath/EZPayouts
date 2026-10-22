@@ -325,6 +325,11 @@
 
   .bt-toolbar{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
   .search-wrap{ position:relative; flex:1; min-width:200px; }
+  /* Analyze one model: narrows the stats, the edge chart and the list. */
+  .model-lens{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:-8px 0 22px; }
+  .model-lens .search-wrap{ max-width:420px; }
+  .model-lens.active .search-input{ border-color:var(--phosphor-dim); }
+  .model-lens-note{ font-family:var(--font-mono); font-size:11.5px; color:var(--muted); }
   .search-wrap svg{
     position:absolute; left:12px; top:50%; transform:translateY(-50%); width:14px; height:14px;
     color:var(--muted); fill:none; stroke:currentColor; stroke-width:1.8;
@@ -548,6 +553,17 @@
     <button class="strategy-add" id="strategyAddBtn" type="button">+ Strategy</button>
   </div>
 
+  <div class="model-lens" id="modelLens">
+    <div class="search-wrap">
+      <svg viewBox="0 0 20 20"><path d="M3 16V4M3 16h14" /><path d="M6 12l3-4 3 2 4-5" /></svg>
+      <input type="text" id="modelLensInput" class="search-input" list="modelLensList" autocomplete="off"
+        placeholder="Analyze one model (all models)..." aria-label="Analyze one model" />
+      <datalist id="modelLensList"></datalist>
+    </div>
+    <button class="ghost-btn" id="modelLensClear" type="button" hidden>All models</button>
+    <span class="model-lens-note" id="modelLensNote"></span>
+  </div>
+
   <div class="stat-grid">
     <div class="stat-card">
       <div class="stat-card-head"><span class="stat-card-label">Net R</span></div>
@@ -747,6 +763,11 @@
   var bulkDeleteBtn = document.getElementById("bulkDeleteBtn");
   var strategyTabs = document.getElementById("strategyTabs");
   var strategyAddBtn = document.getElementById("strategyAddBtn");
+  var modelLens = document.getElementById("modelLens");
+  var modelLensInput = document.getElementById("modelLensInput");
+  var modelLensList = document.getElementById("modelLensList");
+  var modelLensClear = document.getElementById("modelLensClear");
+  var modelLensNote = document.getElementById("modelLensNote");
 
   var noteModalOverlay = document.getElementById("noteModalOverlay");
   var noteModalTitle = document.getElementById("noteModalTitle");
@@ -763,6 +784,7 @@
   var currentGrade = "";
   var currentFilter = "all";
   var searchQuery = "";
+  var lensQuery = "";
   var sortKey = null;
   var sortDir = "asc";
   var selectedIds = {};
@@ -868,6 +890,8 @@
     currentFilter = "all";
     searchQuery = "";
     searchInput.value = "";
+    lensQuery = "";
+    modelLensInput.value = "";
     sortKey = null;
     selectedIds = {};
     btFilter.querySelectorAll("button").forEach(function(b){
@@ -1168,9 +1192,43 @@
     return { cls:"win", label:"Win" };
   }
 
-  // ---------- Stats (always computed from the WHOLE active strategy, never
-  // narrowed by the list's search/filter — those are view tools for finding
-  // a trade, not a lens on the strategy's real numbers). ----------
+  // ---------- Analyze one model: the stats, the edge chart and the list
+  // show only the trades whose model matches (its exact name, picked from
+  // the list, or any model containing what's typed). Empty: all of them.
+  function lensEntries(){
+    var q = lensQuery.trim().toLowerCase();
+    if (!q) return entries;
+    var exact = entries.some(function(en){ return (en.model || "").toLowerCase() === q; });
+    return entries.filter(function(en){
+      var m = (en.model || "").toLowerCase();
+      return exact ? m === q : m.indexOf(q) !== -1;
+    });
+  }
+  function renderModelLens(){
+    var counts = {};
+    entries.forEach(function(en){ if (en.model) counts[en.model] = (counts[en.model] || 0) + 1; });
+    modelLensList.innerHTML = Object.keys(counts).sort(function(a, b){ return counts[b] - counts[a]; })
+      .map(function(m){ return '<option value="' + escapeHtml(m) + '">' + counts[m] + ' trade' + (counts[m] === 1 ? '' : 's') + '</option>'; }).join("");
+    var on = !!lensQuery.trim();
+    modelLens.classList.toggle("active", on);
+    modelLensClear.hidden = !on;
+    var n = lensEntries().length;
+    modelLensNote.textContent = on ? n + " of " + entries.length + " trades" : "";
+  }
+  modelLensInput.addEventListener("input", function(){
+    lensQuery = modelLensInput.value;
+    selectedIds = {};
+    renderAll();
+  });
+  modelLensClear.addEventListener("click", function(){
+    lensQuery = "";
+    modelLensInput.value = "";
+    renderAll();
+  });
+
+  // ---------- Stats (computed from the active strategy's trades, or one
+  // model's when Analyze is set; never narrowed by the list's search/filter
+  // — those are view tools for finding a trade). ----------
   function computeBtStats(list){
     var wins = list.filter(function(en){ return en.result === "win"; });
     var losses = list.filter(function(en){ return en.result === "loss"; });
@@ -1231,7 +1289,7 @@
   }
 
   function renderStatCards(){
-    var s = computeBtStats(entries);
+    var s = computeBtStats(lensEntries());
 
     var netRColor = s.netR >= 0 ? "#3ee08c" : "#ef5a5a";
     var netREl = document.getElementById("statNetRValue");
@@ -1344,13 +1402,14 @@
 
   function renderEdgeChart(){
     var wrap = document.getElementById("edgeChartWrap");
-    if (entries.length < 2){
+    var list = lensEntries();
+    if (list.length < 2){
       wrap.innerHTML = '<p class="bt-empty">Log a couple trades to see your cumulative edge.</p>';
       return;
     }
     // entries[0] is the most recently logged trade; reverse to chronological
     // order so the curve reads oldest-to-newest, left-to-right.
-    var chrono = entries.slice().reverse();
+    var chrono = list.slice().reverse();
     var series = [0];
     var meta = [null];
     var cum = 0;
@@ -1788,7 +1847,7 @@
   // separate from the stat cards above (which always reflect the whole
   // strategy). ----------
   function filteredEntries(){
-    var list = entries.filter(function(en){
+    var list = lensEntries().filter(function(en){
       if (currentFilter !== "all" && en.result !== currentFilter) return false;
       if (searchQuery){
         var q = searchQuery.toLowerCase();
@@ -1872,7 +1931,9 @@
     if (wasHidden && !btFilter.hidden) layoutSegThumb(btFilter, true);
     var filtered = filteredEntries();
     if (!filtered.length){
-      var msg = searchQuery ? "No trades match your search." : ("No " + filterLabel(currentFilter) + " trades yet.");
+      var msg = searchQuery ? "No trades match your search."
+        : !lensEntries().length ? "No trades for that model yet."
+        : ("No " + filterLabel(currentFilter) + " trades yet.");
       tableEl.innerHTML = '<p class="bt-empty">' + msg + '</p>';
       updateBulkBar();
       return;
@@ -1917,6 +1978,7 @@
   });
 
   function renderAll(){
+    renderModelLens();
     renderStatCards();
     renderTable();
     renderEdgeChart();
