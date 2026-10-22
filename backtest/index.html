@@ -471,6 +471,9 @@
   .help-body p{ margin:0 0 12px; }
   .help-body p:last-child{ margin-bottom:0; }
   .help-body b{ color:var(--ice); }
+  .import-actions{ display:flex; gap:10px; flex-wrap:wrap; margin-top:18px; }
+  .import-actions button{ flex:1 1 160px; justify-content:center; overflow:hidden; text-overflow:ellipsis; }
+  .import-actions button[hidden]{ display:none; }
 
   @media (max-width:480px){
     .bt-table-row{ grid-template-columns:22px minmax(0,1fr) 60px 60px 0 0 56px; gap:6px; padding:10px 2px; }
@@ -526,8 +529,13 @@
       </div>
     </div>
     <div class="page-head-actions">
-      <button class="ghost-btn" id="exportCsvBtn" type="button" hidden>
+      <button class="ghost-btn" id="importCsvBtn" type="button">
         <svg viewBox="0 0 20 20"><path d="M10 13V3M6 7l4-4 4 4" /><path d="M4 16h12" /></svg>
+        Upload CSV
+      </button>
+      <input type="file" id="importCsvInput" accept=".csv,text/csv" hidden />
+      <button class="ghost-btn" id="exportCsvBtn" type="button" hidden>
+        <svg viewBox="0 0 20 20"><path d="M10 3v10M6 9l4 4 4-4" /><path d="M4 16h12" /></svg>
         Download
       </button>
     </div>
@@ -688,6 +696,20 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="importOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="importTitle">
+      <div class="modal-head">
+        <span class="modal-title" id="importTitle">Add trades from a CSV</span>
+        <button class="modal-close" id="importClose" type="button" aria-label="Close">&times;</button>
+      </div>
+      <div class="help-body" id="importBody"></div>
+      <div class="import-actions">
+        <button class="log-btn" id="importHereBtn" type="button">Add to this strategy</button>
+        <button class="ghost-btn" id="importNewBtn" type="button">New strategy</button>
+      </div>
+    </div>
+  </div>
+
   <footer>
     <p>For self-tracking purposes only &mdash; not trading or financial advice. Past results logged here don't guarantee future performance.</p>
   </footer>
@@ -711,6 +733,13 @@
   var tableEl = document.getElementById("btTable");
   var clearBtn = document.getElementById("clearBtn");
   var exportCsvBtn = document.getElementById("exportCsvBtn");
+  var importCsvBtn = document.getElementById("importCsvBtn");
+  var importCsvInput = document.getElementById("importCsvInput");
+  var importOverlay = document.getElementById("importOverlay");
+  var importBody = document.getElementById("importBody");
+  var importHereBtn = document.getElementById("importHereBtn");
+  var importNewBtn = document.getElementById("importNewBtn");
+  var importClose = document.getElementById("importClose");
   var btFilter = document.getElementById("btFilter");
   var searchInput = document.getElementById("searchInput");
   var bulkBar = document.getElementById("bulkBar");
@@ -1389,7 +1418,7 @@
   // W/B/L select a result, 1-5 select a grade — only while focus isn't inside
   // a text field and no modal is open, so typing "Loss" in Notes never fires it.
   document.addEventListener("keydown", function(e){
-    if (!noteModalOverlay.hidden) return;
+    if (!noteModalOverlay.hidden || !importOverlay.hidden) return;
     var tag = e.target.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
     var key = e.key.toLowerCase();
@@ -1615,6 +1644,144 @@
     });
     var safeName = (strategy ? strategy.name : "strategy").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
     downloadCsv("ezpayouts-backtest-" + safeName + ".csv", rows);
+  });
+
+  // ---------- Upload a CSV: another backtest's trades (this page's own
+  // Download, or a sheet with the same kind of columns), added to this
+  // strategy to combine the two, or kept in a new strategy. ----------
+  function parseCsv(text){
+    var rows = [], row = [], field = "", quoted = false;
+    text = String(text).replace(/^\uFEFF/, "");
+    for (var i = 0; i < text.length; i++){
+      var ch = text[i];
+      if (quoted){
+        if (ch === '"'){ if (text[i + 1] === '"'){ field += '"'; i++; } else quoted = false; }
+        else field += ch;
+      } else if (ch === '"') quoted = true;
+      else if (ch === ","){ row.push(field); field = ""; }
+      else if (ch === "\n" || ch === "\r"){
+        if (ch === "\r" && text[i + 1] === "\n") i++;
+        row.push(field); rows.push(row); row = []; field = "";
+      } else field += ch;
+    }
+    if (field || row.length){ row.push(field); rows.push(row); }
+    return rows.filter(function(r){ return r.some(function(v){ return v.trim(); }); });
+  }
+  // Columns are found by their headers, so their order doesn't matter.
+  var CSV_COLUMNS = {
+    strategy: /^strategy$/, model: /^(model|setup)$/, rr: /^(risk\s*:\s*reward|r\s*:\s*r|rr|risk reward)$/,
+    r: /^(r multiple|r-multiple|r)$/, result: /^(result|outcome)$/, grade: /^grade$/, note: /^(note|notes)$/
+  };
+  var GRADES = ["A+", "A", "B", "C", "F"];
+  function csvResult(v){
+    v = String(v || "").trim().toLowerCase();
+    if (/^(be|b\/e|break)/.test(v)) return "breakeven";
+    if (/^(w|tp)/.test(v)) return "win";
+    if (/^(l|sl)/.test(v)) return "loss";
+    return null;
+  }
+  function readCsvTrades(text){
+    var rows = parseCsv(text);
+    if (rows.length < 2) return null;
+    var head = rows[0].map(function(h){ return h.trim().toLowerCase(); }), col = {};
+    Object.keys(CSV_COLUMNS).forEach(function(k){
+      for (var i = 0; i < head.length; i++) if (CSV_COLUMNS[k].test(head[i])){ col[k] = i; return; }
+    });
+    if (col.model === undefined || col.result === undefined || (col.rr === undefined && col.r === undefined)) return null;
+    var out = { trades: [], skipped: 0, strategyName: "" }, stamp = Date.now().toString(36);
+    rows.slice(1, 5001).forEach(function(r, n){
+      function get(k){ return col[k] === undefined ? "" : String(r[col[k]] || "").trim(); }
+      var model = get("model").slice(0, 60), result = csvResult(get("result")), rrDisplay = get("rr");
+      var rr = parseRR(rrDisplay);
+      if (rr === null){
+        // No usable R:R: the R multiple (a loss's may be written -1).
+        var m = Math.abs(parseFloat(get("r")));
+        if (isFinite(m) && m > 0){ rr = m; rrDisplay = "1:" + Number(m.toFixed(2)); }
+        // A loss counts -1R and a breakeven 0R whatever it says; only a
+        // win needs its R.
+        else if (result && result !== "win"){ rr = 0; rrDisplay = rrDisplay || "–"; }
+      }
+      if (!model || !result || rr === null){ out.skipped++; return; }
+      var grade = get("grade").toUpperCase();
+      out.trades.push({
+        id: stamp + n.toString(36) + Math.random().toString(36).slice(2, 6),
+        model: model,
+        rrDisplay: rrDisplay,
+        rrMultiple: rr,
+        result: result,
+        grade: GRADES.indexOf(grade) !== -1 ? grade : undefined,
+        note: get("note").slice(0, 2000)
+      });
+      if (!out.strategyName) out.strategyName = get("strategy").slice(0, 24);
+    });
+    return out;
+  }
+
+  var pendingImport = null;
+  function activeStrategy(){
+    return state.strategies.filter(function(s){ return s.id === state.activeId; })[0] || state.strategies[0];
+  }
+  function openImport(fileName, got){
+    pendingImport = got && got.trades.length ? got : null;
+    if (!pendingImport){
+      importBody.innerHTML = "<p>No trades could be read from <b>" + escapeHtml(fileName) + "</b>.</p>" +
+        "<p>Use a CSV from the <b>Download</b> button on this page, or one with columns named <b>Model</b>, " +
+        "<b>Risk:Reward</b> (or <b>R Multiple</b>) and <b>Result</b> (Win, Loss or Breakeven).</p>";
+      importHereBtn.hidden = true;
+      importNewBtn.hidden = true;
+    } else {
+      var n = got.trades.length;
+      importBody.innerHTML = "<p>Found <b>" + n + " trade" + (n === 1 ? "" : "s") + "</b> in <b>" + escapeHtml(fileName) + "</b>" +
+        (got.strategyName ? " (from <b>" + escapeHtml(got.strategyName) + "</b>)" : "") + ".</p>" +
+        (got.skipped ? "<p>" + got.skipped + " row" + (got.skipped === 1 ? "" : "s") + " couldn't be read and will be left out.</p>" : "") +
+        "<p>Add them to <b>" + escapeHtml(activeStrategy().name) + "</b> to combine the two backtests, or keep them in a new strategy.</p>";
+      importHereBtn.hidden = false;
+      importHereBtn.textContent = "Add to " + activeStrategy().name;
+      importNewBtn.hidden = state.strategies.length >= MAX_STRATEGIES;
+      pendingImport.newName = got.strategyName || fileName.replace(/\.csv$/i, "").replace(/^ezpayouts-backtest-/, "").slice(0, 24) || "Imported";
+    }
+    importOverlay.hidden = false;
+    (importHereBtn.hidden ? importClose : importHereBtn).focus();
+  }
+  function closeImport(){
+    importOverlay.hidden = true;
+    pendingImport = null;
+  }
+  importCsvBtn.addEventListener("click", function(){
+    importCsvInput.value = "";
+    importCsvInput.click();
+  });
+  importCsvInput.addEventListener("change", function(){
+    var file = importCsvInput.files && importCsvInput.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(){ openImport(file.name, readCsvTrades(reader.result || "")); };
+    reader.onerror = function(){ openImport(file.name, null); };
+    reader.readAsText(file);
+  });
+  // Added after this strategy's own trades, in the file's order.
+  importHereBtn.addEventListener("click", function(){
+    if (!pendingImport) return closeImport();
+    Array.prototype.push.apply(entries, pendingImport.trades);
+    closeImport();
+    save();
+    renderAll();
+  });
+  importNewBtn.addEventListener("click", function(){
+    if (!pendingImport || state.strategies.length >= MAX_STRATEGIES) return closeImport();
+    var got = pendingImport;
+    addStrategy();
+    activeStrategy().name = got.newName;
+    Array.prototype.push.apply(entries, got.trades);
+    closeImport();
+    save();
+    renderStrategyTabs(true);
+    renderAll();
+  });
+  importClose.addEventListener("click", closeImport);
+  importOverlay.addEventListener("click", function(e){ if (e.target === importOverlay) closeImport(); });
+  document.addEventListener("keydown", function(e){
+    if (e.key === "Escape" && !importOverlay.hidden) closeImport();
   });
 
   // ---------- Trade table: search + Win/BE/Loss filter + sortable columns,
