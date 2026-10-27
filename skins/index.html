@@ -67,17 +67,38 @@
   }
   .btn-sm:hover{ filter:brightness(1.1); }
 
-  /* ---------- Hero: the headline, then the Long Position showcase ---------- */
-  .hero{ max-width:1200px; margin:0 auto; padding:56px 24px 0; }
-  .eyebrow{ font-family:var(--font-mono); font-size:11px; font-weight:600; letter-spacing:0.18em; text-transform:uppercase; color:#aeb6c9; margin-bottom:14px; }
-  .hero h1{ margin:0; font-weight:900; letter-spacing:-0.045em; line-height:0.95; font-size:clamp(46px, 7.4vw, 96px); color:#f2f3f7; }
+  /* ---------- Hero: the Long Position showcase fills the screen, words on top ---------- */
+  .hero{ position:relative; min-height:min(90vh, 880px); display:flex; flex-direction:column; justify-content:flex-end; overflow:hidden; isolation:isolate; }
+  .hero .pos-stage{ position:absolute; inset:0; z-index:-1; background:#020203; }
+  .hero .pos-stage canvas{ position:absolute; inset:0; width:100%; height:100%; display:block; transition:opacity .35s ease; }
+  .hero .pos-stage.fading canvas{ opacity:0; }
+  /* Darker toward the words and the page below, so both stay readable. */
+  .stage-fade{ position:absolute; inset:0; pointer-events:none;
+    background:
+      linear-gradient(90deg, rgba(5,7,12,0.85) 0%, rgba(5,7,12,0.5) 30%, rgba(5,7,12,0) 50%),
+      linear-gradient(180deg, rgba(5,7,12,0) 62%, rgba(5,7,12,0.8) 90%, var(--void) 100%); }
+  .hero-inner{ width:100%; max-width:1200px; margin:0 auto; padding:120px 24px 22px; }
+  .eyebrow{ font-family:var(--font-mono); font-size:11px; font-weight:600; letter-spacing:0.18em; text-transform:uppercase; color:#aeb6c9; margin-bottom:18px; }
+  .hero h1{ margin:0; font-weight:900; letter-spacing:-0.045em; line-height:0.92; font-size:clamp(54px, 10vw, 132px); color:#f2f3f7; }
   .hero h1 .grad{
     background:linear-gradient(90deg, #22d3ff 0%, #3b82f6 35%, #8b5cf6 68%, #f0a6d8 100%);
     -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:transparent;
   }
-  .hero-sub{ margin:18px 0 0; max-width:58ch; font-size:16.5px; line-height:1.6; color:#c4cad8; }
+  .hero-sub{ margin:22px 0 0; max-width:42ch; font-size:16.5px; line-height:1.6; color:#c4cad8; }
   .hero-sub b{ color:#fff; }
-  .cta{ display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-top:24px; }
+  .cta{ display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-top:28px; }
+  .picker-wrap{ width:100%; max-width:1200px; margin:0 auto; padding:6px 24px 34px; }
+  .picker-head{ margin-bottom:10px; font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); }
+  .picker-head b{ color:#fff; font-weight:600; }
+  /* Phones: the words first, then the chart under them. */
+  @media (max-width:760px){
+    .hero{ min-height:0; }
+    .hero-inner{ order:1; } .hero .pos-stage{ order:2; } .picker-wrap{ order:3; }
+    .hero .pos-stage{ position:relative; inset:auto; z-index:0; aspect-ratio:1.15; margin:0 16px; border-radius:16px; border:1px solid var(--border-bright); overflow:hidden; }
+    .stage-fade{ display:none; }
+    .hero-inner{ padding:40px 16px 22px; }
+    .picker-wrap{ padding:6px 16px 28px; }
+  }
   .btn-primary{
     display:inline-flex; align-items:center; gap:10px; text-decoration:none; cursor:pointer; border:none;
     padding:15px 26px; border-radius:999px; font-family:var(--font-sans); font-weight:800; font-size:15px; color:#fff;
@@ -150,11 +171,6 @@
   @media (max-width:600px){ .btn-pro{ width:100%; justify-content:center; } }
 
   /* Long Position showcase: a real chart with the position themed */
-  .pos-show{ margin-top:34px; }
-  .pos-stage{ position:relative; width:100%; aspect-ratio:2.42; border-radius:20px; overflow:hidden; background:#020203;
-    border:1px solid var(--border-bright); box-shadow:0 30px 70px -40px rgba(0,0,0,0.9); isolation:isolate; }
-  .pos-stage canvas{ position:absolute; inset:0; width:100%; height:100%; display:block; }
-  @media (max-width:700px){ .pos-stage{ aspect-ratio:1.45; border-radius:16px; } }
   .pos-chips{ display:flex; gap:8px; overflow-x:auto; padding:12px 2px 4px; scrollbar-width:none; }
   .pos-chips::-webkit-scrollbar{ display:none; }
   .pos-chip{ flex:none; display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border-radius:999px; cursor:pointer;
@@ -164,7 +180,6 @@
   .pos-chip[aria-checked="true"]{ color:#fff; border-color:rgba(255,255,255,0.55); background:var(--panel-hi); }
   .pos-chip:focus-visible{ outline:2px solid var(--cyan2); outline-offset:2px; }
   .pos-dot{ width:10px; height:10px; border-radius:50%; flex:none; }
-  .pos-caption{ margin:6px 0 0; font-size:13px; color:var(--muted); }
 
   footer{ margin-top:84px; border-top:1px solid var(--border-soft); padding:28px 24px; }
   .footer-inner{ max-width:1200px; margin:0 auto; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; }
@@ -174,7 +189,6 @@
   .footer-links{ display:flex; gap:18px; font-size:12px; }
 
   @media (max-width:600px){
-    .hero{ padding-top:36px; }
     .hero-sub{ font-size:15.5px; }
     .btn-primary, .btn-secondary{ width:100%; justify-content:center; }
     section.block{ padding-top:64px; }
@@ -200,23 +214,28 @@
 </header>
 
 <section class="hero" aria-labelledby="heroTitle">
-  <div class="eyebrow">TradingView themes &middot; Chrome extension</div>
-  <h1 id="heroTitle">Skin your <span class="grad">charts.</span></h1>
-  <p class="hero-sub">Live wallpapers <b>behind your candles</b>, restyled order tags, and Long/Short Position tools in your theme.</p>
-  <div class="cta">
-    <a class="btn-primary" href="ezpayouts-chart-skins.zip" download data-install>
-      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3v10M5.5 8.5 10 13l4.5-4.5M4 16.5h12"/></svg>
-      <span data-install-label>Download for Chrome, free</span>
-    </a>
-    <a class="btn-pro" href="#pro">Get Pro &darr;</a>
+  <div class="pos-stage" id="posStage" role="img" aria-label="A long position on a TradingView chart, drawn in the selected Long/Short Position theme">
+    <canvas id="posBg"></canvas>
+    <canvas id="posChart"></canvas>
+    <div class="stage-fade"></div>
   </div>
-  <div class="pos-show">
-    <div class="pos-stage" id="posStage" role="img" aria-label="A long position on a TradingView chart, drawn in the selected Long/Short Position theme">
-      <canvas id="posBg"></canvas>
-      <canvas id="posChart"></canvas>
+
+  <div class="hero-inner">
+    <div class="eyebrow">TradingView themes &middot; Chrome extension</div>
+    <h1 id="heroTitle">Skin your<br><span class="grad">charts.</span></h1>
+    <p class="hero-sub">Live wallpapers <b>behind your candles</b>, restyled order tags, and Long/Short Position tools in your theme.</p>
+    <div class="cta">
+      <a class="btn-primary" href="ezpayouts-chart-skins.zip" download data-install>
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3v10M5.5 8.5 10 13l4.5-4.5M4 16.5h12"/></svg>
+        <span data-install-label>Download for Chrome, free</span>
+      </a>
+      <a class="btn-pro" href="#pro">Get Pro &darr;</a>
     </div>
+  </div>
+
+  <div class="picker-wrap">
+    <div class="picker-head">Long/Short Position theme: <b id="posName">Silk &amp; Satin</b></div>
     <div class="pos-chips" id="posChips" role="radiogroup" aria-label="Long/Short Position theme"></div>
-    <p class="pos-caption">A real long position (3.66R) in each Long/Short Position theme, over its wallpaper. Pick one.</p>
   </div>
 </section>
 

@@ -105,9 +105,25 @@
     ctx.clearRect(0, 0, W, H);
     // One scale for both axes; narrow screens keep the right-hand part
     // (the position and what came after).
-    var k = H / (VIEW.y1 - VIEW.y0);
-    var x0 = Math.max(VIEW.x0, VIEW.x1 - W / k);
-    var X = function (x) { return (x - x0) * k; }, Y = function (y) { return (y - VIEW.y0) * k; };
+    var dataH = VIEW.y1 - VIEW.y0, k, x0, yOff, kxWide = 0;
+    if (W / H > 1.25) {
+      // The full-screen hero: the position sits right of the middle, clear
+      // of the words, with the chart running to the right edge; it keeps
+      // above the theme buttons at the bottom.
+      var top = H * 0.07, plotH = H * 0.74;
+      k = Math.min(plotH / dataH, 0.47 * W / (VIEW.x1 - TOOL.x0));
+      // Very wide screens: spread the bars out so the chart still reaches the edge.
+      kxWide = Math.max(k, 0.47 * W / (VIEW.x1 - TOOL.x0));
+      x0 = TOOL.x0 - 0.53 * W / kxWide;
+      yOff = top + (plotH - dataH * k) / 2;
+    } else {
+      // A box (phones): the right-hand part, top to bottom.
+      k = H / dataH;
+      x0 = Math.max(VIEW.x0, VIEW.x1 - W / k);
+      yOff = 0;
+    }
+    var kx = kxWide || k;
+    var X = function (x) { return (x - x0) * kx; }, Y = function (y) { return yOff + (y - VIEW.y0) * k; };
     var u = Math.max(0.75, Math.min(1.4, k * 1.25)) * dpr;
     var T = theme, a = T.a;
     var f = { x0: X(TOOL.x0), x1: X(TOOL.x1), y0: Y(TOOL.top), y1: Y(TOOL.bottom) }, entry = Y(TOOL.entry);
@@ -133,7 +149,7 @@
     ctx.restore();
 
     // Candles: white up, gray down (TradingView's mono look).
-    var bw = Math.max(1, 4.6 * k);
+    var bw = Math.max(1, 4.6 * Math.min(kx, k * 1.5));
     CANDLES.forEach(function (c) {
       var x = X(c[0]);
       if (x < -bw || x > W + bw) return;
@@ -217,12 +233,23 @@
       b.setAttribute("aria-checked", on ? "true" : "false");
       b.tabIndex = on ? 0 : -1;
     });
+    var nameEl = document.getElementById("posName");
+    if (nameEl) nameEl.textContent = theme.label;
     setWallpaper(theme.skin);
     frame(0);
   }
+  // A quick fade through dark between themes.
+  var fadeTimer = 0;
+  function switchTo(id) {
+    if (id === theme.id) return;
+    clearTimeout(fadeTimer);
+    stage.classList.add("fading");
+    fadeTimer = setTimeout(function () { pick(id); stage.classList.remove("fading"); }, 350);
+  }
+  var touched = false;
   chipsEl.addEventListener("click", function (e) {
     var b = e.target.closest(".pos-chip");
-    if (b) pick(b.getAttribute("data-id"));
+    if (b) { touched = true; switchTo(b.getAttribute("data-id")); }
   });
   chipsEl.addEventListener("keydown", function (e) {
     if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
@@ -261,4 +288,12 @@
 
   pick("silk");
   play();
+  // Until someone picks one, it walks through the themes.
+  if (!reduced) {
+    setInterval(function () {
+      if (touched || !visible || document.hidden) return;
+      var i = THEMES.indexOf(theme);
+      switchTo(THEMES[(i + 1) % THEMES.length].id);
+    }, 6000);
+  }
 })();
