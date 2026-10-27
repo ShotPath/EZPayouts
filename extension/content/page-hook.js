@@ -432,7 +432,10 @@
   function replayHeld(ctx, g) {
     g.held.forEach(function (h) {
       origSave.call(ctx);
-      if (h.path) {
+      if (h.path && h.fill) {
+        ctx.setTransform(h.m);
+        ctx.fillStyle = h.style; origFill.call(ctx, h.path, h.rule);
+      } else if (h.path) {
         ctx.setTransform(h.m);
         ctx.strokeStyle = h.style; ctx.lineWidth = h.lw; ctx.lineCap = h.cap; ctx.lineJoin = h.join; ctx.setLineDash(h.dash);
         origStroke.call(ctx, h.path);
@@ -469,6 +472,11 @@
   function holdPath(ctx, path) {
     return { path: path, m: ctx.getTransform(), style: ctx.strokeStyle, lw: ctx.lineWidth,
       cap: ctx.lineCap, join: ctx.lineJoin, dash: ctx.getLineDash() };
+  }
+  // A filled icon (Path2D), such as the mark at the front of a replay
+  // order's tag.
+  function holdFill(ctx, args) {
+    return { path: args[0], fill: true, rule: typeof args[1] === "string" ? args[1] : "nonzero", m: ctx.getTransform(), style: ctx.fillStyle };
   }
   function iconOf(ctx, path, c) {
     return { path: path, m: ctx.getTransform(), lw: ctx.lineWidth, cap: ctx.lineCap, join: ctx.lineJoin, cls: c && c.cls };
@@ -567,6 +575,10 @@
         g.held.push(holdPath(ctx, args[0]));
         return;
       }
+      if (kind === "fill" && args[0] && typeof args[0] === "object") {
+        g.held.push(holdFill(ctx, args));
+        return;
+      }
       if (kind === "stroke" && args.length === 0 && !accent && !g.edge && inside(devRect(ctx, st.path), first.rect)) {
         g.edge = true; g.held.push(hold(ctx, st, true));
         return;
@@ -607,6 +619,11 @@
     if (kind === "stroke" && args[0] && typeof args[0] === "object") {
       g.icons.push(iconOf(ctx, args[0], c));
       if (keep) g.held.push(holdPath(ctx, args[0]));
+      return;
+    }
+    // A filled icon: kept for a fallback; the redrawn tag has its own mark.
+    if (kind === "fill" && args[0] && typeof args[0] === "object") {
+      if (keep) g.held.push(holdFill(ctx, args));
       return;
     }
     if (keep) {
@@ -1346,17 +1363,23 @@
     });
     g.rects = [];
   }
-  function giveUp(ctx, g, orig, args) {
+  // Not a position tool after all: draw what was held and close the group
+  // right away, so it can't swallow a real tool drawn after it.
+  function giveUp(ctx, st, g, orig, args) {
     replayRects(ctx, g);
     g.mode = "native";
+    endTool(st);
     return orig.apply(ctx, args);
+  }
+  function endTool(st) {
+    if (st.grp && st.grp.tool) { st.tagDepth = -1; st.tagCls = null; st.tinted = false; st.grp = null; }
   }
   function toolOp(ctx, st, kind, orig, args) {
     var g = st.grp, p = st.path, d;
     if (g.mode === "native") return orig.apply(ctx, args);
     if (g.mode === "tool?") {
       // Boxes, until two of them make the zones.
-      if (kind !== "rect") return giveUp(ctx, g, orig, args);
+      if (kind !== "rect") return giveUp(ctx, st, g, orig, args);
       var r = rectOf(ctx, args);
       g.rects.push({ rect: r, m: ctx.getTransform(), style: ctx.fillStyle, alpha: ctx.globalAlpha, args: [].slice.call(args) });
       for (var i = 0; i < g.rects.length - 1; i++) {
@@ -1371,7 +1394,7 @@
           return;
         }
       }
-      if (g.rects.length > 12) { replayRects(ctx, g); g.mode = "native"; }
+      if (g.rects.length > 12) { replayRects(ctx, g); g.mode = "native"; endTool(st); }
       return;
     }
     var box = g.frame;
@@ -1379,17 +1402,20 @@
       // The zones: the tool's, if its arrow or entry line comes next.
       if (kind === "rect") {
         var pr = rectOf(ctx, args);
-        if (!inside(pr, box)) return giveUp(ctx, g, orig, args);
+        if (!inside(pr, box)) return giveUp(ctx, st, g, orig, args);
         g.rects.push({ rect: pr, m: ctx.getTransform(), style: ctx.fillStyle, alpha: ctx.globalAlpha, args: [].slice.call(args) });
         return;
       }
-      if (kind !== "stroke" || args.length) return giveUp(ctx, g, orig, args);
+      if (kind !== "stroke" || args.length) return giveUp(ctx, st, g, orig, args);
       d = devRect(ctx, p);
       var level = d.y1 - d.y0 < 2 && Math.abs((d.y0 + d.y1) / 2 - g.entry) <= 2 * g.s && d.x1 - d.x0 >= (box.x1 - box.x0) * 0.9;
       var arrowLine = p.slant > 0 && inside(d, box);
-      if (!level && !arrowLine) return giveUp(ctx, g, orig, args);
-      g.extra = g.rects.filter(function (h) { return h.rect !== g.stop && h.rect !== g.target; }).map(function (h) { return h.rect; });
-      g.rects = [];
+      if (!level && !arrowLine) return giveUp(ctx, st, g, orig, args);
+      // Boxes held from before the zones that aren't the tool's: drawn as they were.
+      var others = g.rects.filter(function (h) { return h.rect !== g.stop && h.rect !== g.target; });
+      g.rects = others.filter(function (h) { return !inside(h.rect, box); });
+      replayRects(ctx, g);
+      g.extra = others.filter(function (h) { return inside(h.rect, box); }).map(function (h) { return h.rect; });
       g.mode = "tool";
       drawZones(ctx, g);
     }

@@ -255,6 +255,23 @@
   .btn-pro:hover{ filter:brightness(1.07); transform:translateY(-1px); }
   @media (max-width:600px){ .btn-pro{ width:100%; justify-content:center; } }
 
+  /* Long Position showcase: a real chart with the position themed */
+  .pos-show{ margin-top:30px; max-width:980px; }
+  .pos-stage{ position:relative; width:100%; aspect-ratio:2.42; border-radius:20px; overflow:hidden; background:#020203;
+    border:1px solid var(--border-bright); box-shadow:0 30px 70px -40px rgba(0,0,0,0.9); isolation:isolate; }
+  .pos-stage canvas{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+  @media (max-width:700px){ .pos-stage{ aspect-ratio:1.45; border-radius:16px; } }
+  .pos-chips{ display:flex; gap:8px; overflow-x:auto; padding:12px 2px 4px; scrollbar-width:none; }
+  .pos-chips::-webkit-scrollbar{ display:none; }
+  .pos-chip{ flex:none; display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border-radius:999px; cursor:pointer;
+    font-family:var(--font-sans); font-weight:700; font-size:13px; color:#cfd5e3; background:var(--panel); border:1px solid var(--border-bright);
+    transition:border-color .15s, color .15s, background .15s; }
+  .pos-chip:hover{ border-color:rgba(255,255,255,0.3); color:#fff; }
+  .pos-chip[aria-checked="true"]{ color:#fff; border-color:rgba(255,255,255,0.55); background:var(--panel-hi); }
+  .pos-chip:focus-visible{ outline:2px solid var(--cyan2); outline-offset:2px; }
+  .pos-dot{ width:10px; height:10px; border-radius:50%; flex:none; }
+  .pos-caption{ margin:6px 0 0; font-size:13px; color:var(--muted); }
+
   .final-cta{ max-width:1200px; margin:84px auto 0; padding:0 24px; }
   .final-card{ border-radius:24px; padding:40px 28px; text-align:center; background:radial-gradient(ellipse 70% 120% at 50% 0%, rgba(59,107,255,0.22), transparent 70%), var(--panel-raised); border:1px solid var(--border-bright); }
   .final-card h2{ margin:0 0 10px; font-weight:900; letter-spacing:-0.03em; font-size:clamp(26px, 3.4vw, 38px); }
@@ -463,6 +480,14 @@
   <p class="kicker">EZPayouts Pro</p>
   <h2 id="proTitle">Unlock every look.</h2>
   <p class="section-sub">Every wallpaper, every order tag look and color, your own video or picture, and every Long/Short Position theme on your chart. Cancel anytime.</p>
+  <div class="pos-show">
+    <div class="pos-stage" id="posStage" role="img" aria-label="A long position on a TradingView chart, drawn in the selected Long/Short Position theme">
+      <canvas id="posBg"></canvas>
+      <canvas id="posChart"></canvas>
+    </div>
+    <div class="pos-chips" id="posChips" role="radiogroup" aria-label="Long/Short Position theme"></div>
+    <p class="pos-caption">A real long position (3.66R), in each Pro Long/Short Position theme. Pick one to see it.</p>
+  </div>
   <div class="plans">
     <div class="plan">
       <div class="plan-name">Monthly</div>
@@ -567,6 +592,7 @@
 <script src="/skins/store.js"></script>
 <script src="/extension/shared/chrome-gl.js"></script>
 <script src="/extension/shared/scenes.js"></script>
+<script src="/skins/position-demo.js"></script>
 <script>
 (function(){
   "use strict";
