@@ -49,6 +49,6 @@ APPLE_CLIENT_ID = ""
 # The webhook endpoint is <this worker's URL>/billing/webhook, listening for
 # checkout.session.completed and customer.subscription.created/updated/deleted.
 # Until STRIPE_SECRET_KEY is set, /billing/* responds 501.
-STRIPE_PRICE_MONTH = ""
-STRIPE_PRICE_YEAR = ""
+STRIPE_PRICE_MONTH = "price_1UV6U12SBblaCae2cfAjZvPx"   # $9.99 a month
+STRIPE_PRICE_YEAR = "price_1UV6UJ2SBblaCae2ExmNw0FI"    # $79.99 a year
 SITE_ORIGIN = "https://ezpayouts.xyz"
