@@ -1,7 +1,7 @@
 # EZPayouts Chart Skins
 
 A Chrome extension that puts EZPayouts' liquid chrome (or Sakura, Twinkle,
-Matrix, Black Hole, Embers, a video, or your own clip) behind your
+Matrix, Black Hole, Embers, or your own clip) behind your
 TradingView charts, and can restyle the chart's order and position tags.
 Candles, wicks, indicators, drawings and labels stay on top; turning it
 off brings back the chart's own background. The wallpaper and the tags
@@ -22,9 +22,9 @@ Step-by-step with pictures: https://ezpayouts.xyz/skins/
 ## Using it
 
 - **Skins:** Animated: Liquid Chrome (same as the site's background),
-  Sakura, Twinkle, Matrix, Black Hole and Embers, all drawn live. Videos:
-  the EZPayouts video templates. Or **Upload your own** (MP4, WebM, MOV,
-  GIF, PNG, JPG); your own file stays on your computer.
+  Sakura, Twinkle, Matrix, Black Hole and Embers, all drawn live. Or
+  **Upload your own** (MP4, WebM, MOV, GIF, PNG, JPG); your own file stays
+  on your computer.
 - **Strength:** how much skin vs. the chart's own background color.
 - **Dim:** darkens the skin so candles stand out. **Blur** softens it.
   **Speed** changes how fast it moves.
@@ -50,6 +50,20 @@ Step-by-step with pictures: https://ezpayouts.xyz/skins/
   `chrome://extensions/shortcuts`).
 - Looks best with TradingView's dark theme.
 
+### Free and Pro
+
+Free: the Sakura wallpaper, and Outline order tags in the EZ or Sakura
+colors. **EZPayouts Pro** ($9.99 a month or $79.99 a year, at
+https://ezpayouts.xyz/pro/) unlocks every wallpaper, your own upload, every
+tag look and color, and the Position themes. Everything can be picked and
+previewed in the popup (marked PRO); only what your plan covers goes on the
+chart (`EZSkins.applied`). The popup's **Go Pro** button opens the Pro page
+with this extension's id; once you're signed in there, the page hands the
+extension your EZPayouts session (`externally_connectable`), and the
+background worker checks `/billing/status` on the account server now and
+then. Payments are Stripe Checkout and Stripe's customer portal, run by the
+account worker (`worker/auth`, see its `wrangler.toml`).
+
 ### Other sites
 
 Brokers and prop firms that use TradingView's charts: open the site, click
@@ -63,8 +77,9 @@ It only changes how the chart looks. On chart pages it skips the one fill
 the chart uses to paint its background, so the skin behind shows through.
 With order tags on, it swaps the colors the chart draws its tags in as
 they're drawn, or, for Modern and Frosted Glass, draws them itself in the
-same spot. It doesn't read your symbols, orders or account. The video
-skins stream from ezpayouts.xyz.
+same spot. It doesn't read your symbols, orders or account. Signed in for
+Pro, it asks the EZPayouts account server whether Pro is active, and
+nothing else.
 
 ## Files
 
@@ -87,7 +102,7 @@ ezpayouts.xyz/skins/ serves, and bump `version` in `manifest.json`:
 
     python3 tools/build-extension-zip.py
 
-For the Chrome Web Store, upload the store build instead. It's the same
-extension without the video skins (clips from films and shows):
+For the Chrome Web Store, upload the store build instead (the same
+extension, without this README):
 
     python3 tools/build-extension-zip.py --store   # -> dist/ezpayouts-chart-skins-store.zip

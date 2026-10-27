@@ -11,7 +11,8 @@
 // keys —
 //   user:<lowercased username>    -> { username, salt, hash, createdAt,
 //                                      googleId?, appleId?, verifiedEmail?,
-//                                      mergedInto? (see handleOAuthLink) }
+//                                      mergedInto? (see handleOAuthLink),
+//                                      pro? (see Billing below) }
 //   session:<token>               -> lowercased username   (TTL'd)
 //   data:<lowercased username>    -> { backtest, cockpit, journal, updatedAt }
 //   oauth:<provider>:<subjectId>  -> lowercased username
@@ -540,6 +541,7 @@ async function handleMe(request, env) {
     verifiedEmail: record.verifiedEmail || null,
     hasGoogle: !!record.googleId,
     hasApple: !!record.appleId,
+    pro: proActive(record.pro),
   });
 }
 
@@ -637,6 +639,164 @@ async function handleImageDelete(request, env, id) {
   return json({ ok: true });
 }
 
+
+// ---------- Billing (EZPayouts Pro, through Stripe) ----------
+// Pro unlocks the rest of the Chart Skins extension. Paying happens on
+// Stripe's own Checkout page; Stripe then tells this worker (its webhook)
+// and the account's record keeps
+//   pro: { status, periodEnd, plan, customer, subscription, cancelAtPeriodEnd }
+// Settings (wrangler.toml / secrets): STRIPE_SECRET_KEY and
+// STRIPE_WEBHOOK_SECRET (secrets), STRIPE_PRICE_MONTH and STRIPE_PRICE_YEAR
+// (the two prices' IDs), SITE_ORIGIN. Until the key is set, /billing/*
+// responds 501 rather than pretending to work.
+const PRO_GRACE_SECONDS = 60 * 60 * 24 * 3; // a late renewal keeps Pro for 3 days
+
+function siteOrigin(env) { return env.SITE_ORIGIN || "https://ezpayouts.xyz"; }
+
+async function stripe(env, method, path, params) {
+  var body = params ? new URLSearchParams(params).toString() : undefined;
+  var res = await fetch("https://api.stripe.com/v1/" + path + (method === "GET" && body ? "?" + body : ""), {
+    method: method,
+    headers: { "Authorization": "Bearer " + env.STRIPE_SECRET_KEY, "Content-Type": "application/x-www-form-urlencoded" },
+    body: method === "GET" ? undefined : body,
+  });
+  var out = await res.json().catch(function () { return {}; });
+  if (!res.ok) throw new Error((out.error && out.error.message) || ("Stripe " + res.status));
+  return out;
+}
+
+function proActive(pro) {
+  if (!pro) return false;
+  var live = pro.status === "active" || pro.status === "trialing" || pro.status === "past_due";
+  return live && (pro.periodEnd || 0) + PRO_GRACE_SECONDS > Date.now() / 1000;
+}
+function proView(pro) {
+  return {
+    pro: proActive(pro),
+    status: pro ? pro.status : null,
+    plan: pro ? pro.plan : null,
+    periodEnd: pro ? pro.periodEnd : null,
+    cancelAtPeriodEnd: !!(pro && pro.cancelAtPeriodEnd),
+  };
+}
+
+async function handleBillingCheckout(request, env) {
+  var username = await requireSession(request, env);
+  if (!username) return json({ error: "Not signed in." }, 401);
+  if (!env.STRIPE_SECRET_KEY) return json({ error: "Payments aren't set up on the server yet." }, 501);
+  var body = (await readJson(request)) || {};
+  var price = body.plan === "year" ? env.STRIPE_PRICE_YEAR : env.STRIPE_PRICE_MONTH;
+  if (!price) return json({ error: "That plan isn't set up yet." }, 501);
+  var raw = await env.ACCOUNTS.get(userKey(username));
+  if (!raw) return json({ error: "Not signed in." }, 401);
+  var record = JSON.parse(raw);
+  if (proActive(record.pro)) return json({ error: "You already have Pro." }, 409);
+  var params = {
+    "mode": "subscription",
+    "line_items[0][price]": price,
+    "line_items[0][quantity]": "1",
+    "client_reference_id": record.username,
+    "subscription_data[metadata][username]": record.username.toLowerCase(),
+    "allow_promotion_codes": "true",
+    "success_url": siteOrigin(env) + "/pro/?paid=1",
+    "cancel_url": siteOrigin(env) + "/pro/",
+  };
+  if (record.pro && record.pro.customer) params.customer = record.pro.customer;
+  else if (record.verifiedEmail) params.customer_email = record.verifiedEmail;
+  try {
+    var session = await stripe(env, "POST", "checkout/sessions", params);
+    return json({ url: session.url });
+  } catch (err) {
+    return json({ error: "Couldn't start checkout: " + err.message }, 502);
+  }
+}
+
+async function handleBillingPortal(request, env) {
+  var username = await requireSession(request, env);
+  if (!username) return json({ error: "Not signed in." }, 401);
+  if (!env.STRIPE_SECRET_KEY) return json({ error: "Payments aren't set up on the server yet." }, 501);
+  var raw = await env.ACCOUNTS.get(userKey(username));
+  var record = raw ? JSON.parse(raw) : null;
+  if (!record || !record.pro || !record.pro.customer) return json({ error: "No subscription on this account." }, 404);
+  try {
+    var portal = await stripe(env, "POST", "billing_portal/sessions", { customer: record.pro.customer, return_url: siteOrigin(env) + "/pro/" });
+    return json({ url: portal.url });
+  } catch (err) {
+    return json({ error: "Couldn't open billing: " + err.message }, 502);
+  }
+}
+
+async function handleBillingStatus(request, env) {
+  var username = await requireSession(request, env);
+  if (!username) return json({ error: "Not signed in." }, 401);
+  var raw = await env.ACCOUNTS.get(userKey(username));
+  if (!raw) return json({ error: "Not signed in." }, 401);
+  var record = JSON.parse(raw);
+  return json(Object.assign({ username: record.username }, proView(record.pro)));
+}
+
+// Stripe signs each webhook: "t=<time>,v1=<HMAC-SHA256 of '<time>.<body>'>".
+async function verifyStripeSignature(env, header, payload) {
+  if (!env.STRIPE_WEBHOOK_SECRET || !header) return false;
+  var parts = {};
+  header.split(",").forEach(function (kv) {
+    var i = kv.indexOf("=");
+    if (i > 0) (parts[kv.slice(0, i)] = parts[kv.slice(0, i)] || []).push(kv.slice(i + 1));
+  });
+  var t = parts.t && parts.t[0];
+  if (!t || Math.abs(Date.now() / 1000 - Number(t)) > 300) return false;
+  var key = await crypto.subtle.importKey("raw", new TextEncoder().encode(env.STRIPE_WEBHOOK_SECRET),
+    { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  var mac = new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(t + "." + payload)));
+  var hex = Array.from(mac, function (b) { return b.toString(16).padStart(2, "0"); }).join("");
+  return (parts.v1 || []).some(function (sig) {
+    if (sig.length !== hex.length) return false;
+    var diff = 0;
+    for (var i = 0; i < hex.length; i++) diff |= hex.charCodeAt(i) ^ sig.charCodeAt(i);
+    return diff === 0;
+  });
+}
+
+async function saveSubscription(env, username, sub) {
+  if (!username || !sub) return;
+  var raw = await env.ACCOUNTS.get(userKey(username));
+  if (!raw) return;
+  var record = JSON.parse(raw);
+  var item = sub.items && sub.items.data && sub.items.data[0];
+  var priceId = item && item.price && item.price.id;
+  var periodEnd = sub.current_period_end || (item && item.current_period_end) || 0;
+  record.pro = {
+    status: sub.status,
+    periodEnd: periodEnd,
+    plan: priceId === env.STRIPE_PRICE_YEAR ? "year" : "month",
+    customer: typeof sub.customer === "string" ? sub.customer : (sub.customer && sub.customer.id),
+    subscription: sub.id,
+    cancelAtPeriodEnd: !!sub.cancel_at_period_end,
+  };
+  await env.ACCOUNTS.put(userKey(username), JSON.stringify(record));
+}
+
+async function handleBillingWebhook(request, env) {
+  var payload = await request.text();
+  if (!(await verifyStripeSignature(env, request.headers.get("Stripe-Signature"), payload))) {
+    return json({ error: "Bad signature." }, 400);
+  }
+  var event;
+  try { event = JSON.parse(payload); } catch (err) { return json({ error: "Bad request." }, 400); }
+  var obj = event.data && event.data.object;
+  try {
+    if (event.type === "checkout.session.completed" && obj && obj.subscription) {
+      var sub = await stripe(env, "GET", "subscriptions/" + obj.subscription);
+      await saveSubscription(env, obj.client_reference_id || (sub.metadata && sub.metadata.username), sub);
+    } else if (/^customer\.subscription\.(created|updated|deleted)$/.test(event.type) && obj) {
+      await saveSubscription(env, obj.metadata && obj.metadata.username, obj);
+    }
+  } catch (err) {
+    return json({ error: err.message }, 500); // Stripe retries
+  }
+  return json({ received: true });
+}
+
 export default {
   async fetch(request, env) {
     if (request.method === "OPTIONS") {
@@ -661,6 +821,11 @@ export default {
     if (path === "/me" && request.method === "GET") return handleMe(request, env);
     if (path === "/data" && request.method === "GET") return handleGetData(request, env);
     if (path === "/data" && request.method === "PUT") return handlePutData(request, env);
+
+    if (path === "/billing/checkout" && request.method === "POST") return handleBillingCheckout(request, env);
+    if (path === "/billing/portal" && request.method === "POST") return handleBillingPortal(request, env);
+    if (path === "/billing/status" && request.method === "GET") return handleBillingStatus(request, env);
+    if (path === "/billing/webhook" && request.method === "POST") return handleBillingWebhook(request, env);
 
     if (path === "/images" && request.method === "POST") return handleImageUpload(request, env);
     var imageMatch = path.match(new RegExp("^/images/(" + IMAGE_ID_RE + ")$"));

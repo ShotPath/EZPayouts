@@ -6,18 +6,9 @@
 var EZSkins = (function () {
   var KEY = "ezSkin";
 
-  // Video skins are the same clips as the EZPayouts share-card templates,
-  // streamed from the site, so the extension itself stays small.
-  var MEDIA = "https://ezpayouts.xyz/journal/share-presets/";
-  // The Chrome Web Store build leaves these out (they're clips from films
-  // and shows): tools/build-extension-zip.py --store empties this list.
+  // Wallpapers are the animated ones only (the video clips were dropped).
   // store-build: videos start
-  var VIDEOS = [
-    ["japanese", "Japanese"], ["jjk-1", "JJK I"], ["jjk-2", "JJK II"],
-    ["porsche", "Porsche"], ["bruce-wayne", "Bruce Wayne"], ["one-piece", "One Piece"],
-    ["pain", "Pain"], ["porsche-2", "Porsche II"], ["wall-street", "Wall Street"],
-    ["creed", "Creed"]
-  ];
+  var VIDEOS = [];
   // store-build: videos end
   // Animated skins drawn live (shared/chrome-gl.js and shared/scenes.js).
   var LIVE = [
@@ -107,7 +98,7 @@ var EZSkins = (function () {
 
   var LIST = LIVE
     .concat(VIDEOS.map(function (v) {
-      return { id: v[0], label: v[1], type: "video", src: MEDIA + v[0] + ".webm", thumb: MEDIA + v[0] + "-thumb.jpg" };
+      return { id: v[0], label: v[1], type: "video", src: v[2], thumb: v[3] };
     }))
     .concat([{ id: "custom", label: "Your own", type: "custom" }]);
 
@@ -118,12 +109,45 @@ var EZSkins = (function () {
   // reload it.
   // enabled is the wallpaper; tagsEnabled the order tags, on their own.
   var DEFAULTS = {
-    enabled: true, skin: "liquid-chrome",
+    enabled: true, skin: "sakura",
     strength: 100, dim: 25, blur: 0, speed: 1, fps: 30,
-    tagsEnabled: false, tagColors: "ez", tagStyle: "modern",
+    tagsEnabled: false, tagColors: "ez", tagStyle: "outline",
     posEnabled: false, posTheme: "match",
     sites: [], customVersion: 0
   };
+
+  // ---------- Free and Pro ----------
+  // Free: the Sakura wallpaper, and Outline tags in the EZ or Sakura colors.
+  // Pro (EZPayouts Pro, see ezpayouts.xyz/pro) unlocks the rest. Anything
+  // can be picked and previewed in the popup; only what the plan covers is
+  // put on the chart.
+  var FREE = { skin: { sakura: 1 }, tagColors: { ez: 1, sakura: 1 }, tagStyle: { outline: 1 } };
+  var PRO_KEY = "ezPro";       // { pro, plan, periodEnd, checkedAt }
+  var ACCOUNT_KEY = "ezAccount"; // { token, username }
+  function isFree(kind, id) {
+    if (kind === "pos") return false;
+    return !!(FREE[kind] && FREE[kind][id]);
+  }
+  // What goes on the chart for these settings and plan.
+  function applied(s, pro) {
+    return {
+      wall: !!s.enabled && (pro || isFree("skin", s.skin)),
+      tags: !!s.tagsEnabled && (pro || (isFree("tagColors", s.tagColors) && isFree("tagStyle", s.tagStyle))),
+      pos: !!s.posEnabled && !!pro
+    };
+  }
+  function loadPro() {
+    return chrome.storage.local.get([PRO_KEY, ACCOUNT_KEY]).then(function (r) {
+      var p = r[PRO_KEY] || {}, a = r[ACCOUNT_KEY] || {};
+      return { pro: !!p.pro, plan: p.plan || null, periodEnd: p.periodEnd || null, checkedAt: p.checkedAt || 0,
+        username: a.username || null, signedIn: !!a.token };
+    });
+  }
+  function onProChange(cb) {
+    chrome.storage.onChanged.addListener(function (changes, area) {
+      if (area === "local" && (changes[PRO_KEY] || changes[ACCOUNT_KEY])) loadPro().then(cb);
+    });
+  }
 
   function clamp(v, lo, hi, d) {
     v = Number(v);
@@ -171,6 +195,8 @@ var EZSkins = (function () {
     list: LIST, byId: byId, defaults: function () { return normalize({}); },
     tagColors: TAG_COLORS, tagStyles: TAG_STYLES, tagPalette: tagPalette, tagTheme: tagTheme,
     posThemes: POS_THEMES, posPalette: posPalette, posTheme: posTheme,
+    isFree: isFree, applied: applied, loadPro: loadPro, onProChange: onProChange,
+    PRO_KEY: PRO_KEY, ACCOUNT_KEY: ACCOUNT_KEY,
     load: load, save: save, onChange: onChange
   };
 })();

@@ -26,6 +26,25 @@
 
   function save() { return EZSkins.save(settings); }
 
+  // ---------- EZPayouts Pro ----------
+  // Free: the Sakura wallpaper and Outline tags in EZ or Sakura. Everything
+  // else can be picked and previewed here, marked PRO, but only goes on
+  // the chart with Pro (EZSkins.applied). Pro and the sign-in that comes
+  // with it live on ezpayouts.xyz/pro, which hands the account to the
+  // extension.
+  var plan = { pro: false };
+  var PRO_URL = "https://ezpayouts.xyz/pro/?ext=" + chrome.runtime.id;
+  function locked(kind, id) { return !plan.pro && !EZSkins.isFree(kind, id); }
+  function proMark(elm, kind, id) { if (locked(kind, id)) elm.appendChild(el("span", "pro-mark", "PRO")); }
+  function openPro() { chrome.tabs.create({ url: PRO_URL }); }
+  function renderPlan() {
+    var b = $("proBtn");
+    b.classList.toggle("is-pro", plan.pro);
+    b.textContent = plan.pro ? "Pro ✓" : "Go Pro";
+    b.title = plan.pro ? "EZPayouts Pro" + (plan.username ? " · " + plan.username : "") + ". Manage it on ezpayouts.xyz." : "EZPayouts Pro unlocks every look";
+  }
+  $("proBtn").addEventListener("click", openPro);
+
   // ---------- Wallpaper / Order tags cards ----------
   var MODE_KEY = "ezPopupMode";
   var mode = "wallpaper";
@@ -51,11 +70,12 @@
   });
   function renderModeSubs() {
     var skin = EZSkins.byId(settings.skin);
-    $("wallSub").textContent = settings.enabled ? (skin ? skin.label : "") : "Off";
+    var on = EZSkins.applied(settings, plan.pro);
+    $("wallSub").textContent = settings.enabled ? (on.wall ? (skin ? skin.label : "") : "Preview · Pro") : "Off";
     var pal = EZSkins.tagColors.filter(function (c) { return c.id === settings.tagColors; })[0];
     var style = EZSkins.tagStyles.filter(function (t) { return t.id === settings.tagStyle; })[0];
-    $("tagsSub").textContent = settings.tagsEnabled ? (pal ? pal.label : "") + " · " + (style ? style.label : "") : "Off";
-    $("posSub").textContent = settings.posEnabled ? EZSkins.posPalette(settings.posTheme, settings.skin).label : "Off";
+    $("tagsSub").textContent = settings.tagsEnabled ? (on.tags ? (pal ? pal.label : "") + " · " + (style ? style.label : "") : "Preview · Pro") : "Off";
+    $("posSub").textContent = settings.posEnabled ? (on.pos ? EZSkins.posPalette(settings.posTheme, settings.skin).label : "Preview · Pro") : (plan.pro ? "Off" : "Pro");
   }
 
   // ---------- Position tool ----------
@@ -74,6 +94,7 @@
       var dots = el("span", "swatch-dots");
       dots.append(el("i", null, null, { background: p.c }), el("i", null, null, { background: p.c2 }));
       b.append(dots, el("span", "swatch-name", t.label));
+      proMark(dots, "pos", t.id);
       b.title = t.id === "match" ? "Match wallpaper (" + p.label + " for this one)" : t.label;
       grid.appendChild(b);
     });
@@ -270,6 +291,7 @@
       var dots = el("span", "swatch-dots");
       ["buy", "sell", "profit", "warn"].forEach(function (k) { dots.appendChild(el("i", null, null, { background: p[k] })); });
       b.append(dots, el("span", "swatch-name", c.label));
+      proMark(dots, "tagColors", c.id);
       b.title = c.id === "match" ? "Match wallpaper (" + p.label + " for this one)" : c.label;
       grid.appendChild(b);
     });
@@ -279,6 +301,7 @@
     seg.textContent = "";
     EZSkins.tagStyles.forEach(function (t) {
       var b = el("button", null, t.label);
+      proMark(b, "tagStyle", t.id);
       b.type = "button";
       b.setAttribute("role", "radio");
       b.setAttribute("data-id", t.id);
@@ -345,6 +368,7 @@
     label.textContent = skin.label;
     b.appendChild(label);
     b.title = skin.type === "custom" && custom ? "Your own: " + custom.name : skin.label;
+    proMark(b, "skin", skin.id);
     return b;
   }
   // Animated skins and videos each get a tab; your own file shows in both.
@@ -519,6 +543,7 @@
 
   function isTradingView(u) { return /(^|\.)tradingview(-widget)?\.com$/.test(u.hostname); }
   function setSite(html, on, button, quiet) {
+    siteBtn.setAttribute("data-action", button === "Go Pro" ? "pro" : "");
     siteEl.hidden = false;
     siteText.innerHTML = html;
     siteDot.classList.toggle("on", !!on);
@@ -548,7 +573,11 @@
     var anyOn = settings.enabled || settings.tagsEnabled || settings.posEnabled;
     askTab().then(function (st) {
       var host = esc(u.hostname.replace(/^www\./, ""));
-      if (isTradingView(u)) {
+      var on = EZSkins.applied(settings, plan.pro);
+      var preview = (settings.enabled && !on.wall) || (settings.tagsEnabled && !on.tags) || (settings.posEnabled && !on.pos);
+      if (preview && (isTradingView(u) || listed || st)) {
+        setSite("<b>Pro</b> looks show here only. Go Pro to put them on your chart.", on.wall || on.tags, "Go Pro");
+      } else if (isTradingView(u)) {
         if (!st) setSite("Open a chart on <b>TradingView</b> to see your skin.", false);
         else if (!anyOn) setSite("Off on <b>TradingView</b>. Flip a switch below.", false);
         else setSite("Skinning your <b>TradingView</b> chart.", true);
@@ -567,6 +596,7 @@
   }
 
   siteBtn.addEventListener("click", function () {
+    if (siteBtn.getAttribute("data-action") === "pro") return openPro();
     if (!tab) return;
     var origin = new URL(tab.url).origin;
     var pattern = origin + "/*";
@@ -592,11 +622,18 @@
     if (skin.type === "liquid") liveThumbs[skin.id] = EZChrome.still(240, 150);
     else if (skin.type === "scene") liveThumbs[skin.id] = EZScenes.still(skin.id, 240, 150, 0.6);
   });
+  chrome.runtime.sendMessage({ type: "ez-pro-check" }).catch(function () {});
+  EZSkins.onProChange(function (p) {
+    plan = p;
+    renderPlan(); renderGrid(); renderTags(); renderPos(); refreshSite();
+  });
   Promise.all([
+    EZSkins.loadPro().then(function (p) { plan = p; }),
     EZSkins.load(),
     EZMedia.getCustom().catch(function () { return null; }),
     IN_TAB ? Promise.resolve([]) : chrome.tabs.query({ active: true, currentWindow: true })
   ]).then(function (r) {
+    r = r.slice(1);
     settings = r[0];
     if (r[1] && r[1].blob) custom = { thumb: r[1].thumb, name: r[1].name };
     tab = r[2][0] || null;
@@ -607,6 +644,7 @@
     renderTags();
     renderPos();
     showMode();
+    renderPlan();
     refreshSite();
     if (IN_TAB && /tab=upload/.test(location.search)) note("Pick a video (MP4, WebM, MOV), a GIF or an image. It stays on this computer.");
   });

@@ -41,3 +41,14 @@ bucket_name = "ezpayouts-images"
 [vars]
 GOOGLE_CLIENT_ID = "590928448638-eqaif9bhks2o0j2foba3l7ks0if4odt3.apps.googleusercontent.com"
 APPLE_CLIENT_ID = ""
+
+# EZPayouts Pro (Stripe). The two price IDs and the site aren't secret; the
+# keys are, so they're set as secrets instead of here:
+#   npx wrangler secret put STRIPE_SECRET_KEY       (Stripe -> Developers -> API keys -> Secret key)
+#   npx wrangler secret put STRIPE_WEBHOOK_SECRET   (Stripe -> Developers -> Webhooks -> your endpoint -> Signing secret)
+# The webhook endpoint is <this worker's URL>/billing/webhook, listening for
+# checkout.session.completed and customer.subscription.created/updated/deleted.
+# Until STRIPE_SECRET_KEY is set, /billing/* responds 501.
+STRIPE_PRICE_MONTH = ""
+STRIPE_PRICE_YEAR = ""
+SITE_ORIGIN = "https://ezpayouts.xyz"

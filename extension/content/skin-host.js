@@ -39,9 +39,12 @@
   function allowedHere(s) {
     return TRADINGVIEW || window.__ezSkinForce === true || s.sites.indexOf(location.origin) !== -1;
   }
-  function active() { return !!(settings && settings.enabled && allowedHere(settings)); }
-  function tagsActive() { return !!(settings && settings.tagsEnabled && allowedHere(settings)); }
-  function posActive() { return !!(settings && settings.posEnabled && allowedHere(settings)); }
+  // Only what the plan covers goes on the chart (EZSkins.applied).
+  var pro = false;
+  function on(part) { return !!(settings && allowedHere(settings) && EZSkins.applied(settings, pro)[part]); }
+  function active() { return on("wall"); }
+  function tagsActive() { return on("tags"); }
+  function posActive() { return on("pos"); }
 
   // The area every chart in the layout sits in; one skin behind them all.
   function findHosts() {
@@ -155,7 +158,9 @@
     .observe(root, { attributes: true, attributeFilter: ["data-ez-chart-bg"] });
 
   EZSkins.onChange(function (s) { settings = s; update(); });
-  EZSkins.load().then(function (s) { settings = s; update(); });
+  EZSkins.onProChange(function (p) { pro = p.pro; if (settings) update(); });
+  Promise.all([EZSkins.load(), EZSkins.loadPro()]).then(function (r) { settings = r[0]; pro = r[1].pro; update(); });
+  if (window === window.top) chrome.runtime.sendMessage({ type: "ez-pro-check" }).catch(function () {});
 
   // The popup asks whether this frame has a chart skinned. Frames without
   // a chart stay quiet so the one with it answers.

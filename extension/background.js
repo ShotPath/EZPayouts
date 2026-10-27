@@ -45,10 +45,72 @@ function injectInto(tabId, force) {
     });
 }
 
+// ---------- EZPayouts Pro ----------
+// The extension signs in through ezpayouts.xyz/pro: that page hands this
+// worker the account's session (only ezpayouts.xyz can, see
+// externally_connectable in the manifest). Pro is then checked with the
+// account server now and then, and kept in storage for every part to read.
+var AUTH_BASE = "https://ezpayouts-auth.ezpayouts.workers.dev";
+var PRO_CHECK_MS = 6 * 60 * 60 * 1000;
+var PRO_GRACE_S = 3 * 24 * 60 * 60;
+
+function setPro(p) {
+  var o = {};
+  o[EZSkins.PRO_KEY] = p;
+  return chrome.storage.local.set(o);
+}
+function refreshPro() {
+  return chrome.storage.local.get([EZSkins.ACCOUNT_KEY, EZSkins.PRO_KEY]).then(function (r) {
+    var acct = r[EZSkins.ACCOUNT_KEY], last = r[EZSkins.PRO_KEY] || {};
+    if (!acct || !acct.token) return setPro({ pro: false, checkedAt: Date.now() });
+    return fetch(AUTH_BASE + "/billing/status", { headers: { Authorization: "Bearer " + acct.token } }).then(function (res) {
+      if (res.status === 401) {
+        // Signed out on the site (or the session ran out).
+        return chrome.storage.local.remove(EZSkins.ACCOUNT_KEY).then(function () { return setPro({ pro: false, checkedAt: Date.now() }); });
+      }
+      if (!res.ok) throw new Error("status " + res.status);
+      return res.json().then(function (b) {
+        return setPro({ pro: !!b.pro, plan: b.plan || null, periodEnd: b.periodEnd || null, checkedAt: Date.now() });
+      });
+    }).catch(function () {
+      // Offline: keep what was known, until the paid period (and a few
+      // days' grace) is over.
+      var still = !!last.pro && (last.periodEnd || 0) + PRO_GRACE_S > Date.now() / 1000;
+      if (still !== !!last.pro) return setPro(Object.assign({}, last, { pro: still }));
+    });
+  });
+}
+function refreshProIfStale() {
+  return chrome.storage.local.get(EZSkins.PRO_KEY).then(function (r) {
+    var p = r[EZSkins.PRO_KEY];
+    if (!p || Date.now() - (p.checkedAt || 0) > PRO_CHECK_MS) return refreshPro();
+  });
+}
+
+chrome.runtime.onMessageExternal.addListener(function (msg, sender, reply) {
+  if (!sender.origin || !/^https:\/\/(www\.)?ezpayouts\.xyz$/.test(sender.origin) || !msg) return;
+  if (msg.type === "ez-link" && msg.token && msg.username) {
+    var o = {};
+    o[EZSkins.ACCOUNT_KEY] = { token: String(msg.token), username: String(msg.username) };
+    chrome.storage.local.set(o).then(refreshPro).then(function () {
+      return chrome.storage.local.get(EZSkins.PRO_KEY);
+    }).then(function (r) { reply({ ok: true, pro: !!(r[EZSkins.PRO_KEY] || {}).pro }); });
+    return true;
+  }
+  if (msg.type === "ez-unlink") {
+    chrome.storage.local.remove(EZSkins.ACCOUNT_KEY).then(refreshPro).then(function () { reply({ ok: true }); });
+    return true;
+  }
+});
+
 chrome.runtime.onInstalled.addListener(function () {
   EZSkins.load().then(EZSkins.save).then(syncSiteScripts);
+  refreshPro();
 });
-chrome.runtime.onStartup.addListener(syncSiteScripts);
+chrome.runtime.onStartup.addListener(function () {
+  syncSiteScripts();
+  refreshProIfStale();
+});
 chrome.permissions.onRemoved.addListener(syncSiteScripts);
 
 // A site granted from the popup's "Turn on here". Handled here too, since
@@ -80,6 +142,13 @@ chrome.commands.onCommand.addListener(function (command) {
 // From the popup: { type: "ez-skin-site", origin, tabId, on, persist }.
 // persist = the site was saved (permission granted); otherwise it's on for
 // this visit only (activeTab).
+// From the popup or a chart page: check Pro (now, or if it's been a while).
+chrome.runtime.onMessage.addListener(function (msg, sender, reply) {
+  if (!msg || (msg.type !== "ez-pro-refresh" && msg.type !== "ez-pro-check")) return;
+  (msg.type === "ez-pro-refresh" ? refreshPro() : refreshProIfStale()).then(function () { reply({ ok: true }); }, function () { reply({ ok: false }); });
+  return true;
+});
+
 chrome.runtime.onMessage.addListener(function (msg, sender, reply) {
   if (!msg || msg.type !== "ez-skin-site") return;
   var done = syncSiteScripts().then(function () {

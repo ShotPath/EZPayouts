@@ -100,7 +100,7 @@
       <li>We don't sell data, and we don't run ad trackers or analytics scripts on this site.</li>
       <li>If you use the AI Coach feature, whatever you send it (messages, your trade stats, screenshots you attach) goes to Anthropic (Claude) to generate a reply. Nothing else on the site does this.</li>
       <li>Everything runs on Cloudflare's infrastructure. That's it — Cloudflare, and Anthropic only when you use the Coach.</li>
-      <li>The <a href="#chart-skins">Chart Skins browser extension</a> collects nothing. Its settings stay on your computer.</li>
+      <li>The <a href="#chart-skins">Chart Skins browser extension</a> collects nothing. Its settings stay on your computer. If you get EZPayouts Pro, it signs in to your EZPayouts account only to check that Pro is active; payments go through Stripe.</li>
     </ul>
   </div>
 
@@ -187,13 +187,13 @@
     <h2>9. Chart Skins browser extension</h2>
     <p>This section covers <strong>EZPayouts Chart Skins</strong>, our extension for Chrome and Chrome-based browsers. It puts an animated background behind the charts on TradingView and on other chart sites you choose to turn it on for, and can restyle the chart's order and position tags.</p>
     <h3>What it collects</h3>
-    <p><strong>Nothing.</strong> The extension has no accounts, analytics, ads or tracking, and it doesn't send any data to EZPayouts or anyone else.</p>
+    <p><strong>Nothing about how you use it.</strong> The extension has no analytics, ads or tracking. It only talks to EZPayouts to check whether your account has Pro (see <a href="#chart-skins-pro">EZPayouts Pro</a> below).</p>
     <h3>What stays on your computer</h3>
     <ul>
       <li><strong>Your settings</strong>: the skin you picked, the Strength, Dim, Blur, Speed and frame-rate settings, the order tag colors and style, whether each is on, and the sites you turned it on for. These are kept in your browser's extension storage.</li>
       <li><strong>Your own skin file</strong>, if you upload one. It's kept in the extension's storage in your browser and is never uploaded.</li>
     </ul>
-    <p>Uninstalling the extension deletes both.</p>
+    <p>Uninstalling the extension deletes both, and its sign-in (below).</p>
     <h3>What it does on chart pages</h3>
     <p>It only changes how the chart looks. It skips the step where the chart paints its background color, notes that color so the skin can blend with it, and places the skin behind the chart. With order tags on, it swaps the colors the chart draws its order and position tags in for the ones you picked as they're drawn, or, in the Modern and Frosted Glass styles, draws those tags, the price-scale boxes and the add-order button itself in the same spot, using the words and numbers already on them. With the position tool theme on, it draws the Long and Short Position tools' zones, lines and labels in that theme in the same way. It doesn't read your symbols, prices, orders, positions, account details, browsing history or anything else on the page.</p>
     <h3>Permissions</h3>
@@ -202,9 +202,15 @@
       <li><strong>Other sites</strong>: only when you click &ldquo;Turn on here&rdquo;, and only for that one site. You can turn it off again from the extension, which also removes the permission.</li>
       <li><strong>Storage</strong>: to keep the settings and file above on your computer.</li>
     </ul>
+    <h3 id="chart-skins-pro">EZPayouts Pro</h3>
+    <p>The Sakura wallpaper and the Outline order tags in the EZ and Sakura colors are free. EZPayouts Pro ($9.99 a month or $79.99 a year) unlocks the rest. If you get Pro:</p>
+    <ul>
+      <li><strong>Signing in.</strong> On <code>ezpayouts.xyz/pro</code> you sign in to your EZPayouts account (section 3), and that page hands the extension your sign-in. The extension keeps it in its storage on your computer and uses it only to ask the EZPayouts account server whether your account has Pro, a few times a day. Nothing else is sent: not your settings, charts, sites or anything on the page.</li>
+      <li><strong>Paying.</strong> Payment happens on Stripe's own checkout page. Stripe handles your card details; EZPayouts never sees or stores them. We keep, with your account, what Stripe tells us about your subscription: its status, plan, renewal date and Stripe's customer and subscription IDs, so we know Pro is active and can open Stripe's page for managing or cancelling it. Stripe's handling of your payment is covered by <a href="https://stripe.com/privacy" target="_blank" rel="noopener">Stripe's privacy policy</a>.</li>
+      <li><strong>Cancelling.</strong> Manage or cancel anytime from <code>ezpayouts.xyz/pro</code>. Pro stays on until the end of the period you paid for.</li>
+    </ul>
     <h3>Network</h3>
-    <p>The Chrome Web Store version makes no network requests of its own. The version downloaded from <code>ezpayouts.xyz</code> can also play video skins, which stream from <code>ezpayouts.xyz</code> like any web page, so your browser sends that request's ordinary technical data (see section 2).</p>
-    <p>If we add paid features later, this section will say exactly what that involves before it happens.</p>
+    <p>Without Pro, the extension makes no network requests of its own. With a sign-in, it makes the Pro check above to the EZPayouts account server.</p>
   </section>
 
   <section>
