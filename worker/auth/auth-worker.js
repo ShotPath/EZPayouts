@@ -657,7 +657,7 @@ async function stripe(env, method, path, params) {
   var body = params ? new URLSearchParams(params).toString() : undefined;
   var res = await fetch("https://api.stripe.com/v1/" + path + (method === "GET" && body ? "?" + body : ""), {
     method: method,
-    headers: { "Authorization": "Bearer " + env.STRIPE_SECRET_KEY, "Content-Type": "application/x-www-form-urlencoded" },
+    headers: { "Authorization": "Bearer " + env.STRIPE_SECRET_KEY, "Content-Type": "application/x-www-form-urlencoded", "Stripe-Version": "2025-03-31.basil" },
     body: method === "GET" ? undefined : body,
   });
   var out = await res.json().catch(function () { return {}; });
@@ -693,6 +693,7 @@ async function handleBillingCheckout(request, env) {
   if (proActive(record.pro)) return json({ error: "You already have Pro." }, 409);
   var params = {
     "mode": "subscription",
+    "managed_payments[enabled]": "true", // Stripe is the seller of record and handles sales tax / VAT
     "line_items[0][price]": price,
     "line_items[0][quantity]": "1",
     "client_reference_id": record.username,
