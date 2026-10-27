@@ -762,6 +762,9 @@ async function saveSubscription(env, username, sub) {
   var raw = await env.ACCOUNTS.get(userKey(username));
   if (!raw) return;
   var record = JSON.parse(raw);
+  // A leftover old subscription ending mustn't switch off a newer one.
+  var live = sub.status === "active" || sub.status === "trialing" || sub.status === "past_due";
+  if (!live && record.pro && record.pro.subscription && record.pro.subscription !== sub.id && proActive(record.pro)) return;
   var item = sub.items && sub.items.data && sub.items.data[0];
   var priceId = item && item.price && item.price.id;
   var periodEnd = sub.current_period_end || (item && item.current_period_end) || 0;
@@ -789,7 +792,9 @@ async function handleBillingWebhook(request, env) {
       var sub = await stripe(env, "GET", "subscriptions/" + obj.subscription);
       await saveSubscription(env, obj.client_reference_id || (sub.metadata && sub.metadata.username), sub);
     } else if (/^customer\.subscription\.(created|updated|deleted)$/.test(event.type) && obj) {
-      await saveSubscription(env, obj.metadata && obj.metadata.username, obj);
+      // Events can arrive out of order, so save the subscription as it is now, not as the event saw it.
+      var current = await stripe(env, "GET", "subscriptions/" + obj.id);
+      await saveSubscription(env, (current.metadata && current.metadata.username) || (obj.metadata && obj.metadata.username), current);
     }
   } catch (err) {
     return json({ error: err.message }, 500); // Stripe retries
