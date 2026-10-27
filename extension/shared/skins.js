@@ -52,6 +52,27 @@ var EZSkins = (function () {
     { id: "outline", label: "Outline" }, { id: "filled", label: "Filled" },
     { id: "glow", label: "Glow" }, { id: "minimal", label: "Minimal" }
   ];
+  // Long/Short Position tool themes (content/page-hook.js draws the tool's
+  // zones, lines and labels in them): c lights the target and the frame,
+  // c2 the entry line and the sparks. "Match wallpaper" picks by wallpaper.
+  var POS_THEMES = [
+    { id: "match", label: "Match wallpaper" },
+    { id: "starry", label: "Starry Space", c: "#4c8dff", c2: "#a9c8ff" },
+    { id: "ember", label: "Ember & Ash", c: "#ff7a2f", c2: "#ffc27a" },
+    { id: "blackhole", label: "Black Hole", c: "#e3a83f", c2: "#ffe2a0" },
+    { id: "silk", label: "Silk & Satin", c: "#cfd6e2", c2: "#ffffff" },
+    { id: "matrix", label: "Matrix", c: "#22d96b", c2: "#9dffc6" },
+    { id: "sakura", label: "Sakura", c: "#ff8fbd", c2: "#ffd3e6" }
+  ];
+  var POS_MATCH = { "liquid-chrome": "silk", sakura: "sakura", twinkle: "starry", matrix: "matrix", "black-hole": "blackhole", embers: "ember" };
+  function posPalette(id, skinId) {
+    var p = findIn(POS_THEMES, id) || findIn(POS_THEMES, "match");
+    return p.id === "match" ? findIn(POS_THEMES, POS_MATCH[skinId] || "starry") : p;
+  }
+  function posTheme(s) {
+    var p = posPalette(s.posTheme, s.skin);
+    return { id: p.id, c: p.c, c2: p.c2 };
+  }
   function findIn(list, id) {
     for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
     return null;
@@ -99,6 +120,7 @@ var EZSkins = (function () {
     enabled: true, skin: "liquid-chrome",
     strength: 100, dim: 25, blur: 0, speed: 1, fps: 30,
     tagsEnabled: false, tagColors: "ez", tagStyle: "modern",
+    posEnabled: false, posTheme: "match",
     sites: [], customVersion: 0
   };
 
@@ -120,6 +142,8 @@ var EZSkins = (function () {
       tagsEnabled: !!s.tagsEnabled,
       tagColors: findIn(TAG_COLORS, s.tagColors) ? s.tagColors : d.tagColors,
       tagStyle: findIn(TAG_STYLES, s.tagStyle) ? s.tagStyle : d.tagStyle,
+      posEnabled: !!s.posEnabled,
+      posTheme: findIn(POS_THEMES, s.posTheme) ? s.posTheme : d.posTheme,
       sites: Array.isArray(s.sites) ? s.sites.filter(function (o) { return typeof o === "string"; }) : [],
       customVersion: Number(s.customVersion) || 0
     };
@@ -145,6 +169,7 @@ var EZSkins = (function () {
   return {
     list: LIST, byId: byId, defaults: function () { return normalize({}); },
     tagColors: TAG_COLORS, tagStyles: TAG_STYLES, tagPalette: tagPalette, tagTheme: tagTheme,
+    posThemes: POS_THEMES, posPalette: posPalette, posTheme: posTheme,
     load: load, save: save, onChange: onChange
   };
 })();

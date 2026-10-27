@@ -41,6 +41,7 @@
   }
   function active() { return !!(settings && settings.enabled && allowedHere(settings)); }
   function tagsActive() { return !!(settings && settings.tagsEnabled && allowedHere(settings)); }
+  function posActive() { return !!(settings && settings.posEnabled && allowedHere(settings)); }
 
   // The area every chart in the layout sits in; one skin behind them all.
   function findHosts() {
@@ -127,6 +128,11 @@
     if (tags) addFonts();
     if (tags) root.setAttribute("data-ez-tags", tags);
     else root.removeAttribute("data-ez-tags");
+    // The Long/Short Position tool's theme, on its own switch.
+    var posWas = root.getAttribute("data-ez-pos") || "";
+    var pos = posActive() ? JSON.stringify(EZSkins.posTheme(settings)) : "";
+    if (pos) { addFonts(); root.setAttribute("data-ez-pos", pos); }
+    else root.removeAttribute("data-ez-pos");
     if (active()) {
       if (!style.isConnected) (document.head || root).appendChild(style);
       layers.forEach(function (l, host) { if (!host.isConnected) detach(host); });
@@ -139,12 +145,12 @@
       root.removeAttribute("data-ez-skin");
       style.remove();
     }
-    if (was !== (root.getAttribute("data-ez-skin") === "on") || tagsWas !== tags) repaint();
+    if (was !== (root.getAttribute("data-ez-skin") === "on") || tagsWas !== tags || posWas !== pos) repaint();
   }
 
   // Charts are built after the page loads and rebuilt when the layout
   // changes; a light check every second keeps the skin in place.
-  setInterval(function () { if (active() || tagsActive()) update(); }, 1000);
+  setInterval(function () { if (active() || tagsActive() || posActive()) update(); }, 1000);
   new MutationObserver(function () { if (layers.size) paintLayers(); })
     .observe(root, { attributes: true, attributeFilter: ["data-ez-chart-bg"] });
 
@@ -156,7 +162,7 @@
   chrome.runtime.onMessage.addListener(function (msg, sender, reply) {
     if (!msg || msg.type !== "ez-skin-status") return;
     if (!layers.size && !findHosts().length) return;
-    reply({ charts: Math.max(layers.size, findHosts().length), on: layers.size > 0, tags: root.hasAttribute("data-ez-tags"), base: root.getAttribute("data-ez-chart-bg") || "" });
+    reply({ charts: Math.max(layers.size, findHosts().length), on: layers.size > 0, tags: root.hasAttribute("data-ez-tags"), pos: root.hasAttribute("data-ez-pos"), base: root.getAttribute("data-ez-chart-bg") || "" });
   });
 
   window.__ezSkinRefresh = update;

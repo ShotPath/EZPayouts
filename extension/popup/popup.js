@@ -29,13 +29,14 @@
   // ---------- Wallpaper / Order tags cards ----------
   var MODE_KEY = "ezPopupMode";
   var mode = "wallpaper";
-  try { if (localStorage.getItem(MODE_KEY) === "tags") mode = "tags"; } catch (err) {}
+  try { var savedMode = localStorage.getItem(MODE_KEY); if (savedMode === "tags" || savedMode === "pos") mode = savedMode; } catch (err) {}
   function showMode() {
     [].forEach.call(document.querySelectorAll(".mode"), function (m) {
       m.setAttribute("aria-selected", m.getAttribute("data-mode") === mode ? "true" : "false");
     });
     $("wallPanel").hidden = mode !== "wallpaper";
     $("tagsPanel").hidden = mode !== "tags";
+    $("posPanel").hidden = mode !== "pos";
   }
   [].forEach.call(document.querySelectorAll(".mode"), function (m) {
     function pick() {
@@ -54,7 +55,57 @@
     var pal = EZSkins.tagColors.filter(function (c) { return c.id === settings.tagColors; })[0];
     var style = EZSkins.tagStyles.filter(function (t) { return t.id === settings.tagStyle; })[0];
     $("tagsSub").textContent = settings.tagsEnabled ? (pal ? pal.label : "") + " · " + (style ? style.label : "") : "Off";
+    $("posSub").textContent = settings.posEnabled ? EZSkins.posPalette(settings.posTheme, settings.skin).label : "Off";
   }
+
+  // ---------- Position tool ----------
+  function renderPos() {
+    $("posEnabled").checked = settings.posEnabled;
+    var grid = $("posThemeGrid");
+    grid.textContent = "";
+    EZSkins.posThemes.forEach(function (t) {
+      var p = EZSkins.posPalette(t.id, settings.skin);
+      var b = el("button", "swatch");
+      b.type = "button";
+      b.setAttribute("role", "radio");
+      b.setAttribute("data-id", t.id);
+      b.setAttribute("aria-checked", t.id === settings.posTheme ? "true" : "false");
+      b.tabIndex = t.id === settings.posTheme ? 0 : -1;
+      var dots = el("span", "swatch-dots");
+      dots.append(el("i", null, null, { background: p.c }), el("i", null, null, { background: p.c2 }));
+      b.append(dots, el("span", "swatch-name", t.label));
+      b.title = t.id === "match" ? "Match wallpaper (" + p.label + " for this one)" : t.label;
+      grid.appendChild(b);
+    });
+    var P = EZSkins.posTheme(settings), box = $("posPreview");
+    [["pc90", P.c, 0.9], ["pc60", P.c, 0.6], ["pc55", P.c, 0.55], ["pc50", P.c, 0.5], ["pc20", P.c, 0.2], ["pc16", P.c, 0.16], ["pc2", P.c2, 1]]
+      .forEach(function (v) { box.style.setProperty("--" + v[0], rgba(v[1], v[2])); });
+    var skin = EZSkins.byId(settings.skin);
+    var thumb = !settings.enabled || !skin ? null
+      : skin.type === "liquid" || skin.type === "scene" ? liveThumbs[skin.id] : skin.type === "custom" ? (custom && custom.thumb) : skin.thumb;
+    box.style.backgroundImage = thumb ? "linear-gradient(rgba(10,12,16,0.35), rgba(10,12,16,0.35)), url(\"" + thumb + "\")" : "";
+    renderModeSubs();
+  }
+  $("posThemeGrid").addEventListener("click", function (e) {
+    var b = e.target.closest(".swatch");
+    if (!b) return;
+    settings.posTheme = b.getAttribute("data-id");
+    renderPos();
+    save();
+  });
+  $("posThemeGrid").addEventListener("keydown", function (e) {
+    var keys = { ArrowRight: 1, ArrowDown: 3, ArrowLeft: -1, ArrowUp: -3 };
+    if (!(e.key in keys)) return;
+    e.preventDefault();
+    var tiles = [].slice.call($("posThemeGrid").children);
+    var next = tiles[Math.max(0, Math.min(tiles.length - 1, tiles.indexOf(document.activeElement) + keys[e.key]))];
+    if (next) { next.click(); $("posThemeGrid").querySelector('[data-id="' + next.getAttribute("data-id") + '"]').focus(); }
+  });
+  $("posEnabled").addEventListener("change", function () {
+    settings.posEnabled = $("posEnabled").checked;
+    renderModeSubs();
+    save().then(refreshSite);
+  });
 
   // ---------- Order tags ----------
   function rgba(hex, a) {
@@ -489,7 +540,7 @@
     }
     var u = new URL(tab.url);
     var listed = settings.sites.indexOf(u.origin) !== -1;
-    var anyOn = settings.enabled || settings.tagsEnabled;
+    var anyOn = settings.enabled || settings.tagsEnabled || settings.posEnabled;
     askTab().then(function (st) {
       var host = esc(u.hostname.replace(/^www\./, ""));
       if (isTradingView(u)) {
@@ -549,6 +600,7 @@
     renderGrid();
     renderControls();
     renderTags();
+    renderPos();
     showMode();
     refreshSite();
     if (IN_TAB && /tab=upload/.test(location.search)) note("Pick a video (MP4, WebM, MOV), a GIF or an image. It stays on this computer.");
@@ -556,10 +608,11 @@
   // The shortcut, or another window, changed something.
   EZSkins.onChange(function (s) {
     var skinChanged = s.skin !== settings.skin;
-    var enabledChanged = s.enabled !== settings.enabled || s.tagsEnabled !== settings.tagsEnabled;
+    var enabledChanged = s.enabled !== settings.enabled || s.tagsEnabled !== settings.tagsEnabled || s.posEnabled !== settings.posEnabled;
     settings = s;
     renderControls();
     renderTags();
+    renderPos();
     if (skinChanged) markSelected();
     if (enabledChanged) refreshSite();
   });

@@ -40,6 +40,11 @@ Step-by-step with pictures: https://ezpayouts.xyz/skins/
   price scale too (orders and the position with a dot, the rest with
   their own color); Outline, Filled, Glow and Minimal recolor
   TradingView's own. On or off on its own, with or without the wallpaper.
+- **Position** (the third card): themes TradingView's Long Position and
+  Short Position tools: a glowing frame, the target lit in the theme's
+  color, the stop smoked, a dashed entry line and pill labels. Starry
+  Space, Ember & Ash, Black Hole, Silk & Satin, Matrix or Sakura, or Match
+  wallpaper. On or off on its own.
 - **Alt+Shift+B** turns the wallpaper on or off (change it at
   `chrome://extensions/shortcuts`).
 - Looks best with TradingView's dark theme.

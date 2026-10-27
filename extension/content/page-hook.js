@@ -27,7 +27,7 @@
   function watch() {
     watchedDoc = document;
     new MutationObserver(function () { sync(); syncTags(); })
-      .observe(document, { attributes: true, attributeFilter: ["data-ez-skin", "data-ez-tags"], subtree: true, childList: true });
+      .observe(document, { attributes: true, attributeFilter: ["data-ez-skin", "data-ez-tags", "data-ez-pos"], subtree: true, childList: true });
     sync();
     syncTags();
   }
@@ -141,6 +141,7 @@
   // Candles, indicators and drawings are drawn outside those groups and
   // keep their colors. The order lines in a tag's color are recolored too.
   var tagTheme = null;
+  var posTheme = null;  // the Long/Short Position tool's theme (data-ez-pos)
   var paneCanvas = new WeakMap();
   var tagState = new WeakMap(); // context -> { depth, tagDepth, tagCls, path }
   var tagColors = new Set();    // the colors tags were drawn in: their lines match
@@ -176,7 +177,8 @@
   function tracking(ctx) {
     if (document !== watchedDoc) watch();
     var c = ctx.canvas;
-    return tagTheme && c && c.nodeType === 1 && (isPane(c) || (REDRAWN[tagTheme.style] && isAxis(c)));
+    return (tagTheme || posTheme) && c && c.nodeType === 1 &&
+      (isPane(c) || (tagTheme && REDRAWN[tagTheme.style] && isAxis(c)));
   }
   function addPoint(p, x, y) {
     if (!p.n) { p.x0 = p.x1 = x; p.y0 = p.y1 = y; }
@@ -355,7 +357,7 @@
   proto.fill = function () {
     if (!tracking(this)) return origFill.apply(this, arguments);
     var st = stateOf(this);
-    if (st.tagDepth < 0 && arguments.length === 0 && startsTag(st)) beginTag(this, st);
+    if (tagTheme && st.tagDepth < 0 && arguments.length === 0 && startsTag(st)) beginTag(this, st);
     if (st.tagDepth < 0) return origFill.apply(this, arguments);
     if (st.grp) return groupOp(this, st, "fill", origFill, arguments);
     if (st.axis) return origFill.apply(this, arguments);
@@ -365,11 +367,11 @@
   proto.stroke = function () {
     if (!tracking(this)) return origStroke.apply(this, arguments);
     var st = stateOf(this);
-    if (st.tagDepth < 0 && arguments.length === 0 && startsTag(st)) beginTag(this, st);
+    if (tagTheme && st.tagDepth < 0 && arguments.length === 0 && startsTag(st)) beginTag(this, st);
     if (st.tagDepth >= 0 && st.grp) return groupOp(this, st, "stroke", origStroke, arguments);
     if (st.axis) return origStroke.apply(this, arguments);
     if (st.tagDepth >= 0) return drawThemed(this, st, "stroke", "strokeStyle", origStroke, arguments);
-    if (arguments.length === 0) {
+    if (tagTheme && arguments.length === 0) {
       if (isTagLine(this, st)) return drawThemed(this, { tagCls: null }, "stroke", "strokeStyle", origStroke, arguments);
       notePriceLine(this, st);
     }
@@ -488,6 +490,7 @@
   // One drawing call inside a tag's group, in a redrawn look.
   function groupOp(ctx, st, kind, orig, args) {
     var g = st.grp;
+    if (g.tool) return toolOp(ctx, st, kind, orig, args);
     if (g.mode === "native") return orig.apply(ctx, args);
     var style = kind === "stroke" ? ctx.strokeStyle : ctx.fillStyle;
     var c = typeof style === "string" ? classify(style) : null;
@@ -626,6 +629,7 @@
   var flushQueued = false;
   function finishGroup(ctx, g) {
     try {
+      if (g.tool) return finishTool(ctx, g);
       if (g.mode === "axis?") return finishAxis(ctx, g);
       if (g.mode === "pane?") {
         // A dark box with just an icon in a color: an icon button. With
@@ -1302,18 +1306,195 @@
     } finally { origRestore.call(ctx); }
   }
 
+  // ---------- Long/Short Position tool ----------
+  // TradingView draws the tool as one group: its stop zone, the part the
+  // price has run through so far, its target zone (see-through boxes, the
+  // two zones sharing the entry line), then the arrow, the entry, stop and
+  // target lines, and (selected, or with its stats shown) its labels and
+  // handles. With a position theme on (data-ez-pos), the zones, lines and
+  // labels are drawn in the theme instead: a glowing frame, the target
+  // lit in the theme's color, the stop smoked, a dashed entry line, pill
+  // labels. The arrow and handles stay TradingView's. Boxes that don't
+  // turn out to be the two zones are drawn as they were.
+  function posZone(ctx, w, h) {
+    if (Math.abs(w) < 3 || Math.abs(h) < 3) return false;
+    var c = typeof ctx.fillStyle === "string" ? classify(ctx.fillStyle) : null;
+    return !!(c && c.a < 0.75);
+  }
+  function beginTool(ctx, st) {
+    st.tagDepth = Math.max(1, st.depth - 2); st.tagCls = null; st.tinted = false;
+    st.grp = { tool: true, mode: "tool?", s: Math.abs(ctx.getTransform().a) || 1, rects: [], labels: [], arrows: 0 };
+  }
+  function sameZoneSide(a, b) {
+    return Math.abs(a.x0 - b.x0) <= 1.5 && Math.abs(a.x1 - b.x1) <= 1.5 &&
+      (Math.abs(a.y1 - b.y0) <= 1.5 || Math.abs(b.y1 - a.y0) <= 1.5);
+  }
+  function replayRects(ctx, g) {
+    g.rects.forEach(function (h) {
+      origSave.call(ctx);
+      ctx.setTransform(h.m); ctx.fillStyle = h.style; ctx.globalAlpha = h.alpha;
+      fillRect.apply(ctx, h.args);
+      origRestore.call(ctx);
+    });
+    g.rects = [];
+  }
+  function toolOp(ctx, st, kind, orig, args) {
+    var g = st.grp;
+    if (g.mode === "native") return orig.apply(ctx, args);
+    if (g.mode === "tool?") {
+      if (kind === "rect") {
+        var r = rectOf(ctx, args);
+        g.rects.push({ rect: r, m: ctx.getTransform(), style: ctx.fillStyle, alpha: ctx.globalAlpha, args: [].slice.call(args) });
+        for (var i = 0; i < g.rects.length - 1; i++) {
+          if (sameZoneSide(g.rects[i].rect, r)) {
+            // The stop zone comes first, the target zone after it.
+            g.stop = g.rects[i].rect; g.target = r; g.mode = "tool";
+            g.extra = g.rects.filter(function (h) { return h.rect !== g.stop && h.rect !== g.target; }).map(function (h) { return h.rect; });
+            g.rects = [];
+            drawZones(ctx, g);
+            return;
+          }
+        }
+        if (g.rects.length > 12) { replayRects(ctx, g); g.mode = "native"; }
+        return;
+      }
+      replayRects(ctx, g);
+      g.mode = "native";
+      return orig.apply(ctx, args);
+    }
+    // Found: its lines and labels are noted for the end; the rest is drawn.
+    var box = g.frame, p = tagState.get(ctx).path;
+    if (kind === "rect") {
+      var rr0 = rectOf(ctx, args);
+      if (inside(rr0, box)) { drawProgress(ctx, g, rr0); return; }
+      return orig.apply(ctx, args);
+    }
+    if (kind === "stroke" && args.length === 0) {
+      var d = devRect(ctx, p);
+      // A zone's edge or the entry line.
+      if (d.y1 - d.y0 < 2 && d.x0 >= box.x0 - 2 && d.x1 <= box.x1 + 2 && d.x1 - d.x0 >= (box.x1 - box.x0) * 0.6) return;
+      // A label's outline.
+      var last = g.labels[g.labels.length - 1];
+      if (last && p.arcs >= 2 && Math.abs(d.x0 - last.rect.x0) < 3 && Math.abs(d.x1 - last.rect.x1) < 3) return;
+      // The arrow (TradingView's grey): in the theme.
+      if (!p.arcs && !p.circle && d.x1 - d.x0 > 2 && d.y1 - d.y0 > 2) {
+        origSave.call(ctx); ctx.strokeStyle = rgba(posTheme.c2, 0.75);
+        try { return orig.apply(ctx, args); } finally { origRestore.call(ctx); }
+      }
+      return orig.apply(ctx, args);
+    }
+    if (kind === "fill" && args.length === 0 && p.arcs >= 2) {
+      var lr = devRect(ctx, p);
+      if (lr.y1 - lr.y0 >= 10 * g.s && lr.y1 - lr.y0 <= 90 * g.s && lr.x1 - lr.x0 >= 16 * g.s) {
+        g.labels.push({ rect: lr, texts: [] });
+        return;
+      }
+    }
+    if (kind === "text" && g.labels.length) {
+      var lb = g.labels[g.labels.length - 1], m = ctx.getTransform(), tx = +args[1] || 0, ty = +args[2] || 0;
+      var X = m.a * tx + m.c * ty + m.e, Y = m.b * tx + m.d * ty + m.f;
+      if (X >= lb.rect.x0 - 2 && X <= lb.rect.x1 + 2 && Y >= lb.rect.y0 - 2 && Y <= lb.rect.y1 + 2) {
+        var px = /([\d.]+)px/.exec(ctx.font);
+        lb.texts.push({ t: String(args[0]), y: Y, size: (px ? +px[1] : 12) * (Math.abs(m.a) || 1) });
+        return;
+      }
+    }
+    return orig.apply(ctx, args);
+  }
+  function drawZones(ctx, g) {
+    var T = posTheme, s = g.s, S = g.stop, P = g.target;
+    var f = { x0: Math.min(S.x0, P.x0), x1: Math.max(S.x1, P.x1), y0: Math.min(S.y0, P.y0), y1: Math.max(S.y1, P.y1) };
+    g.frame = f;
+    g.entry = P.y1 <= S.y0 + 1.5 ? P.y1 : P.y0;   // where the zones meet
+    var up = P.y1 <= S.y0 + 1.5;                    // target above: a long
+    pen(ctx);
+    try {
+      var all = rr(f.x0, f.y0, f.x1 - f.x0, f.y1 - f.y0, 4 * s);
+      origSave.call(ctx); ctx.clip(all);
+      // The target, lit in the theme's color, brightest at its far edge.
+      var gt = ctx.createLinearGradient(0, up ? P.y0 : P.y1, 0, g.entry);
+      gt.addColorStop(0, rgba(T.c, 0.5)); gt.addColorStop(1, rgba(T.c, 0.2));
+      ctx.fillStyle = gt; fillRect.call(ctx, P.x0, P.y0, P.x1 - P.x0, P.y1 - P.y0);
+      // The stop, smoked, with a faint tint.
+      ctx.fillStyle = "rgba(6,8,13,0.55)"; fillRect.call(ctx, S.x0, S.y0, S.x1 - S.x0, S.y1 - S.y0);
+      ctx.fillStyle = rgba(T.c, 0.06); fillRect.call(ctx, S.x0, S.y0, S.x1 - S.x0, S.y1 - S.y0);
+      origRestore.call(ctx);
+      g.extra.forEach(function (r) { drawProgress(ctx, g, r, true); });
+    } finally { origRestore.call(ctx); }
+  }
+  // The part the price has run through: a brighter wash.
+  function drawProgress(ctx, g, r, inPen) {
+    if (!inPen) pen(ctx);
+    try {
+      ctx.fillStyle = rgba(posTheme.c2, 0.13);
+      fillRect.call(ctx, r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0);
+    } finally { if (!inPen) origRestore.call(ctx); }
+  }
+  function finishTool(ctx, g) {
+    if (g.mode === "tool?") return replayRects(ctx, g);
+    if (g.mode !== "tool") return;
+    var T = posTheme, s = g.s, f = g.frame;
+    pen(ctx);
+    try {
+      var all = rr(f.x0 + 0.5 * s, f.y0 + 0.5 * s, f.x1 - f.x0 - s, f.y1 - f.y0 - s, 4 * s);
+      origSave.call(ctx); shadow(ctx, rgba(T.c, 0.8), 10 * s, 0);
+      ctx.strokeStyle = rgba(T.c, 0.9); ctx.lineWidth = 1.4 * s; origStroke.call(ctx, all);
+      origRestore.call(ctx);
+      // The entry line: dashed, glowing.
+      origSave.call(ctx); shadow(ctx, rgba(T.c2, 0.7), 6 * s, 0);
+      ctx.setLineDash([5 * s, 4 * s]); ctx.lineCap = "butt";
+      ctx.strokeStyle = rgba(T.c2, 0.95); ctx.lineWidth = 1.3 * s;
+      origStroke.call(ctx, seg(f.x0 + 2 * s, g.entry, f.x1 - 2 * s, g.entry));
+      origRestore.call(ctx);
+      // A spark at each corner.
+      origSave.call(ctx); shadow(ctx, T.c2, 6 * s, 0);
+      [[f.x0, f.y0], [f.x1, f.y0], [f.x0, f.y1], [f.x1, f.y1]].forEach(function (pt) { dot(ctx, pt[0], pt[1], 1.8 * s, T.c2); });
+      origRestore.call(ctx);
+      g.labels.forEach(function (lb) { drawToolLabel(ctx, g, lb); });
+    } finally { origRestore.call(ctx); }
+  }
+  // A label as a pill: smoked glass, outlined and glowing in the theme.
+  function drawToolLabel(ctx, g, lb) {
+    var T = posTheme, s = g.s, r = lb.rect, texts = lb.texts.filter(function (t) { return t.t.trim(); });
+    if (!texts.length) return;
+    var H = Math.max(r.y1 - r.y0, 18 * s), cy = (r.y0 + r.y1) / 2, y = cy - H / 2;
+    var fonts = texts.map(function (t) {
+      var face = /^[\d\s.,:'+\-−%()]+$/.test(t.t.trim()) ? FONT_MONO : FONT_SANS;
+      return "600 " + Math.min(11.5 * s, t.size) + "px " + face;
+    });
+    var wMax = 0;
+    texts.forEach(function (t, i) { wMax = Math.max(wMax, tw(ctx, t.t.trim(), fonts[i])); });
+    var W = Math.max(r.x1 - r.x0, wMax + 18 * s), cx = (r.x0 + r.x1) / 2, x0 = cx - W / 2;
+    var p = rr(x0, y, W, H, Math.min(H / 2, 10 * s));
+    origSave.call(ctx); shadow(ctx, rgba(T.c, 0.55), 10 * s, 0);
+    ctx.fillStyle = "rgba(10,12,18,0.88)"; origFill.call(ctx, p);
+    origRestore.call(ctx);
+    ctx.fillStyle = rgba(T.c, 0.16); origFill.call(ctx, p);
+    ctx.strokeStyle = rgba(T.c, 0.95); ctx.lineWidth = 1.2 * s; origStroke.call(ctx, p);
+    ctx.textAlign = "center";
+    texts.forEach(function (t, i) {
+      text(ctx, t.t.trim(), cx, texts.length > 1 ? t.y : cy + 0.5 * s, fonts[i], i ? mix(T.c2, "#ffffff", 0.4) : "#ffffff");
+    });
+    ctx.textAlign = "left";
+  }
+
   function syncTags() {
     var root = rootEl();
     var raw = root && root.getAttribute("data-ez-tags");
     var next = null;
     if (raw) { try { next = JSON.parse(raw); } catch (err) { next = null; } }
     tagTheme = next && next.buy ? next : null;
+    var rawPos = root && root.getAttribute("data-ez-pos"), pos = null;
+    if (rawPos) { try { pos = JSON.parse(rawPos); } catch (err) { pos = null; } }
+    posTheme = pos && pos.c ? pos : null;
   }
   watch();
 
   proto.fillRect = function (x, y, w, h) {
     if (document !== watchedDoc) watch();
-    var tst = tagTheme && tracking(this) && tagState.get(this);
+    var tst = tracking(this) && stateOf(this);
+    // A see-through box on a pane: maybe a Long/Short Position tool's zone.
+    if (tst && posTheme && tst.tagDepth < 0 && !tst.axis && tst.depth >= 2 && posZone(this, w, h)) beginTool(this, tst);
     if (tst && tst.tagDepth >= 0) {
       if (tst.grp) return groupOp(this, tst, "rect", fillRect, arguments);
       // The 1px lines between a tag's parts.

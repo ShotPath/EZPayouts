@@ -24,8 +24,9 @@
   </div>
   <p class="tip" id="tip" hidden></p>
 
-  <!-- Two things, each with its own switch: the wallpaper behind the chart
-       and the order tags on it. A card shows that one's settings below. -->
+  <!-- Three things, each with its own switch: the wallpaper behind the
+       chart, the order tags on it and the Long/Short Position tool. A card
+       shows that one's settings below. -->
   <div class="modes" role="tablist" aria-label="Settings">
     <div class="mode" role="tab" data-mode="wallpaper" tabindex="0">
       <div class="mode-text"><span class="mode-name">Wallpaper</span><span class="mode-sub" id="wallSub"></span></div>
@@ -38,6 +39,13 @@
       <div class="mode-text" title="Restyles your order, position and P&amp;L tags, their lines and their prices on the price scale."><span class="mode-name">Order tags</span><span class="mode-sub" id="tagsSub"></span></div>
       <label class="switch" title="Order tags on or off">
         <input type="checkbox" id="tagsEnabled" role="switch" aria-label="Order tags">
+        <span class="track"><span class="knob"></span></span>
+      </label>
+    </div>
+    <div class="mode" role="tab" data-mode="pos" tabindex="0">
+      <div class="mode-text" title="Restyles TradingView's Long Position and Short Position drawing tools."><span class="mode-name">Position</span><span class="mode-sub" id="posSub"></span></div>
+      <label class="switch" title="Position tool theme on or off">
+        <input type="checkbox" id="posEnabled" role="switch" aria-label="Position tool">
         <span class="track"><span class="knob"></span></span>
       </label>
     </div>
@@ -92,6 +100,24 @@
       <div class="section-head"><h2>Style</h2></div>
       <div class="style-grid" id="tagStyle" role="radiogroup" aria-label="Tag style"></div>
     </section>
+  </div>
+
+  <div id="posPanel" role="tabpanel" hidden>
+    <div class="pos-preview" id="posPreview" aria-hidden="true">
+      <div class="pv-tool">
+        <div class="pv-target"></div><div class="pv-stop"></div>
+        <i class="pv-spark" style="left:-2px;top:-2px"></i><i class="pv-spark" style="right:-2px;top:-2px"></i>
+        <i class="pv-spark" style="left:-2px;bottom:-2px"></i><i class="pv-spark" style="right:-2px;bottom:-2px"></i>
+        <span class="pv-label" style="top:0">82.75</span>
+        <span class="pv-label" style="top:50%">2.65</span>
+        <span class="pv-label" style="top:100%">31.25</span>
+      </div>
+    </div>
+    <section>
+      <div class="section-head"><h2>Theme</h2></div>
+      <div class="swatches" id="posThemeGrid" role="radiogroup" aria-label="Position tool theme"></div>
+    </section>
+    <p class="note">Draw a Long or Short Position on your chart; it takes this look.</p>
   </div>
 
   <footer class="foot">
