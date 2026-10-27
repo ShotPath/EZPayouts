@@ -783,7 +783,7 @@
       var username = getUsername() || "";
       var initial = username.slice(0, 1).toUpperCase() || "?";
       // data-style="name" (the marketing pages): @username instead of an
-      // initial, and an Open App item.
+      // initial.
       var named = container.getAttribute("data-style") === "name";
       container.innerHTML = "" +
         '<div class="ez-auth-pill">' +
@@ -792,7 +792,6 @@
             : '<button type="button" class="ez-auth-avatar" aria-label="Account menu">' + escapeHtml(initial) + "</button>") +
           '<div class="ez-auth-menu" hidden>' +
             '<div class="ez-auth-menu-user">Signed in as<strong>@' + escapeHtml(username) + "</strong></div>" +
-            (named ? '<a class="ez-auth-menu-item" href="/dashboard/" style="text-decoration:none">Open App</a>' : "") +
             '<button type="button" class="ez-auth-menu-item" data-action="link-google" hidden>Link Google Account</button>' +
             '<button type="button" class="ez-auth-menu-item" data-action="change-password">Change Password</button>' +
             '<button type="button" class="ez-auth-menu-item danger" data-action="sign-out">Sign out</button>' +
