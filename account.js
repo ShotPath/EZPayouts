@@ -218,7 +218,7 @@
       ".ez-auth-btn:hover{ border-color:var(--phosphor-dim); color:var(--ice); }" +
       ".ez-auth-pill{ position:relative; }" +
       ".ez-auth-avatar{ display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex:none;" +
-      " border-radius:50%; border:1px solid var(--hairline-bright); background:var(--mint); color:var(--mint-text);" +
+      " border-radius:50%; border:1px solid var(--hairline-bright, transparent); background:var(--mint); color:var(--mint-text, #03160b);" +
       " font-family:var(--font-display); font-weight:700; font-size:14px; cursor:pointer; transition:filter .15s; }" +
       ".ez-auth-avatar:hover{ filter:brightness(1.08); }" +
       ".ez-auth-menu{ position:absolute; top:calc(100% + 8px); right:0; z-index:60; min-width:190px;" +
@@ -231,16 +231,10 @@
       ".ez-auth-menu-item{ display:block; width:100%; text-align:left; font-family:var(--font-mono); font-size:11.5px;" +
       " padding:10px 14px; background:transparent; border:none; color:var(--muted); cursor:pointer; transition:color .15s, background .15s; }" +
       ".ez-auth-menu-item:hover{ color:var(--ice); background:var(--panel); }" +
-      // The marketing pages' top bar: Sign In as plain text, @username as a pill.
+      // The marketing pages' top bar (data-style="name"): Sign In as plain text.
       ".ez-auth-signin{ background:none; border:none; padding:0; font-family:var(--font-sans); font-weight:700; font-size:12.5px;" +
       " color:var(--muted); cursor:pointer; transition:color .15s; white-space:nowrap; }" +
       ".ez-auth-signin:hover{ color:var(--ice); }" +
-      ".ez-auth-name{ display:inline-flex; align-items:center; gap:6px; white-space:nowrap; cursor:pointer; padding:7px 11px 7px 13px; width:auto; height:auto;" +
-      " border-radius:999px; background:rgba(255,255,255,0.04); border:1px solid var(--border-bright, var(--hairline-bright));" +
-      " font-family:var(--font-mono); font-weight:600; font-size:12px; color:var(--ice); transition:border-color .15s, background .15s; }" +
-      ".ez-auth-name:hover, .ez-auth-name[aria-expanded=\"true\"]{ border-color:var(--cyan2, var(--mint)); background:rgba(0,210,255,0.08); }" +
-      ".ez-auth-name b{ color:var(--cyan2, var(--mint)); font-weight:600; }" +
-      ".ez-auth-name svg{ width:10px; height:10px; opacity:0.6; }" +
       ".ez-auth-menu-item.danger:hover{ color:#ef5a5a; background:rgba(239,90,90,0.08); }" +
       ".ez-auth-overlay{ position:fixed; inset:0; z-index:1000; display:flex; align-items:center; justify-content:center;" +
       " padding:20px; background:rgba(4,6,5,0.72); backdrop-filter:blur(3px); }" +
@@ -782,14 +776,9 @@
     if (isLoggedIn()) {
       var username = getUsername() || "";
       var initial = username.slice(0, 1).toUpperCase() || "?";
-      // data-style="name" (the marketing pages): @username instead of an
-      // initial.
-      var named = container.getAttribute("data-style") === "name";
       container.innerHTML = "" +
         '<div class="ez-auth-pill">' +
-          (named
-            ? '<button type="button" class="ez-auth-avatar ez-auth-name" aria-label="Account menu" aria-haspopup="true" aria-expanded="false"><span><b>@</b>' + escapeHtml(username) + '</span><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 3.5 5 6.5 8 3.5"/></svg></button>'
-            : '<button type="button" class="ez-auth-avatar" aria-label="Account menu">' + escapeHtml(initial) + "</button>") +
+          '<button type="button" class="ez-auth-avatar" aria-label="Account menu" aria-haspopup="true" aria-expanded="false" title="@' + escapeHtml(username) + '">' + escapeHtml(initial) + "</button>" +
           '<div class="ez-auth-menu" hidden>' +
             '<div class="ez-auth-menu-user">Signed in as<strong>@' + escapeHtml(username) + "</strong></div>" +
             '<button type="button" class="ez-auth-menu-item" data-action="link-google" hidden>Link Google Account</button>' +
