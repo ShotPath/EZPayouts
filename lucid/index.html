@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Lucid Payout Guide</title>
+<title>Payout Guide — EZPayouts</title>
 <link rel="icon" type="image/png" href="../ezpayouts-icon-only.png">
 <link rel="apple-touch-icon" href="../ezpayouts-icon-only.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -387,6 +387,11 @@
   .status-banner.status-close .status-label{ color:var(--mint); }
 
   .field{ display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
+  .calc-sub{ margin:22px 0 6px; font-family:var(--font-mono); font-size:11px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--mint); }
+  .calc-sub.first{ margin-top:0; }
+  .calc-note{ margin:0 0 14px; font-size:13px; line-height:1.55; color:var(--muted); }
+  .rules-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:0 14px; padding-bottom:6px; border-bottom:1px solid var(--hairline); margin-bottom:4px; }
+  .rules-grid .field input{ min-width:0; width:100%; }
   .field[hidden]{ display:none; }
   .field-row{ display:flex; gap:12px; }
   .field-row .field{ flex:1; min-width:0; margin-bottom:6px; }
@@ -486,43 +491,7 @@
     <h2>Get through the eval. Get <span>funded</span>. Get <span>paid</span>.</h2>
   </div>
 
-  <div class="plan-disclaimer" id="planDisclaimer" hidden>
-    <div class="plan-disclaimer-label">Before you open one of these</div>
-    <p id="planDisclaimerText"></p>
-  </div>
-
   <div class="lucid-mega" id="lucidMega">
-
-  <div class="mega-section" id="snapshotCard">
-    <div class="snapshot-head">
-      <div>
-        <div class="snapshot-title" id="snapshotTitle">25K FLEX EVAL</div>
-        <div class="snapshot-sub" id="snapshotSub">Live rule sheet for this plan and size</div>
-      </div>
-      <div class="rcontrol">
-        <button type="button" class="collapse-btn" data-card="snapshotCard" aria-expanded="true" aria-label="Collapse Account Selection"><span class="chev" aria-hidden="true"></span></button>
-      </div>
-    </div>
-    <div class="account-selector">
-      <div class="plan-tabs seg-track" id="planTabs">
-        <span class="seg-thumb" aria-hidden="true"></span>
-        <button type="button" data-plan="pro">LucidPro</button>
-        <button type="button" data-plan="flex">LucidFlex</button>
-        <button type="button" data-plan="daily">LucidDaily</button>
-        <button type="button" data-plan="direct">LucidDirect</button>
-      </div>
-      <div class="size-select-wrap">
-        <label for="sizeSelect">Account Size</label>
-        <ez-select id="sizeSelect"></ez-select>
-      </div>
-    </div>
-    <div class="card-body" id="snapshotCardBody">
-      <div class="readout-list" id="statList"></div>
-      <div class="pricing-flags" id="pricingFlags"></div>
-      <div id="feeBox"></div>
-      <div class="pricing-actions" id="pricingActions"></div>
-    </div>
-  </div>
 
   <div class="mega-section" id="importCard">
     <div class="console-head">
@@ -569,14 +538,38 @@
     <div class="console-head">
       <h2 id="copilotTitle">Pass the Evaluation</h2>
       <div class="rcontrol">
-        <div class="rcontrol" id="phaseToggle">
-          <button type="button" class="opt-pill active" data-phase="eval">Evaluation</button>
-          <button type="button" class="opt-pill" data-phase="funded">Funded</button>
-        </div>
         <button type="button" class="collapse-btn" data-card="copilotCard" aria-expanded="true" aria-label="Collapse the calculator"><span class="chev" aria-hidden="true"></span></button>
       </div>
     </div>
     <div class="card-body" id="copilotCardBody">
+      <h3 class="calc-sub first">Account Rules</h3>
+      <p class="calc-note">Type in your account's rules from your firm's dashboard. Leave a rule at 0 if your account doesn't have it.</p>
+      <div class="rules-grid">
+        <div class="field">
+          <label for="sizeInput">Account Size ($)</label>
+          <input id="sizeInput" type="number" step="1000" min="0" value="50000" />
+        </div>
+        <div class="field">
+          <label for="targetInput">Profit Target ($)</label>
+          <input id="targetInput" type="number" step="50" min="0" value="3000" />
+        </div>
+        <div class="field">
+          <label for="mllInput">Max Loss Limit (MLL)</label>
+          <input id="mllInput" type="number" step="50" min="0" value="2000" />
+        </div>
+        <div class="field">
+          <label for="dllInput">Daily Loss Limit (DLL)</label>
+          <input id="dllInput" type="number" step="50" min="0" value="0" />
+          <span class="hint">0 = no daily limit</span>
+        </div>
+        <div class="field">
+          <label for="consistencyInput">Consistency (%)</label>
+          <input id="consistencyInput" type="number" step="5" min="0" max="100" value="50" />
+          <span class="hint">Biggest day's max share of profit. 0 = none</span>
+        </div>
+      </div>
+
+      <h3 class="calc-sub">Calculator</h3>
       <div class="status-banner" id="statusBanner">
         <div class="status-badge" id="statusBadge">
           <span class="status-dot" id="statusDot" aria-hidden="true"></span>
@@ -588,24 +581,19 @@
       <div class="console-grid">
         <div>
           <div class="field">
-            <label for="pnlInput" id="pnlLabel">Net P&amp;L</label>
+            <label for="pnlInput">Net P&amp;L</label>
             <input id="pnlInput" type="number" step="1" value="0" />
-            <span class="hint">Pull your real number from the Lucid dashboard.</span>
+            <span class="hint">Your current profit or loss on the account.</span>
           </div>
-          <div class="field" id="daysField">
+          <div class="field">
             <label for="daysInput">Days to Pass</label>
             <input id="daysInput" type="number" step="1" min="1" value="1" />
             <span class="hint">How many more sessions you're planning to trade before the target.</span>
           </div>
-          <div class="field" id="qualDaysField" hidden>
-            <label for="qualDaysInput">Qualifying days banked</label>
-            <input id="qualDaysInput" type="number" step="1" min="0" max="5" value="0" />
-            <span class="hint">Days that cleared your size's daily minimum, out of the 5 needed for a payout.</span>
-          </div>
           <div class="field" id="bestDayField">
             <label for="bestDayInput">Biggest day</label>
             <input id="bestDayInput" type="number" step="1" value="0" />
-            <span class="hint">Needed to check the 50% consistency rule during evaluation.</span>
+            <span class="hint">Needed to check the consistency rule.</span>
           </div>
           <div class="field-row">
             <div class="field">
@@ -633,7 +621,7 @@
             <input id="pointValueInput" type="number" step="0.01" min="0" value="2" />
             <span class="hint">$ per point for your contract &mdash; MNQ is $2, MES is $5, NQ is $20, ES is $50.</span>
           </div>
-          <span class="hint" style="display:block; margin:0 0 16px;">R = reward &divide; risk on a trade &mdash; risking 30pts to make 60pts is 2R.</span>
+          <span class="hint" style="display:block; margin:0 0 16px; font-size:11.5px; color:var(--muted-dim);">R = reward &divide; risk on a trade &mdash; risking 30pts to make 60pts is 2R.</span>
         </div>
         <div class="readout-list" id="readoutList"></div>
       </div>
@@ -643,7 +631,7 @@
   </div>
 
   <footer>
-    <p>Figures reflect LucidFlex / LucidPro / LucidDaily / LucidDirect rules as publicly documented in 2026 (Lucid Trading support center and independent prop-firm rule trackers). On the 25K Flex, the Max Loss Limit is a fixed $1,000; the Daily Loss Limit is a separate, optional setting &mdash; OFF by default, or a firm-enforced $600 if you opted into it (the 50K Flex carries the same optional setting at a $1,200 cap, with a $2,000 Max Loss Limit). LucidPro offers the same OFF/$600 Daily Loss Limit choice at every account size, and LucidDaily lets you choose Intraday or End-of-Day drawdown tracking &mdash; both toggled above. Eval and reset pricing is populated for the 25K Flex and all four LucidPro sizes, taken directly from Lucid's own checkout screen at the time this was written. Every price changes with Lucid's current promos, so treat these as a snapshot, not what you'll pay today. Everything else &mdash; Daily, Direct, and any plan/size combo not listed above &mdash; is unverified here rather than guessed; always check your live Lucid dashboard or checkout before sizing a trade or paying for an account. The maximum payout table is sourced from independent payout-rules trackers, not Lucid directly, and is shown only where the rest of that plan's figures are already marked verified. This page is a planning aid, not trading or financial advice, and never places trades or requires a login. The optional CSV import runs entirely in your browser &mdash; the file is never uploaded anywhere &mdash; and its column detection has been checked against real Account Balance History and Cash History exports. Still worth a glance against your actual dashboard the first time you use it.</p>
+    <p>The account rules are whatever you type in, so check them against your firm's dashboard. This page is a planning aid, not trading or financial advice, and never places trades. The optional CSV import runs entirely in your browser &mdash; the file is never uploaded anywhere &mdash; and its column detection has been checked against real Account Balance History and Cash History exports. Still worth a glance against your actual dashboard the first time you use it.</p>
   </footer>
 
 </div>
@@ -654,212 +642,88 @@
 (function(){
   "use strict";
 
-  var CONTRACTS = {
-    25000:  { maxMini:2,  maxMicro:20,  fundedMini:1, fundedMicro:10 },
-    50000:  { maxMini:4,  maxMicro:40,  fundedMini:2, fundedMicro:20 },
-    100000: { maxMini:6,  maxMicro:60,  fundedMini:3, fundedMicro:30 },
-    150000: { maxMini:10, maxMicro:100, fundedMini:4, fundedMicro:40 }
+  // Everything the calculator reads, with its default. The account rules are
+  // whatever the trader types in from their own firm's dashboard.
+  var DEFAULTS = {
+    sizeInput: 50000, targetInput: 3000, mllInput: 2000, dllInput: 0, consistencyInput: 50,
+    pnlInput: 0, daysInput: 1, bestDayInput: 0,
+    winRateInput: 50, avgRInput: 2, sampleNInput: 20, stopPointsInput: 0, pointValueInput: 2
   };
+  var FIELD_IDS = Object.keys(DEFAULTS);
+  var RULE_IDS = ["sizeInput", "targetInput", "mllInput", "dllInput", "consistencyInput"];
 
-  // Explicit profit-tier scaling breakdowns where confirmed; sizes not listed here
-  // fall back to a simple two-tier funded-size -> max-size jump in renderSnapshotCard.
-  var SCALING_TIERS = {
-    50000: [
-      { range: "$0&ndash;999",       mini:2, micro:20 },
-      { range: "$1,000&ndash;1,999", mini:3, micro:30 },
-      { range: "$2,000+",            mini:4, micro:40 }
-    ]
-  };
+  var state = { collapsed: {} };
+  var STORAGE_KEY = "guideCalc.v1";
+  var OLD_STORAGE_KEY = "lucidCockpit.v3";
+  var CARD_IDS = ["importCard","copilotCard"];
 
-  // Pricing confirmed straight off Lucid's own checkout screen (list -> limited-time -> coupon price),
-  // keyed by plan -> size -> "on"/"off" (the Daily Loss Limit choice). Anything not filled in here
-  // is shown as unverified in the UI rather than guessed from conflicting third-party numbers.
-  var EVAL_PRICING = {
-    flex: {
-      25000: { on: { list:89, current:65.30, coupon:50.30, resetFee:50 }, off: { list:89, coupon:65.30, resetFee:65 } },
-      50000: { on: { list:146, current:105.20, coupon:90.20, resetFee:90 }, off: { list:146, coupon:105.20, resetFee:105.20 } }
-    },
-    pro: {
-      25000:  { on: { list:123, current:90.60,  coupon:70.60,  resetFee:70  }, off: { list:123, coupon:90.60,  resetFee:90  } },
-      50000:  { on: { list:192, current:140.40, coupon:115.40, resetFee:115 }, off: { list:192, coupon:140.40, resetFee:140 } },
-      100000: { on: { list:307, current:225.40, coupon:180.40, resetFee:180 }, off: { list:307, coupon:225.40, resetFee:225 } },
-      150000: { on: { list:410, current:300.50, coupon:245.50, resetFee:245 }, off: { list:440, coupon:300.50, resetFee:300 } }
-    }
-  };
-
-  var PLAN_DISCLAIMERS = {
-    daily: "As a trader trying to get your first payout, we recommend steering clear of LucidDaily for now — it isn't the strongest option in the daily prop-firm space. Once we find a daily account worth recommending, we'll update this page. For now, this guide is built around helping you land your first payout, and LucidDaily isn't the fastest way there.",
-    direct: "As a trader trying to get your first payout, we recommend steering clear of LucidDirect — it's priced steep for what it offers. If you've already landed a payout (or several), congratulations, seriously — but if you're still chasing your first one, this isn't the account to start with. This guide is built around helping you get there, not around this account."
-  };
-
-  var PLANS = {
-    flex: {
-      name: "LucidFlex",
-      tagline: "Daily Loss Limit is optional on the 25K (OFF or $600) and 50K (OFF or $1,200). The trailing Max Loss Limit only updates at the close.",
-      verified: true,
-      sizes: {
-        25000:  { target:1250, mll:1000, dailyMin:100 },
-        50000:  { target:3000, mll:2000, dailyMin:150 },
-        100000: { target:6000, mll:3000, dailyMin:200 },
-        150000: { target:9000, mll:4500, dailyMin:250 }
-      },
-      // Consistency rule confirmed against Lucid's own support center + independent
-      // rule trackers (Sep 2026): LucidFlex caps the eval at 50% and drops the
-      // rule entirely once funded.
-      consistency: { eval: 50, funded: null }
-    },
-    pro: {
-      name: "LucidPro",
-      tagline: "Daily Loss Limit is optional at every size &mdash; OFF or $600, toggled below. Choosing it on lowers your eval price.",
-      verified: false,
-      sizes: {
-        25000:  { target:1250, mll:1000, dailyMin:100 },
-        50000:  { target:3000, mll:2000, dailyMin:150 },
-        100000: { target:6000, mll:3000, dailyMin:200 },
-        150000: { target:9000, mll:4500, dailyMin:250 }
-      },
-      // LucidPro flips the rule around: no consistency requirement during the
-      // eval (pass in as few days as the math allows), but funded payout cycles
-      // cap the largest day at 40% of that cycle's profit (35% if the account
-      // was bought or last reset before Nov 28, 2025).
-      consistency: { eval: null, funded: 40 }
-    },
-    daily: {
-      name: "LucidDaily",
-      tagline: "Choose Intraday or End-of-Day drawdown tracking, toggled below. Intraday is tighter; EOD gives you room to recover by the close.",
-      verified: false,
-      sizes: {
-        25000:  { target:1250, mll:1000, dailyMin:100 },
-        50000:  { target:3000, mll:2000, dailyMin:150 },
-        100000: { target:6000, mll:3000, dailyMin:200 },
-        150000: { target:9000, mll:4500, dailyMin:250 }
-      },
-      // Same 50%-eval / none-funded shape as LucidFlex.
-      consistency: { eval: 50, funded: null }
-    },
-    direct: {
-      name: "LucidDirect",
-      tagline: "Skips the evaluation entirely &mdash; pay more upfront, trade funded from day one.",
-      verified: false,
-      sizes: {
-        25000:  { target:1500, mll:1000, dailyMin:100 },
-        50000:  { target:3000, mll:2000, dailyMin:150 },
-        100000: { target:6000, mll:3000, dailyMin:200 },
-        150000: { target:9000, mll:5000, dailyMin:250 }
-      },
-      // No evaluation to speak of &mdash; funded from day one &mdash; and that funded
-      // stage carries a 20% consistency rule.
-      consistency: { eval: null, funded: 20 }
-    }
-  };
-  var SIZE_ORDER = [25000,50000,100000,150000];
-
-  var state = { plan: "flex", size: 25000, dllOn: {}, drawdownChoice: {}, phase: "eval", snapshotView: "eval", collapsed: {} };
-  var STORAGE_KEY = "lucidCockpit.v3";
-  var CARD_IDS = ["snapshotCard","importCard","copilotCard"];
-
-  var DLL_AMOUNTS = {
-    flex: { 25000: 600, 50000: 1200 },
-    pro: { 25000: 600, 50000: 600, 100000: 600, 150000: 600 }
-  };
-
-  function comboKey(){ return state.plan + "_" + state.size; }
-  function dllAvailable(){ return (state.plan === "flex" && (state.size === 25000 || state.size === 50000)) || state.plan === "pro"; }
-  function dllAmount(){ var m = DLL_AMOUNTS[state.plan]; return (m && m[state.size]) || 600; }
-  function isDllOn(){ return !!state.dllOn[comboKey()]; }
-  function setDllOn(on){ state.dllOn[comboKey()] = on; }
-  function dllActive(){ return dllAvailable() && isDllOn(); }
-
-  function drawdownAvailable(){ return state.plan === "daily"; }
-  function isIntraday(){ return state.drawdownChoice[comboKey()] === "intraday"; }
-  function setDrawdown(type){ state.drawdownChoice[comboKey()] = type; }
+  function num(id){ return parseFloat(document.getElementById(id).value) || 0; }
+  function rules(){
+    return {
+      size: Math.max(0, num("sizeInput")),
+      target: Math.max(0, num("targetInput")),
+      mll: Math.max(0, num("mllInput")),
+      dll: Math.max(0, num("dllInput")),
+      consistency: Math.max(0, Math.min(100, num("consistencyInput")))
+    };
+  }
 
   function saveState(){
     try{
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        plan: state.plan,
-        size: state.size,
-        dllOn: state.dllOn,
-        drawdownChoice: state.drawdownChoice,
-        phase: state.phase,
-        snapshotView: state.snapshotView,
-        collapsed: state.collapsed,
-        pnl: document.getElementById("pnlInput").value,
-        days: document.getElementById("daysInput").value,
-        bestDay: document.getElementById("bestDayInput").value,
-        qualDays: document.getElementById("qualDaysInput").value,
-        winRate: document.getElementById("winRateInput").value,
-        avgR: document.getElementById("avgRInput").value,
-        sampleN: document.getElementById("sampleNInput").value,
-        stopPoints: document.getElementById("stopPointsInput").value,
-        pointValue: document.getElementById("pointValueInput").value
-      }));
+      var out = { collapsed: state.collapsed, fields: {} };
+      FIELD_IDS.forEach(function(id){ out.fields[id] = document.getElementById(id).value; });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(out));
     } catch(e){}
   }
 
   function loadState(){
     try{
       var raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
-      var saved = JSON.parse(raw);
-      if (saved.plan && PLANS[saved.plan]) state.plan = saved.plan;
-      if (saved.size && PLANS[state.plan].sizes[saved.size]) state.size = saved.size;
-      if (saved.dllOn && typeof saved.dllOn === "object") state.dllOn = saved.dllOn;
-      if (saved.drawdownChoice && typeof saved.drawdownChoice === "object") state.drawdownChoice = saved.drawdownChoice;
-      if (saved.phase === "eval" || saved.phase === "funded") state.phase = saved.phase;
-      if (saved.snapshotView === "eval" || saved.snapshotView === "funded") state.snapshotView = saved.snapshotView;
-      if (saved.collapsed && typeof saved.collapsed === "object") state.collapsed = saved.collapsed;
-      if (saved.pnl !== undefined) document.getElementById("pnlInput").value = saved.pnl;
-      if (saved.days !== undefined) document.getElementById("daysInput").value = saved.days;
-      if (saved.bestDay !== undefined) document.getElementById("bestDayInput").value = saved.bestDay;
-      if (saved.qualDays !== undefined) document.getElementById("qualDaysInput").value = saved.qualDays;
-      if (saved.winRate !== undefined) document.getElementById("winRateInput").value = saved.winRate;
-      if (saved.avgR !== undefined) document.getElementById("avgRInput").value = saved.avgR;
-      if (saved.sampleN !== undefined) document.getElementById("sampleNInput").value = saved.sampleN;
-      if (saved.stopPoints !== undefined) document.getElementById("stopPointsInput").value = saved.stopPoints;
-      if (saved.pointValue !== undefined) document.getElementById("pointValueInput").value = saved.pointValue;
+      if (raw){
+        var saved = JSON.parse(raw);
+        if (saved.collapsed && typeof saved.collapsed === "object") state.collapsed = saved.collapsed;
+        if (saved.fields) FIELD_IDS.forEach(function(id){
+          if (saved.fields[id] !== undefined) document.getElementById(id).value = saved.fields[id];
+        });
+        return;
+      }
+      // Carry over the calculator numbers from the old plan-picker version.
+      var old = localStorage.getItem(OLD_STORAGE_KEY);
+      if (!old) return;
+      var o = JSON.parse(old);
+      var map = { pnl:"pnlInput", days:"daysInput", bestDay:"bestDayInput", winRate:"winRateInput", avgR:"avgRInput", sampleN:"sampleNInput", stopPoints:"stopPointsInput", pointValue:"pointValueInput" };
+      Object.keys(map).forEach(function(k){ if (o[k] !== undefined) document.getElementById(map[k]).value = o[k]; });
     } catch(e){}
   }
 
-  function pushCockpitToAccount(){
-    if (window.EZAuth && EZAuth.isLoggedIn()) EZAuth.saveData({ cockpit: { plan: state.plan, size: state.size } });
+  // Signed in, the account rules follow the account to other devices.
+  function pushRulesToAccount(){
+    if (!window.EZAuth || !EZAuth.isLoggedIn()) return;
+    var r = {};
+    RULE_IDS.forEach(function(id){ r[id] = document.getElementById(id).value; });
+    EZAuth.saveData({ cockpit: { rules: r } });
   }
+  var pushTimer = null;
+  function pushRulesSoon(){ clearTimeout(pushTimer); pushTimer = setTimeout(pushRulesToAccount, 800); }
 
-  function syncCockpitFromAccount(){
+  function syncRulesFromAccount(){
     if (!window.EZAuth || !EZAuth.isLoggedIn()) return;
     EZAuth.fetchData().then(function(remote){
-      if (!remote) return;
-      var cockpit = remote.cockpit;
-      if (cockpit && cockpit.plan && PLANS[cockpit.plan] && cockpit.size && PLANS[cockpit.plan].sizes[cockpit.size]){
-        state.plan = cockpit.plan;
-        state.size = cockpit.size;
-        state.snapshotView = "eval";
+      var r = remote && remote.cockpit && remote.cockpit.rules;
+      if (r && typeof r === "object"){
+        RULE_IDS.forEach(function(id){ if (r[id] !== undefined && r[id] !== null) document.getElementById(id).value = r[id]; });
         renderAll();
         saveState();
       } else {
-        pushCockpitToAccount();
+        pushRulesToAccount();
       }
     });
   }
 
-  function resetCockpitToDefault(){
-    state.plan = "flex";
-    state.size = 25000;
-    state.dllOn = {};
-    state.drawdownChoice = {};
-    state.phase = "eval";
-    state.snapshotView = "eval";
+  function resetToDefault(){
     state.collapsed = {};
     try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
-    document.getElementById("pnlInput").value = 0;
-    document.getElementById("daysInput").value = 1;
-    document.getElementById("bestDayInput").value = 0;
-    document.getElementById("qualDaysInput").value = 0;
-    document.getElementById("winRateInput").value = 50;
-    document.getElementById("avgRInput").value = 2;
-    document.getElementById("sampleNInput").value = 20;
-    document.getElementById("stopPointsInput").value = 0;
-    document.getElementById("pointValueInput").value = 2;
+    FIELD_IDS.forEach(function(id){ document.getElementById(id).value = DEFAULTS[id]; });
     CARD_IDS.forEach(function(id){ setCardCollapsed(id, false); });
     renderAll();
   }
@@ -876,9 +740,6 @@
     return "$" + Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
-  var statList = document.getElementById("statList");
-  var snapshotTitle = document.getElementById("snapshotTitle");
-  var snapshotSub = document.getElementById("snapshotSub");
   var readoutList = document.getElementById("readoutList");
   var statusBanner = document.getElementById("statusBanner");
   var statusLabelEl = document.getElementById("statusLabel");
@@ -888,11 +749,13 @@
 
   function isCelebrationKey(k){ return k === "passed" || k === "payout-ready"; }
 
-  function renderAccountStatus(phase, pnl, effMll, opts){
-    opts = opts || {};
+  function renderAccountStatus(pnl, effMll, opts){
     var key, label, cls, rec;
     var lossUsed = pnl < 0 ? Math.abs(pnl) : 0;
     var lossPct = effMll > 0 ? lossUsed / effMll : 0;
+    var remaining = opts.remaining;
+    var target = opts.target;
+    var progressPct = target > 0 ? pnl / target : 0;
 
     if (pnl < 0 && lossPct >= 0.6){
       key = "near-blown";
@@ -904,73 +767,41 @@
       label = "Vulnerable";
       cls = "status-bad";
       rec = "Cut your size and slow down. Take the next clean, well-sized setup instead of forcing a trade to claw back losses fast.";
-    } else if (phase === "funded"){
-      var qualDays = opts.qualDays || 0;
-      var d = opts.d;
-      var fundedConsistencyBreach = opts.fundedConsistencyBreach;
-      if (qualDays >= 5 && pnl > 0 && fundedConsistencyBreach){
-        key = "payout-hold";
-        label = "Payout On Hold — Consistency";
-        cls = "status-bad";
-        rec = "Everything else is ready — 5 qualifying days banked and the cycle is net positive — but your largest day is above the " + opts.fundedConsistencyPct + "% cap for this cycle. Lucid holds the payout until more trading days dilute that ratio, not your account. Keep your normal size; don't force a big day to fix it.";
-      } else if (qualDays >= 5 && pnl > 0){
-        key = "payout-ready";
-        label = "Payout Ready!";
-        cls = "status-passed";
-        rec = "Congratulations — 5 qualifying days banked and your cycle is net positive. Submit for your payout from the Lucid dashboard whenever you're ready. 90/10 split, $500 minimum.";
-      } else if (qualDays >= 3){
-        key = "close-payout";
-        label = "Close to Payout";
-        cls = "status-close";
-        rec = qualDays + " of 5 qualifying days banked. Keep the same size and process — a couple more clean days and you're eligible to request a payout.";
-      } else if (qualDays >= 1 || pnl > 0){
-        key = "building";
-        label = "Building Toward Payout";
-        cls = "status-good";
-        rec = "Solid progress — " + qualDays + " of 5 qualifying days banked. Stay consistent; there's no rush and no minimum trading-day requirement.";
-      } else {
-        key = "starting";
-        label = "Just Getting Started";
-        cls = "";
-        rec = "No qualifying days banked yet — each one needs to clear your size's daily minimum (" + money(d.dailyMin) + "). Trade your normal size and let the days add up.";
-      }
+    } else if (target > 0 && remaining <= 0 && opts.consistencyBreach){
+      key = "target-hold";
+      label = "Target Hit — Consistency";
+      cls = "status-bad";
+      rec = "You're past the target, but your biggest day is over the " + opts.consistencyPct + "% consistency cap. Keep trading normal size until more days bring that share down — don't force a big day to fix it.";
+    } else if (target > 0 && remaining <= 0){
+      key = "passed";
+      label = "Passed — Target Cleared";
+      cls = "status-passed";
+      rec = "Congratulations — you cleared the target! Keep the same size and discipline into the funded stage; the Max Loss Limit still applies. Check your firm's payout rules for what comes next.";
+    } else if (opts.consistencyBreach){
+      key = "vulnerable";
+      label = "Vulnerable";
+      cls = "status-bad";
+      rec = "Your best day is too large a share of your total profit for the consistency rule. Bank a couple more solid, smaller days before you'd be eligible to pass — don't chase one big day to fix it.";
+    } else if (progressPct < 0.08){
+      key = "breakeven";
+      label = "Just Starting / Breakeven";
+      cls = "";
+      rec = "No rebuilding needed — you're at the starting line. Wait for a clean setup instead of forcing size to get moving.";
+    } else if (progressPct >= 0.85){
+      key = "close-passing";
+      label = "Close to Passing";
+      cls = "status-close";
+      rec = "You're " + money(remaining) + " away from target. Don't force it — keep the same size that got you here, and let one more clean trade finish the job.";
+    } else if (progressPct >= 0.5){
+      key = "perfect";
+      label = "Perfect Standing";
+      cls = "status-good";
+      rec = "You're in great shape — " + Math.round(progressPct * 100) + "% to target with room under your Max Loss Limit. Protect it: trade smaller than you need to rather than pushing for a faster finish.";
     } else {
-      var remaining = opts.remaining;
-      var consistencyBreach = opts.consistencyBreach;
-      var target = opts.d.target;
-      var progressPct = target > 0 ? pnl / target : 0;
-
-      if (remaining <= 0){
-        key = "passed";
-        label = "Passed — Target Cleared";
-        cls = "status-passed";
-        rec = "Congratulations — you cleared the evaluation! Keep the same size and discipline into the funded stage: " + (opts.fundedConsistencyPct ? "a fresh " + opts.fundedConsistencyPct + "% consistency rule kicks in on your payout cycles" : "the consistency rule stays off") + ", and the Max Loss Limit still applies. Bank 5 qualifying profitable days with the cycle net positive, then submit for your first payout.";
-      } else if (consistencyBreach){
-        key = "vulnerable";
-        label = "Vulnerable";
-        cls = "status-bad";
-        rec = "Your best day is too large a share of your total profit for the consistency rule. Bank a couple more solid, smaller days before you'd be eligible to pass — don't chase one big day to fix it.";
-      } else if (progressPct < 0.08){
-        key = "breakeven";
-        label = "Just Starting / Breakeven";
-        cls = "";
-        rec = "No rebuilding needed — you're at the starting line. There's no minimum number of trading days, so wait for a clean setup instead of forcing size to get moving.";
-      } else if (progressPct >= 0.85){
-        key = "close-passing";
-        label = "Close to Passing";
-        cls = "status-close";
-        rec = "You're " + money(remaining) + " away from target. Don't force it — keep the same size that got you here, and let one more clean trade finish the job.";
-      } else if (progressPct >= 0.5){
-        key = "perfect";
-        label = "Perfect Standing";
-        cls = "status-good";
-        rec = "You're in great shape — " + Math.round(progressPct * 100) + "% to target with room under your Max Loss Limit. Protect it: trade smaller than you need to rather than pushing for a faster finish.";
-      } else {
-        key = "on-pace";
-        label = "On Pace";
-        cls = "status-good";
-        rec = "Steady progress — keep the size and process that got you here. Don't get greedy chasing a faster finish; let the target come to you.";
-      }
+      key = "on-pace";
+      label = "On Pace";
+      cls = "status-good";
+      rec = "Steady progress — keep the size and process that got you here. Don't get greedy chasing a faster finish; let the target come to you.";
     }
 
     statusBanner.className = "status-banner" + (cls ? " " + cls : "");
@@ -1059,238 +890,25 @@
     saveState();
   });
 
-  function current(){
-    var plan = PLANS[state.plan];
-    return { plan:plan, size:plan.sizes[state.size] };
-  }
-
-  function row(label, valueHtml, cls, sub){
-    return '<div class="readout"><span class="rlabel">' + label + (sub ? '<span class="rsub">' + sub + '</span>' : '') + '</span>' + valueHtml + '</div>';
-  }
-  function plainValue(text, cls){
-    return '<span class="rvalue' + (cls ? " " + cls : "") + '">' + text + '</span>';
-  }
-
-  // Sliding-thumb segmented control helpers. layoutSegThumb positions the
-  // thumb behind the active button; flipSegThumb additionally animates it
-  // there from a previously-captured position, for tracks whose DOM gets
-  // rebuilt (innerHTML) on every render rather than persisting.
-  function layoutSegThumb(track, skipTransition){
-    if (!track) return;
-    var thumb = track.querySelector(".seg-thumb");
-    var active = track.querySelector("button.active");
-    if (!thumb || !active) return;
-    if (skipTransition) thumb.style.transition = "none";
-    thumb.style.width = active.offsetWidth + "px";
-    thumb.style.transform = "translateX(" + active.offsetLeft + "px)";
-    if (skipTransition){
-      thumb.offsetHeight;
-      thumb.style.transition = "";
-    }
-  }
-  function flipSegThumb(track, prevRect){
-    if (!track) return;
-    var thumb = track.querySelector(".seg-thumb");
-    var active = track.querySelector("button.active");
-    if (!thumb || !active) return;
-    thumb.style.transition = "none";
-    var offsetLeft = active.offsetLeft;
-    thumb.style.width = active.offsetWidth + "px";
-    thumb.style.transform = "translateX(" + offsetLeft + "px)";
-    if (prevRect){
-      var newRect = thumb.getBoundingClientRect();
-      var dx = prevRect.left - newRect.left;
-      var scale = newRect.width ? (prevRect.width / newRect.width) : 1;
-      thumb.style.transformOrigin = "left center";
-      thumb.style.transform = "translateX(" + (offsetLeft + dx) + "px) scaleX(" + scale + ")";
-      thumb.offsetHeight; // force reflow before re-enabling the transition
-      thumb.style.transition = "";
-      thumb.style.transform = "translateX(" + offsetLeft + "px)";
-    } else {
-      thumb.offsetHeight;
-      thumb.style.transition = "";
-    }
-  }
-
-  function renderSnapshotCard(){
-    var c = current();
-    var d = c.size;
-    var contracts = CONTRACTS[state.size];
-    var view = state.snapshotView;
-    var sizeLabel = (state.size/1000) + "K " + c.plan.name.replace("Lucid","").toUpperCase();
-
-    var prevDllThumb = document.querySelector("#statList .dll-toggle .seg-thumb");
-    var prevDllRect = prevDllThumb ? prevDllThumb.getBoundingClientRect() : null;
-
-    snapshotTitle.textContent = sizeLabel + (view === "funded" ? " FUNDED" : " EVAL");
-    snapshotSub.textContent = c.plan.name + " · $" + (state.size/1000) + "K account";
-
-    var dllOnNow = isDllOn();
-    var offLabel = view === "funded" ? "NONE" : "OFF";
-    var onLabel = dllOnNow ? money(dllAmount()) : "ON";
-    var dllValueHtml;
-    if (dllAvailable()){
-      dllValueHtml =
-        '<div class="dll-toggle seg-track">' +
-          '<span class="seg-thumb" aria-hidden="true"></span>' +
-          '<button type="button" class="' + (dllOnNow ? 'active' : '') + '" data-dll="on">' + onLabel + '</button>' +
-          '<button type="button" class="' + (!dllOnNow ? 'active' : '') + '" data-dll="off">' + offLabel + '</button>' +
-        '</div>';
-    } else if (state.plan === "flex" || state.plan === "pro"){
-      dllValueHtml = plainValue("Optional", "");
-    } else {
-      dllValueHtml = plainValue("Fixed", "");
-    }
-
-    var drawdownHtml, drawdownSub;
-    if (drawdownAvailable()){
-      var intraday = isIntraday();
-      drawdownHtml =
-        '<div class="rcontrol">' +
-          '<button type="button" class="opt-pill' + (!intraday ? ' active' : '') + '" data-drawdown="eod">EOD</button>' +
-          '<button type="button" class="opt-pill' + (intraday ? ' active' : '') + '" data-drawdown="intraday">Intraday</button>' +
-        '</div>';
-      drawdownSub = intraday
-        ? "Trailing max loss tracks in real time during the session — tighter, no end-of-day grace"
-        : "Trailing max loss only updates at the close (4:45 PM ET)";
-    } else {
-      drawdownHtml = c.plan.verified ? plainValue("EOD", "") : plainValue("&mdash;", "");
-      drawdownSub = c.plan.verified ? "Trailing max loss updates only at the close (4:45 PM ET)" : "Confirm on your dashboard";
-    }
-
-    var cEval = c.plan.consistency.eval;
-    var cFunded = c.plan.consistency.funded;
-
-    if (view === "funded"){
-      var scalingRows = SCALING_TIERS[state.size] || [
-        { range: "$0&ndash;999", mini: contracts.fundedMini, micro: contracts.fundedMicro },
-        { range: "$1,000+", mini: contracts.maxMini, micro: contracts.maxMicro }
-      ];
-      var scalingRowsHtml = scalingRows.map(function(tier){
-        return '<tr><td>' + tier.range + '</td><td>' + tier.mini + ' Mini OR ' + tier.micro + ' Micros</td></tr>';
-      }).join("");
-      var scalingTooltip =
-        '<div class="scaling-tooltip">' +
-          '<div class="scaling-title">' + (state.size/1000) + 'K Scaling Plan</div>' +
-          '<table class="scaling-table"><thead><tr><th>Profit</th><th>Max Sizes</th></tr></thead><tbody>' +
-            scalingRowsHtml +
-          '</tbody></table>' +
-        '</div>';
-      var scalingValueHtml =
-        '<span class="rvalue">Yes <span class="scaling-wrap"><button type="button" class="info-dot" aria-label="Scaling plan details">i</button>' + scalingTooltip + '</span></span>';
-
-      statList.innerHTML =
-        row("Max Loss Limit", plainValue(money(d.mll), ""), "", c.plan.verified ? "" : "Confirm on your dashboard") +
-        row("Drawdown Type", drawdownHtml, "", drawdownSub) +
-        row("Daily Loss Limit", dllValueHtml, "", dllAvailable() ? "Same setting carries over from evaluation" : "Confirm on your dashboard") +
-        row("Days to Payout", plainValue("5", ""), "", money(d.dailyMin) + " per day &times; 5 days") +
-        row("Max Size", plainValue(contracts.fundedMini + " Mini OR " + contracts.fundedMicro + " Micros", ""), "", "Starting funded size — scales up as profit builds") +
-        row("Scaling Plan", scalingValueHtml, "", "Hover or tap the i for the profit-tier breakdown");
-      flipSegThumb(document.querySelector("#statList .dll-toggle"), prevDllRect);
-
-      document.getElementById("pricingFlags").innerHTML = "";
-      document.getElementById("feeBox").innerHTML = "";
-      document.getElementById("pricingActions").innerHTML =
-        '<button type="button" class="pricing-btn" id="backToPricingBtn">Back to Pricing</button>';
-      return;
-    }
-
-    var consistencyValueHtml, consistencySub;
-    if (cEval){
-      consistencyValueHtml = plainValue(cEval + "%", "");
-      consistencySub = "Evaluation only — largest day ≤ " + cEval + "% of total profit, dropped once funded";
-    } else if (cFunded){
-      consistencyValueHtml = plainValue("None", "");
-      consistencySub = state.plan === "direct"
-        ? "From day one — largest day ≤ " + cFunded + "% of profit per payout cycle (no separate evaluation)"
-        : "No consistency rule during evaluation" + (state.plan === "pro" ? " — 40% cap once funded (35% if bought/reset before Nov 28, 2025)" : "");
-    } else {
-      consistencyValueHtml = plainValue("None", "");
-      consistencySub = "No consistency rule at any stage";
-    }
-
-    statList.innerHTML =
-      row("Profit Target", plainValue(money(d.target), "pos"), "", Math.round((d.target/state.size)*1000)/10 + "% of account size") +
-      row("Max Loss Limit", plainValue(money(d.mll), ""), "", c.plan.verified ? "" : "Confirm on your dashboard") +
-      row("Drawdown Type", drawdownHtml, "", drawdownSub) +
-      row("Daily Loss Limit", dllValueHtml, "", dllAvailable() ? "Trip it and today's trading is done" : (state.plan === "flex" ? "Available on the 25K/50K &mdash; confirm this size on your dashboard" : "Confirm on your dashboard")) +
-      row("Consistency", consistencyValueHtml, "", consistencySub) +
-      row("Max Size", plainValue(contracts.maxMini + " Mini OR " + contracts.maxMicro + " Micros", ""), "", "Funded starts at " + contracts.fundedMini + " mini / " + contracts.fundedMicro + " micro and scales up as profit builds");
-    flipSegThumb(document.querySelector("#statList .dll-toggle"), prevDllRect);
-
-    var noConsistencyFunded = !cFunded;
-    document.getElementById("pricingFlags").innerHTML =
-      '<div class="pricing-flag-row"><span>Account Activation Fee:</span><span class="fee-flag">FREE</span></div>' +
-      '<div class="pricing-flag-row"><span>No Consistency in Funded:</span><span class="fee-flag' + (noConsistencyFunded ? '' : ' off') + '">' + (noConsistencyFunded ? '&check;' : '&mdash;') + '</span></div>';
-
-    var priceSet = EVAL_PRICING[state.plan] && EVAL_PRICING[state.plan][state.size];
-    var variant = dllAvailable() ? (dllOnNow ? "on" : "off") : "on";
-    var pricing = priceSet && priceSet[variant];
-
-    if (pricing){
-      var hasLimited = pricing.current !== undefined;
-      var topPrice = hasLimited ? pricing.current : pricing.coupon;
-      document.getElementById("feeBox").innerHTML =
-        '<div class="fee-box">' +
-          '<span class="fee-label">One-Time Payment</span>' +
-          '<div class="fee-price-row">' +
-            '<span class="fee-strike mono">' + moneyCents(pricing.list) + '</span>' +
-            '<span class="fee-amount mono' + (hasLimited ? ' fee-amount-muted' : '') + '">' + moneyCents(topPrice) + '</span>' +
-          '</div>' +
-          (hasLimited
-            ? '<span class="fee-savings-badge mono">Limited Time &mdash; Savings Total ' + money(pricing.current - pricing.coupon) + '</span>' +
-              '<span class="fee-amount fee-amount-final mono">' + moneyCents(pricing.coupon) + '</span>'
-            : "") +
-          '<span class="fee-coupon-note mono">W/ Coupon at Checkout</span>' +
-          '<div class="fee-box-sub"><span>Reset Fee</span><b>' + (pricing.resetFee ? (pricing.resetFee % 1 === 0 ? money(pricing.resetFee) : moneyCents(pricing.resetFee)) : "&mdash;") + '</b></div>' +
-        '</div>';
-    } else {
-      document.getElementById("feeBox").innerHTML =
-        '<div class="fee-box">' +
-          '<span class="fee-label">One-Time Payment</span>' +
-          '<span class="fee-amount mono">&mdash;</span>' +
-          '<span class="fee-note">Pricing for this plan, size' + (dllAvailable() ? " and Daily Loss Limit choice" : "") + ' isn’t verified here — check lucidtrading.com at checkout.</span>' +
-        '</div>';
-    }
-
-    document.getElementById("pricingActions").innerHTML =
-      '<button type="button" class="pricing-btn" id="fundedRulesBtn">Funded Rules</button>' +
-      '<a class="pricing-btn pricing-btn-accent" id="selectPlatformBtn" href="https://dash.lucidtrading.com/#/add-account" target="_blank" rel="noopener">Select Platform</a>';
-  }
-
   function renderCoPilot(){
-    var c = current();
-    var d = c.size;
-    var phase = state.phase;
-
-    document.querySelectorAll("#phaseToggle .opt-pill").forEach(function(btn){
-      btn.classList.toggle("active", btn.dataset.phase === phase);
-    });
-    document.getElementById("copilotTitle").textContent = phase === "funded" ? "Reach Your Next Payout" : "Pass the Evaluation";
-    document.getElementById("pnlLabel").textContent = phase === "funded" ? "Net P&L (cycle)" : "Net P&L";
-    document.getElementById("daysField").hidden = phase === "funded";
-    document.getElementById("qualDaysField").hidden = phase !== "funded";
-
-    var evalConsistencyPct = c.plan.consistency.eval;
-    var fundedConsistencyPct = c.plan.consistency.funded;
-    var thisPhaseConsistencyPct = phase === "funded" ? fundedConsistencyPct : evalConsistencyPct;
-    var bestDayField = document.getElementById("bestDayField");
-    bestDayField.hidden = !thisPhaseConsistencyPct;
-    document.querySelector("#bestDayField .hint").textContent = thisPhaseConsistencyPct
-      ? "Needed to check the " + thisPhaseConsistencyPct + "% consistency rule" + (phase === "funded" ? " for this payout cycle." : " during evaluation.")
+    var r = rules();
+    var consistencyPct = r.consistency;
+    document.getElementById("bestDayField").hidden = !consistencyPct;
+    document.querySelector("#bestDayField .hint").textContent = consistencyPct
+      ? "Needed to check the " + consistencyPct + "% consistency rule."
       : "";
 
-    var pnl = parseFloat(document.getElementById("pnlInput").value) || 0;
-    var effMll = d.mll;
-    var dllOn = dllActive();
-    var bestDay = thisPhaseConsistencyPct ? (parseFloat(document.getElementById("bestDayInput").value) || 0) : 0;
+    var pnl = num("pnlInput");
+    var effMll = r.mll;
+    var dllOn = r.dll > 0;
+    var bestDay = consistencyPct ? num("bestDayInput") : 0;
 
-    var winRatePct = Math.max(0, Math.min(100, parseFloat(document.getElementById("winRateInput").value) || 0));
+    var winRatePct = Math.max(0, Math.min(100, num("winRateInput")));
     var winRate = winRatePct / 100;
-    var avgR = Math.max(0, parseFloat(document.getElementById("avgRInput").value) || 0);
+    var avgR = Math.max(0, num("avgRInput"));
     var sampleN = Math.max(1, parseInt(document.getElementById("sampleNInput").value, 10) || 1);
-    var stopPoints = Math.max(0, parseFloat(document.getElementById("stopPointsInput").value) || 0);
-    var pointValue = Math.max(0, parseFloat(document.getElementById("pointValueInput").value) || 0);
+    var stopPoints = Math.max(0, num("stopPointsInput"));
+    var pointValue = Math.max(0, num("pointValueInput"));
 
     function coRow(label, value, cls){
       return '<div class="readout"><span class="rlabel">' + label + '</span><span class="rvalue' + (cls ? " " + cls : "") + '">' + value + '</span></div>';
@@ -1308,7 +926,7 @@
     var noEdge = kelly <= 0;
     var riskPct = noEdge ? 0 : Math.min(kelly * 0.5, 0.25);
     var maxRisk = room * riskPct;
-    var riskExceedsDll = dllOn && maxRisk > dllAmount();
+    var riskExceedsDll = dllOn && maxRisk > r.dll;
 
     // 4. Contracts: how many the stop/point value allow at that risk.
     var stopDollarsPerContract = stopPoints * pointValue;
@@ -1322,46 +940,27 @@
     var contractsRowValue = noEdge ? "&mdash;" : (stopMissing ? "Enter stop (points)" : (stopTooWide ? "0 &mdash; stop too wide, skip" : String(contracts)));
     var contractsRowCls = (noEdge || stopTooWide || stopMissing) ? "red" : "";
 
-    if (phase === "funded"){
-      var qualDays = Math.max(0, Math.min(5, parseInt(document.getElementById("qualDaysInput").value, 10) || 0));
-
-      var fundedConsistencyCeiling = fundedConsistencyPct ? Math.max(pnl, 1) * (fundedConsistencyPct / 100) : 0;
-      var fundedConsistencyBreach = !!fundedConsistencyPct && pnl > 0 && bestDay > fundedConsistencyCeiling;
-
-      renderAccountStatus("funded", pnl, effMll, { qualDays: qualDays, d: d, fundedConsistencyBreach: fundedConsistencyBreach, fundedConsistencyPct: fundedConsistencyPct });
-
-      readoutList.innerHTML =
-        coRow("Qualifying days banked", qualDays + " of 5") +
-        coRow("Daily minimum to qualify", money(d.dailyMin)) +
-        coRow("Room", money(room)) +
-        coRow("Max risk per trade", riskRowValue, riskRowCls) +
-        coRow("Contracts", contractsRowValue, contractsRowCls) +
-        (dllOn ? coRow("Daily Loss Limit (firm)", money(dllAmount()), "red") : "") +
-        (fundedConsistencyPct ? coRow("Max per day (consistency)", money(fundedConsistencyCeiling), fundedConsistencyBreach ? "red" : "") : "");
-      return;
-    }
-
     var days = Math.max(1, parseInt(document.getElementById("daysInput").value, 10) || 1);
 
-    var remaining = Math.max(0, d.target - pnl);
+    var remaining = Math.max(0, r.target - pnl);
     var perDay = remaining / days;
-    var perDayPctOfSize = (perDay / state.size) * 100;
+    var perDayPctOfSize = r.size > 0 ? (perDay / r.size) * 100 : 0;
 
     // Max per day (consistency): the most any single remaining session can
-    // add without pushing the eventual biggest day over the plan's
-    // consistency cap, projected against the final target — not just
-    // today's balance, since that's the total the rule actually judges.
-    var projectedFinal = remaining > 0 ? Math.max(d.target, pnl) : pnl;
-    var consistencyCeiling = evalConsistencyPct ? Math.max(projectedFinal, 1) * (evalConsistencyPct / 100) : 0;
-    var consistencyBreach = !!evalConsistencyPct && pnl > 0 && bestDay > consistencyCeiling;
-    var paceBreachesConsistency = !!evalConsistencyPct && perDay > consistencyCeiling;
+    // add without pushing the eventual biggest day over the consistency cap,
+    // projected against the final target — not just today's balance, since
+    // that's the total the rule actually judges.
+    var projectedFinal = remaining > 0 ? Math.max(r.target, pnl) : pnl;
+    var consistencyCeiling = consistencyPct ? Math.max(projectedFinal, 1) * (consistencyPct / 100) : 0;
+    var consistencyBreach = !!consistencyPct && pnl > 0 && bestDay > consistencyCeiling;
+    var paceBreachesConsistency = !!consistencyPct && perDay > consistencyCeiling;
 
     var paceLevel;
     if (paceBreachesConsistency || perDayPctOfSize > 2.5){ paceLevel = "red"; }
     else if (perDayPctOfSize > 1.2){ paceLevel = "amber"; }
     else { paceLevel = "good"; }
 
-    renderAccountStatus("eval", pnl, effMll, { remaining: remaining, consistencyBreach: consistencyBreach, d: d, fundedConsistencyPct: fundedConsistencyPct });
+    renderAccountStatus(pnl, effMll, { remaining: remaining, target: r.target, consistencyBreach: consistencyBreach, consistencyPct: consistencyPct });
 
     // 5. Days to pass: info only, never feeds back into risk sizing.
     var minDays = consistencyCeiling > 0 ? Math.ceil(remaining / consistencyCeiling) : days;
@@ -1369,41 +968,13 @@
 
     readoutList.innerHTML =
       coRow("Remaining to target", money(remaining)) +
-      (evalConsistencyPct ? coRow("Max per day (consistency)", money(consistencyCeiling), consistencyBreach ? "red" : "") : "") +
-      coRow("Required pace / day", money(perDay) + " &nbsp;(" + perDayPctOfSize.toFixed(2) + "% of size)", paceLevel === "red" ? "red" : (paceLevel === "amber" ? "amber" : "")) +
+      (consistencyPct ? coRow("Max per day (consistency)", money(consistencyCeiling), consistencyBreach ? "red" : "") : "") +
+      coRow("Required pace / day", money(perDay) + (r.size > 0 ? " &nbsp;(" + perDayPctOfSize.toFixed(2) + "% of size)" : ""), paceLevel === "red" ? "red" : (paceLevel === "amber" ? "amber" : "")) +
       (daysTooFew ? coRow("Days to pass", days + " &mdash; can't pass in under " + minDays + " days with the consistency rule", "red") : "") +
       coRow("Room", money(room)) +
       coRow("Max risk per trade", riskRowValue, riskRowCls) +
       coRow("Contracts", contractsRowValue, contractsRowCls) +
-      (dllOn ? coRow("Daily Loss Limit (firm)", money(dllAmount()), "red") : "");
-  }
-
-  var planTabsRenderedOnce = false;
-  function renderAccountSelector(){
-    document.querySelectorAll("#planTabs button").forEach(function(btn){
-      btn.classList.toggle("active", btn.dataset.plan === state.plan);
-    });
-    layoutSegThumb(document.getElementById("planTabs"), !planTabsRenderedOnce);
-    planTabsRenderedOnce = true;
-    var select = document.getElementById("sizeSelect");
-    select.innerHTML = SIZE_ORDER.map(function(size){
-      return '<option value="' + size + '"' + (size === state.size ? ' selected' : '') + '>$' + (size/1000) + 'K account</option>';
-    }).join("");
-
-    var disclaimerText = PLAN_DISCLAIMERS[state.plan];
-    ["importCard", "edgeCurveCard", "guideStatsCard"].forEach(function(id){
-      var el = document.getElementById(id);
-      if (el) el.hidden = !!disclaimerText;
-    });
-    document.getElementById("guideExtras").hidden = !!disclaimerText;
-    document.querySelector('.collapse-btn[data-card="snapshotCard"]').hidden = !!disclaimerText;
-    if (disclaimerText){
-      document.getElementById("snapshotCardBody").hidden = true;
-    } else {
-      document.getElementById("snapshotCardBody").hidden = !!state.collapsed.snapshotCard;
-    }
-    document.getElementById("planDisclaimer").hidden = !disclaimerText;
-    if (disclaimerText) document.getElementById("planDisclaimerText").textContent = disclaimerText;
+      (dllOn ? coRow("Daily Loss Limit", money(r.dll), riskExceedsDll ? "red" : "") : "");
   }
 
   var lastCsvDays = null;
@@ -1580,91 +1151,17 @@
   }
 
   function renderAll(){
-    renderSnapshotCard();
     renderCoPilot();
-    renderAccountSelector();
     renderGuideEdgeChart();
     renderGuideStats();
   }
 
-  document.getElementById("snapshotCardBody").addEventListener("click", function(e){
-    if (e.target.dataset.dll !== undefined){
-      setDllOn(e.target.dataset.dll === "on");
-      renderSnapshotCard();
-      renderCoPilot();
-      saveState();
-      return;
-    }
-    if (e.target.dataset.drawdown !== undefined){
-      setDrawdown(e.target.dataset.drawdown);
-      renderSnapshotCard();
-      saveState();
-      return;
-    }
-    if (e.target.id === "fundedRulesBtn"){
-      state.snapshotView = "funded";
-      renderSnapshotCard();
-      saveState();
-      return;
-    }
-    if (e.target.id === "backToPricingBtn"){
-      state.snapshotView = "eval";
-      renderSnapshotCard();
-      saveState();
-      return;
-    }
-    if (e.target.classList.contains("info-dot")){
-      e.target.closest(".scaling-wrap").classList.toggle("show");
-      return;
-    }
-  });
-  document.addEventListener("click", function(e){
-    document.querySelectorAll(".scaling-wrap.show").forEach(function(w){
-      if (!w.contains(e.target)) w.classList.remove("show");
-    });
-  });
-  document.getElementById("phaseToggle").addEventListener("click", function(e){
-    if (e.target.dataset.phase !== undefined){
-      state.phase = e.target.dataset.phase;
-      renderCoPilot();
-      saveState();
-    }
-  });
-  ["pnlInput","daysInput","bestDayInput","qualDaysInput","winRateInput","avgRInput","sampleNInput","stopPointsInput","pointValueInput"].forEach(function(id){
+  FIELD_IDS.forEach(function(id){
     document.getElementById(id).addEventListener("input", function(){
       renderCoPilot();
       saveState();
+      if (RULE_IDS.indexOf(id) !== -1) pushRulesSoon();
     });
-  });
-
-  // Account selector — plan tabs + size dropdown
-  document.getElementById("planTabs").addEventListener("click", function(e){
-    var btn = e.target.closest("button[data-plan]");
-    if (!btn) return;
-    state.plan = btn.dataset.plan;
-    state.snapshotView = "eval";
-    renderAll();
-    saveState();
-    pushCockpitToAccount();
-  });
-  document.getElementById("sizeSelect").addEventListener("change", function(e){
-    state.size = parseInt(e.target.value, 10);
-    state.snapshotView = "eval";
-    renderAll();
-    saveState();
-    pushCockpitToAccount();
-  });
-
-  // Seg-thumb widths/positions are computed in px at render time, so a
-  // viewport resize (which reflows the buttons but doesn't re-render) needs
-  // to re-snap them without animating.
-  var resizeSegTimer = null;
-  window.addEventListener("resize", function(){
-    clearTimeout(resizeSegTimer);
-    resizeSegTimer = setTimeout(function(){
-      layoutSegThumb(document.getElementById("planTabs"), true);
-      layoutSegThumb(document.querySelector("#statList .dll-toggle"), true);
-    }, 100);
   });
 
   // CSV import — everything happens locally in the browser, nothing is ever
@@ -1838,39 +1335,29 @@
     if (file) handleCsvFile(file);
   });
 
-  function applyUrlParams(){
-    var params = new URLSearchParams(window.location.search);
-    var plan = params.get("plan");
-    var size = parseInt(params.get("size"), 10);
-    if (plan && PLANS[plan] && PLANS[plan].sizes[size]){
-      state.plan = plan;
-      state.size = size;
-      saveState();
-      pushCockpitToAccount();
-    }
-  }
-
   loadState();
-  applyUrlParams();
   renderAll();
   CARD_IDS.forEach(function(id){ setCardCollapsed(id, !!state.collapsed[id]); });
-  syncCockpitFromAccount();
+  syncRulesFromAccount();
   if (window.EZAuth) {
     EZAuth.onChange(function(loggedIn){
-      if (loggedIn) syncCockpitFromAccount();
-      else resetCockpitToDefault();
+      if (loggedIn) syncRulesFromAccount();
+      else resetToDefault();
     });
   }
 
   // Lets the shared coach widget (coach.js) answer questions about the
-  // trader's currently selected plan and account size.
+  // trader's account rules.
   window.EZPageContext = function(){
-    var plan = PLANS[state.plan];
+    var r = rules();
     return {
       pageName: "Guide",
       data: {
-        selectedPlan: plan ? plan.name : state.plan,
-        selectedSize: "$" + (state.size / 1000) + "K"
+        accountSize: money(r.size),
+        profitTarget: money(r.target),
+        maxLossLimit: money(r.mll),
+        dailyLossLimit: r.dll ? money(r.dll) : "none",
+        consistencyRule: r.consistency ? r.consistency + "%" : "none"
       }
     };
   };

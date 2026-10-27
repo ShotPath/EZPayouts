@@ -196,7 +196,11 @@
   .ticker-section{ padding:54px 0; border-top:1px solid var(--border-soft); border-bottom:1px solid var(--border-soft); background:rgba(7,9,17,0.5); margin-top:76px; }
   .ticker-label{ text-align:center; font-family:var(--font-mono); font-size:10.5px; font-weight:700; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted-dim); margin:0 0 26px; }
   .ticker-track-wrap{ overflow:hidden; mask-image:linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent); -webkit-mask-image:linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent); }
-  .ticker-track{ display:flex; width:max-content; gap:64px; animation:ticker-scroll 28s linear infinite; }
+  /* Two identical groups, each at least as wide as the screen, so the loop
+     never shows an empty stretch; each group ends with the same gap as
+     between names, so sliding exactly one group lines up seamlessly. */
+  .ticker-track{ display:flex; width:max-content; animation:ticker-scroll 28s linear infinite; }
+  .ticker-group{ display:flex; flex:none; gap:64px; padding-right:64px; }
   .ticker-track span{ font-family:var(--font-sans); font-weight:800; font-size:14px; letter-spacing:0.01em; color:var(--muted); white-space:nowrap; opacity:0.75; }
   @keyframes ticker-scroll{ 0%{ transform:translateX(0); } 100%{ transform:translateX(-50%); } }
 
@@ -405,9 +409,8 @@
   <section class="ticker-section" id="prop-firms-ticker">
     <p class="ticker-label">Supported Evaluation Infrastructures &amp; Data Sources</p>
     <div class="ticker-track-wrap">
-      <div class="ticker-track">
-        <span>LUCID TRADING LIVE</span><span>TOPSTEP</span><span>TRADEIFY</span><span>FUNDEDNEXT</span><span>MY FUNDED FUTURES</span>
-        <span>LUCID TRADING LIVE</span><span>TOPSTEP</span><span>TRADEIFY</span><span>FUNDEDNEXT</span><span>MY FUNDED FUTURES</span>
+      <div class="ticker-track" id="tickerTrack">
+        <div class="ticker-group"><span>LUCID TRADING LIVE</span><span>TOPSTEP</span><span>TRADEIFY</span><span>FUNDEDNEXT</span><span>MY FUNDED FUTURES</span></div>
       </div>
     </div>
   </section>
@@ -533,6 +536,29 @@
 <script>
 (function(){
   "use strict";
+
+  // ---------- Trust ticker: fill the screen width, then loop two copies ----------
+  (function(){
+    var track = document.getElementById("tickerTrack");
+    if (!track) return;
+    var group = track.firstElementChild, names = [].slice.call(group.children);
+    function fill(){
+      while (track.children.length > 1) track.removeChild(track.lastChild);
+      while (group.children.length > names.length) group.removeChild(group.lastChild);
+      var need = Math.max(window.innerWidth, 800);
+      for (var i = 0; group.scrollWidth < need && i < 20; i++){
+        names.forEach(function(n){ group.appendChild(n.cloneNode(true)); });
+      }
+      var copy = group.cloneNode(true);
+      copy.setAttribute("aria-hidden", "true");
+      track.appendChild(copy);
+    }
+    fill();
+    var lastW = window.innerWidth;
+    window.addEventListener("resize", function(){
+      if (window.innerWidth > lastW){ lastW = window.innerWidth; fill(); }
+    });
+  })();
 
   document.getElementById("footerYear").textContent = new Date().getFullYear();
 
