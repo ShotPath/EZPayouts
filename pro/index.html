@@ -131,9 +131,10 @@
     <div class="row" role="row"><span>Order tags: Modern, Frosted Glass and every other look and color</span><span class="no">–</span><span class="yes">✓</span></div>
     <div class="row" role="row"><span>Long/Short Position themes</span><span class="no">–</span><span class="yes">✓</span></div>
   </div>
-  <p class="fine">Payments are handled by Stripe; EZPayouts never sees your card. Manage or cancel anytime from this page. Pro covers the Chart Skins extension on any computer you sign in on.</p>
+  <p class="fine">Payments are handled by Stripe; EZPayouts never sees your card. Manage or cancel anytime from this page. Pro covers the Chart Skins extension on any computer you sign in on. Don't have the extension yet? <a href="/skins/">Get Chart Skins</a>.</p>
 </main>
 
+<script src="/skins/store.js"></script>
 <script src="../account.js"></script>
 <script>
 (function () {
@@ -148,6 +149,12 @@
     else ext = sessionStorage.getItem("ezProExt");
   } catch (err) {}
   if (ext && !/^[a-p]{32}$/.test(ext)) ext = null;
+  // Without that id, try the Chrome Web Store version: quietly, since the
+  // visitor may not have the extension yet.
+  var quietLink = false;
+  if (!ext && window.EZ_STORE && /^[a-p]{32}$/.test(EZ_STORE.id)) { ext = EZ_STORE.id; quietLink = true; }
+  // From the Chart Skins page's plan buttons: go straight to checkout once signed in.
+  var wantPlan = /^(month|year)$/.test(params.get("plan") || "") ? params.get("plan") : null;
 
   var noticeEl = document.getElementById("notice"), noticeText = document.getElementById("noticeText");
   var plansEl = document.getElementById("plans"), manageEl = document.getElementById("manage");
@@ -202,17 +209,27 @@
     if (!EZAuth.isLoggedIn()) {
       status = null;
       render();
-      notice(ext ? "Sign in (top right) to connect the extension and get Pro." : "", ext ? "warn" : "");
+      var ask = (ext && !quietLink) || wantPlan;
+      notice(ask ? "Sign in (top right) to " + (wantPlan ? "get Pro." : "connect the extension and get Pro.") : "", ask ? "warn" : "");
       return Promise.resolve();
     }
     return api("/billing/status").then(function (s) {
       status = s._status === 200 ? s : null;
       render();
+      if (wantPlan && status && !status.pro) {
+        var plan = wantPlan;
+        wantPlan = null;
+        startCheckout(plan);
+        return null;
+      }
+      wantPlan = null;
       return linkExtension();
     }).then(function (linked) {
       var pro = !!(status && status.pro);
+      if (busy) return;
       if (linked) notice("Extension connected" + (pro ? ": Pro is on. Every look now works on your chart." : ". Get Pro below to unlock every look."), pro ? "good" : "");
-      else if (linked === false) notice("Couldn't reach the extension. Open this page from the extension's <b>Go Pro</b> button.", "warn");
+      else if (linked === false && !quietLink) notice("Couldn't reach the extension. Open this page from the extension's <b>Go Pro</b> button.", "warn");
+      else if (linked === false && pro) notice("Pro is on. To use it on your chart, click <b>Go Pro</b> in the extension once to connect it. No extension yet? <a href=\"/skins/\">Get Chart Skins</a>.", "good");
       else if (params.get("paid") && !pro) notice("Payment received. Turning on Pro…", "good");
       else if (pro) notice("", "");
     });
@@ -230,9 +247,13 @@
   document.getElementById("plans").addEventListener("click", function (e) {
     var b = e.target.closest("[data-plan]");
     if (!b || busy) return;
-    if (!EZAuth.isLoggedIn()) { EZAuth.openSignIn(); return; }
+    if (!EZAuth.isLoggedIn()) { wantPlan = b.getAttribute("data-plan"); EZAuth.openSignIn(); return; }
+    startCheckout(b.getAttribute("data-plan"));
+  });
+  function startCheckout(plan) {
     busy = true; render();
-    api("/billing/checkout", { method: "POST", body: { plan: b.getAttribute("data-plan") } }).then(function (res) {
+    notice("Opening Stripe's checkout…", "");
+    api("/billing/checkout", { method: "POST", body: { plan: plan } }).then(function (res) {
       if (res.url) { location.href = res.url; return; }
       busy = false; render();
       notice(res.error || "Couldn't start checkout. Try again in a moment.", "warn");
@@ -240,7 +261,7 @@
       busy = false; render();
       notice("Couldn't reach the server. Check your connection and try again.", "warn");
     });
-  });
+  }
   document.getElementById("manageBtn").addEventListener("click", function () {
     var b = this;
     b.disabled = true;
@@ -252,6 +273,7 @@
 
   EZAuth.onChange(function () { refresh(); });
   if (params.get("paid")) waitForPro(8); else refresh();
+  if (wantPlan && !EZAuth.isLoggedIn()) EZAuth.openSignIn();
 })();
 </script>
 </body>
