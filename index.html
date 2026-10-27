@@ -97,18 +97,6 @@
   @media (max-width:860px){ .navlinks{ display:none; } }
 
   .navcta{ display:flex; align-items:center; gap:16px; flex:none; }
-  .nav-signin{
-    background:none; border:none; font-family:var(--font-sans); font-weight:700; font-size:12.5px;
-    color:var(--muted); cursor:pointer; transition:color .15s; white-space:nowrap;
-  }
-  .nav-signin:hover{ color:var(--ice); }
-  .nav-username{
-    display:inline-flex; align-items:center; text-decoration:none; white-space:nowrap;
-    padding:7px 13px; border-radius:999px; background:rgba(255,255,255,0.04); border:1px solid var(--border-bright);
-    font-family:var(--font-mono); font-weight:600; font-size:12px; color:var(--ice); transition:border-color .15s, background .15s;
-  }
-  .nav-username:hover{ border-color:var(--cyan2); background:rgba(0,210,255,0.08); }
-  .nav-username b{ color:var(--cyan2); font-weight:600; }
   .btn-gradient-sm{
     display:inline-flex; align-items:center; gap:6px; text-decoration:none; white-space:nowrap;
     padding:9px 18px; border-radius:10px; border:none;
@@ -377,7 +365,7 @@
         <a href="/skins/">Chart Skins</a>
       </nav>
       <div class="navcta">
-        <button type="button" class="nav-signin" id="navSignIn">Sign In</button>
+        <div id="authWidget" data-style="name"></div>
         <a class="btn-gradient-sm" href="journal/">Open App</a>
       </div>
     </div>
@@ -567,31 +555,8 @@
 
   document.getElementById("footerYear").textContent = new Date().getFullYear();
 
-  // ---------- Sign-in button: reflects live auth state, no sidebar needed ----------
-  var signInBtn = document.getElementById("navSignIn");
-  function renderAuthState(){
-    if (!window.EZAuth || !signInBtn) return;
-    if (EZAuth.isLoggedIn()){
-      signInBtn.innerHTML = "";
-      var at = document.createElement("b"); at.textContent = "@";
-      signInBtn.appendChild(at);
-      signInBtn.appendChild(document.createTextNode(EZAuth.getUsername() || "account"));
-      signInBtn.className = "nav-username";
-      signInBtn.title = "Open the app";
-      signInBtn.onclick = function(){ location.href = "/dashboard/"; };
-    } else {
-      signInBtn.textContent = "Sign In";
-      signInBtn.className = "nav-signin";
-      signInBtn.removeAttribute("title");
-      signInBtn.onclick = function(){ EZAuth.openSignIn(); };
-    }
-  }
-  if (window.EZAuth){
-    renderAuthState();
-    EZAuth.onChange(renderAuthState);
-  } else if (signInBtn){
-    signInBtn.addEventListener("click", function(){ if (window.EZAuth) EZAuth.openSignIn(); });
-  }
+  // Sign In, or @username with the account menu (account.js).
+  if (window.EZAuth) EZAuth.mountWidget("authWidget");
 
   // ---------- Floating console mockup: a real mini calendar grid for the
   // current month, one cell lit up as a sample win, so the hero graphic
