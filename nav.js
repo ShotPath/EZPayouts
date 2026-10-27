@@ -62,8 +62,7 @@
   }
 
   // The public marketing page. Deliberately NOT in NAV_ITEMS/NAV_SECTIONS —
-  // it's reachable only by visiting "/" directly (or the brand logo while
-  // already on the marketing page itself), never from inside the app. It's
+  // it's reached by visiting "/" or from the sidebar's logo. It's
   // kept here as its own item so detectActiveItem() can still resolve "/"
   // to it correctly (see the explicit fallback below) even though it won't
   // render as a sidebar link.
@@ -73,8 +72,7 @@
   };
 
   // Main flat nav group, rendered first, no divider above it — the app's
-  // home base once you're inside the workspace (the brand logo links here
-  // too, not back out to the marketing page — see buildHeader).
+  // home base once you're inside the workspace.
   var NAV_ITEMS = [
     {
       slug: "dashboard", href: "/dashboard/", label: "Dashboard",
@@ -597,9 +595,8 @@
       "</span>";
     }
 
-    // Inside the app the logo stays inside the app: it goes to the
-    // Dashboard, not back out to the public marketing page.
-    nav.innerHTML = '<a class="ez-sidebar-brand" href="/dashboard/" aria-label="EZPayouts dashboard">' +
+    // The logo goes back out to the home page (ezpayouts.xyz).
+    nav.innerHTML = '<a class="ez-sidebar-brand" href="/" aria-label="EZPayouts home">' +
         '<img src="/ezpayouts-icon-only.png" alt="EZ" />' +
         '<span class="ez-sidebar-label">EZPayouts</span>' +
       "</a>" +

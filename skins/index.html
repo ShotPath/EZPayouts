@@ -66,6 +66,20 @@
     font-weight:800; font-size:12.5px; box-shadow:0 0 15px rgba(0,210,255,0.35); transition:filter .15s;
   }
   .btn-sm:hover{ filter:brightness(1.1); }
+  .navcta{ display:flex; align-items:center; gap:14px; flex:none; }
+  .nav-signin{
+    background:none; border:none; font-family:var(--font-sans); font-weight:700; font-size:12.5px;
+    color:var(--muted); cursor:pointer; transition:color .15s; white-space:nowrap;
+  }
+  .nav-signin:hover{ color:var(--ice); }
+  .nav-username{
+    display:inline-flex; align-items:center; white-space:nowrap; cursor:pointer;
+    padding:7px 13px; border-radius:999px; background:rgba(255,255,255,0.04); border:1px solid var(--border-bright);
+    font-family:var(--font-mono); font-weight:600; font-size:12px; color:var(--ice); transition:border-color .15s, background .15s;
+  }
+  .nav-username:hover{ border-color:var(--cyan2); background:rgba(0,210,255,0.08); }
+  .nav-username b{ color:var(--cyan2); font-weight:600; }
+  @media (max-width:420px){ .nav-username, .nav-signin{ display:none; } }
 
   /* ---------- Hero: the Long Position showcase fills the screen, words on top ---------- */
   .hero{ position:relative; min-height:min(90vh, 880px); display:flex; flex-direction:column; justify-content:flex-end; overflow:hidden; isolation:isolate; }
@@ -209,7 +223,10 @@
       <a href="#pro">Pro</a>
       <a href="/journal/">Open App</a>
     </nav>
-    <a class="btn-sm" href="ezpayouts-chart-skins.zip" download data-install>Download</a>
+    <div class="navcta">
+      <button type="button" class="nav-signin" id="navSignIn">Sign In</button>
+      <a class="btn-sm" href="ezpayouts-chart-skins.zip" download data-install>Download</a>
+    </div>
   </div>
 </header>
 
@@ -308,6 +325,7 @@
   </div>
 </footer>
 
+<script src="/account.js"></script>
 <script src="/skins/store.js"></script>
 <script src="/extension/shared/chrome-gl.js"></script>
 <script src="/extension/shared/scenes.js"></script>
@@ -316,6 +334,27 @@
 (function(){
   "use strict";
   document.getElementById("footerYear").textContent = new Date().getFullYear();
+
+  // Sign In, or once signed in, @username (opens the app).
+  var signInBtn = document.getElementById("navSignIn");
+  function renderAuthState(){
+    if (!window.EZAuth) return;
+    if (EZAuth.isLoggedIn()){
+      signInBtn.innerHTML = "";
+      var at = document.createElement("b"); at.textContent = "@";
+      signInBtn.appendChild(at);
+      signInBtn.appendChild(document.createTextNode(EZAuth.getUsername() || "account"));
+      signInBtn.className = "nav-username";
+      signInBtn.title = "Open the app";
+      signInBtn.onclick = function(){ location.href = "/dashboard/"; };
+    } else {
+      signInBtn.textContent = "Sign In";
+      signInBtn.className = "nav-signin";
+      signInBtn.removeAttribute("title");
+      signInBtn.onclick = function(){ EZAuth.openSignIn(); };
+    }
+  }
+  if (window.EZAuth){ renderAuthState(); EZAuth.onChange(renderAuthState); }
 
   // Chrome Web Store: "Add to Chrome" once the listing is live (skins/store.js).
   var storeUrl = window.EZ_STORE && EZ_STORE.url;

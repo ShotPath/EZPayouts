@@ -102,7 +102,13 @@
     color:var(--muted); cursor:pointer; transition:color .15s; white-space:nowrap;
   }
   .nav-signin:hover{ color:var(--ice); }
-  .nav-username{ font-family:var(--font-mono); font-size:12px; color:var(--mint); white-space:nowrap; }
+  .nav-username{
+    display:inline-flex; align-items:center; text-decoration:none; white-space:nowrap;
+    padding:7px 13px; border-radius:999px; background:rgba(255,255,255,0.04); border:1px solid var(--border-bright);
+    font-family:var(--font-mono); font-weight:600; font-size:12px; color:var(--ice); transition:border-color .15s, background .15s;
+  }
+  .nav-username:hover{ border-color:var(--cyan2); background:rgba(0,210,255,0.08); }
+  .nav-username b{ color:var(--cyan2); font-weight:600; }
   .btn-gradient-sm{
     display:inline-flex; align-items:center; gap:6px; text-decoration:none; white-space:nowrap;
     padding:9px 18px; border-radius:10px; border:none;
@@ -368,7 +374,6 @@
       <nav class="navlinks">
         <a href="#prop-firms">Prop Firms</a>
         <a href="#traders">Funded Traders</a>
-        <a href="/calendar/?view=econ">Economic Calendar</a>
         <a href="/skins/">Chart Skins</a>
       </nav>
       <div class="navcta">
@@ -567,12 +572,17 @@
   function renderAuthState(){
     if (!window.EZAuth || !signInBtn) return;
     if (EZAuth.isLoggedIn()){
-      signInBtn.textContent = "@" + (EZAuth.getUsername() || "account");
+      signInBtn.innerHTML = "";
+      var at = document.createElement("b"); at.textContent = "@";
+      signInBtn.appendChild(at);
+      signInBtn.appendChild(document.createTextNode(EZAuth.getUsername() || "account"));
       signInBtn.className = "nav-username";
-      signInBtn.onclick = null;
+      signInBtn.title = "Open the app";
+      signInBtn.onclick = function(){ location.href = "/dashboard/"; };
     } else {
       signInBtn.textContent = "Sign In";
       signInBtn.className = "nav-signin";
+      signInBtn.removeAttribute("title");
       signInBtn.onclick = function(){ EZAuth.openSignIn(); };
     }
   }
