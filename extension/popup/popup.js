@@ -77,9 +77,14 @@
       b.title = t.id === "match" ? "Match wallpaper (" + p.label + " for this one)" : t.label;
       grid.appendChild(b);
     });
-    var P = EZSkins.posTheme(settings), box = $("posPreview");
-    [["pc90", P.c, 0.9], ["pc60", P.c, 0.6], ["pc55", P.c, 0.55], ["pc50", P.c, 0.5], ["pc20", P.c, 0.2], ["pc16", P.c, 0.16], ["pc2", P.c2, 1]]
+    var P = EZSkins.posTheme(settings), box = $("posPreview"), a = P.a || 0.3;
+    [["pc", P.c, 1], ["pc85", P.c, 0.85], ["pc75", P.c, 0.75], ["pc60", P.c, 0.6], ["pc35", P.c, 0.35], ["pc2", P.c2, 1], ["pc2_90", P.c2, 0.9],
+      ["pta1", P.c, a * 1.15], ["pta2", P.c, a * 0.8], ["pstop", hexMix(P.c, "#05070c", 0.82), 0.62],
+      ["pcl", hexMix(P.c, "#ffffff", 0.4), 1], ["pcd", hexMix(P.c, "#000000", 0.22), 1]]
       .forEach(function (v) { box.style.setProperty("--" + v[0], rgba(v[1], v[2])); });
+    var n = parseInt(P.c.slice(1), 16);
+    box.style.setProperty("--ptink", (0.2126 * (n >> 16) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255 > 0.62 ? "#14171f" : "#ffffff");
+    box.classList.toggle("glint", !!P.glint);
     var skin = EZSkins.byId(settings.skin);
     var thumb = !settings.enabled || !skin ? null
       : skin.type === "liquid" || skin.type === "scene" ? liveThumbs[skin.id] : skin.type === "custom" ? (custom && custom.thumb) : skin.thumb;

@@ -54,15 +54,16 @@ var EZSkins = (function () {
   ];
   // Long/Short Position tool themes (content/page-hook.js draws the tool's
   // zones, lines and labels in them): c lights the target and the frame,
-  // c2 the entry line and the sparks. "Match wallpaper" picks by wallpaper.
+  // c2 the entry line; a is how strongly the target is lit; glint puts a
+  // star on each corner. "Match wallpaper" picks by wallpaper.
   var POS_THEMES = [
     { id: "match", label: "Match wallpaper" },
-    { id: "starry", label: "Starry Space", c: "#4c8dff", c2: "#a9c8ff" },
-    { id: "ember", label: "Ember & Ash", c: "#ff7a2f", c2: "#ffc27a" },
-    { id: "blackhole", label: "Black Hole", c: "#e3a83f", c2: "#ffe2a0" },
-    { id: "silk", label: "Silk & Satin", c: "#cfd6e2", c2: "#ffffff" },
-    { id: "matrix", label: "Matrix", c: "#22d96b", c2: "#9dffc6" },
-    { id: "sakura", label: "Sakura", c: "#ff8fbd", c2: "#ffd3e6" }
+    { id: "starry", label: "Starry Space", c: "#4d8dff", c2: "#b8d2ff", a: 0.3, glint: true },
+    { id: "ember", label: "Ember & Ash", c: "#ff7a2f", c2: "#ffc27a", a: 0.32 },
+    { id: "blackhole", label: "Black Hole", c: "#e3a83f", c2: "#ffe2a0", a: 0.3 },
+    { id: "silk", label: "Silk & Satin", c: "#d4d9e2", c2: "#ffffff", a: 0.1 },
+    { id: "matrix", label: "Matrix", c: "#22d96b", c2: "#9dffc6", a: 0.3 },
+    { id: "sakura", label: "Sakura", c: "#ff9cc4", c2: "#ffd6e7", a: 0.32 }
   ];
   var POS_MATCH = { "liquid-chrome": "silk", sakura: "sakura", twinkle: "starry", matrix: "matrix", "black-hole": "blackhole", embers: "ember" };
   function posPalette(id, skinId) {
@@ -71,7 +72,7 @@ var EZSkins = (function () {
   }
   function posTheme(s) {
     var p = posPalette(s.posTheme, s.skin);
-    return { id: p.id, c: p.c, c2: p.c2 };
+    return { id: p.id, c: p.c, c2: p.c2, a: p.a, glint: !!p.glint };
   }
   function findIn(list, id) {
     for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];

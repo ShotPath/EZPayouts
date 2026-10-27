@@ -167,7 +167,7 @@
     var s = tagState.get(ctx);
     if (!s) {
       s = { depth: 0, tagDepth: -1, tagCls: null, tinted: false, grp: null, axis: isAxis(ctx.canvas),
-        path: { n: 0, arcs: 0, r: 0, circle: 0, x0: 0, y0: 0, x1: 0, y1: 0 } };
+        path: { n: 0, arcs: 0, r: 0, circle: 0, slant: 0, lx: 0, ly: 0, x0: 0, y0: 0, x1: 0, y1: 0 } };
       tagState.set(ctx, s);
     }
     return s;
@@ -299,13 +299,18 @@
   };
   var origBeginPath = proto.beginPath;
   proto.beginPath = function () {
-    if (tracking(this)) { var p = stateOf(this).path; p.n = 0; p.arcs = 0; p.r = 0; p.circle = 0; }
+    if (tracking(this)) { var p = stateOf(this).path; p.n = 0; p.arcs = 0; p.r = 0; p.circle = 0; p.slant = 0; }
     return origBeginPath.apply(this, arguments);
   };
   ["moveTo", "lineTo"].forEach(function (name) {
     var orig = proto[name];
     proto[name] = function (x, y) {
-      if (tracking(this)) addPoint(stateOf(this).path, x, y);
+      if (tracking(this)) {
+        var p = stateOf(this).path;
+        // A segment neither level nor upright (an arrow, not a box's side).
+        if (name === "lineTo" && p.n && Math.abs(x - p.lx) > 1 && Math.abs(y - p.ly) > 1) p.slant++;
+        addPoint(p, x, y); p.lx = x; p.ly = y;
+      }
       return orig.apply(this, arguments);
     };
   });
@@ -1311,11 +1316,14 @@
   // price has run through so far, its target zone (see-through boxes, the
   // two zones sharing the entry line), then the arrow, the entry, stop and
   // target lines, and (selected, or with its stats shown) its labels and
-  // handles. With a position theme on (data-ez-pos), the zones, lines and
-  // labels are drawn in the theme instead: a glowing frame, the target
-  // lit in the theme's color, the stop smoked, a dashed entry line, pill
-  // labels. The arrow and handles stay TradingView's. Boxes that don't
-  // turn out to be the two zones are drawn as they were.
+  // handles. Two boxes like that are only taken for the tool once its
+  // arrow or entry line follows (an indicator's stacked boxes have
+  // neither), and are otherwise drawn as they were. With a position theme
+  // on (data-ez-pos) the tool is drawn in it: a rounded frame glowing in
+  // the theme's color, the target lit in it, the stop a dark tint of it, a
+  // dashed entry line, and pill labels: the target's filled in the color,
+  // the entry's dark with a glowing edge, the stop's dim. The arrow fades;
+  // the handles stay TradingView's.
   function posZone(ctx, w, h) {
     if (Math.abs(w) < 3 || Math.abs(h) < 3) return false;
     var c = typeof ctx.fillStyle === "string" ? classify(ctx.fillStyle) : null;
@@ -1323,7 +1331,7 @@
   }
   function beginTool(ctx, st) {
     st.tagDepth = Math.max(1, st.depth - 2); st.tagCls = null; st.tinted = false;
-    st.grp = { tool: true, mode: "tool?", s: Math.abs(ctx.getTransform().a) || 1, rects: [], labels: [], arrows: 0 };
+    st.grp = { tool: true, mode: "tool?", s: Math.abs(ctx.getTransform().a) || 1, rects: [], labels: [] };
   }
   function sameZoneSide(a, b) {
     return Math.abs(a.x0 - b.x0) <= 1.5 && Math.abs(a.x1 - b.x1) <= 1.5 &&
@@ -1338,47 +1346,69 @@
     });
     g.rects = [];
   }
+  function giveUp(ctx, g, orig, args) {
+    replayRects(ctx, g);
+    g.mode = "native";
+    return orig.apply(ctx, args);
+  }
   function toolOp(ctx, st, kind, orig, args) {
-    var g = st.grp;
+    var g = st.grp, p = st.path, d;
     if (g.mode === "native") return orig.apply(ctx, args);
     if (g.mode === "tool?") {
-      if (kind === "rect") {
-        var r = rectOf(ctx, args);
-        g.rects.push({ rect: r, m: ctx.getTransform(), style: ctx.fillStyle, alpha: ctx.globalAlpha, args: [].slice.call(args) });
-        for (var i = 0; i < g.rects.length - 1; i++) {
-          if (sameZoneSide(g.rects[i].rect, r)) {
-            // The stop zone comes first, the target zone after it.
-            g.stop = g.rects[i].rect; g.target = r; g.mode = "tool";
-            g.extra = g.rects.filter(function (h) { return h.rect !== g.stop && h.rect !== g.target; }).map(function (h) { return h.rect; });
-            g.rects = [];
-            drawZones(ctx, g);
-            return;
-          }
+      // Boxes, until two of them make the zones.
+      if (kind !== "rect") return giveUp(ctx, g, orig, args);
+      var r = rectOf(ctx, args);
+      g.rects.push({ rect: r, m: ctx.getTransform(), style: ctx.fillStyle, alpha: ctx.globalAlpha, args: [].slice.call(args) });
+      for (var i = 0; i < g.rects.length - 1; i++) {
+        if (sameZoneSide(g.rects[i].rect, r)) {
+          // The stop zone comes first, the target zone after it.
+          var S = g.rects[i].rect;
+          g.stop = S; g.target = r;
+          g.up = r.y1 <= S.y0 + 1.5;              // target above: a long
+          g.entry = g.up ? r.y1 : r.y0;
+          g.frame = { x0: Math.min(S.x0, r.x0), x1: Math.max(S.x1, r.x1), y0: Math.min(S.y0, r.y0), y1: Math.max(S.y1, r.y1) };
+          g.mode = "tool!";
+          return;
         }
-        if (g.rects.length > 12) { replayRects(ctx, g); g.mode = "native"; }
+      }
+      if (g.rects.length > 12) { replayRects(ctx, g); g.mode = "native"; }
+      return;
+    }
+    var box = g.frame;
+    if (g.mode === "tool!") {
+      // The zones: the tool's, if its arrow or entry line comes next.
+      if (kind === "rect") {
+        var pr = rectOf(ctx, args);
+        if (!inside(pr, box)) return giveUp(ctx, g, orig, args);
+        g.rects.push({ rect: pr, m: ctx.getTransform(), style: ctx.fillStyle, alpha: ctx.globalAlpha, args: [].slice.call(args) });
         return;
       }
-      replayRects(ctx, g);
-      g.mode = "native";
-      return orig.apply(ctx, args);
+      if (kind !== "stroke" || args.length) return giveUp(ctx, g, orig, args);
+      d = devRect(ctx, p);
+      var level = d.y1 - d.y0 < 2 && Math.abs((d.y0 + d.y1) / 2 - g.entry) <= 2 * g.s && d.x1 - d.x0 >= (box.x1 - box.x0) * 0.9;
+      var arrowLine = p.slant > 0 && inside(d, box);
+      if (!level && !arrowLine) return giveUp(ctx, g, orig, args);
+      g.extra = g.rects.filter(function (h) { return h.rect !== g.stop && h.rect !== g.target; }).map(function (h) { return h.rect; });
+      g.rects = [];
+      g.mode = "tool";
+      drawZones(ctx, g);
     }
-    // Found: its lines and labels are noted for the end; the rest is drawn.
-    var box = g.frame, p = tagState.get(ctx).path;
+    // The tool: its lines and labels are noted for the end; the rest drawn.
     if (kind === "rect") {
       var rr0 = rectOf(ctx, args);
       if (inside(rr0, box)) { drawProgress(ctx, g, rr0); return; }
       return orig.apply(ctx, args);
     }
     if (kind === "stroke" && args.length === 0) {
-      var d = devRect(ctx, p);
+      d = devRect(ctx, p);
       // A zone's edge or the entry line.
       if (d.y1 - d.y0 < 2 && d.x0 >= box.x0 - 2 && d.x1 <= box.x1 + 2 && d.x1 - d.x0 >= (box.x1 - box.x0) * 0.6) return;
       // A label's outline.
       var last = g.labels[g.labels.length - 1];
       if (last && p.arcs >= 2 && Math.abs(d.x0 - last.rect.x0) < 3 && Math.abs(d.x1 - last.rect.x1) < 3) return;
-      // The arrow (TradingView's grey): in the theme.
-      if (!p.arcs && !p.circle && d.x1 - d.x0 > 2 && d.y1 - d.y0 > 2) {
-        origSave.call(ctx); ctx.strokeStyle = rgba(posTheme.c2, 0.75);
+      // The arrow: faint, in the theme.
+      if (p.slant && !p.arcs && !p.circle) {
+        origSave.call(ctx); ctx.strokeStyle = rgba(posTheme.c2, 0.3);
         try { return orig.apply(ctx, args); } finally { origRestore.call(ctx); }
       }
       return orig.apply(ctx, args);
@@ -1401,79 +1431,98 @@
     }
     return orig.apply(ctx, args);
   }
+  function toolPath(g) {
+    var f = g.frame, s = g.s;
+    return rr(f.x0 + 0.5 * s, f.y0 + 0.5 * s, f.x1 - f.x0 - s, f.y1 - f.y0 - s, 8 * s);
+  }
   function drawZones(ctx, g) {
-    var T = posTheme, s = g.s, S = g.stop, P = g.target;
-    var f = { x0: Math.min(S.x0, P.x0), x1: Math.max(S.x1, P.x1), y0: Math.min(S.y0, P.y0), y1: Math.max(S.y1, P.y1) };
-    g.frame = f;
-    g.entry = P.y1 <= S.y0 + 1.5 ? P.y1 : P.y0;   // where the zones meet
-    var up = P.y1 <= S.y0 + 1.5;                    // target above: a long
+    var T = posTheme, P = g.target, S = g.stop, a = T.a || 0.3;
     pen(ctx);
     try {
-      var all = rr(f.x0, f.y0, f.x1 - f.x0, f.y1 - f.y0, 4 * s);
-      origSave.call(ctx); ctx.clip(all);
-      // The target, lit in the theme's color, brightest at its far edge.
-      var gt = ctx.createLinearGradient(0, up ? P.y0 : P.y1, 0, g.entry);
-      gt.addColorStop(0, rgba(T.c, 0.5)); gt.addColorStop(1, rgba(T.c, 0.2));
+      ctx.clip(toolPath(g));
+      // The target, lit in the theme's color.
+      var gt = ctx.createLinearGradient(0, g.up ? P.y0 : P.y1, 0, g.entry);
+      gt.addColorStop(0, rgba(T.c, a * 1.15)); gt.addColorStop(1, rgba(T.c, a * 0.8));
       ctx.fillStyle = gt; fillRect.call(ctx, P.x0, P.y0, P.x1 - P.x0, P.y1 - P.y0);
-      // The stop, smoked, with a faint tint.
-      ctx.fillStyle = "rgba(6,8,13,0.55)"; fillRect.call(ctx, S.x0, S.y0, S.x1 - S.x0, S.y1 - S.y0);
-      ctx.fillStyle = rgba(T.c, 0.06); fillRect.call(ctx, S.x0, S.y0, S.x1 - S.x0, S.y1 - S.y0);
-      origRestore.call(ctx);
+      // The stop, a dark tint of it.
+      ctx.fillStyle = rgba(mix(T.c, "#05070c", 0.82), 0.62);
+      fillRect.call(ctx, S.x0, S.y0, S.x1 - S.x0, S.y1 - S.y0);
       g.extra.forEach(function (r) { drawProgress(ctx, g, r, true); });
     } finally { origRestore.call(ctx); }
   }
-  // The part the price has run through: a brighter wash.
+  // The part the price has run through: a faint wash.
   function drawProgress(ctx, g, r, inPen) {
-    if (!inPen) pen(ctx);
+    if (!inPen) { pen(ctx); ctx.clip(toolPath(g)); }
     try {
-      ctx.fillStyle = rgba(posTheme.c2, 0.13);
+      ctx.fillStyle = rgba(posTheme.c2, 0.07);
       fillRect.call(ctx, r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0);
     } finally { if (!inPen) origRestore.call(ctx); }
   }
+  // A four-pointed star, for Starry Space's corners.
+  function glint(ctx, x, y, r, color) {
+    var p = new Path2D(), k = r * 0.18;
+    p.moveTo(x, y - r); p.lineTo(x + k, y - k); p.lineTo(x + r, y); p.lineTo(x + k, y + k);
+    p.lineTo(x, y + r); p.lineTo(x - k, y + k); p.lineTo(x - r, y); p.lineTo(x - k, y - k); p.closePath();
+    ctx.fillStyle = color; origFill.call(ctx, p);
+  }
   function finishTool(ctx, g) {
-    if (g.mode === "tool?") return replayRects(ctx, g);
+    if (g.mode === "tool?" || g.mode === "tool!") return replayRects(ctx, g);
     if (g.mode !== "tool") return;
     var T = posTheme, s = g.s, f = g.frame;
     pen(ctx);
     try {
-      var all = rr(f.x0 + 0.5 * s, f.y0 + 0.5 * s, f.x1 - f.x0 - s, f.y1 - f.y0 - s, 4 * s);
-      origSave.call(ctx); shadow(ctx, rgba(T.c, 0.8), 10 * s, 0);
-      ctx.strokeStyle = rgba(T.c, 0.9); ctx.lineWidth = 1.4 * s; origStroke.call(ctx, all);
+      origSave.call(ctx); shadow(ctx, rgba(T.c, 0.85), 12 * s, 0);
+      ctx.strokeStyle = T.c; ctx.lineWidth = 1.5 * s; origStroke.call(ctx, toolPath(g));
       origRestore.call(ctx);
-      // The entry line: dashed, glowing.
-      origSave.call(ctx); shadow(ctx, rgba(T.c2, 0.7), 6 * s, 0);
-      ctx.setLineDash([5 * s, 4 * s]); ctx.lineCap = "butt";
-      ctx.strokeStyle = rgba(T.c2, 0.95); ctx.lineWidth = 1.3 * s;
-      origStroke.call(ctx, seg(f.x0 + 2 * s, g.entry, f.x1 - 2 * s, g.entry));
-      origRestore.call(ctx);
-      // A spark at each corner.
-      origSave.call(ctx); shadow(ctx, T.c2, 6 * s, 0);
-      [[f.x0, f.y0], [f.x1, f.y0], [f.x0, f.y1], [f.x1, f.y1]].forEach(function (pt) { dot(ctx, pt[0], pt[1], 1.8 * s, T.c2); });
-      origRestore.call(ctx);
+      // The entry line: dashed.
+      ctx.setLineDash([4 * s, 3 * s]); ctx.lineCap = "butt";
+      ctx.strokeStyle = rgba(T.c2, 0.9); ctx.lineWidth = 1.2 * s;
+      origStroke.call(ctx, seg(f.x0 + 1.5 * s, g.entry, f.x1 - 1.5 * s, g.entry));
+      ctx.setLineDash([]);
+      if (T.glint) {
+        origSave.call(ctx); shadow(ctx, T.c2, 8 * s, 0);
+        [[f.x0, f.y0], [f.x1, f.y0], [f.x0, f.y1], [f.x1, f.y1]].forEach(function (pt) { glint(ctx, pt[0], pt[1], 5 * s, "#ffffff"); });
+        origRestore.call(ctx);
+      }
       g.labels.forEach(function (lb) { drawToolLabel(ctx, g, lb); });
     } finally { origRestore.call(ctx); }
   }
-  // A label as a pill: smoked glass, outlined and glowing in the theme.
+  function lightHex(h) { var c = rgb(h); return (0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]) / 255 > 0.62; }
+  // A label as a pill, by where it sits: on the target's edge, filled in
+  // the theme's color; on the entry line, dark with a glowing edge; on the
+  // stop's edge, dim.
   function drawToolLabel(ctx, g, lb) {
     var T = posTheme, s = g.s, r = lb.rect, texts = lb.texts.filter(function (t) { return t.t.trim(); });
     if (!texts.length) return;
-    var H = Math.max(r.y1 - r.y0, 18 * s), cy = (r.y0 + r.y1) / 2, y = cy - H / 2;
-    var fonts = texts.map(function (t) {
-      var face = /^[\d\s.,:'+\-−%()]+$/.test(t.t.trim()) ? FONT_MONO : FONT_SANS;
-      return "600 " + Math.min(11.5 * s, t.size) + "px " + face;
-    });
+    var cy = (r.y0 + r.y1) / 2, targetEdge = g.up ? g.target.y0 : g.target.y1, stopEdge = g.up ? g.stop.y1 : g.stop.y0;
+    var dT = Math.abs(cy - targetEdge), dE = Math.abs(cy - g.entry), dS = Math.abs(cy - stopEdge);
+    var kind = dT <= dE && dT <= dS ? "target" : dE <= dS ? "entry" : "stop";
+    var H = Math.max(r.y1 - r.y0, 20 * s), y = cy - H / 2;
+    var fonts = texts.map(function (t) { return "600 " + Math.min(12 * s, t.size) + "px " + FONT_SANS; });
     var wMax = 0;
     texts.forEach(function (t, i) { wMax = Math.max(wMax, tw(ctx, t.t.trim(), fonts[i])); });
-    var W = Math.max(r.x1 - r.x0, wMax + 18 * s), cx = (r.x0 + r.x1) / 2, x0 = cx - W / 2;
-    var p = rr(x0, y, W, H, Math.min(H / 2, 10 * s));
-    origSave.call(ctx); shadow(ctx, rgba(T.c, 0.55), 10 * s, 0);
-    ctx.fillStyle = "rgba(10,12,18,0.88)"; origFill.call(ctx, p);
-    origRestore.call(ctx);
-    ctx.fillStyle = rgba(T.c, 0.16); origFill.call(ctx, p);
-    ctx.strokeStyle = rgba(T.c, 0.95); ctx.lineWidth = 1.2 * s; origStroke.call(ctx, p);
+    var W = Math.max(r.x1 - r.x0, wMax + 22 * s), cx = (r.x0 + r.x1) / 2, x0 = cx - W / 2;
+    var p = rr(x0, y, W, H, Math.min(H / 2, 9 * s)), ink = "#ffffff", sub = mix(T.c2, "#ffffff", 0.4);
+    if (kind === "target") {
+      origSave.call(ctx); shadow(ctx, rgba(T.c, 0.75), 12 * s, 0); ctx.fillStyle = T.c; origFill.call(ctx, p); origRestore.call(ctx);
+      var gr = ctx.createLinearGradient(0, y, 0, y + H);
+      gr.addColorStop(0, mix(T.c, "#ffffff", 0.4)); gr.addColorStop(0.5, T.c); gr.addColorStop(1, mix(T.c, "#000000", 0.22));
+      ctx.fillStyle = gr; origFill.call(ctx, p);
+      ctx.strokeStyle = rgba(mix(T.c2, "#ffffff", 0.3), 0.9); ctx.lineWidth = s; origStroke.call(ctx, p);
+      ctx.strokeStyle = "rgba(255,255,255,0.45)";
+      origStroke.call(ctx, seg(x0 + Math.min(H / 2, 9 * s), y + 1.3 * s, x0 + W - Math.min(H / 2, 9 * s), y + 1.3 * s));
+      if (lightHex(T.c)) { ink = "#14171f"; sub = "#2a2f3a"; }
+    } else if (kind === "entry") {
+      origSave.call(ctx); shadow(ctx, rgba(T.c, 0.6), 10 * s, 0); ctx.fillStyle = "rgba(6,8,12,0.94)"; origFill.call(ctx, p); origRestore.call(ctx);
+      ctx.strokeStyle = T.c; ctx.lineWidth = 1.4 * s; origStroke.call(ctx, p);
+    } else {
+      ctx.fillStyle = "rgba(14,16,22,0.88)"; origFill.call(ctx, p);
+      ctx.strokeStyle = rgba(T.c, 0.35); ctx.lineWidth = s; origStroke.call(ctx, p);
+      ink = "#9aa3b5"; sub = "#7d8596";
+    }
     ctx.textAlign = "center";
     texts.forEach(function (t, i) {
-      text(ctx, t.t.trim(), cx, texts.length > 1 ? t.y : cy + 0.5 * s, fonts[i], i ? mix(T.c2, "#ffffff", 0.4) : "#ffffff");
+      text(ctx, t.t.trim(), cx, texts.length > 1 ? t.y : cy + 0.5 * s, fonts[i], i ? sub : ink);
     });
     ctx.textAlign = "left";
   }

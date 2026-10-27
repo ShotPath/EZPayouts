@@ -126,16 +126,22 @@ kbd{ font-family:var(--mono); font-size:10px; padding:1px 5px; border-radius:5px
    draws the same on the chart). */
 .pos-preview{ position:relative; margin-top:10px; height:128px; border-radius:12px; overflow:hidden;
   background:#0f1117 center/cover; border:1px solid var(--line); }
-.pv-tool{ position:absolute; left:24%; right:24%; top:18px; bottom:18px; border-radius:4px;
-  border:1.4px solid var(--pc90); box-shadow:0 0 12px var(--pc60), inset 0 0 0 1px rgba(255,255,255,0.03); }
-.pv-target{ position:absolute; left:0; right:0; top:0; height:50%; border-radius:3px 3px 0 0;
-  background:linear-gradient(to bottom, var(--pc50), var(--pc20)); }
-.pv-stop{ position:absolute; left:0; right:0; bottom:0; height:50%; border-radius:0 0 3px 3px;
-  background:rgba(6,8,13,0.55); border-top:1.3px dashed var(--pc2); }
-.pv-spark{ position:absolute; width:4px; height:4px; border-radius:50%; background:var(--pc2); box-shadow:0 0 6px var(--pc2); }
-.pv-label{ position:absolute; left:50%; transform:translate(-50%, -50%); padding:2px 9px; border-radius:10px;
-  font:600 10.5px var(--mono); color:#fff; background:linear-gradient(var(--pc16), var(--pc16)), rgba(10,12,18,0.88);
-  border:1.2px solid var(--pc90); box-shadow:0 0 10px var(--pc55); }
+.pv-tool{ position:absolute; left:24%; right:24%; top:18px; bottom:18px; border-radius:8px; overflow:visible;
+  border:1.5px solid var(--pc); box-shadow:0 0 12px var(--pc85); }
+.pv-target{ position:absolute; left:0; right:0; top:0; height:50%; border-radius:7px 7px 0 0;
+  background:linear-gradient(to bottom, var(--pta1), var(--pta2)); }
+.pv-stop{ position:absolute; left:0; right:0; bottom:0; height:50%; border-radius:0 0 7px 7px;
+  background:var(--pstop); border-top:1.2px dashed var(--pc2_90); }
+.pv-spark{ position:absolute; width:10px; height:10px; margin:-3px; display:none;
+  background:#fff; clip-path:polygon(50% 0, 59% 41%, 100% 50%, 59% 59%, 50% 100%, 41% 59%, 0 50%, 41% 41%);
+  filter:drop-shadow(0 0 4px var(--pc2)); }
+.pos-preview.glint .pv-spark{ display:block; }
+.pv-label{ position:absolute; left:50%; transform:translate(-50%, -50%); padding:2px 10px; border-radius:9px;
+  font:600 11px var(--body); white-space:nowrap; }
+.pv-t{ color:var(--ptink); border:1px solid var(--pc2_90); box-shadow:0 0 12px var(--pc75), inset 0 1px 0 rgba(255,255,255,0.45);
+  background:linear-gradient(var(--pcl), var(--pc) 50%, var(--pcd)); }
+.pv-e{ color:#fff; background:rgba(6,8,12,0.94); border:1.4px solid var(--pc); box-shadow:0 0 10px var(--pc60); }
+.pv-s{ color:#9aa3b5; background:rgba(14,16,22,0.88); border:1px solid var(--pc35); }
 #posPanel section{ margin-top:10px; }
 #posPanel .section-head{ margin-bottom:6px; }
 #posPanel .note{ margin-top:8px; }
