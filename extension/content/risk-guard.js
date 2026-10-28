@@ -98,7 +98,7 @@
     var dayRe = [new RegExp("^(today'?s?|day|daily|session|intraday)\\s*(total\\s*|net\\s*)?" + PL), new RegExp("^" + PL + "\\s*\\(?(today|day|daily)")];
     var dayF = pick(m, dayRe), real = pick(m, [new RegExp("^(realized|realised|closed)\\s*" + PL)]), total = pick(m, [new RegExp("^(total|net)\\s*" + PL)]);
     var weekF = pick(m, [new RegExp("^week(ly)?\\s*(realized\\s*|realised\\s*)?" + PL), /^week.*realized/]);
-    var balance = pick(m, [/^(account\s*)?balance$/, /^cash\s*balance$/, /^balance\b/]);
+    var balance = pick(m, [/^(account\s*)?balance$/, /^cash\s*balance$/, /^balance\b/, /^(account|cash|current|total)\s*(balance|value)/, /balance/]);
     var eq = pick(m, [/^equity$/, /^net\s*liq/, /^total\s*equity$/, /^account\s*value$/]);
     var equityNow = eq ? eq.value : (balance ? balance.value + openPl : null);
     var day = null, source = "count";
@@ -130,11 +130,17 @@
   function tick() {
     if (!settings.enabled) { overlay(false); return; }
     var locked = state.lockedUntil > Date.now();
-    if (locked) { overlay(true); enforce(); } else { overlay(false); }
-    var f = brokerFigures(readPanel());
+    try { if (locked) { overlay(true); enforce(); } else { overlay(false); } } catch (e) {}
+    var fields = readPanel(), f = brokerFigures(fields);
     var eq = f.equity;
-    if (eq == null) return;            // not the frame with the trading panel
     var name = accountName(), now = Date.now(), k = keys(now);
+    if (eq == null) {
+      // A trading panel whose balance it can't find: say what it does see,
+      // for the popup.
+      var labels = Object.keys(fields);
+      if (labels.length && now - liveAt > 5000) { liveAt = now; lastLive = ""; st.set({ [LIVE_KEY]: { account: name, missing: true, labels: labels.slice(0, 14), at: now } }); }
+      return;
+    }
     var a = state.accounts[name] || {};
     var changed = false;
     if (a.dayKey !== k.day) { a.dayKey = k.day; a.dayStart = eq; a.fired = {}; changed = true; }
@@ -192,36 +198,46 @@
   function closeButtons(table) {
     return table ? [].filter.call(table.querySelectorAll('[data-name="close-settings-cell-button"]'), visible) : [];
   }
+  // Closes what's open and cancels what's working. It works in the tab
+  // you have open; it only switches tabs when there's something to close
+  // or cancel in the other one (or once, when a lock starts), and goes
+  // back to the tab you were on.
+  var swept = 0;
+  function ordersTable() { return document.querySelector('[data-name="Broker.orders-table"], [data-name*="orders-table"]'); }
+  function working(o) { return !/fill|cancel|reject|expire|done/i.test(o.status || ""); }
+  function currentTab() {
+    return [].filter.call(document.querySelectorAll('[class*="roundTabButton-"], [role="tab"]'), function (b) {
+      return visible(b) && (/(^|\s)selected-|(^|\s)active-/.test(b.className) || b.getAttribute("aria-selected") === "true");
+    })[0] || null;
+  }
+  async function clearTable(get) {
+    for (var i = 0; i < 30; i++) {
+      var b = closeButtons(get())[0];
+      if (!b) return;
+      b.click(); await sleep(450);
+      confirmDialog(); await sleep(650);
+    }
+  }
   function enforce() {
     if (busy || Date.now() - lastEnforce < 2500) return;
-    if (!positionsTable() && !tab(/^positions/i) && !tab(/^orders/i)) return;
+    var pt = tab(/^positions/i), ot = tab(/^orders/i);
+    if (!positionsTable() && !ordersTable() && !pt && !ot) return;
+    var firstLook = swept !== state.lockedUntil;
+    var openThere = seen.positions && seen.positions.some(function (p) { return p.qty; });
+    var workingThere = seen.orders && seen.orders.some(working);
+    var visibleWork = closeButtons(positionsTable()).length || (ordersTable() && seen.orders && seen.orders.some(working));
+    if (!firstLook && !visibleWork && !(openThere && !positionsTable()) && !(workingThere && !ordersTable())) return;
     busy = true; lastEnforce = Date.now();
     (async function () {
+      var back = currentTab();
       try {
-        // Positions: close each one (and confirm).
-        var pt = tab(/^positions/i);
-        if (pt && !positionsTable()) { pt.click(); await sleep(400); }
-        for (var i = 0; i < 20; i++) {
-          var b = closeButtons(positionsTable())[0];
-          if (!b) break;
-          b.click(); await sleep(450);
-          confirmDialog(); await sleep(700);
-        }
-        // Orders: cancel the working ones.
-        var ot = tab(/^orders/i);
-        if (ot) {
-          ot.click(); await sleep(450);
-          var table = document.querySelector('[data-name="Broker.orders-table"], [data-name*="orders-table"]');
-          for (var j = 0; j < 30; j++) {
-            var c = closeButtons(table)[0];
-            if (!c) break;
-            c.click(); await sleep(450);
-            confirmDialog(); await sleep(600);
-            table = document.querySelector('[data-name="Broker.orders-table"], [data-name*="orders-table"]');
-          }
-          if (pt) pt.click();
-        }
+        if (positionsTable()) await clearTable(positionsTable);
+        else if (pt && (firstLook || openThere)) { pt.click(); await sleep(400); readPanel(); await clearTable(positionsTable); }
+        if (ordersTable()) await clearTable(ordersTable);
+        else if (ot && (firstLook || workingThere)) { ot.click(); await sleep(450); readPanel(); await clearTable(ordersTable); readPanel(); }
+        swept = state.lockedUntil;
       } catch (e) {}
+      if (back && back !== currentTab() && visible(back)) back.click();
       busy = false;
     })();
   }

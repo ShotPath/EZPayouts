@@ -38,6 +38,7 @@
     $("riskOn").checked = !!settings.enabled;
     var fresh = live && Date.now() - live.at < 30000;
     if (!settings.enabled) { $("riskText").innerHTML = "Risk Management is <b>off</b>."; $("riskDot").className = "site-dot"; }
+    else if (fresh && live.missing) { $("riskText").innerHTML = "Can't find your <b>balance</b> on TradingView."; $("riskDot").className = "site-dot"; }
     else if (fresh) { $("riskText").innerHTML = "Today " + signed(live.day) + " · Week " + signed(live.week); $("riskDot").className = "site-dot on"; }
     else { $("riskText").innerHTML = "Open TradingView's <b>trading panel</b>."; $("riskDot").className = "site-dot"; }
     stats(settings.enabled && fresh);
@@ -66,6 +67,11 @@
     // The open position (Positions) and today's fills (Orders).
     var pos = $("riskPos");
     pos.hidden = !show;
+    if (show && live.missing) {
+      pos.innerHTML = "It sees: " + esc((live.labels || []).join(", ") || "nothing yet");
+      $("riskStats").hidden = true;
+      return;
+    }
     if (show) {
       var open = (live.positions || []).map(function (p) {
         return "<b>" + (/sell|short/i.test(p.side) ? "Short" : "Long") + " " + Math.abs(p.qty) + " " + esc(p.symbol) + "</b>" + (p.pl != null ? " " + money(p.pl) : "");
@@ -131,9 +137,37 @@
     } catch (err) { msg(err.message, "bad"); return; }
     next.preventChanges = $("rPrevent").checked;
     if (!next.enabled) next.enabled = true;
+    var unlocked = unlockIfRaised(next);
     settings = next;
-    store.set({ [SETTINGS_KEY]: settings }, function () { fill(); render(); msg("Saved. Hit a limit and EZPayouts closes your trades and locks trading for " + settings.lockHours + " hour" + (settings.lockHours === 1 ? "" : "s") + ".", "good"); });
+    var put = { [SETTINGS_KEY]: settings };
+    if (unlocked) put[STATE_KEY] = state;
+    store.set(put, function () {
+      fill(); render();
+      if (unlocked) { msg("Limit raised past where you are, so trading is unlocked.", "good"); return; }
+      msg("Saved. Hit a limit and EZPayouts closes your trades and locks trading for " + settings.lockHours + " hour" + (settings.lockHours === 1 ? "" : "s") + ".", "good");
+    });
   });
+
+  // A lock set off by a limit ends when that limit is raised (or turned
+  // off) past where you are now, unless changes are prevented. A lock you
+  // set yourself doesn't.
+  var LIMIT_OF = { "daily loss limit": "dailyLoss", "weekly loss limit": "weeklyLoss", "daily profit target": "dailyProfit", "weekly profit target": "weeklyProfit" };
+  function unlockIfRaised(next) {
+    if (!locked() || settings.preventChanges) return false;
+    var key = LIMIT_OF[state.lockReason];
+    if (!key || !live || live.missing) return false;
+    var v = next[key], day = live.day, week = live.week;
+    var clear = key === "dailyLoss" ? !(v > 0 && day <= -v)
+      : key === "weeklyLoss" ? !(v > 0 && week <= -v)
+      : key === "dailyProfit" ? !(v > 0 && day >= v)
+      : !(v > 0 && week >= v);
+    var raised = v == null || settings[key] == null || v > settings[key];
+    if (!clear || !raised) return false;
+    state.lockedUntil = 0; state.lockReason = "";
+    var a = state.accounts[live.account];
+    if (a && a.fired) delete a.fired[key];      // so the new limit can still lock you later today
+    return true;
+  }
 
   // Count today and this week from the balance right now.
   $("riskRestart").addEventListener("click", function () {
