@@ -72,10 +72,14 @@ account worker (`worker/auth`, see its `wrangler.toml`).
 ### Risk Management (on TradingView)
 
 The popup's second side. With your broker connected on TradingView and its
-trading panel showing, `content/risk-guard.js` reads the account's equity
-from the panel (Equity, or balance plus open profit) and keeps today's and
-this week's P&L from it (sessions start 6 PM New York; "Restart count"
-starts them over from now). Limits: daily/weekly loss, daily/weekly profit
+trading panel showing, `content/risk-guard.js` reads the account from the
+panel by label: the fields along its top and the Account Summary table
+(balance, equity, and the broker's P/L: a day P/L if there is one, else
+realized plus open, else total P/L), Positions (the open position and its
+profit) and Orders (fills). Today started at equity minus today's P/L. If
+the broker shows no P/L at all, it counts from the balance it first sees
+each day ("Restart count" starts over from now). Sessions start 6 PM New
+York. Limits: daily/weekly loss, daily/weekly profit
 target, max quantity per trade, and how long a lock lasts (4 hours unless
 changed). When a limit is hit, or you press **Lock now** for a number of
 hours, it closes open positions and cancels working orders with

@@ -54,6 +54,7 @@
   }
   // Where today's count starts, the balance now, and the room left before
   // the daily loss limit (or the weekly one, if that's all that's set).
+  function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   function plain(n) { return "$" + Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   function room() {
     if (!live) return null;
@@ -62,6 +63,19 @@
     return null;
   }
   function stats(show) {
+    // The open position (Positions) and today's fills (Orders).
+    var pos = $("riskPos");
+    pos.hidden = !show;
+    if (show) {
+      var open = (live.positions || []).map(function (p) {
+        return "<b>" + (/sell|short/i.test(p.side) ? "Short" : "Long") + " " + Math.abs(p.qty) + " " + esc(p.symbol) + "</b>" + (p.pl != null ? " " + money(p.pl) : "");
+      });
+      pos.innerHTML = (open.length ? open.join(", ") : "No open position") +
+        (live.fills != null ? " · " + live.fills + " order" + (live.fills === 1 ? "" : "s") + " filled" : "");
+    }
+    // Counted from the broker's own P/L: no need to restart the count.
+    $("riskRestart").hidden = !!(show && live.source && live.source !== "count");
+    $("riskStats").title = show && live.source && live.source !== "count" ? "Today's P/L from your broker's " + live.source : "Counted from your balance when EZPayouts first saw it today";
     $("riskStats").hidden = !show || live.dayStart == null;
     if ($("riskStats").hidden) return;
     $("sStart").textContent = plain(live.dayStart);

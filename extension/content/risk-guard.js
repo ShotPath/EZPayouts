@@ -44,36 +44,71 @@
     var n = parseFloat(t);
     return neg ? -n : n;
   }
-  // A summary field: its title, then its value (TradingView's
-  // accountSummaryField: a title span and a value div).
-  function field(labels) {
-    var titles = document.querySelectorAll('[class*="accountSummaryField-"] [class*="title-"], [class*="accountSummaryField-"] span');
-    for (var i = 0; i < titles.length; i++) {
-      var t = titles[i].textContent.trim();
-      if (!labels.some(function (re) { return re.test(t); })) continue;
-      var box = titles[i].closest('[class*="accountSummaryField-"]');
-      var v = box && box.querySelector('[class*="value-"]');
+  // What the trading panel says about the account, by label: the fields
+  // along its top, and the Account Summary, Positions and Orders tables
+  // (TradingView labels every cell with its column's title). A table only
+  // exists while its tab is open, so the last one seen is kept.
+  var seen = { summary: {}, positions: null, orders: null };
+  function headerFields() {
+    var out = {};
+    document.querySelectorAll('[class*="accountSummaryField-"]').forEach(function (box) {
+      var t = box.querySelector('[class*="title-"]'), v = box.querySelector('[class*="value-"]');
       var n = v && num(v.textContent);
-      if (n != null) return n;
+      if (t && n != null) out[t.textContent.trim().toLowerCase()] = n;
+    });
+    return out;
+  }
+  function tableRows(table) {
+    if (!table) return null;
+    var rows = [];
+    table.querySelectorAll("tbody tr").forEach(function (tr) {
+      var row = {}, cells = tr.querySelectorAll("td[data-label]");
+      if (!cells.length) return;          // "No open positions" and the like
+      cells.forEach(function (td) { row[td.getAttribute("data-label").trim().toLowerCase()] = td.textContent.trim(); });
+      rows.push(row);
+    });
+    return rows;
+  }
+  function readPanel() {
+    var sumRows = tableRows(document.querySelector('[data-name*="accountsummary-table"], [data-name*="accountSummary-table"]'));
+    if (sumRows && sumRows.length) {
+      var name = accountName().toLowerCase(), row = sumRows.filter(function (r) { return (r.title || "").toLowerCase() === name; })[0] || sumRows[0], nums = {};
+      Object.keys(row).forEach(function (k) { var n = num(row[k]); if (n != null) nums[k] = n; });
+      seen.summary = nums;
     }
+    var pos = tableRows(positionsTable());
+    if (pos) seen.positions = pos.map(function (r) {
+      return { symbol: r.symbol || "", side: r.side || "", qty: num(r.qty) || 0, pl: num(r.profit != null ? r.profit : (r["p&l"] || r.pl || r["unrealized p&l"])) };
+    });
+    var ord = tableRows(document.querySelector('[data-name="Broker.orders-table"], [data-name*="orders-table"]'));
+    if (ord) seen.orders = ord;
+    return Object.assign({}, seen.summary, headerFields());
+  }
+  var PL = "(p\\s*[\\/&]?\\s*l|pnl|profit)";
+  function pick(m, res) {
+    var keys = Object.keys(m);
+    for (var i = 0; i < res.length; i++) for (var j = 0; j < keys.length; j++) if (res[i].test(keys[j])) return { label: keys[j], value: m[keys[j]] };
     return null;
   }
+  // Today's P/L from what the broker reports: a day P/L if there is one,
+  // else realized plus open, else total P/L. Null if it reports none.
+  function brokerFigures(m) {
+    var open = pick(m, [new RegExp("^(open|unrealized|unrealised|floating)\\s*" + PL)]);
+    var openPl = open ? open.value : (seen.positions ? seen.positions.reduce(function (s, p) { return s + (p.pl || 0); }, 0) : 0);
+    var dayRe = [new RegExp("^(today'?s?|day|daily|session|intraday)\\s*(total\\s*|net\\s*)?" + PL), new RegExp("^" + PL + "\\s*\\(?(today|day|daily)")];
+    var dayF = pick(m, dayRe), real = pick(m, [new RegExp("^(realized|realised|closed)\\s*" + PL)]), total = pick(m, [new RegExp("^(total|net)\\s*" + PL)]);
+    var weekF = pick(m, [new RegExp("^week(ly)?\\s*(realized\\s*|realised\\s*)?" + PL), /^week.*realized/]);
+    var balance = pick(m, [/^(account\s*)?balance$/, /^cash\s*balance$/, /^balance\b/]);
+    var eq = pick(m, [/^equity$/, /^net\s*liq/, /^total\s*equity$/, /^account\s*value$/]);
+    var equityNow = eq ? eq.value : (balance ? balance.value + openPl : null);
+    var day = null, source = "count";
+    if (dayF) { day = dayF.value; source = dayF.label; }
+    else if (real) { day = real.value + openPl; source = real.label + (openPl ? " + open" : ""); }
+    else if (total) { day = total.value; source = total.label; }
+    return { equity: equityNow, balance: balance ? balance.value : null, open: openPl, day: day, source: source,
+      week: weekF ? weekF.value + openPl : null };
+  }
   function positionsTable() { return document.querySelector('[data-name="Broker.positions-table"]'); }
-  function openProfit() {
-    var tbl = positionsTable(); if (!tbl) return 0;
-    var sum = 0;
-    tbl.querySelectorAll('tbody tr').forEach(function (tr) {
-      var c = tr.querySelector('[data-label="Profit"], [data-name="pl-column"]');
-      var n = c && num(c.textContent); if (n != null) sum += n;
-    });
-    return sum;
-  }
-  function equity() {
-    var e = field([/^equity$/i, /^net liq/i, /^net liquidat/i, /^total equity$/i, /^account value$/i]);
-    if (e != null) return e;
-    var b = field([/^account balance$/i, /^balance$/i, /^cash balance$/i]);
-    return b != null ? b + openProfit() : null;
-  }
   function accountName() {
     var b = document.querySelector('[class*="singleAccountButton-"], [class*="accountButton-"], [class*="dropdownButton-"]');
     var t = b && b.textContent.trim();
@@ -96,15 +131,22 @@
     if (!settings.enabled) { overlay(false); return; }
     var locked = state.lockedUntil > Date.now();
     if (locked) { overlay(true); enforce(); } else { overlay(false); }
-    var eq = equity();
+    var f = brokerFigures(readPanel());
+    var eq = f.equity;
     if (eq == null) return;            // not the frame with the trading panel
     var name = accountName(), now = Date.now(), k = keys(now);
     var a = state.accounts[name] || {};
     var changed = false;
     if (a.dayKey !== k.day) { a.dayKey = k.day; a.dayStart = eq; a.fired = {}; changed = true; }
-    if (a.weekKey !== k.week) { a.weekKey = k.week; a.weekStart = eq; changed = true; }
+    // The broker's own day P/L: today started at equity minus it.
+    if (f.day != null) {
+      var start = Math.round((eq - f.day) * 100) / 100;
+      if (a.dayStart !== start) { a.dayStart = start; changed = true; }
+    }
+    if (a.weekKey !== k.week) { a.weekKey = k.week; a.weekStart = a.dayStart; changed = true; }
     if (!a.fired) a.fired = {};
-    var day = eq - a.dayStart, week = eq - a.weekStart;
+    var day = f.day != null ? f.day : eq - a.dayStart;
+    var week = f.week != null ? f.week : eq - a.weekStart;
 
     var hit = null;
     if (settings.dailyLoss > 0 && day <= -settings.dailyLoss && a.fired.dailyLoss !== a.dayKey) hit = "dailyLoss";
@@ -122,9 +164,12 @@
     state.accounts[name] = a;
     if (changed) saveState();
 
-    var live = { account: name, equity: eq, day: Math.round(day * 100) / 100, week: Math.round(week * 100) / 100,
-      dayKey: a.dayKey, weekKey: a.weekKey, dayStart: a.dayStart, weekStart: a.weekStart, at: now };
-    var sig = JSON.stringify([live.account, live.equity, live.day, live.week, live.dayStart, live.weekStart]);
+    var fills = seen.orders ? seen.orders.filter(function (o) { return /fill/i.test(o.status || ""); }).length : null;
+    var live = { account: name, equity: eq, balance: f.balance, open: Math.round(f.open * 100) / 100,
+      day: Math.round(day * 100) / 100, week: Math.round(week * 100) / 100, source: f.source,
+      dayKey: a.dayKey, weekKey: a.weekKey, dayStart: a.dayStart, weekStart: a.weekStart,
+      positions: (seen.positions || []).filter(function (p) { return p.qty; }), fills: fills, at: now };
+    var sig = JSON.stringify([live.account, live.equity, live.day, live.week, live.dayStart, live.weekStart, live.positions, live.fills, live.source]);
     if (sig !== lastLive || now - (liveAt || 0) > 15000) { lastLive = sig; liveAt = now; st.set({ [LIVE_KEY]: live }); }
   }
   var liveAt = 0;
