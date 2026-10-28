@@ -82,12 +82,14 @@ each day ("Restart count" starts over from now). Sessions start 6 PM New
 York. Limits: daily/weekly loss, daily/weekly profit
 target, max quantity per trade, and how long a lock lasts (4 hours unless
 changed). When a limit is hit, or you press **Lock now** for a number of
-hours, it closes open positions and cancels working orders with
+hours, it locks that account: it closes open positions and cancels working orders with
 TradingView's own close buttons (confirming the dialog), keeps doing so
 while locked, covers the order panel and the chart's Buy/Sell buttons,
 and blocks order buttons. An order bigger than the max quantity is
 blocked with a warning. "Prevent changes while trading is locked" freezes
-the settings (and the on/off switch) until the lock ends. It only acts on
+the settings (and the on/off switch) until the lock ends. Locks are per
+account (by the name on the trading panel's account button): switch to
+another account and you can trade it. It only acts on
 TradingView in this browser; trades placed elsewhere aren't covered.
 Settings: `ezRisk`; lock and day/week starting balances: `ezRiskState`;
 what it sees, for the popup: `ezRiskLive`.

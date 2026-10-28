@@ -8,7 +8,7 @@
   var VIEW_KEY = "ezView", SETTINGS_KEY = "ezRisk", STATE_KEY = "ezRiskState", LIVE_KEY = "ezRiskLive";
   var DEFAULTS = { enabled: false, dailyLoss: null, weeklyLoss: null, dailyProfit: null, weeklyProfit: null, maxQty: null, lockHours: 4, preventChanges: true };
   var FIELDS = { rDailyLoss: "dailyLoss", rWeeklyLoss: "weeklyLoss", rDailyProfit: "dailyProfit", rWeeklyProfit: "weeklyProfit", rMaxQty: "maxQty", rLockHours: "lockHours" };
-  var settings = Object.assign({}, DEFAULTS), state = { accounts: {}, lockedUntil: 0, lockReason: "" }, live = null;
+  var settings = Object.assign({}, DEFAULTS), state = { accounts: {} }, live = null;
   var store = chrome.storage.local;
 
   // ---------- The two sides ----------
@@ -24,8 +24,11 @@
 
   function money(n) { var s = Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); return (n < 0 ? "−$" : "+$") + s; }
   function signed(n) { return '<b class="' + (n < 0 ? "neg" : "pos") + '">' + money(n) + "</b>"; }
-  function locked() { return state.lockedUntil > Date.now(); }
-  function until() { return new Date(state.lockedUntil).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" }); }
+  // Locks are per account: the one TradingView is showing.
+  function acct() { return live && live.account && Date.now() - live.at < 30000 ? live.account : null; }
+  function lockOf() { var a = acct() && state.accounts[acct()]; return a && a.lockedUntil > Date.now() ? a : null; }
+  function locked() { return !!lockOf(); }
+  function until() { var a = lockOf(); return a ? new Date(a.lockedUntil).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" }) : ""; }
   var msgTimer = 0;
   function msg(text, kind, stay) {
     var el = $("riskMsg"); el.textContent = text || ""; el.className = "note" + (kind ? " " + kind : ""); el.hidden = !text;
@@ -45,7 +48,7 @@
 
     var isLocked = locked();
     $("riskLock").hidden = !isLocked;
-    if (isLocked) $("riskLock").innerHTML = "&#128274; Trading is <b>locked</b> until <b>" + until() + "</b> (" + (state.lockReason || "risk limit") + ").";
+    if (isLocked) $("riskLock").innerHTML = "&#128274; <b>" + esc(acct()) + "</b> is locked until <b>" + until() + "</b> (" + (lockOf().lockReason || "risk limit") + ").";
     var frozen = isLocked && settings.preventChanges;
     Object.keys(FIELDS).forEach(function (f) { $(f).disabled = frozen; });
     $("rPrevent").disabled = frozen; $("riskSave").disabled = frozen; $("riskOn").disabled = frozen; $("riskRestart").disabled = frozen;
@@ -98,13 +101,13 @@
 
   store.get([SETTINGS_KEY, STATE_KEY, LIVE_KEY], function (r) {
     settings = Object.assign({}, DEFAULTS, r[SETTINGS_KEY] || {});
-    state = Object.assign({ accounts: {}, lockedUntil: 0, lockReason: "" }, r[STATE_KEY] || {});
+    state = Object.assign({ accounts: {} }, r[STATE_KEY] || {});
     live = r[LIVE_KEY] || null;
     fill(); render();
   });
   chrome.storage.onChanged.addListener(function (ch, area) {
     if (area !== "local") return;
-    if (ch[STATE_KEY]) state = Object.assign({ accounts: {}, lockedUntil: 0, lockReason: "" }, ch[STATE_KEY].newValue || {});
+    if (ch[STATE_KEY]) state = Object.assign({ accounts: {} }, ch[STATE_KEY].newValue || {});
     if (ch[LIVE_KEY]) live = ch[LIVE_KEY].newValue || null;
     if (ch[SETTINGS_KEY]) settings = Object.assign({}, DEFAULTS, ch[SETTINGS_KEY].newValue || {});
     render();
@@ -154,7 +157,8 @@
   var LIMIT_OF = { "daily loss limit": "dailyLoss", "weekly loss limit": "weeklyLoss", "daily profit target": "dailyProfit", "weekly profit target": "weeklyProfit" };
   function unlockIfRaised(next) {
     if (!locked() || settings.preventChanges) return false;
-    var key = LIMIT_OF[state.lockReason];
+    var lk = lockOf();
+    var key = lk && LIMIT_OF[lk.lockReason];
     if (!key || !live || live.missing) return false;
     var v = next[key], day = live.day, week = live.week;
     var clear = key === "dailyLoss" ? !(v > 0 && day <= -v)
@@ -163,9 +167,8 @@
       : !(v > 0 && week >= v);
     var raised = v == null || settings[key] == null || v > settings[key];
     if (!clear || !raised) return false;
-    state.lockedUntil = 0; state.lockReason = "";
-    var a = state.accounts[live.account];
-    if (a && a.fired) delete a.fired[key];      // so the new limit can still lock you later today
+    lk.lockedUntil = 0; lk.lockReason = "";
+    if (lk.fired) delete lk.fired[key];      // so the new limit can still lock you later today
     return true;
   }
 
@@ -174,7 +177,8 @@
     if (locked() && settings.preventChanges) return;
     var fresh = live && Date.now() - live.at < 30000;
     if (!fresh) {
-      state.accounts = {};
+      // Start over, but keep any locks.
+      Object.keys(state.accounts).forEach(function (n) { var a = state.accounts[n]; delete a.dayKey; delete a.weekKey; });
       store.set({ [STATE_KEY]: state }, function () { msg("Done. Open TradingView's trading panel to see your numbers.", "good"); });
       return;
     }
@@ -204,9 +208,12 @@
       return;
     }
     armed = false; btn.classList.remove("confirm"); btn.textContent = "Lock trading";
+    var name = acct();
+    if (!name || live.missing) { msg("Open TradingView's trading panel first, so EZPayouts knows which account to lock.", "bad"); return; }
     if (!settings.enabled) { settings.enabled = true; store.set({ [SETTINGS_KEY]: settings }); }
-    state.lockedUntil = Math.max(state.lockedUntil || 0, Date.now() + hours * 3600e3);
-    state.lockReason = "locked by you";
-    store.set({ [STATE_KEY]: state }, function () { msg("Locked. Open trades are being closed on TradingView.", "good"); render(); });
+    var a = state.accounts[name] || (state.accounts[name] = {});
+    a.lockedUntil = Math.max(a.lockedUntil || 0, Date.now() + hours * 3600e3);
+    a.lockReason = "locked by you";
+    store.set({ [STATE_KEY]: state }, function () { msg(name + " is locked. Its open trades are being closed on TradingView.", "good"); render(); });
   });
 })();

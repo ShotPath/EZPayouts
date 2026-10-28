@@ -15,7 +15,7 @@
   window.__ezRiskGuard = true;
   var SETTINGS_KEY = "ezRisk", STATE_KEY = "ezRiskState", LIVE_KEY = "ezRiskLive";
   var DEFAULTS = { enabled: false, dailyLoss: null, weeklyLoss: null, dailyProfit: null, weeklyProfit: null, maxQty: null, lockHours: 4, preventChanges: true };
-  var settings = Object.assign({}, DEFAULTS), state = { accounts: {}, lockedUntil: 0, lockReason: "" };
+  var settings = Object.assign({}, DEFAULTS), state = { accounts: {} };
   var REASONS = { dailyLoss: "daily loss limit", weeklyLoss: "weekly loss limit", dailyProfit: "daily profit target", weeklyProfit: "weekly profit target" };
 
   function storage() { try { return chrome.storage && chrome.storage.local; } catch (e) { return null; } }
@@ -23,13 +23,13 @@
   if (!st) return;
   st.get([SETTINGS_KEY, STATE_KEY], function (r) {
     settings = Object.assign({}, DEFAULTS, r[SETTINGS_KEY] || {});
-    state = Object.assign({ accounts: {}, lockedUntil: 0, lockReason: "" }, r[STATE_KEY] || {});
+    state = Object.assign({ accounts: {} }, r[STATE_KEY] || {});
     start();
   });
   chrome.storage.onChanged.addListener(function (ch, area) {
     if (area !== "local") return;
     if (ch[SETTINGS_KEY]) settings = Object.assign({}, DEFAULTS, ch[SETTINGS_KEY].newValue || {});
-    if (ch[STATE_KEY]) state = Object.assign({ accounts: {}, lockedUntil: 0, lockReason: "" }, ch[STATE_KEY].newValue || {});
+    if (ch[STATE_KEY]) state = Object.assign({ accounts: {} }, ch[STATE_KEY].newValue || {});
   });
   function saveState() { st.set({ [STATE_KEY]: state }); }
 
@@ -127,13 +127,20 @@
 
   // ---------- The loop ----------
   var lastLive = "";
+  // Locks are per account: switching to another account lets you trade it.
+  var curLock = null;
+  function lockFor(name) {
+    var a = state.accounts[name];
+    return a && a.lockedUntil > Date.now() ? a : null;
+  }
   function tick() {
     if (!settings.enabled) { overlay(false); return; }
-    var locked = state.lockedUntil > Date.now();
-    try { if (locked) { overlay(true); enforce(); } else { overlay(false); } } catch (e) {}
+    var name = accountName();
+    curLock = lockFor(name);
+    try { if (curLock) { overlay(true); enforce(); } else { overlay(false); } } catch (e) {}
     var fields = readPanel(), f = brokerFigures(fields);
     var eq = f.equity;
-    var name = accountName(), now = Date.now(), k = keys(now);
+    var now = Date.now(), k = keys(now);
     if (eq == null) {
       // A trading panel whose balance it can't find: say what it does see,
       // for the popup.
@@ -162,8 +169,9 @@
     if (hit) {
       a.fired[hit] = /^daily/.test(hit) ? a.dayKey : a.weekKey;
       var hours = Math.max(0.25, Number(settings.lockHours) || 4);
-      state.lockedUntil = Math.max(state.lockedUntil, now + hours * 3600e3);
-      state.lockReason = REASONS[hit];
+      a.lockedUntil = Math.max(a.lockedUntil || 0, now + hours * 3600e3);
+      a.lockReason = REASONS[hit];
+      curLock = a;
       changed = true;
       overlay(true); enforce();
     }
@@ -222,7 +230,8 @@
     if (busy || Date.now() - lastEnforce < 2500) return;
     var pt = tab(/^positions/i), ot = tab(/^orders/i);
     if (!positionsTable() && !ordersTable() && !pt && !ot) return;
-    var firstLook = swept !== state.lockedUntil;
+    if (!curLock) return;
+    var firstLook = swept !== curLock.lockedUntil;
     var openThere = seen.positions && seen.positions.some(function (p) { return p.qty; });
     var workingThere = seen.orders && seen.orders.some(working);
     var visibleWork = closeButtons(positionsTable()).length || (ordersTable() && seen.orders && seen.orders.some(working));
@@ -235,7 +244,7 @@
         else if (pt && (firstLook || openThere)) { pt.click(); await sleep(400); readPanel(); await clearTable(positionsTable); }
         if (ordersTable()) await clearTable(ordersTable);
         else if (ot && (firstLook || workingThere)) { ot.click(); await sleep(450); readPanel(); await clearTable(ordersTable); readPanel(); }
-        swept = state.lockedUntil;
+        swept = curLock ? curLock.lockedUntil : 0;
       } catch (e) {}
       if (back && back !== currentTab() && visible(back)) back.click();
       busy = false;
@@ -269,9 +278,10 @@
     if (!settings.enabled || !e.isTrusted) return;
     var el = e.target && e.target.closest ? e.target : null;
     if (!el || !isOrderAction(el)) return;
-    var locked = state.lockedUntil > Date.now();
+    var lk = lockFor(accountName());
+    var locked = !!lk;
     var msg = null;
-    if (locked) msg = "Trading is locked until " + until() + " (" + (state.lockReason || "risk limit") + ").";
+    if (locked) msg = "This account is locked until " + until(lk) + " (" + (lk.lockReason || "risk limit") + ").";
     else if (settings.maxQty > 0 && el.closest(ORDER_BUTTONS)) {
       var q = qtyFor(el);
       if (q != null && q > settings.maxQty) msg = "That's " + q + " contracts. Your max is " + settings.maxQty + ".";
@@ -284,8 +294,9 @@
   window.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") guard(e); }, true);
 
   // ---------- What it shows ----------
-  function until() {
-    return new Date(state.lockedUntil).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  function until(lk) {
+    lk = lk || curLock;
+    return lk ? new Date(lk.lockedUntil).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "";
   }
   var bar = null, shields = [];
   function overlay(on) {
@@ -305,13 +316,13 @@
         "box-shadow:0 10px 30px -10px rgba(0,0,0,0.8);pointer-events:none;white-space:nowrap");
       document.body.appendChild(bar);
     }
-    bar.textContent = "🔒 EZPayouts: trading locked until " + until() + " · " + (state.lockReason || "risk limit");
+    bar.textContent = "🔒 EZPayouts: " + accountName() + " locked until " + until() + " · " + ((curLock && curLock.lockReason) || "risk limit");
     while (shields.length < targets.length) {
       var s = document.createElement("div");
       s.setAttribute("style", "position:fixed;z-index:2147483645;background:rgba(10,12,18,0.72);backdrop-filter:blur(2px);border-radius:8px;" +
         "display:flex;align-items:center;justify-content:center;color:#ffb3b3;font:600 12px 'Segoe UI',system-ui,sans-serif;cursor:not-allowed");
       s.textContent = "Locked";
-      s.addEventListener("click", function (e) { e.stopPropagation(); toast("Trading is locked until " + until() + "."); }, true);
+      s.addEventListener("click", function (e) { e.stopPropagation(); toast("This account is locked until " + until() + "."); }, true);
       document.body.appendChild(s); shields.push(s);
     }
     while (shields.length > targets.length) shields.pop().remove();
