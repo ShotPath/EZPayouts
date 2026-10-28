@@ -176,41 +176,45 @@
     }
     var a = state.accounts[name] || {};
     var changed = false;
-    if (a.dayKey !== k.day) { a.dayKey = k.day; a.dayStart = eq; a.fired = {}; changed = true; }
+    if (a.dayKey !== k.day) { a.dayKey = k.day; a.dayStart = eq; changed = true; }
     // The broker's own day P/L: today started at equity minus it.
     if (f.day != null) {
       var start = Math.round((eq - f.day) * 100) / 100;
       if (a.dayStart !== start) { a.dayStart = start; changed = true; }
     }
     if (a.weekKey !== k.week) { a.weekKey = k.week; a.weekStart = a.dayStart; changed = true; }
-    if (!a.fired) a.fired = {};
-    // A limit's lock ends when that limit is raised (or turned off), unless
-    // changes are prevented while locked. Still past the new limit: it
-    // locks again right away, at the new limit.
-    var limitKey = a.lockedUntil > now && KEY_OF[a.lockReason];
-    if (limitKey && a.lockLimit === undefined) { a.lockLimit = settings[limitKey]; changed = true; }
-    if (limitKey && !settings.preventChanges && a.lockLimit != null && !(settings[limitKey] > 0 && settings[limitKey] <= a.lockLimit)) {
-      a.lockedUntil = 0; a.lockReason = ""; a.lockLimit = null; delete a.fired[limitKey];
-      curLock = null; changed = true; overlay(false);
-    }
     var day = f.day != null ? f.day : eq - a.dayStart;
     var week = f.week != null ? f.week : eq - a.weekStart;
-
-    var hit = null;
-    if (settings.dailyLoss > 0 && day <= -settings.dailyLoss && a.fired.dailyLoss !== a.dayKey) hit = "dailyLoss";
-    else if (settings.weeklyLoss > 0 && week <= -settings.weeklyLoss && a.fired.weeklyLoss !== a.weekKey) hit = "weeklyLoss";
-    else if (settings.dailyProfit > 0 && day >= settings.dailyProfit && a.fired.dailyProfit !== a.dayKey) hit = "dailyProfit";
-    else if (settings.weeklyProfit > 0 && week >= settings.weeklyProfit && a.fired.weeklyProfit !== a.weekKey) hit = "weeklyProfit";
-    if (hit) {
-      a.fired[hit] = /^daily/.test(hit) ? a.dayKey : a.weekKey;
-      var hours = Math.max(0.25, Number(settings.lockHours) || 4);
-      a.lockedUntil = Math.max(a.lockedUntil || 0, now + hours * 3600e3);
-      a.lockReason = REASONS[hit];
-      a.lockLimit = settings[hit];
-      curLock = a;
-      changed = true;
-      overlay(true); enforce();
-    }
+    // Simple: every second, where you are today and this week against your
+    // limits. Past one: your trades are closed and the account locks (for
+    // the lock time). Not past any (a limit raised, say): a limit's lock
+    // lifts. A limit lowered so you're past it locks it.
+    var past = null;
+    if (settings.dailyLoss > 0 && day <= -settings.dailyLoss) past = "dailyLoss";
+    else if (settings.weeklyLoss > 0 && week <= -settings.weeklyLoss) past = "weeklyLoss";
+    else if (settings.dailyProfit > 0 && day >= settings.dailyProfit) past = "dailyProfit";
+    else if (settings.weeklyProfit > 0 && week >= settings.weeklyProfit) past = "weeklyProfit";
+    var hours = Math.max(0.25, Number(settings.lockHours) || 4);
+    var limitLock = !!KEY_OF[a.lockReason] && a.lockedUntil > now;
+    if (past) {
+      // When you went past it (counts the lock time from there).
+      if (a.limitHit !== past || !a.limitSince) { a.limitHit = past; a.limitSince = now; changed = true; }
+      if (a.limitAt !== settings[past]) { a.limitAt = settings[past]; changed = true; }
+      var end = a.limitSince + hours * 3600e3;
+      var manual = a.lockedUntil > now && !KEY_OF[a.lockReason];
+      if (end > now && !manual && (a.lockReason !== REASONS[past] || a.lockedUntil !== end)) {
+        a.lockedUntil = end; a.lockReason = REASONS[past];
+        curLock = a; changed = true;
+        overlay(true); enforce();
+      }
+    } else if (limitLock) {
+      // Lifted when you changed that limit (not when the price just came
+      // back a little after your trades were closed).
+      if (a.limitAt == null || settings[KEY_OF[a.lockReason]] !== a.limitAt) {
+        a.lockedUntil = 0; a.lockReason = ""; a.limitHit = null; a.limitSince = 0; a.limitAt = null;
+        curLock = null; changed = true; overlay(false);
+      }
+    } else if (a.limitHit) { a.limitHit = null; a.limitSince = 0; a.limitAt = null; changed = true; }
     state.accounts[name] = a;
     if (changed) saveState();
 

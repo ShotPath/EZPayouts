@@ -151,33 +151,30 @@
     } catch (err) { msg(err.message, "bad"); return; }
     next.preventChanges = $("rPrevent").checked;
     if (!next.enabled) next.enabled = true;
-    var unlocked = unlockIfRaised(next);
+    var wasLocked = locked(), wasReason = wasLocked ? lockOf().lockReason : "";
     settings = next;
-    var put = { [SETTINGS_KEY]: settings };
-    if (unlocked) put[STATE_KEY] = state;
-    store.set(put, function () {
+    store.set({ [SETTINGS_KEY]: settings }, function () {
       fill(); render();
-      if (unlocked) { msg("Limit raised, so trading is unlocked. Past the new limit, it locks again.", "good"); return; }
-      msg("Saved. Hit a limit and EZPayouts closes your trades and locks trading for " + settings.lockHours + " hour" + (settings.lockHours === 1 ? "" : "s") + ".", "good");
+      if (!wasLocked || settings.preventChanges || !LIMIT_OF[wasReason]) {
+        msg("Saved. Hit a limit and EZPayouts closes your trades and locks trading for " + settings.lockHours + " hour" + (settings.lockHours === 1 ? "" : "s") + ".", "good");
+        return;
+      }
+      // TradingView's tab lifts the lock within a second: say how it went.
+      msg("Saved. Checking the lock…", "", true);
+      setTimeout(function () {
+        render();
+        if (!locked()) msg("Limit raised, so trading is unlocked.", "good");
+        else if (lockOf().lockReason !== wasReason) msg("Still locked: you're past your " + lockOf().lockReason + " too.", "bad");
+        else if (!live || Date.now() - live.at > 30000) msg("Saved. Open TradingView so it can unlock.", "bad");
+        else msg("Still locked: you're past the new " + wasReason + " too. Raise it further to unlock.", "bad");
+      }, 2200);
     });
   });
 
   // A lock set off by a limit ends when that limit is raised (or turned
-  // off) past where you are now, unless changes are prevented. A lock you
-  // set yourself doesn't.
+  // off) past where you were, unless changes are prevented: TradingView's
+  // tab decides that (content/risk-guard.js). A lock you set yourself doesn't.
   var LIMIT_OF = { "daily loss limit": "dailyLoss", "weekly loss limit": "weeklyLoss", "daily profit target": "dailyProfit", "weekly profit target": "weeklyProfit" };
-  function unlockIfRaised(next) {
-    if (!locked() || settings.preventChanges || next.preventChanges) return false;
-    var lk = lockOf();
-    var key = lk && LIMIT_OF[lk.lockReason];
-    if (!key) return false;
-    var before = lk.lockLimit != null ? lk.lockLimit : settings[key], v = next[key];
-    var raised = !(v > 0) || !(before > 0) || v > before;
-    if (!raised) return false;
-    lk.lockedUntil = 0; lk.lockReason = ""; lk.lockLimit = null;
-    if (lk.fired) delete lk.fired[key];      // so the new limit can still lock you later today
-    return true;
-  }
 
   // Count today and this week from the balance right now.
   $("riskRestart").addEventListener("click", function () {
