@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>EZPayouts Chart Skins</title>
+<title>EZPayouts</title>
 <link rel="stylesheet" href="fonts/fonts.css">
 <link rel="stylesheet" href="popup.css">
 </head>
@@ -12,11 +12,18 @@
   <header class="head">
     <img class="logo" src="../icons/icon-48.png" alt="">
     <div class="brand">
-      <div class="name">Chart Skins</div>
-      <div class="by">by EZPayouts</div>
+      <div class="name">EZPayouts</div>
     </div>
     <button class="pro-btn" id="proBtn" type="button" title="EZPayouts Pro unlocks every look">Go Pro</button>
   </header>
+
+  <!-- Two sides: Chart Skins (TradingView) and Risk Management (Tradovate). -->
+  <div class="seg seg-wide views" id="views" role="tablist" aria-label="EZPayouts">
+    <button type="button" role="tab" data-view="skins" aria-checked="true">Chart Skins</button>
+    <button type="button" role="tab" data-view="risk" aria-checked="false">Risk Management</button>
+  </div>
+
+  <div id="skinsView">
 
   <div class="site" id="site" hidden>
     <span class="site-dot" id="siteDot"></span>
@@ -121,15 +128,40 @@
     <p class="note">Draw a Long or Short Position on your chart; it takes this look.</p>
   </div>
 
-  <footer class="foot">
-    <span><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> turns the wallpaper on or off</span>
-    <a href="https://ezpayouts.xyz" target="_blank" rel="noopener">ezpayouts.xyz</a>
-  </footer>
+  </div>
+
+  <div id="riskView" hidden>
+    <div class="site" id="riskSite">
+      <span class="site-dot" id="riskDot"></span>
+      <span class="site-text" id="riskText">Looking for Tradovate…</span>
+      <button class="site-btn" id="riskBtn" type="button" hidden></button>
+    </div>
+    <div id="riskBody" hidden>
+      <section>
+        <div class="section-head"><h2>Account</h2></div>
+        <select class="r-select" id="riskAcct" aria-label="Account"></select>
+      </section>
+      <section>
+        <div class="section-head"><h2>Limits</h2><button class="link" id="riskReload" type="button">Reload</button></div>
+        <div class="r-grid">
+          <label class="r-field"><span>Daily loss limit</span><span class="r-money"><input id="rDailyLoss" type="number" min="1" step="1" placeholder="Off"></span></label>
+          <label class="r-field"><span>Weekly loss limit</span><span class="r-money"><input id="rWeeklyLoss" type="number" min="1" step="1" placeholder="Off"></span></label>
+          <label class="r-field"><span>Daily profit trigger</span><span class="r-money"><input id="rDailyProfit" type="number" min="1" step="1" placeholder="Off"></span></label>
+          <label class="r-field"><span>Weekly profit trigger</span><span class="r-money"><input id="rWeeklyProfit" type="number" min="1" step="1" placeholder="Off"></span></label>
+          <label class="r-field r-wide"><span>Max quantity (contracts held at once)</span><input id="rMaxQty" type="number" min="1" step="1" placeholder="No limit"></label>
+        </div>
+        <p class="note">Hit a limit and Tradovate closes your positions and locks the account until the next session. Empty box: that limit is off.</p>
+        <button class="r-save" id="riskSave" type="button">Save to Tradovate</button>
+        <p class="note" id="riskMsg" hidden></p>
+      </section>
+    </div>
+  </div>
 </div>
 <script src="../shared/skins.js"></script>
 <script src="../shared/chrome-gl.js"></script>
 <script src="../shared/scenes.js"></script>
 <script src="../shared/media-store.js"></script>
 <script src="popup.js"></script>
+<script src="risk.js"></script>
 </body>
 </html>

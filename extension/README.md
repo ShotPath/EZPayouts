@@ -1,4 +1,9 @@
-# EZPayouts Chart Skins
+# EZPayouts (extension)
+
+Two sides, picked at the top of the popup: **Chart Skins** and **Risk
+Management**.
+
+## Chart Skins
 
 A Chrome extension that puts EZPayouts' liquid chrome (or Sakura, Twinkle,
 Matrix, Black Hole, Embers, or your own clip) behind your
@@ -64,6 +69,22 @@ background worker checks `/billing/status` on the account server now and
 then. Payments are Stripe Checkout and Stripe's customer portal, run by the
 account worker (`worker/auth`, see its `wrangler.toml`).
 
+### Risk Management (Tradovate)
+
+The popup's second side sets a Tradovate account's daily and weekly loss
+limits, daily and weekly profit triggers (Tradovate's auto-liquidation
+settings, `userAccountAutoLiq`) and max contracts held at once (a position
+limit across everything, `userAccountPositionLimit`, totalBy Overall). It
+works through an open, signed-in trader.tradovate.com tab, so no API key:
+`content/tv-hook.js` (in the page) notes the access token Tradovate's own
+web app uses (its trading socket's `authorize` frame, a request's
+Authorization header, or a sign-in reply) and makes the calls from that
+page; `content/tv-bridge.js` passes the popup's requests to it. Only the
+account list and those two kinds of settings are allowed; nothing can
+place or cancel orders. Shows the account's current values first, and asks
+again before saving. A prop firm can still lock these settings; then
+Tradovate refuses the change and the popup says so.
+
 ### Other sites
 
 Brokers and prop firms that use TradingView's charts: open the site, click
@@ -93,7 +114,9 @@ nothing else.
   Hole, Embers). The download page uses it too, for its live previews.
 - `shared/skins.js`: the skin list and saved settings.
 - `popup/`: the toolbar popup (also the options page).
-- `background.js`: the shortcut and other-site access.
+- `background.js`: the shortcut, other-site access and the Pro check.
+- `content/tv-hook.js`, `content/tv-bridge.js`, `popup/risk.js`: Risk
+  Management (see above).
 
 ## Updating the download
 
