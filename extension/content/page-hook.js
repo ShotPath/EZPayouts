@@ -305,7 +305,9 @@
   ["moveTo", "lineTo"].forEach(function (name) {
     var orig = proto[name];
     proto[name] = function (x, y) {
-      if (tracking(this)) {
+      // A point that isn't a number (an arrow of no length has no
+      // direction) draws nothing: so it isn't counted either.
+      if (tracking(this) && isFinite(x) && isFinite(y)) {
         var p = stateOf(this).path;
         // A segment neither level nor upright (an arrow, not a box's side).
         if (name === "lineTo" && p.n && Math.abs(x - p.lx) > 1 && Math.abs(y - p.ly) > 1) p.slant++;
@@ -1401,8 +1403,10 @@
     if (g.mode === "tool!") {
       // The zones: the tool's, if its arrow or entry line comes next.
       if (kind === "rect") {
-        var pr = rectOf(ctx, args);
-        if (!inside(pr, box)) return giveUp(ctx, st, g, orig, args);
+        // What the price has run through: inside the box, give or take a
+        // little at its edge (with the price on the tool's first bar).
+        var pr = rectOf(ctx, args), e3 = 3 * g.s;
+        if (!inside(pr, { x0: box.x0 - e3, x1: box.x1 + e3, y0: box.y0 - e3, y1: box.y1 + e3 })) return giveUp(ctx, st, g, orig, args);
         g.rects.push({ rect: pr, m: ctx.getTransform(), style: ctx.fillStyle, alpha: ctx.globalAlpha, args: [].slice.call(args) });
         return;
       }
@@ -1419,16 +1423,18 @@
       if (!level && !arrowLine) return giveUp(ctx, st, g, orig, args);
       // Boxes held from before the zones that aren't the tool's: drawn as they were.
       var others = g.rects.filter(function (h) { return h.rect !== g.stop && h.rect !== g.target; });
-      g.rects = others.filter(function (h) { return !inside(h.rect, box); });
+      var e5 = 3 * g.s, loose = { x0: box.x0 - e5, x1: box.x1 + e5, y0: box.y0 - e5, y1: box.y1 + e5 };
+      g.rects = others.filter(function (h) { return !inside(h.rect, loose); });
       replayRects(ctx, g);
-      g.extra = others.filter(function (h) { return inside(h.rect, box); }).map(function (h) { return h.rect; });
+      g.extra = others.filter(function (h) { return inside(h.rect, loose); }).map(function (h) { return h.rect; });
       g.mode = "tool";
       drawZones(ctx, g);
     }
     // The tool: its lines and labels are noted for the end; the rest drawn.
     if (kind === "rect") {
       var rr0 = rectOf(ctx, args);
-      if (inside(rr0, box)) { drawProgress(ctx, g, rr0); return; }
+      var e4 = 3 * g.s;
+      if (inside(rr0, { x0: box.x0 - e4, x1: box.x1 + e4, y0: box.y0 - e4, y1: box.y1 + e4 })) { drawProgress(ctx, g, rr0); return; }
       return orig.apply(ctx, args);
     }
     if (kind === "stroke" && args.length === 0) {
