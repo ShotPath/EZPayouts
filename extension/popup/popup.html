@@ -131,30 +131,38 @@
   </div>
 
   <div id="riskView" hidden>
-    <div class="site" id="riskSite">
+    <div class="site">
       <span class="site-dot" id="riskDot"></span>
-      <span class="site-text" id="riskText">Looking for Tradovate…</span>
-      <button class="site-btn" id="riskBtn" type="button" hidden></button>
+      <span class="site-text" id="riskText">Open a chart with your broker connected.</span>
+      <label class="switch" title="Risk Management on or off">
+        <input type="checkbox" id="riskOn" role="switch" aria-label="Risk Management">
+        <span class="track"><span class="knob"></span></span>
+      </label>
     </div>
-    <div id="riskBody" hidden>
-      <section>
-        <div class="section-head"><h2>Account</h2></div>
-        <select class="r-select" id="riskAcct" aria-label="Account"></select>
-      </section>
-      <section>
-        <div class="section-head"><h2>Limits</h2><button class="link" id="riskReload" type="button">Reload</button></div>
-        <div class="r-grid">
-          <label class="r-field"><span>Daily loss limit</span><span class="r-money"><input id="rDailyLoss" type="number" min="1" step="1" placeholder="Off"></span></label>
-          <label class="r-field"><span>Weekly loss limit</span><span class="r-money"><input id="rWeeklyLoss" type="number" min="1" step="1" placeholder="Off"></span></label>
-          <label class="r-field"><span>Daily profit trigger</span><span class="r-money"><input id="rDailyProfit" type="number" min="1" step="1" placeholder="Off"></span></label>
-          <label class="r-field"><span>Weekly profit trigger</span><span class="r-money"><input id="rWeeklyProfit" type="number" min="1" step="1" placeholder="Off"></span></label>
-          <label class="r-field r-wide"><span>Max quantity (contracts held at once)</span><input id="rMaxQty" type="number" min="1" step="1" placeholder="No limit"></label>
-        </div>
-        <p class="note">Hit a limit and Tradovate closes your positions and locks the account until the next session. Empty box: that limit is off.</p>
-        <button class="r-save" id="riskSave" type="button">Save to Tradovate</button>
-        <p class="note" id="riskMsg" hidden></p>
-      </section>
-    </div>
+    <div class="r-lock" id="riskLock" hidden></div>
+    <section>
+      <div class="section-head"><h2>Limits</h2><button class="link" id="riskRestart" type="button" title="Count today and this week from your balance right now">Restart count</button></div>
+      <div class="r-grid">
+        <label class="r-field"><span>Daily loss limit</span><span class="r-money"><input id="rDailyLoss" type="number" min="1" step="1" placeholder="Off"></span></label>
+        <label class="r-field"><span>Weekly loss limit</span><span class="r-money"><input id="rWeeklyLoss" type="number" min="1" step="1" placeholder="Off"></span></label>
+        <label class="r-field"><span>Daily profit target</span><span class="r-money"><input id="rDailyProfit" type="number" min="1" step="1" placeholder="Off"></span></label>
+        <label class="r-field"><span>Weekly profit target</span><span class="r-money"><input id="rWeeklyProfit" type="number" min="1" step="1" placeholder="Off"></span></label>
+        <label class="r-field"><span>Max quantity per trade</span><input id="rMaxQty" type="number" min="1" step="1" placeholder="No limit"></label>
+        <label class="r-field"><span>Lock for (hours)</span><input id="rLockHours" type="number" min="0.25" max="72" step="0.25" placeholder="4"></label>
+      </div>
+      <label class="r-check"><input type="checkbox" id="rPrevent"> Prevent changes while trading is locked</label>
+      <p class="note">Hit a limit and EZPayouts closes your open trades, cancels orders and locks trading on TradingView for the hours above.</p>
+      <button class="r-save" id="riskSave" type="button">Save</button>
+      <p class="note" id="riskMsg" hidden></p>
+    </section>
+    <section id="riskLockNowBox">
+      <div class="section-head"><h2>Lock now</h2></div>
+      <div class="r-row">
+        <input id="rLockNowHours" type="number" min="0.25" max="72" step="0.25" value="4" aria-label="Hours">
+        <span class="r-unit">hours</span>
+        <button class="r-lockbtn" id="riskLockNow" type="button">Lock trading</button>
+      </div>
+    </section>
   </div>
 </div>
 <script src="../shared/skins.js"></script>

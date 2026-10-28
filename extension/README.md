@@ -69,21 +69,24 @@ background worker checks `/billing/status` on the account server now and
 then. Payments are Stripe Checkout and Stripe's customer portal, run by the
 account worker (`worker/auth`, see its `wrangler.toml`).
 
-### Risk Management (Tradovate)
+### Risk Management (on TradingView)
 
-The popup's second side sets a Tradovate account's daily and weekly loss
-limits, daily and weekly profit triggers (Tradovate's auto-liquidation
-settings, `userAccountAutoLiq`) and max contracts held at once (a position
-limit across everything, `userAccountPositionLimit`, totalBy Overall). It
-works through an open, signed-in trader.tradovate.com tab, so no API key:
-`content/tv-hook.js` (in the page) notes the access token Tradovate's own
-web app uses (its trading socket's `authorize` frame, a request's
-Authorization header, or a sign-in reply) and makes the calls from that
-page; `content/tv-bridge.js` passes the popup's requests to it. Only the
-account list and those two kinds of settings are allowed; nothing can
-place or cancel orders. Shows the account's current values first, and asks
-again before saving. A prop firm can still lock these settings; then
-Tradovate refuses the change and the popup says so.
+The popup's second side. With your broker connected on TradingView and its
+trading panel showing, `content/risk-guard.js` reads the account's equity
+from the panel (Equity, or balance plus open profit) and keeps today's and
+this week's P&L from it (sessions start 6 PM New York; "Restart count"
+starts them over from now). Limits: daily/weekly loss, daily/weekly profit
+target, max quantity per trade, and how long a lock lasts (4 hours unless
+changed). When a limit is hit, or you press **Lock now** for a number of
+hours, it closes open positions and cancels working orders with
+TradingView's own close buttons (confirming the dialog), keeps doing so
+while locked, covers the order panel and the chart's Buy/Sell buttons,
+and blocks order buttons. An order bigger than the max quantity is
+blocked with a warning. "Prevent changes while trading is locked" freezes
+the settings (and the on/off switch) until the lock ends. It only acts on
+TradingView in this browser; trades placed elsewhere aren't covered.
+Settings: `ezRisk`; lock and day/week starting balances: `ezRiskState`;
+what it sees, for the popup: `ezRiskLive`.
 
 ### Other sites
 
@@ -115,8 +118,7 @@ nothing else.
 - `shared/skins.js`: the skin list and saved settings.
 - `popup/`: the toolbar popup (also the options page).
 - `background.js`: the shortcut, other-site access and the Pro check.
-- `content/tv-hook.js`, `content/tv-bridge.js`, `popup/risk.js`: Risk
-  Management (see above).
+- `content/risk-guard.js`, `popup/risk.js`: Risk Management (see above).
 
 ## Updating the download
 

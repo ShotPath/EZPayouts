@@ -3,7 +3,7 @@
   "name": "EZPayouts",
   "short_name": "EZPayouts",
   "version": "1.7.0",
-  "description": "Chart Skins for TradingView and Risk Management for Tradovate: live wallpapers, restyled tags, loss limits and profit triggers.",
+  "description": "Chart Skins and Risk Management for TradingView: live wallpapers, restyled tags, loss limits, profit targets and trade locks.",
   "icons": {
     "16": "icons/icon-16.png",
     "32": "icons/icon-32.png",
@@ -34,8 +34,7 @@
   ],
   "host_permissions": [
     "https://*.tradingview.com/*",
-    "https://*.tradingview-widget.com/*",
-    "https://trader.tradovate.com/*"
+    "https://*.tradingview-widget.com/*"
   ],
   "optional_host_permissions": [
     "https://*/*",
@@ -62,30 +61,12 @@
       ],
       "js": [
         "shared/skins.js",
-        "content/skin-host.js"
+        "content/skin-host.js",
+        "content/risk-guard.js"
       ],
       "run_at": "document_idle",
       "all_frames": true,
       "match_origin_as_fallback": true
-    },
-    {
-      "matches": [
-        "https://trader.tradovate.com/*"
-      ],
-      "js": [
-        "content/tv-hook.js"
-      ],
-      "run_at": "document_start",
-      "world": "MAIN"
-    },
-    {
-      "matches": [
-        "https://trader.tradovate.com/*"
-      ],
-      "js": [
-        "content/tv-bridge.js"
-      ],
-      "run_at": "document_start"
     }
   ],
   "web_accessible_resources": [

@@ -1,16 +1,15 @@
-// The popup's two sides, and Risk Management: reads and changes a
-// Tradovate account's risk settings through an open trader.tradovate.com
-// tab (content/tv-bridge.js and tv-hook.js), using the sign-in already
-// there. Daily/weekly loss limits and profit triggers are Tradovate's
-// auto-liquidation settings (userAccountAutoLiq); max quantity is a
-// position limit across everything (userAccountPositionLimit, Overall).
+// The popup's two sides, and Risk Management's settings. The rules are
+// enforced on TradingView by content/risk-guard.js; this only edits them
+// ("ezRisk"), shows what the guard sees ("ezRiskLive") and the lock
+// ("ezRiskState"), and can lock trading by hand.
 (function () {
   "use strict";
   var $ = function (id) { return document.getElementById(id); };
-  var VIEW_KEY = "ezView", EZ_MARK = "Set by EZPayouts";
-  var TRADOVATE = "https://trader.tradovate.com/";
-  var FIELDS = { rDailyLoss: "dailyLossAutoLiq", rWeeklyLoss: "weeklyLossAutoLiq", rDailyProfit: "dailyProfitAutoLiq", rWeeklyProfit: "weeklyProfitAutoLiq" };
-  var tabId = null, env = null, accounts = [], current = { autoLiq: null, limit: null }, started = false;
+  var VIEW_KEY = "ezView", SETTINGS_KEY = "ezRisk", STATE_KEY = "ezRiskState", LIVE_KEY = "ezRiskLive";
+  var DEFAULTS = { enabled: false, dailyLoss: null, weeklyLoss: null, dailyProfit: null, weeklyProfit: null, maxQty: null, lockHours: 4, preventChanges: true };
+  var FIELDS = { rDailyLoss: "dailyLoss", rWeeklyLoss: "weeklyLoss", rDailyProfit: "dailyProfit", rWeeklyProfit: "weeklyProfit", rMaxQty: "maxQty", rLockHours: "lockHours" };
+  var settings = Object.assign({}, DEFAULTS), state = { accounts: {}, lockedUntil: 0, lockReason: "" }, live = null;
+  var store = chrome.storage.local;
 
   // ---------- The two sides ----------
   function showView(v) {
@@ -18,165 +17,108 @@
     $("skinsView").hidden = v !== "skins";
     $("riskView").hidden = v !== "risk";
     try { localStorage.setItem(VIEW_KEY, v); } catch (e) {}
-    if (v === "risk" && !started) { started = true; connect(); }
   }
   $("views").addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) showView(b.getAttribute("data-view")); });
   var saved = null; try { saved = localStorage.getItem(VIEW_KEY); } catch (e) {}
   showView(saved === "risk" ? "risk" : "skins");
 
-  // ---------- Talking to the Tradovate tab ----------
-  function ask(msg) {
-    return new Promise(function (resolve, reject) {
-      if (tabId == null) return reject(new Error("no-tab"));
-      msg.type = "ez-risk";
-      chrome.tabs.sendMessage(tabId, msg, function (res) {
-        if (chrome.runtime.lastError || !res) return reject(new Error("no-bridge"));
-        if (!res.ok) { var err = new Error(res.error || "failed"); err.status = res.status; return reject(err); }
-        resolve(res.data);
-      });
-    });
-  }
-  function get(path) { return ask({ op: "api", method: "GET", path: path }); }
-  function post(path, body) { return ask({ op: "api", method: "POST", path: path, body: body }); }
+  function money(n) { var s = Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); return (n < 0 ? "−$" : "+$") + s; }
+  function signed(n) { return '<b class="' + (n < 0 ? "neg" : "pos") + '">' + money(n) + "</b>"; }
+  function locked() { return state.lockedUntil > Date.now(); }
+  function until() { return new Date(state.lockedUntil).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" }); }
+  function msg(text, kind) { var el = $("riskMsg"); el.textContent = text || ""; el.className = "note" + (kind ? " " + kind : ""); el.hidden = !text; }
 
-  function words(err) {
-    var m = err && err.message;
-    if (m === "no-bridge") return "Reload your Tradovate tab once, then open this again.";
-    if (m === "not-signed-in") return "Sign in on your Tradovate tab, then click Reload.";
-    if (m === "timeout") return "Tradovate didn't answer. Try again.";
-    if (err && (err.status === 401 || err.status === 403) || /access is denied/i.test(m || "")) return "Tradovate didn't allow that. Your prop firm may control these settings.";
-    if (/^http-/.test(m || "")) return "Tradovate couldn't do that right now. Try again in a moment.";
-    return m || "Something went wrong.";
-  }
+  // ---------- Showing it ----------
+  function render() {
+    $("riskOn").checked = !!settings.enabled;
+    var fresh = live && Date.now() - live.at < 30000;
+    if (!settings.enabled) { $("riskText").innerHTML = "Risk Management is <b>off</b>."; $("riskDot").className = "site-dot"; }
+    else if (fresh) { $("riskText").innerHTML = "Today " + signed(live.day) + " · Week " + signed(live.week); $("riskDot").className = "site-dot on"; }
+    else { $("riskText").innerHTML = "Open TradingView with your broker's <b>trading panel</b> showing."; $("riskDot").className = "site-dot"; }
 
-  // ---------- Status ----------
-  function status(text, kind, button) {
-    $("riskText").innerHTML = text;
-    $("riskDot").className = "site-dot" + (kind === "on" ? " on" : "");
-    var b = $("riskBtn");
-    b.hidden = !button;
-    if (button) { b.textContent = button.label; b.className = "site-btn" + (button.quiet ? " quiet" : ""); b.onclick = button.run; }
+    var isLocked = locked();
+    $("riskLock").hidden = !isLocked;
+    if (isLocked) $("riskLock").innerHTML = "&#128274; Trading is <b>locked</b> until <b>" + until() + "</b> (" + (state.lockReason || "risk limit") + ").";
+    var frozen = isLocked && settings.preventChanges;
+    Object.keys(FIELDS).forEach(function (f) { $(f).disabled = frozen; });
+    $("rPrevent").disabled = frozen; $("riskSave").disabled = frozen; $("riskOn").disabled = frozen; $("riskRestart").disabled = frozen;
+    $("riskLockNow").disabled = isLocked;
+    $("riskLockNowBox").hidden = isLocked;
+    if (frozen) msg("Settings can't be changed while trading is locked.", "");
   }
-  function msg(text, kind) {
-    var el = $("riskMsg");
-    el.textContent = text || ""; el.className = "note" + (kind ? " " + kind : ""); el.hidden = !text;
+  function fill() {
+    Object.keys(FIELDS).forEach(function (f) { var v = settings[FIELDS[f]]; $(f).value = v != null ? v : ""; });
+    $("rPrevent").checked = !!settings.preventChanges;
   }
 
-  function connect() {
-    $("riskBody").hidden = true;
-    status("Looking for Tradovate…");
-    chrome.tabs.query({ url: TRADOVATE + "*" }, function (tabs) {
-      if (!tabs || !tabs.length) {
-        tabId = null;
-        return status("Open <b>Tradovate</b> and sign in.", null, { label: "Open Tradovate", run: function () { chrome.tabs.create({ url: TRADOVATE }); } });
-      }
-      var tab = tabs.filter(function (t) { return t.active; })[0] || tabs[0];
-      tabId = tab.id;
-      ask({ op: "status" }).then(function (s) {
-        if (!s.signedIn) {
-          return status("Sign in on your <b>Tradovate</b> tab.", null, { label: "Check again", quiet: true, run: connect });
-        }
-        env = s.env;
-        status("Connected to <b>Tradovate " + (env === "demo" ? "Demo" : "Live") + "</b>", "on", { label: "Reload", quiet: true, run: connect });
-        return loadAccounts();
-      }).catch(function (err) {
-        status(words(err), null, { label: "Reload Tradovate", run: function () { chrome.tabs.reload(tabId); setTimeout(connect, 4000); } });
-      });
-    });
-  }
+  store.get([SETTINGS_KEY, STATE_KEY, LIVE_KEY], function (r) {
+    settings = Object.assign({}, DEFAULTS, r[SETTINGS_KEY] || {});
+    state = Object.assign({ accounts: {}, lockedUntil: 0, lockReason: "" }, r[STATE_KEY] || {});
+    live = r[LIVE_KEY] || null;
+    fill(); render();
+  });
+  chrome.storage.onChanged.addListener(function (ch, area) {
+    if (area !== "local") return;
+    if (ch[STATE_KEY]) state = Object.assign({ accounts: {}, lockedUntil: 0, lockReason: "" }, ch[STATE_KEY].newValue || {});
+    if (ch[LIVE_KEY]) live = ch[LIVE_KEY].newValue || null;
+    if (ch[SETTINGS_KEY]) settings = Object.assign({}, DEFAULTS, ch[SETTINGS_KEY].newValue || {});
+    render();
+  });
+  setInterval(render, 5000);
 
-  // ---------- Accounts and limits ----------
-  function loadAccounts() {
-    return get("account/list").then(function (list) {
-      accounts = (list || []).filter(function (a) { return a.active !== false; });
-      var sel = $("riskAcct");
-      sel.innerHTML = "";
-      accounts.forEach(function (a) {
-        var o = document.createElement("option");
-        o.value = a.id; o.textContent = a.name || ("Account " + a.id);
-        sel.appendChild(o);
-      });
-      $("riskBody").hidden = false;
-      if (!accounts.length) { msg("No active accounts on this Tradovate login.", "bad"); return; }
-      return loadLimits();
-    }).catch(function (err) { $("riskBody").hidden = true; status(words(err), null, { label: "Try again", quiet: true, run: connect }); });
-  }
-  function acctId() { return Number($("riskAcct").value); }
+  // ---------- Changing it ----------
+  $("riskOn").addEventListener("change", function () {
+    if (locked() && settings.preventChanges) { this.checked = true; return; }
+    settings.enabled = this.checked;
+    store.set({ [SETTINGS_KEY]: settings });
+    render();
+  });
 
-  function loadLimits() {
-    var id = acctId();
-    disarm();
-    msg("Loading this account's limits…");
-    return Promise.all([get("userAccountAutoLiq/deps?masterid=" + id), get("userAccountPositionLimit/deps?masterid=" + id)]).then(function (res) {
-      current.autoLiq = (res[0] || [])[0] || null;
-      current.limit = (res[1] || []).filter(function (l) { return l.totalBy === "Overall" && l.active; })[0] || null;
-      Object.keys(FIELDS).forEach(function (f) {
-        var v = current.autoLiq && current.autoLiq[FIELDS[f]];
-        $(f).value = v != null ? v : "";
-      });
-      var lim = current.limit;
-      $("rMaxQty").value = lim ? (lim.exposedLimit != null ? lim.exposedLimit : (lim.longLimit != null ? lim.longLimit : "")) : "";
-      var locked = !!(current.autoLiq && current.autoLiq.changesLocked);
-      ["rDailyLoss", "rWeeklyLoss", "rDailyProfit", "rWeeklyProfit", "rMaxQty"].forEach(function (f) { $(f).disabled = locked; });
-      $("riskSave").disabled = locked;
-      msg(locked ? "These settings are locked on Tradovate's side right now." : "", locked ? "bad" : "");
-    }).catch(function (err) { msg(words(err), "bad"); });
-  }
-  $("riskAcct").addEventListener("change", loadLimits);
-  $("riskReload").addEventListener("click", loadLimits);
-
-  // ---------- Save (two clicks: Save, then Confirm) ----------
-  var armed = false;
-  function disarm() { armed = false; $("riskSave").classList.remove("confirm"); $("riskSave").textContent = "Save to Tradovate"; }
-  ["rDailyLoss", "rWeeklyLoss", "rDailyProfit", "rWeeklyProfit", "rMaxQty"].forEach(function (f) { $(f).addEventListener("input", disarm); });
-
-  function readMoney(id) {
+  function readNum(id, whole) {
     var raw = $(id).value.trim();
     if (raw === "") return null;
     var n = Number(raw);
-    if (!(n > 0)) throw new Error("Amounts need to be more than $0, or empty to turn a limit off.");
+    if (!(n > 0) || (whole && Math.floor(n) !== n)) throw new Error(whole ? "Max quantity needs to be a whole number, 1 or more." : "Amounts need to be more than 0, or empty to turn a limit off.");
     return Math.round(n * 100) / 100;
   }
-  function money(n) { return "$" + Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 }); }
-
   $("riskSave").addEventListener("click", function () {
-    var id = acctId(), vals = {}, qty;
+    if (locked() && settings.preventChanges) return;
+    var next = Object.assign({}, settings);
     try {
-      Object.keys(FIELDS).forEach(function (f) { vals[FIELDS[f]] = readMoney(f); });
-      var raw = $("rMaxQty").value.trim();
-      qty = raw === "" ? null : Number(raw);
-      if (qty !== null && !(qty >= 1 && Math.floor(qty) === qty)) throw new Error("Max quantity needs to be a whole number, 1 or more.");
+      next.dailyLoss = readNum("rDailyLoss"); next.weeklyLoss = readNum("rWeeklyLoss");
+      next.dailyProfit = readNum("rDailyProfit"); next.weeklyProfit = readNum("rWeeklyProfit");
+      next.maxQty = readNum("rMaxQty", true);
+      var h = readNum("rLockHours"); next.lockHours = h == null ? 4 : Math.min(72, Math.max(0.25, h));
     } catch (err) { msg(err.message, "bad"); return; }
+    next.preventChanges = $("rPrevent").checked;
+    if (!next.enabled) next.enabled = true;
+    settings = next;
+    store.set({ [SETTINGS_KEY]: settings }, function () { fill(); render(); msg("Saved. Risk Management is on.", "good"); });
+  });
 
+  // Count today and this week from the balance right now.
+  $("riskRestart").addEventListener("click", function () {
+    if (locked() && settings.preventChanges) return;
+    state.accounts = {};
+    store.set({ [STATE_KEY]: state }, function () { msg("Today and this week now count from your balance right now.", "good"); });
+  });
+
+  // ---------- Lock now (two clicks) ----------
+  var armed = false;
+  $("riskLockNow").addEventListener("click", function () {
+    var hours = Number($("rLockNowHours").value);
+    if (!(hours >= 0.25 && hours <= 72)) { msg("Pick between 0.25 and 72 hours.", "bad"); return; }
+    var btn = this;
     if (!armed) {
-      armed = true;
-      var acct = accounts.filter(function (a) { return a.id === id; })[0];
-      $("riskSave").classList.add("confirm");
-      $("riskSave").textContent = "Confirm: save to " + (acct ? acct.name : "this account");
-      msg("Daily loss " + (vals.dailyLossAutoLiq ? money(vals.dailyLossAutoLiq) : "off") +
-        " · Weekly loss " + (vals.weeklyLossAutoLiq ? money(vals.weeklyLossAutoLiq) : "off") +
-        " · Daily profit " + (vals.dailyProfitAutoLiq ? money(vals.dailyProfitAutoLiq) : "off") +
-        " · Weekly profit " + (vals.weeklyProfitAutoLiq ? money(vals.weeklyProfitAutoLiq) : "off") +
-        " · Max " + (qty ? qty + " contracts" : "no limit"));
+      armed = true; btn.classList.add("confirm"); btn.textContent = "Confirm lock";
+      msg("Locks trading for " + hours + " hour" + (hours === 1 ? "" : "s") + ", closes your open trades and cancels orders." + (settings.preventChanges ? " Settings can't be changed until it ends." : ""));
+      setTimeout(function () { if (armed) { armed = false; btn.classList.remove("confirm"); btn.textContent = "Lock trading"; } }, 6000);
       return;
     }
-    disarm();
-    var btn = $("riskSave");
-    btn.disabled = true; msg("Saving…");
-    var al = current.autoLiq;
-    post(al ? "userAccountAutoLiq/update" : "userAccountAutoLiq/create", Object.assign({}, al || { id: id }, vals)).then(function () {
-      var lim = current.limit;
-      if (qty) {
-        return post(lim ? "userAccountPositionLimit/update" : "userAccountPositionLimit/create",
-          Object.assign({}, lim || { accountId: id, totalBy: "Overall", description: EZ_MARK }, { active: true, exposedLimit: qty, longLimit: qty, shortLimit: qty }));
-      }
-      // Cleared: only a limit made here is switched off; others stay.
-      if (lim && lim.description === EZ_MARK) return post("userAccountPositionLimit/update", Object.assign({}, lim, { active: false }));
-    }).then(function () {
-      return loadLimits().then(function () {
-        var kept = !qty && current.limit && current.limit.description !== EZ_MARK;
-        msg("Saved to Tradovate." + (kept ? " The size limit already on this account was left as it is." : ""), "good");
-      });
-    }).catch(function (err) { msg(words(err), "bad"); }).then(function () { btn.disabled = false; });
+    armed = false; btn.classList.remove("confirm"); btn.textContent = "Lock trading";
+    if (!settings.enabled) { settings.enabled = true; store.set({ [SETTINGS_KEY]: settings }); }
+    state.lockedUntil = Math.max(state.lockedUntil || 0, Date.now() + hours * 3600e3);
+    state.lockReason = "locked by you";
+    store.set({ [STATE_KEY]: state }, function () { msg("Locked. Open trades are being closed on TradingView.", "good"); render(); });
   });
 })();
