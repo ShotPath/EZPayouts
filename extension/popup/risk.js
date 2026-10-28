@@ -46,6 +46,7 @@
     $("riskOn").checked = !!settings.enabled;
     var fresh = live && Date.now() - live.at < 30000;
     if (!settings.enabled) { $("riskText").innerHTML = "Risk Management is <b>off</b>."; $("riskDot").className = "site-dot"; }
+    else if (fresh && live.error) { $("riskText").innerHTML = "Error: " + esc(live.error); $("riskText").title = live.error; $("riskDot").className = "site-dot"; }
     else if (fresh && live.missing) { $("riskText").innerHTML = "Can't find your <b>balance</b> on TradingView."; $("riskDot").className = "site-dot"; }
     else if (fresh) { $("riskText").innerHTML = "Today " + signed(live.day) + " · Week " + signed(live.week); $("riskDot").className = "site-dot on"; }
     else { $("riskText").innerHTML = "Open TradingView's <b>trading panel</b>."; $("riskDot").className = "site-dot"; }
@@ -80,7 +81,7 @@
     // The open position (Positions) and today's fills (Orders).
     var pos = $("riskPos");
     pos.hidden = !show;
-    if (show && live.missing) {
+    if (show && (live.missing || live.error)) {
       pos.innerHTML = "It sees: " + esc((live.labels || []).join(", ") || "nothing yet");
       $("riskStats").hidden = true;
       return;

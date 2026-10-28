@@ -111,22 +111,27 @@
   }
   function positionsTable() { return document.querySelector('[data-name="Broker.positions-table"]'); }
   // The account TradingView's trading panel is on: the name in its header
-  // (where you switch accounts), most specific first.
+  // (where you switch accounts), most specific first. Outside that header,
+  // only what's on screen counts: TradingView keeps hidden copies.
   var ACCOUNT_SELECTORS = [
     '.js-account-manager-header [class*="accountName-"]',
-    '[class*="accountManager-"] [class*="accountName-"]',
-    '[class*="accountName-"]',
     '.js-account-manager-header [class*="ccountButton-"]',
-    '[class*="singleAccountButton-"], [class*="multipleAccountsButton-"], [class*="accountsButton-"], [class*="accountButton-"]'
+    '.js-account-manager-header [class*="ccountsButton-"]',
+    '[class*="singleAccountButton-"], [class*="multipleAccountsButton-"], [class*="accountsButton-"], [class*="accountButton-"]',
+    '[class*="accountName-"]',
+    '[class*="dropdownButton-"]'
   ];
+  var nameFrom = "";
   function accountName() {
     for (var i = 0; i < ACCOUNT_SELECTORS.length; i++) {
       var els = document.querySelectorAll(ACCOUNT_SELECTORS[i]);
       for (var j = 0; j < els.length; j++) {
+        if (i > 2 && !visible(els[j])) continue;   // the header's own name counts even with the panel collapsed
         var t = els[j].textContent.replace(/\s+/g, " ").trim();
-        if (t && t.length < 60) return t;
+        if (t && t.length < 60) { nameFrom = String(i); return t; }
       }
     }
+    nameFrom = "none";
     return "account";
   }
 
@@ -207,7 +212,7 @@
     var live = { account: name, equity: eq, balance: f.balance, open: Math.round(f.open * 100) / 100,
       day: Math.round(day * 100) / 100, week: Math.round(week * 100) / 100, source: f.source,
       dayKey: a.dayKey, weekKey: a.weekKey, dayStart: a.dayStart, weekStart: a.weekStart,
-      positions: (seen.positions || []).filter(function (p) { return p.qty; }), fills: fills, note: curLock ? enforceNote : "", at: now };
+      positions: (seen.positions || []).filter(function (p) { return p.qty; }), fills: fills, from: nameFrom, note: curLock ? enforceNote : "", at: now };
     var sig = JSON.stringify([live.note, live.account, live.equity, live.day, live.week, live.dayStart, live.weekStart, live.positions, live.fills, live.source]);
     if (sig !== lastLive || now - (liveAt || 0) > 15000) { lastLive = sig; liveAt = now; st.set({ [LIVE_KEY]: live }); }
   }
@@ -507,8 +512,19 @@
     toastTimer = setTimeout(function () { if (toastEl) toastEl.style.display = "none"; }, 3500);
   }
 
+  // Something broke: say so in the popup instead of going quiet.
+  var errAt = 0;
+  function safeTick() {
+    try { tick(); }
+    catch (e) {
+      if (Date.now() - errAt > 5000) {
+        errAt = Date.now();
+        try { st.set({ [LIVE_KEY]: { account: accountName(), error: String(e && e.message || e).slice(0, 140), at: Date.now() } }); } catch (e2) {}
+      }
+    }
+  }
   function start() {
-    tick();
-    setInterval(tick, 1000);
+    safeTick();
+    setInterval(safeTick, 1000);
   }
 })();
