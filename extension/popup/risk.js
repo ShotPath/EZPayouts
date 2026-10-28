@@ -48,7 +48,8 @@
 
     var isLocked = locked();
     $("riskLock").hidden = !isLocked;
-    if (isLocked) $("riskLock").innerHTML = "&#128274; <b>" + esc(acct()) + "</b> is locked until <b>" + until() + "</b> (" + (lockOf().lockReason || "risk limit") + ").";
+    if (isLocked) $("riskLock").innerHTML = "&#128274; <b>" + esc(acct()) + "</b> is locked until <b>" + until() + "</b> (" + (lockOf().lockReason || "risk limit") + ")." +
+      (live && live.note && Date.now() - live.at < 30000 ? "<br><span style=\"color:#ffb3b3\">" + esc(live.note) + "</span>" : "");
     var frozen = isLocked && settings.preventChanges;
     Object.keys(FIELDS).forEach(function (f) { $(f).disabled = frozen; });
     $("rPrevent").disabled = frozen; $("riskSave").disabled = frozen; $("riskOn").disabled = frozen; $("riskRestart").disabled = frozen;

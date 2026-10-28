@@ -137,7 +137,7 @@
     if (!settings.enabled) { overlay(false); return; }
     var name = accountName();
     curLock = lockFor(name);
-    try { if (curLock) { overlay(true); enforce(); } else { overlay(false); } } catch (e) {}
+    try { if (curLock) { overlay(true); enforce(); } else { overlay(false); trimOverMax(); } } catch (e) {}
     var fields = readPanel(), f = brokerFigures(fields);
     var eq = f.equity;
     var now = Date.now(), k = keys(now);
@@ -182,8 +182,8 @@
     var live = { account: name, equity: eq, balance: f.balance, open: Math.round(f.open * 100) / 100,
       day: Math.round(day * 100) / 100, week: Math.round(week * 100) / 100, source: f.source,
       dayKey: a.dayKey, weekKey: a.weekKey, dayStart: a.dayStart, weekStart: a.weekStart,
-      positions: (seen.positions || []).filter(function (p) { return p.qty; }), fills: fills, at: now };
-    var sig = JSON.stringify([live.account, live.equity, live.day, live.week, live.dayStart, live.weekStart, live.positions, live.fills, live.source]);
+      positions: (seen.positions || []).filter(function (p) { return p.qty; }), fills: fills, note: curLock ? enforceNote : "", at: now };
+    var sig = JSON.stringify([live.note, live.account, live.equity, live.day, live.week, live.dayStart, live.weekStart, live.positions, live.fills, live.source]);
     if (sig !== lastLive || now - (liveAt || 0) > 15000) { lastLive = sig; liveAt = now; st.set({ [LIVE_KEY]: live }); }
   }
   var liveAt = 0;
@@ -196,16 +196,33 @@
   }
   function confirmDialog() {
     // TradingView asks "Close position?" / "Cancel order?": press its main button.
-    var dlg = [].filter.call(document.querySelectorAll('[data-name*="dialog"]'), function (d) {
-      return visible(d) && /clos|cancel/i.test(d.getAttribute("data-name") + " " + d.textContent);
+    var dlg = [].filter.call(document.querySelectorAll('[data-name*="dialog"], [role="dialog"]'), function (d) {
+      return visible(d) && /clos|cancel|flatten|exit/i.test((d.getAttribute("data-name") || "") + " " + d.textContent);
+    }).pop();
+    if (!dlg) return false;
+    var btn = dlg.querySelector('[data-name="submit-button"]') || [].filter.call(dlg.querySelectorAll("button"), function (b) {
+      return visible(b) && /^(close( position)?|cancel order|flatten|exit|yes|confirm|ok)\b/i.test(b.textContent.trim());
     })[0];
-    var btn = dlg && dlg.querySelector('[data-name="submit-button"]');
     if (btn) { btn.click(); return true; }
     return false;
   }
-  function closeButtons(table) {
-    return table ? [].filter.call(table.querySelectorAll('[data-name="close-settings-cell-button"]'), visible) : [];
+  // The dialog can take a moment to show (or not show at all, with
+  // confirmations off).
+  async function confirmSoon() {
+    for (var i = 0; i < 12; i++) { await sleep(150); if (confirmDialog()) return true; }
+    return false;
   }
+  // A row's close button, shown or not: TradingView can keep it hidden
+  // until the row is hovered.
+  function closeButtons(table) {
+    return table && visible(table) ? [].slice.call(table.querySelectorAll('tbody tr [data-name="close-settings-cell-button"]')) : [];
+  }
+  function hover(el) {
+    ["pointerover", "pointerenter", "mouseover", "mouseenter", "mousemove"].forEach(function (t) {
+      el.dispatchEvent(new MouseEvent(t, { bubbles: t.indexOf("enter") < 0, view: window }));
+    });
+  }
+  var enforceNote = "";
   // Closes what's open and cancels what's working. It works in the tab
   // you have open; it only switches tabs when there's something to close
   // or cancel in the other one (or once, when a lock starts), and goes
@@ -219,32 +236,50 @@
     })[0] || null;
   }
   async function clearTable(get) {
+    var tries = 0;
     for (var i = 0; i < 30; i++) {
       var b = closeButtons(get())[0];
-      if (!b) return;
-      b.click(); await sleep(450);
-      confirmDialog(); await sleep(650);
+      if (!b) return true;
+      var row = b.closest("tr");
+      if (row) { hover(row); await sleep(120); }
+      b.click();
+      var asked = await confirmSoon();
+      await sleep(500);
+      if (closeButtons(get())[0] === b && ++tries >= 3) {
+        enforceNote = asked ? "TradingView didn't close it after confirming." : "Couldn't close it: TradingView's close button didn't respond.";
+        return false;
+      }
     }
+    return true;
   }
   function enforce() {
     if (busy || Date.now() - lastEnforce < 2500) return;
     var pt = tab(/^positions/i), ot = tab(/^orders/i);
-    if (!positionsTable() && !ordersTable() && !pt && !ot) return;
+    if (!positionsTable() && !ordersTable() && !pt && !ot) {
+      if (curLock) enforceNote = "Open TradingView's trading panel (Positions) so EZPayouts can close your trade.";
+      return;
+    }
     if (!curLock) return;
     var firstLook = swept !== curLock.lockedUntil;
     var openThere = seen.positions && seen.positions.some(function (p) { return p.qty; });
     var workingThere = seen.orders && seen.orders.some(working);
     var visibleWork = closeButtons(positionsTable()).length || (ordersTable() && seen.orders && seen.orders.some(working));
-    if (!firstLook && !visibleWork && !(openThere && !positionsTable()) && !(workingThere && !ordersTable())) return;
+    // Keeps at it for as long as it sees something open or working.
+    if (!firstLook && !visibleWork && !openThere && !workingThere) return;
     busy = true; lastEnforce = Date.now();
     (async function () {
       var back = currentTab();
       try {
-        if (positionsTable()) await clearTable(positionsTable);
-        else if (pt && (firstLook || openThere)) { pt.click(); await sleep(400); readPanel(); await clearTable(positionsTable); }
-        if (ordersTable()) await clearTable(ordersTable);
-        else if (ot && (firstLook || workingThere)) { ot.click(); await sleep(450); readPanel(); await clearTable(ordersTable); readPanel(); }
+        var ok = true;
+        enforceNote = "";
+        if (positionsTable()) ok = await clearTable(positionsTable);
+        else if (pt && (firstLook || openThere)) { pt.click(); await sleep(400); readPanel(); ok = await clearTable(positionsTable); }
+        readPanel();
+        if (ordersTable()) ok = (await clearTable(ordersTable)) && ok;
+        else if (ot && (firstLook || workingThere)) { ot.click(); await sleep(450); readPanel(); ok = (await clearTable(ordersTable)) && ok; readPanel(); }
         swept = curLock ? curLock.lockedUntil : 0;
+        // Didn't work: tries again in a bit, and says why.
+        if (!ok) { lastEnforce = Date.now() + 10000; toast(enforceNote); }
       } catch (e) {}
       if (back && back !== currentTab() && visible(back)) back.click();
       busy = false;
@@ -253,19 +288,59 @@
 
   // ---------- Blocking orders (locked, or bigger than the max) ----------
   var ORDER_BUTTONS = '[data-name="place-and-modify-button"], [data-name="buy-order-button"], [data-name="sell-order-button"]';
+  // The quantity box: the one labelled as such, else the first number box.
+  var QTY_RE = /^(units?|quantity|qty|contracts?|lots?|shares?|size|amount)\b/i;
+  function qtyInput(root) {
+    if (!root) return null;
+    var inputs = [].filter.call(root.querySelectorAll("input"), function (i) { return visible(i) && num(i.value) != null; });
+    var named = inputs.filter(function (i) {
+      if (QTY_RE.test(i.getAttribute("aria-label") || i.getAttribute("name") || i.getAttribute("placeholder") || "")) return true;
+      // A label just before it: "Quantity", "Units", "Contracts".
+      for (var a = i.parentElement, k = 0; a && k < 4; a = a.parentElement, k++) {
+        var lab = a.previousElementSibling;
+        if (lab && QTY_RE.test(lab.textContent.trim())) return true;
+      }
+      return false;
+    })[0];
+    return named || inputs[0] || null;
+  }
   function qtyFor(el) {
     var chartBtn = el.closest('[data-name="buy-order-button"], [data-name="sell-order-button"]');
     if (chartBtn) {
       var q = document.querySelector('[data-name="qtyEl"]');
       return q ? num(q.textContent) : null;
     }
-    var panel = el.closest('[data-name="order-panel"]') || document.querySelector('[data-name="order-panel"]');
-    if (!panel) return null;
-    var inputs = [].filter.call(panel.querySelectorAll("input"), function (i) { return visible(i) && num(i.value) != null; });
-    return inputs.length ? num(inputs[0].value) : null;
+    // "Buy 12 MNQ1! @ 29,920.25 Limit" and the like.
+    var item = el.closest('[role="menuitem"], [class*="item-"]');
+    var m = item && item.textContent.trim().match(/^(buy|sell)\s+([\d,.]+)/i);
+    if (m) return num(m[2]);
+    var box = el.closest('[data-name*="dialog"]') || el.closest('[data-name="order-panel"]') || document.querySelector('[data-name="order-panel"]');
+    var input = qtyInput(box);
+    return input ? num(input.value) : null;
   }
-  function isOrderAction(el) {
+  // Buy or sell, where it can tell.
+  function sideFor(el) {
+    var chartBtn = el.closest('[data-name="buy-order-button"], [data-name="sell-order-button"]');
+    if (chartBtn) return /buy/.test(chartBtn.getAttribute("data-name")) ? "buy" : "sell";
+    var item = el.closest('[role="menuitem"], [class*="item-"]');
+    var m = item && item.textContent.trim().match(/^(buy|sell)\s+[\d,.]+/i);
+    if (m) return m[1].toLowerCase();
+    var box = el.closest('[data-name*="dialog"]') || el.closest('[data-name="order-panel"]') || document.querySelector('[data-name="order-panel"]');
+    var on = box && box.querySelector('[data-name="side-control-buy"][class*="active-"], [data-name="side-control-sell"][class*="active-"]');
+    return on ? (/buy/.test(on.getAttribute("data-name")) ? "buy" : "sell") : null;
+  }
+  // Contracts already held on that side.
+  function heldOn(side) {
+    var rows = tableRows(positionsTable()) || [];
+    return rows.reduce(function (s, r) {
+      var sd = /buy|long/i.test(r.side || "") ? "buy" : /sell|short/i.test(r.side || "") ? "sell" : null;
+      return s + (sd === side ? Math.abs(num(r.qty) || 0) : 0);
+    }, 0);
+  }
+  function isOrderAction(el, e) {
     if (el.closest(ORDER_BUTTONS)) return true;
+    // Enter in the order panel's boxes places the order.
+    if (e && e.type === "keydown" && e.key === "Enter" && el.closest('[data-name="order-panel"]') && el.tagName === "INPUT") return true;
     var sub = el.closest('[data-name="submit-button"]');
     if (sub) {
       var dlg = sub.closest('[data-name*="dialog"]');
@@ -277,14 +352,20 @@
   function guard(e) {
     if (!settings.enabled || !e.isTrusted) return;
     var el = e.target && e.target.closest ? e.target : null;
-    if (!el || !isOrderAction(el)) return;
+    if (!el || !isOrderAction(el, e)) return;
     var lk = lockFor(accountName());
     var locked = !!lk;
     var msg = null;
     if (locked) msg = "This account is locked until " + until(lk) + " (" + (lk.lockReason || "risk limit") + ").";
-    else if (settings.maxQty > 0 && el.closest(ORDER_BUTTONS)) {
+    else if (settings.maxQty > 0) {
       var q = qtyFor(el);
-      if (q != null && q > settings.maxQty) msg = "That's " + q + " contracts. Your max is " + settings.maxQty + ".";
+      if (q != null && Math.abs(q) > settings.maxQty) msg = "That's " + Math.abs(q) + " contracts. Your max is " + settings.maxQty + ".";
+      else if (q != null) {
+        // Adding to a position: what you'd hold counts.
+        var side = sideFor(el), held = side ? heldOn(side) : 0;
+        if (held && held + Math.abs(q) > settings.maxQty)
+          msg = "You'd hold " + (held + Math.abs(q)) + " contracts (" + held + " + " + Math.abs(q) + "). Your max is " + settings.maxQty + ".";
+      }
     }
     if (!msg) return;
     e.preventDefault(); e.stopImmediatePropagation(); e.stopPropagation();
@@ -292,6 +373,60 @@
   }
   ["pointerdown", "mousedown", "pointerup", "mouseup", "click"].forEach(function (t) { window.addEventListener(t, guard, true); });
   window.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") guard(e); }, true);
+
+  // ---------- Over the max anyway (a hotkey, the DOM, another device) ----------
+  // A position bigger than the max: the extra is closed (or the whole
+  // position, if TradingView's close dialog has no quantity box). A working
+  // order bigger than the max: cancelled.
+  var trimming = false, lastTrim = 0;
+  function setInput(input, value) {
+    var set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
+    set.call(input, String(value));
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+  function overMax(table, qtyOf) {
+    if (!table || !visible(table)) return null;
+    var rows = [].filter.call(table.querySelectorAll("tbody tr"), function (tr) { return tr.querySelector("td[data-label]"); });
+    for (var i = 0; i < rows.length; i++) {
+      var cells = {};
+      rows[i].querySelectorAll("td[data-label]").forEach(function (td) { cells[td.getAttribute("data-label").trim().toLowerCase()] = td.textContent.trim(); });
+      var q = Math.abs(qtyOf(cells) || 0), btn = rows[i].querySelector('[data-name="close-settings-cell-button"]');
+      if (q > settings.maxQty && btn) return { qty: q, btn: btn, row: rows[i] };
+    }
+    return null;
+  }
+  function trimOverMax() {
+    if (!(settings.maxQty > 0) || trimming || curLock || Date.now() - lastTrim < 4000) return;
+    var pos = overMax(positionsTable(), function (c) { return num(c.qty); });
+    var ord = !pos && overMax(ordersTable(), function (c) {
+      return working({ status: c.status }) ? num(c.qty != null ? c.qty : c.quantity) : 0;
+    });
+    var hit = pos || ord;
+    if (!hit) return;
+    trimming = true; lastTrim = Date.now();
+    (async function () {
+      try {
+        hover(hit.row); await sleep(120);
+        hit.btn.click(); await sleep(500);
+        if (pos) {
+          var dlg = [].filter.call(document.querySelectorAll('[data-name*="closing-dialog"], [data-name*="dialog"]'), function (d) {
+            return visible(d) && /clos/i.test(d.getAttribute("data-name") + " " + d.textContent);
+          })[0];
+          var input = dlg && qtyInput(dlg);
+          var extra = hit.qty - settings.maxQty;
+          if (input) { setInput(input, extra); await sleep(250); }
+          await confirmSoon();
+          toast(input ? "Closed " + extra + " of " + hit.qty + " contracts. Your max is " + settings.maxQty + "."
+                      : "Closed a " + hit.qty + "-contract position. Your max is " + settings.maxQty + ".");
+        } else {
+          await confirmSoon();
+          toast("Cancelled a " + hit.qty + "-contract order. Your max is " + settings.maxQty + ".");
+        }
+      } catch (e) {}
+      await sleep(800); trimming = false;
+    })();
+  }
 
   // ---------- What it shows ----------
   function until(lk) {
