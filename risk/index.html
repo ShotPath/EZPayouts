@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>EZPayouts Risk Settings</title>
+<link rel="icon" type="image/png" href="../ezpayouts-icon-only.png">
+<link rel="apple-touch-icon" href="../ezpayouts-icon-only.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
+<style>
+  /* Same page tokens as the other app pages; nav.js swaps them per theme. */
+  :root{
+    --void:#07090a;
+    --panel:#0c1310;
+    --panel-raised:#121b16;
+    --panel-hi:#182319;
+    --hairline:#23332a;
+    --hairline-bright:#345a44;
+    --phosphor:#3ee08c;
+    --phosphor-soft:#8fe6b6;
+    --phosphor-dim:#1c5c3d;
+    --phosphor-glow:rgba(62,224,140,0.35);
+    --mint:#7ee8ac;
+    --mint-text:#062b17;
+    --red:#ef5a5a;
+    --amber:#f5b83d;
+    --ice:#dcefe2;
+    --muted:#7c9584;
+    --muted-dim:#4d6055;
+    --font-display:'Chakra Petch', 'Segoe UI', sans-serif;
+    --font-body:'IBM Plex Sans', 'Segoe UI', sans-serif;
+    --font-mono:'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+  }
+
+  *{ box-sizing:border-box; }
+  html{ color-scheme:dark; }
+  body{
+    margin:0; min-height:100vh; background:var(--void); color:var(--ice); font-family:var(--font-body);
+    padding:0 clamp(16px,4vw,48px); padding-block:clamp(18px,3.4vw,32px) 60px;
+    position:relative; overflow-x:hidden;
+  }
+  .wrap{ max-width:880px; margin:0 auto; position:relative; z-index:1; }
+  h2, h3{ font-family:var(--font-display); margin:0; }
+  button, input, select{ font:inherit; }
+  [hidden]{ display:none !important; }
+
+  .card{
+    background:var(--panel); border:1px solid var(--hairline); border-radius:20px;
+    padding:clamp(18px,2.6vw,26px); margin-bottom:16px;
+    box-shadow:0 30px 70px -44px rgba(0,0,0,0.9);
+  }
+  .card-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
+  .card h2{ font-size:18px; color:var(--ice); }
+  .lede{ margin:0 0 18px; font-size:14px; line-height:1.6; color:var(--muted); }
+  .lede b{ color:var(--ice); font-weight:600; }
+
+  .grid{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:14px 16px; }
+  @media (max-width:640px){ .grid{ grid-template-columns:minmax(0,1fr); } }
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  .field label{ font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.06em; color:var(--muted); text-transform:uppercase; }
+  .field input, .field select{
+    width:100%; min-width:0; background:var(--void); border:1px solid var(--hairline); border-radius:10px;
+    padding:11px 12px; color:var(--ice); font-family:var(--font-mono); font-size:14px; outline:none; transition:border-color .15s;
+  }
+  .field input:focus, .field select:focus{ border-color:var(--mint); box-shadow:0 0 0 3px rgba(126,232,172,0.14); }
+  .field .hint{ font-size:11.5px; line-height:1.45; color:var(--muted-dim); }
+  .money{ position:relative; }
+  .money::before{ content:"$"; position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--muted); font-family:var(--font-mono); font-size:14px; pointer-events:none; }
+  .money input{ padding-left:24px; }
+
+  .seg{ display:inline-flex; padding:3px; border-radius:999px; border:1px solid var(--hairline); background:rgba(0,0,0,0.25); }
+  .seg button{ border:none; background:transparent; color:var(--muted); font-family:var(--font-mono); font-size:12px; font-weight:600; padding:6px 14px; border-radius:999px; cursor:pointer; }
+  .seg button.active{ background:var(--mint); color:var(--mint-text); }
+
+  .check{ display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted); margin-top:4px; }
+  .actions{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:18px; }
+  .btn{ border:1px solid transparent; border-radius:12px; padding:11px 18px; font-family:var(--font-display); font-weight:700; font-size:14px; cursor:pointer; transition:filter .15s, border-color .15s; }
+  .btn-main{ background:var(--mint); color:var(--mint-text); }
+  .btn-main:hover{ filter:brightness(1.07); }
+  .btn-ghost{ background:var(--panel-hi); color:var(--ice); border-color:var(--hairline-bright); }
+  .btn-ghost:hover{ border-color:var(--mint); }
+  .btn:disabled{ opacity:0.55; cursor:default; filter:none; }
+
+  .note{ display:flex; gap:10px; align-items:flex-start; padding:12px 14px; border-radius:12px; font-size:13.5px; line-height:1.55;
+    background:rgba(255,255,255,0.03); border:1px solid var(--hairline); color:var(--ice); margin-top:14px; }
+  .note::before{ content:""; flex:none; width:8px; height:8px; margin-top:6px; border-radius:50%; background:var(--muted-dim); }
+  .note.good{ border-color:rgba(126,232,172,0.45); } .note.good::before{ background:var(--mint); box-shadow:0 0 8px var(--mint); }
+  .note.bad{ border-color:rgba(239,90,90,0.5); } .note.bad::before{ background:var(--red); }
+  .note.warn{ border-color:rgba(245,184,61,0.5); } .note.warn::before{ background:var(--amber); }
+
+  .conn{ display:flex; align-items:center; gap:10px; font-family:var(--font-mono); font-size:12.5px; color:var(--muted); }
+  .conn .dot{ width:8px; height:8px; border-radius:50%; background:var(--mint); box-shadow:0 0 8px var(--mint); }
+  .conn b{ color:var(--ice); font-weight:600; }
+
+  .help{ margin-top:4px; }
+  .help summary{ cursor:pointer; font-size:13px; color:var(--phosphor-soft); }
+  .help ol{ margin:10px 0 0; padding-left:20px; font-size:13px; line-height:1.6; color:var(--muted); }
+  .help b{ color:var(--ice); font-weight:600; }
+</style>
+</head>
+<body>
+<script src="/nav.js?v=4"></script>
+<script src="/account.js"></script>
+<script src="/coach.js"></script>
+<div class="wrap">
+
+  <div class="ez-page-head">
+    <h1 class="ez-page-title">Risk Settings</h1>
+  </div>
+
+  <!-- Signed out of EZPayouts -->
+  <div class="card" id="needEz" hidden>
+    <h2>Sign in first</h2>
+    <p class="lede" style="margin-top:10px">Connecting a Tradovate account needs your EZPayouts account.</p>
+    <button type="button" class="btn btn-main" id="ezSignIn">Sign in to EZPayouts</button>
+  </div>
+
+  <!-- Connect -->
+  <div class="card" id="connectCard" hidden>
+    <div class="card-head">
+      <h2>Connect Tradovate</h2>
+      <div class="seg" id="envSeg" role="radiogroup" aria-label="Tradovate environment">
+        <button type="button" data-env="live" class="active">Live</button>
+        <button type="button" data-env="demo">Demo</button>
+      </div>
+    </div>
+    <p class="lede">This page only reads and changes your account's <b>risk settings</b>. It never places or cancels orders.</p>
+    <form id="connectForm" autocomplete="on">
+      <div class="grid">
+        <div class="field">
+          <label for="tvUser">Tradovate username</label>
+          <input id="tvUser" name="username" autocomplete="username" required>
+        </div>
+        <div class="field">
+          <label for="tvPass">Password</label>
+          <input id="tvPass" name="password" type="password" autocomplete="current-password" required>
+        </div>
+        <div class="field">
+          <label for="tvCid">API key ID (cid)</label>
+          <input id="tvCid" inputmode="numeric" autocomplete="off" required>
+        </div>
+        <div class="field">
+          <label for="tvSec">API secret</label>
+          <input id="tvSec" type="password" autocomplete="off" required>
+        </div>
+      </div>
+      <label class="check"><input type="checkbox" id="tvRemember"> Remember my username and key ID on this device (never the password or secret)</label>
+      <div class="actions">
+        <button type="submit" class="btn btn-main" id="connectBtn">Connect</button>
+      </div>
+    </form>
+    <details class="help">
+      <summary>Where do I get an API key?</summary>
+      <ol>
+        <li>Sign in at <b>trader.tradovate.com</b>, open the menu, then <b>Application Settings</b> &rarr; <b>API Access</b>.</li>
+        <li>Turn on API access (Tradovate may charge for it), then click <b>Generate API Key</b>.</li>
+        <li>Copy the <b>cid</b> and the <b>secret</b> into the boxes above. The secret is only shown once.</li>
+      </ol>
+      <p class="lede" style="margin:10px 0 0">Prop firm accounts often don't allow API keys, and the firm may control these settings itself.</p>
+    </details>
+    <div class="note" id="connectMsg" hidden></div>
+  </div>
+
+  <!-- Connected -->
+  <div class="card" id="riskCard" hidden>
+    <div class="card-head">
+      <div class="conn"><span class="dot"></span><span>Connected to Tradovate <b id="connEnv"></b> as <b id="connName"></b></span></div>
+      <button type="button" class="btn btn-ghost" id="disconnectBtn">Disconnect</button>
+    </div>
+    <div class="field" style="margin-bottom:18px">
+      <label for="acctSel">Account</label>
+      <select id="acctSel"></select>
+    </div>
+
+    <h2 style="font-size:16px; margin-bottom:6px">Limits</h2>
+    <p class="lede">When a limit is hit, Tradovate closes your positions and locks the account until the next session. Leave a box empty to turn that limit off.</p>
+    <form id="riskForm">
+      <div class="grid">
+        <div class="field">
+          <label for="dailyLoss">Daily loss limit</label>
+          <div class="money"><input id="dailyLoss" type="number" min="1" step="1" placeholder="Off"></div>
+        </div>
+        <div class="field">
+          <label for="weeklyLoss">Weekly loss limit</label>
+          <div class="money"><input id="weeklyLoss" type="number" min="1" step="1" placeholder="Off"></div>
+        </div>
+        <div class="field">
+          <label for="dailyProfit">Daily profit trigger</label>
+          <div class="money"><input id="dailyProfit" type="number" min="1" step="1" placeholder="Off"></div>
+          <span class="hint">Stops you for the day once you're up this much.</span>
+        </div>
+        <div class="field">
+          <label for="weeklyProfit">Weekly profit trigger</label>
+          <div class="money"><input id="weeklyProfit" type="number" min="1" step="1" placeholder="Off"></div>
+          <span class="hint">Stops you for the week once you're up this much.</span>
+        </div>
+        <div class="field">
+          <label for="maxQty">Max quantity per trade</label>
+          <input id="maxQty" type="number" min="1" step="1" placeholder="No limit">
+          <span class="hint">The most contracts you can hold at once, across all symbols.</span>
+        </div>
+      </div>
+      <div class="actions">
+        <button type="submit" class="btn btn-main" id="saveBtn">Save to Tradovate</button>
+        <button type="button" class="btn btn-ghost" id="reloadBtn">Reload</button>
+      </div>
+    </form>
+    <div class="note" id="riskMsg" hidden></div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var API = window.EZ_AUTH_BASE || "https://ezpayouts-auth.ezpayouts.workers.dev";
+  var SESSION_KEY = "ezTvSession", REMEMBER_KEY = "ezTvRemember", DEVICE_KEY = "ezTvDevice";
+  var EZ_MARK = "Set by EZPayouts";
+  var $ = function (id) { return document.getElementById(id); };
+  var env = "live", session = null, accounts = [], current = { autoLiq: null, limit: null };
+  var FIELDS = { dailyLoss: "dailyLossAutoLiq", weeklyLoss: "weeklyLossAutoLiq", dailyProfit: "dailyProfitAutoLiq", weeklyProfit: "weeklyProfitAutoLiq" };
+
+  function store(kind) { try { return kind === "session" ? sessionStorage : localStorage; } catch (e) { return null; } }
+  function readJson(kind, key) { try { var s = store(kind); return s ? JSON.parse(s.getItem(key) || "null") : null; } catch (e) { return null; } }
+  function writeJson(kind, key, v) { try { var s = store(kind); if (!s) return; if (v == null) s.removeItem(key); else s.setItem(key, JSON.stringify(v)); } catch (e) {} }
+  function deviceId() {
+    var id = readJson("local", DEVICE_KEY);
+    if (!id) { id = "ez-" + Array.from(crypto.getRandomValues(new Uint8Array(12)), function (b) { return b.toString(16).padStart(2, "0"); }).join(""); writeJson("local", DEVICE_KEY, id); }
+    return id;
+  }
+
+  function note(el, text, kind) {
+    el.textContent = text || "";
+    el.className = "note" + (kind ? " " + kind : "");
+    el.hidden = !text;
+  }
+  function money(n) { return "$" + Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 }); }
+
+  // Every Tradovate call goes through the EZPayouts account server, which
+  // passes it on unchanged (Tradovate only answers its own websites).
+  function tv(path, opts) {
+    opts = opts || {};
+    var headers = { Authorization: "Bearer " + EZAuth.getToken() };
+    if (opts.body) headers["Content-Type"] = "application/json";
+    if (session && !opts.noToken) headers["X-Tradovate-Token"] = session.token;
+    return fetch(API + "/tradovate/" + (opts.env || session.env) + "/" + path, {
+      method: opts.body ? "POST" : "GET", headers: headers, body: opts.body ? JSON.stringify(opts.body) : undefined
+    }).then(function (r) {
+      return r.text().then(function (t) {
+        var data = null; try { data = t ? JSON.parse(t) : null; } catch (e) {}
+        if (!r.ok || (data && data.errorText)) {
+          var err = new Error((data && data.errorText) || explain(r.status));
+          err.status = r.status; throw err;
+        }
+        return data;
+      });
+    });
+  }
+  function explain(status) {
+    if (status === 401 && session) return "Tradovate signed you out. Connect again.";
+    if (status === 401 || status === 403) return "Tradovate didn't allow that. On prop firm accounts the firm often controls these settings.";
+    if (status === 429) return "Too many requests to Tradovate. Wait a minute and try again.";
+    return "Tradovate couldn't do that right now (" + status + "). Try again in a moment.";
+  }
+
+  // Tokens last about 90 minutes; renew when there are 15 left.
+  function fresh() {
+    if (!session) return Promise.reject(new Error("Not connected."));
+    if (new Date(session.exp).getTime() - Date.now() > 15 * 60 * 1000) return Promise.resolve();
+    return tv("auth/renewaccesstoken").then(function (d) {
+      if (d && d.accessToken) { session.token = d.accessToken; session.exp = d.expirationTime; writeJson("session", SESSION_KEY, session); }
+    });
+  }
+
+  // ---------- Screens ----------
+  function render() {
+    var signedIn = window.EZAuth && EZAuth.isLoggedIn();
+    $("needEz").hidden = signedIn;
+    $("connectCard").hidden = !signedIn || !!session;
+    $("riskCard").hidden = !signedIn || !session;
+    if (signedIn && session) {
+      $("connEnv").textContent = session.env === "demo" ? "Demo" : "Live";
+      $("connName").textContent = session.name;
+    }
+  }
+  function setEnv(e) {
+    env = e;
+    [].forEach.call($("envSeg").children, function (b) { b.classList.toggle("active", b.getAttribute("data-env") === e); });
+  }
+  $("envSeg").addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) setEnv(b.getAttribute("data-env")); });
+  $("ezSignIn").addEventListener("click", function () { EZAuth.openSignIn(); });
+
+  // ---------- Connect ----------
+  var remembered = readJson("local", REMEMBER_KEY);
+  if (remembered) { $("tvUser").value = remembered.name || ""; $("tvCid").value = remembered.cid || ""; setEnv(remembered.env || "live"); $("tvRemember").checked = true; }
+
+  $("connectForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var msg = $("connectMsg"), btn = $("connectBtn");
+    var name = $("tvUser").value.trim(), cid = $("tvCid").value.trim();
+    btn.disabled = true; note(msg, "Connecting…");
+    tv("auth/accesstokenrequest", { env: env, noToken: true, body: {
+      name: name, password: $("tvPass").value, appId: "EZPayouts", appVersion: "1.0",
+      cid: /^\d+$/.test(cid) ? Number(cid) : cid, sec: $("tvSec").value.trim(), deviceId: deviceId()
+    } }).then(function (d) {
+      if (d && d["p-ticket"]) {
+        var wait = d["p-time"] ? " Wait " + d["p-time"] + " seconds and try again." : "";
+        throw new Error(d["p-captcha"] ? "Tradovate wants to check you're human. Sign in once at trader.tradovate.com, then try again here." : "Tradovate is slowing down sign-ins after failed tries." + wait);
+      }
+      if (!d || !d.accessToken) throw new Error("Tradovate didn't sign you in. Check the username, password and API key.");
+      session = { env: env, token: d.accessToken, exp: d.expirationTime, name: d.name || name };
+      writeJson("session", SESSION_KEY, session);
+      writeJson("local", REMEMBER_KEY, $("tvRemember").checked ? { name: name, cid: cid, env: env } : null);
+      $("tvPass").value = ""; $("tvSec").value = "";
+      note(msg, "");
+      render();
+      return loadAccounts();
+    }).catch(function (err) {
+      note(msg, err.message, "bad");
+    }).then(function () { btn.disabled = false; });
+  });
+
+  $("disconnectBtn").addEventListener("click", function () {
+    session = null; accounts = [];
+    writeJson("session", SESSION_KEY, null);
+    note($("riskMsg"), "");
+    render();
+  });
+
+  // ---------- Accounts and their limits ----------
+  function loadAccounts() {
+    return fresh().then(function () { return tv("account/list"); }).then(function (list) {
+      accounts = (list || []).filter(function (a) { return a.active !== false; });
+      var sel = $("acctSel");
+      sel.innerHTML = "";
+      accounts.forEach(function (a) {
+        var o = document.createElement("option");
+        o.value = a.id; o.textContent = a.name || ("Account " + a.id);
+        sel.appendChild(o);
+      });
+      if (!accounts.length) { note($("riskMsg"), "No active accounts on this Tradovate login.", "warn"); return; }
+      return loadLimits();
+    }).catch(function (err) {
+      if (err.status === 401) { session = null; writeJson("session", SESSION_KEY, null); render(); note($("connectMsg"), err.message, "bad"); return; }
+      note($("riskMsg"), err.message, "bad");
+    });
+  }
+  function acctId() { return Number($("acctSel").value); }
+
+  function loadLimits() {
+    var id = acctId(), msg = $("riskMsg");
+    note(msg, "Loading this account's limits…");
+    return fresh().then(function () {
+      return Promise.all([tv("userAccountAutoLiq/deps?masterid=" + id), tv("userAccountPositionLimit/deps?masterid=" + id)]);
+    }).then(function (res) {
+      current.autoLiq = (res[0] || [])[0] || null;
+      current.limit = (res[1] || []).filter(function (l) { return l.totalBy === "Overall" && l.active; })[0] || null;
+      Object.keys(FIELDS).forEach(function (f) {
+        var v = current.autoLiq && current.autoLiq[FIELDS[f]];
+        $(f).value = v != null ? v : "";
+      });
+      var lim = current.limit;
+      $("maxQty").value = lim ? (lim.exposedLimit != null ? lim.exposedLimit : (lim.longLimit != null ? lim.longLimit : "")) : "";
+      var locked = current.autoLiq && current.autoLiq.changesLocked;
+      [].forEach.call($("riskForm").querySelectorAll("input"), function (i) { i.disabled = !!locked; });
+      $("saveBtn").disabled = !!locked;
+      note(msg, locked ? "These settings are locked on Tradovate's side, so they can't be changed right now." : "", locked ? "warn" : "");
+    }).catch(function (err) { note(msg, err.message, "bad"); });
+  }
+  $("acctSel").addEventListener("change", loadLimits);
+  $("reloadBtn").addEventListener("click", loadLimits);
+
+  function readMoney(id) {
+    var raw = $(id).value.trim();
+    if (raw === "") return null;
+    var n = Number(raw);
+    if (!(n > 0)) throw new Error("Amounts need to be more than $0, or empty to turn a limit off.");
+    return Math.round(n * 100) / 100;
+  }
+
+  $("riskForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var msg = $("riskMsg"), id = acctId(), vals = {}, qty;
+    try {
+      Object.keys(FIELDS).forEach(function (f) { vals[FIELDS[f]] = readMoney(f); });
+      var rawQty = $("maxQty").value.trim();
+      qty = rawQty === "" ? null : Number(rawQty);
+      if (qty !== null && !(qty >= 1 && Math.floor(qty) === qty)) throw new Error("Max quantity needs to be a whole number, 1 or more.");
+    } catch (err) { note(msg, err.message, "bad"); return; }
+
+    var acct = accounts.filter(function (a) { return a.id === id; })[0];
+    var lines = [
+      "Daily loss limit: " + (vals.dailyLossAutoLiq ? money(vals.dailyLossAutoLiq) : "off"),
+      "Weekly loss limit: " + (vals.weeklyLossAutoLiq ? money(vals.weeklyLossAutoLiq) : "off"),
+      "Daily profit trigger: " + (vals.dailyProfitAutoLiq ? money(vals.dailyProfitAutoLiq) : "off"),
+      "Weekly profit trigger: " + (vals.weeklyProfitAutoLiq ? money(vals.weeklyProfitAutoLiq) : "off"),
+      "Max quantity: " + (qty ? qty + " contracts" : "no limit")
+    ];
+    if (!confirm("Save these to " + (acct ? acct.name : "this account") + " on Tradovate?\n\n" + lines.join("\n"))) return;
+
+    var btn = $("saveBtn");
+    btn.disabled = true; note(msg, "Saving…");
+    fresh().then(function () {
+      var al = current.autoLiq;
+      var body = Object.assign({}, al || { id: id }, vals);
+      return tv(al ? "userAccountAutoLiq/update" : "userAccountAutoLiq/create", { body: body });
+    }).then(function () {
+      var lim = current.limit;
+      if (qty) {
+        var lb = Object.assign({}, lim || { accountId: id, totalBy: "Overall", description: EZ_MARK }, { active: true, exposedLimit: qty, longLimit: qty, shortLimit: qty });
+        return tv(lim ? "userAccountPositionLimit/update" : "userAccountPositionLimit/create", { body: lb });
+      }
+      // Cleared: only a limit this page made is switched off; one set
+      // some other way is left alone.
+      if (lim && lim.description === EZ_MARK) return tv("userAccountPositionLimit/update", { body: Object.assign({}, lim, { active: false }) });
+    }).then(function () {
+      return loadLimits().then(function () {
+        var kept = !qty && current.limit && current.limit.description !== EZ_MARK;
+        note(msg, "Saved to Tradovate." + (kept ? " The max quantity limit that was already on this account was left as it is." : ""), "good");
+      });
+    }).catch(function (err) {
+      note(msg, err.message, "bad");
+    }).then(function () { btn.disabled = false; });
+  });
+
+  // ---------- Start ----------
+  session = readJson("session", SESSION_KEY);
+  if (session && new Date(session.exp).getTime() < Date.now()) { session = null; writeJson("session", SESSION_KEY, null); }
+  render();
+  if (session && EZAuth.isLoggedIn()) loadAccounts();
+  EZAuth.onChange(function (loggedIn) {
+    if (!loggedIn) { session = null; writeJson("session", SESSION_KEY, null); }
+    render();
+  });
+
+  window.EZPageContext = function () {
+    return { pageName: "Risk Settings", data: { connected: !!session, environment: session ? session.env : null } };
+  };
+})();
+</script>
+</body>
+</html>

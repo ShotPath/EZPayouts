@@ -47,7 +47,7 @@ const MIN_PASSWORD_LENGTH = 6;
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Tradovate-Token",
 };
 
 function json(body, status) {
@@ -803,6 +803,51 @@ async function handleBillingWebhook(request, env) {
   return json({ received: true });
 }
 
+
+// ---------------------------------------------------------------------------
+// Tradovate relay (the Risk page). Tradovate's API only answers browsers on
+// its own approved sites, so the page's calls come through here and go
+// straight on to Tradovate: nothing is stored or logged. Signed-in EZPayouts
+// users only, and only the calls the Risk page makes: signing in, listing
+// accounts, and reading/writing auto-liquidation and position limits.
+// The page's own session rides in Authorization; Tradovate's token in
+// X-Tradovate-Token.
+const TRADOVATE_HOSTS = { live: "https://live.tradovateapi.com/v1/", demo: "https://demo.tradovateapi.com/v1/" };
+const TRADOVATE_PATHS = [
+  /^auth\/accesstokenrequest$/i,
+  /^auth\/renewaccesstoken$/i,
+  /^account\/list$/,
+  /^userAccountAutoLiq\/(deps|create|update)$/,
+  /^userAccountPositionLimit\/(deps|create|update)$/,
+];
+
+async function handleTradovate(request, env, rest) {
+  var username = await requireSession(request, env);
+  if (!username) return json({ errorText: "Sign in to EZPayouts first." }, 401);
+  var m = /^(live|demo)\/(.+)$/.exec(rest);
+  if (!m || !TRADOVATE_PATHS.some(function (re) { return re.test(m[2]); })) return json({ errorText: "Not allowed." }, 403);
+  var url = new URL(request.url);
+  var target = TRADOVATE_HOSTS[m[1]] + m[2] + url.search;
+  var headers = { "Accept": "application/json" };
+  var tv = request.headers.get("X-Tradovate-Token");
+  if (tv) headers["Authorization"] = "Bearer " + tv;
+  var init = { method: request.method, headers: headers };
+  if (request.method === "POST") {
+    headers["Content-Type"] = "application/json";
+    init.body = await request.text();
+  }
+  try {
+    var res = await fetch(target, init);
+    var body = await res.text();
+    return new Response(body || "{}", {
+      status: res.status,
+      headers: Object.assign({ "Content-Type": "application/json", "Cache-Control": "no-store" }, CORS_HEADERS),
+    });
+  } catch (err) {
+    return json({ errorText: "Couldn't reach Tradovate. Try again in a moment." }, 502);
+  }
+}
+
 export default {
   async fetch(request, env) {
     if (request.method === "OPTIONS") {
@@ -828,6 +873,9 @@ export default {
     if (path === "/data" && request.method === "GET") return handleGetData(request, env);
     if (path === "/data" && request.method === "PUT") return handlePutData(request, env);
 
+    if (path.indexOf("/tradovate/") === 0 && (request.method === "GET" || request.method === "POST")) {
+      return handleTradovate(request, env, path.slice("/tradovate/".length));
+    }
     if (path === "/billing/checkout" && request.method === "POST") return handleBillingCheckout(request, env);
     if (path === "/billing/portal" && request.method === "POST") return handleBillingPortal(request, env);
     if (path === "/billing/status" && request.method === "GET") return handleBillingStatus(request, env);

@@ -104,6 +104,10 @@
         icon: '<circle cx="10" cy="10" r="7" /><path d="M12.6 7.4 8.8 8.8l-1.4 3.8 3.8-1.4z" />'
       },
       {
+        slug: "risk", href: "/risk/", label: "Risk Settings",
+        icon: '<path d="M10 2.5 16 5v4.5c0 3.8-2.6 6.8-6 8-3.4-1.2-6-4.2-6-8V5z" /><path d="M7.2 10.2 9.2 12.2 13 8.4" />'
+      },
+      {
         slug: "calendar", href: "/calendar/?view=econ", label: "Economic Calendar", query: "view=econ",
         icon: '<rect x="3" y="4.5" width="14" height="12.5" rx="1.5" /><path d="M3 8h14M6.5 2.5v4M13.5 2.5v4" /><path d="M6.5 11h1.2M9.4 11h1.2M12.3 11h1.2M6.5 13.5h1.2M9.4 13.5h1.2" />'
       },
