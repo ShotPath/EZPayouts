@@ -29,6 +29,11 @@
   function lockOf() { var a = acct() && state.accounts[acct()]; return a && a.lockedUntil > Date.now() ? a : null; }
   function locked() { return !!lockOf(); }
   function until() { var a = lockOf(); return a ? new Date(a.lockedUntil).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" }) : ""; }
+  function untilShort() {
+    var a = lockOf(); if (!a) return "";
+    var d = new Date(a.lockedUntil), today = new Date().toDateString() === d.toDateString();
+    return d.toLocaleString([], today ? { hour: "numeric", minute: "2-digit" } : { weekday: "short", hour: "numeric", minute: "2-digit" });
+  }
   var msgTimer = 0;
   function msg(text, kind, stay) {
     var el = $("riskMsg"); el.textContent = text || ""; el.className = "note" + (kind ? " " + kind : ""); el.hidden = !text;
@@ -48,8 +53,12 @@
 
     var isLocked = locked();
     $("riskLock").hidden = !isLocked;
-    if (isLocked) $("riskLock").innerHTML = "&#128274; <b>" + esc(acct()) + "</b> is locked until <b>" + until() + "</b> (" + (lockOf().lockReason || "risk limit") + ")." +
-      (live && live.note && Date.now() - live.at < 30000 ? "<br><span style=\"color:#ffb3b3\">" + esc(live.note) + "</span>" : "");
+    if (isLocked) {
+      var note = live && live.note && Date.now() - live.at < 30000 ? live.note : "";
+      $("riskLock").innerHTML = "<span>&#128274; <b>" + esc(acct()) + "</b> locked until <b>" + untilShort() + "</b> · " + esc((lockOf().lockReason || "risk limit").replace(/ (limit|target)$/, "")) + "</span>" +
+        (note ? "<small>" + esc(note) + "</small>" : "");
+      $("riskLock").title = acct() + " is locked until " + until() + " (" + (lockOf().lockReason || "risk limit") + ")." + (note ? "\n" + note : "");
+    }
     var frozen = isLocked && settings.preventChanges;
     Object.keys(FIELDS).forEach(function (f) { $(f).disabled = frozen; });
     $("rPrevent").disabled = frozen; $("riskSave").disabled = frozen; $("riskOn").disabled = frozen; $("riskRestart").disabled = frozen;
@@ -147,7 +156,7 @@
     if (unlocked) put[STATE_KEY] = state;
     store.set(put, function () {
       fill(); render();
-      if (unlocked) { msg("Limit raised past where you are, so trading is unlocked.", "good"); return; }
+      if (unlocked) { msg("Limit raised, so trading is unlocked. Past the new limit, it locks again.", "good"); return; }
       msg("Saved. Hit a limit and EZPayouts closes your trades and locks trading for " + settings.lockHours + " hour" + (settings.lockHours === 1 ? "" : "s") + ".", "good");
     });
   });
@@ -157,18 +166,14 @@
   // set yourself doesn't.
   var LIMIT_OF = { "daily loss limit": "dailyLoss", "weekly loss limit": "weeklyLoss", "daily profit target": "dailyProfit", "weekly profit target": "weeklyProfit" };
   function unlockIfRaised(next) {
-    if (!locked() || settings.preventChanges) return false;
+    if (!locked() || settings.preventChanges || next.preventChanges) return false;
     var lk = lockOf();
     var key = lk && LIMIT_OF[lk.lockReason];
-    if (!key || !live || live.missing) return false;
-    var v = next[key], day = live.day, week = live.week;
-    var clear = key === "dailyLoss" ? !(v > 0 && day <= -v)
-      : key === "weeklyLoss" ? !(v > 0 && week <= -v)
-      : key === "dailyProfit" ? !(v > 0 && day >= v)
-      : !(v > 0 && week >= v);
-    var raised = v == null || settings[key] == null || v > settings[key];
-    if (!clear || !raised) return false;
-    lk.lockedUntil = 0; lk.lockReason = "";
+    if (!key) return false;
+    var before = lk.lockLimit != null ? lk.lockLimit : settings[key], v = next[key];
+    var raised = !(v > 0) || !(before > 0) || v > before;
+    if (!raised) return false;
+    lk.lockedUntil = 0; lk.lockReason = ""; lk.lockLimit = null;
     if (lk.fired) delete lk.fired[key];      // so the new limit can still lock you later today
     return true;
   }

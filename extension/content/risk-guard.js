@@ -17,6 +17,7 @@
   var DEFAULTS = { enabled: false, dailyLoss: null, weeklyLoss: null, dailyProfit: null, weeklyProfit: null, maxQty: null, lockHours: 4, preventChanges: true };
   var settings = Object.assign({}, DEFAULTS), state = { accounts: {} };
   var REASONS = { dailyLoss: "daily loss limit", weeklyLoss: "weekly loss limit", dailyProfit: "daily profit target", weeklyProfit: "weekly profit target" };
+  var KEY_OF = {}; Object.keys(REASONS).forEach(function (k) { KEY_OF[REASONS[k]] = k; });
 
   function storage() { try { return chrome.storage && chrome.storage.local; } catch (e) { return null; } }
   var st = storage();
@@ -109,10 +110,24 @@
       week: weekF ? weekF.value + openPl : null };
   }
   function positionsTable() { return document.querySelector('[data-name="Broker.positions-table"]'); }
+  // The account TradingView's trading panel is on: the name in its header
+  // (where you switch accounts), most specific first.
+  var ACCOUNT_SELECTORS = [
+    '.js-account-manager-header [class*="accountName-"]',
+    '[class*="accountManager-"] [class*="accountName-"]',
+    '[class*="accountName-"]',
+    '.js-account-manager-header [class*="ccountButton-"]',
+    '[class*="singleAccountButton-"], [class*="multipleAccountsButton-"], [class*="accountsButton-"], [class*="accountButton-"]'
+  ];
   function accountName() {
-    var b = document.querySelector('[class*="singleAccountButton-"], [class*="accountButton-"], [class*="dropdownButton-"]');
-    var t = b && b.textContent.trim();
-    return t && t.length < 60 ? t : "account";
+    for (var i = 0; i < ACCOUNT_SELECTORS.length; i++) {
+      var els = document.querySelectorAll(ACCOUNT_SELECTORS[i]);
+      for (var j = 0; j < els.length; j++) {
+        var t = els[j].textContent.replace(/\s+/g, " ").trim();
+        if (t && t.length < 60) return t;
+      }
+    }
+    return "account";
   }
 
   // ---------- Days and weeks (futures sessions start 6 PM New York) ----------
@@ -158,6 +173,15 @@
     }
     if (a.weekKey !== k.week) { a.weekKey = k.week; a.weekStart = a.dayStart; changed = true; }
     if (!a.fired) a.fired = {};
+    // A limit's lock ends when that limit is raised (or turned off), unless
+    // changes are prevented while locked. Still past the new limit: it
+    // locks again right away, at the new limit.
+    var limitKey = a.lockedUntil > now && KEY_OF[a.lockReason];
+    if (limitKey && a.lockLimit === undefined) { a.lockLimit = settings[limitKey]; changed = true; }
+    if (limitKey && !settings.preventChanges && a.lockLimit != null && !(settings[limitKey] > 0 && settings[limitKey] <= a.lockLimit)) {
+      a.lockedUntil = 0; a.lockReason = ""; a.lockLimit = null; delete a.fired[limitKey];
+      curLock = null; changed = true; overlay(false);
+    }
     var day = f.day != null ? f.day : eq - a.dayStart;
     var week = f.week != null ? f.week : eq - a.weekStart;
 
@@ -171,6 +195,7 @@
       var hours = Math.max(0.25, Number(settings.lockHours) || 4);
       a.lockedUntil = Math.max(a.lockedUntil || 0, now + hours * 3600e3);
       a.lockReason = REASONS[hit];
+      a.lockLimit = settings[hit];
       curLock = a;
       changed = true;
       overlay(true); enforce();
@@ -246,7 +271,7 @@
       var asked = await confirmSoon();
       await sleep(500);
       if (closeButtons(get())[0] === b && ++tries >= 3) {
-        enforceNote = asked ? "TradingView didn't close it after confirming." : "Couldn't close it: TradingView's close button didn't respond.";
+        enforceNote = asked ? "TradingView didn't close it after confirming." : "Couldn't close your trade: TradingView didn't respond.";
         return false;
       }
     }
@@ -256,7 +281,7 @@
     if (busy || Date.now() - lastEnforce < 2500) return;
     var pt = tab(/^positions/i), ot = tab(/^orders/i);
     if (!positionsTable() && !ordersTable() && !pt && !ot) {
-      if (curLock) enforceNote = "Open TradingView's trading panel (Positions) so EZPayouts can close your trade.";
+      if (curLock) enforceNote = "Open TradingView's Positions panel so it can close your trade.";
       return;
     }
     if (!curLock) return;
