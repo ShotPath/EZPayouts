@@ -1407,9 +1407,15 @@
         return;
       }
       if (kind !== "stroke" || args.length) return giveUp(ctx, st, g, orig, args);
+      // Before the price reaches the entry, the arrow is an empty path.
+      if (!p.n) return orig.apply(ctx, args);
       d = devRect(ctx, p);
       var level = d.y1 - d.y0 < 2 && Math.abs((d.y0 + d.y1) / 2 - g.entry) <= 2 * g.s && d.x1 - d.x0 >= (box.x1 - box.x0) * 0.9;
-      var arrowLine = p.slant > 0 && inside(d, box);
+      // The arrow's head is a fixed size, so it can poke out of the box: on
+      // a narrow (zoomed out) tool, or with the price at the box's edge.
+      var pad = 12 * g.s, near = { x0: box.x0 - pad, x1: box.x1 + pad, y0: box.y0 - pad, y1: box.y1 + pad };
+      var arrowLine = (p.slant > 0 || (d.x1 - d.x0 < pad && d.y1 - d.y0 < pad)) && inside(d, near) &&
+        d.x1 >= box.x0 - 1 && d.x0 <= box.x1 + 1 && d.y1 >= box.y0 - 1 && d.y0 <= box.y1 + 1;
       if (!level && !arrowLine) return giveUp(ctx, st, g, orig, args);
       // Boxes held from before the zones that aren't the tool's: drawn as they were.
       var others = g.rects.filter(function (h) { return h.rect !== g.stop && h.rect !== g.target; });
