@@ -133,11 +133,16 @@
   <div id="riskView" hidden>
     <div class="site">
       <span class="site-dot" id="riskDot"></span>
-      <span class="site-text" id="riskText">Open a chart with your broker connected.</span>
+      <span class="site-text" id="riskText">Open TradingView's trading panel.</span>
       <label class="switch" title="Risk Management on or off">
         <input type="checkbox" id="riskOn" role="switch" aria-label="Risk Management">
         <span class="track"><span class="knob"></span></span>
       </label>
+    </div>
+    <div class="r-stats" id="riskStats" hidden>
+      <div><span>Start of day</span><b id="sStart"></b></div>
+      <div><span>Balance now</span><b id="sNow"></b></div>
+      <div><span id="sRoomLabel">Room (DLL)</span><b id="sRoom"></b></div>
     </div>
     <div class="r-lock" id="riskLock" hidden></div>
     <section>
@@ -150,19 +155,19 @@
         <label class="r-field"><span>Max quantity per trade</span><input id="rMaxQty" type="number" min="1" step="1" placeholder="No limit"></label>
         <label class="r-field"><span>Lock for (hours)</span><input id="rLockHours" type="number" min="0.25" max="72" step="0.25" placeholder="4"></label>
       </div>
-      <label class="r-check"><input type="checkbox" id="rPrevent"> Prevent changes while trading is locked</label>
-      <p class="note">Hit a limit and EZPayouts closes your open trades, cancels orders and locks trading on TradingView for the hours above.</p>
+      <label class="r-toggle">
+        <span class="r-toggle-text"><b>Prevent changes while locked</b><small>Limits can't be edited or turned off until a lock ends.</small></span>
+        <span class="switch"><input type="checkbox" id="rPrevent" role="switch" aria-label="Prevent changes while locked"><span class="track"><span class="knob"></span></span></span>
+      </label>
       <button class="r-save" id="riskSave" type="button">Save</button>
       <p class="note" id="riskMsg" hidden></p>
     </section>
-    <section id="riskLockNowBox">
-      <div class="section-head"><h2>Lock now</h2></div>
-      <div class="r-row">
-        <input id="rLockNowHours" type="number" min="0.25" max="72" step="0.25" value="4" aria-label="Hours">
-        <span class="r-unit">hours</span>
-        <button class="r-lockbtn" id="riskLockNow" type="button">Lock trading</button>
-      </div>
-    </section>
+    <div class="r-row" id="riskLockNowBox">
+      <span class="r-unit">Lock now for</span>
+      <input id="rLockNowHours" type="number" min="0.25" max="72" step="0.25" value="4" aria-label="Hours">
+      <span class="r-unit">hours</span>
+      <button class="r-lockbtn" id="riskLockNow" type="button">Lock trading</button>
+    </div>
   </div>
 </div>
 <script src="../shared/skins.js"></script>

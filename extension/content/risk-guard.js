@@ -122,8 +122,9 @@
     state.accounts[name] = a;
     if (changed) saveState();
 
-    var live = { account: name, equity: eq, day: Math.round(day * 100) / 100, week: Math.round(week * 100) / 100, dayKey: a.dayKey, at: now };
-    var sig = JSON.stringify([live.account, live.equity, live.day, live.week]);
+    var live = { account: name, equity: eq, day: Math.round(day * 100) / 100, week: Math.round(week * 100) / 100,
+      dayKey: a.dayKey, weekKey: a.weekKey, dayStart: a.dayStart, weekStart: a.weekStart, at: now };
+    var sig = JSON.stringify([live.account, live.equity, live.day, live.week, live.dayStart, live.weekStart]);
     if (sig !== lastLive || now - (liveAt || 0) > 15000) { lastLive = sig; liveAt = now; st.set({ [LIVE_KEY]: live }); }
   }
   var liveAt = 0;

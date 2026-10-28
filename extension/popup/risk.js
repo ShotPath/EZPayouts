@@ -26,7 +26,12 @@
   function signed(n) { return '<b class="' + (n < 0 ? "neg" : "pos") + '">' + money(n) + "</b>"; }
   function locked() { return state.lockedUntil > Date.now(); }
   function until() { return new Date(state.lockedUntil).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" }); }
-  function msg(text, kind) { var el = $("riskMsg"); el.textContent = text || ""; el.className = "note" + (kind ? " " + kind : ""); el.hidden = !text; }
+  var msgTimer = 0;
+  function msg(text, kind, stay) {
+    var el = $("riskMsg"); el.textContent = text || ""; el.className = "note" + (kind ? " " + kind : ""); el.hidden = !text;
+    clearTimeout(msgTimer);
+    if (text && !stay) msgTimer = setTimeout(function () { el.hidden = true; }, kind === "bad" ? 6000 : 4500);
+  }
 
   // ---------- Showing it ----------
   function render() {
@@ -34,7 +39,8 @@
     var fresh = live && Date.now() - live.at < 30000;
     if (!settings.enabled) { $("riskText").innerHTML = "Risk Management is <b>off</b>."; $("riskDot").className = "site-dot"; }
     else if (fresh) { $("riskText").innerHTML = "Today " + signed(live.day) + " · Week " + signed(live.week); $("riskDot").className = "site-dot on"; }
-    else { $("riskText").innerHTML = "Open TradingView with your broker's <b>trading panel</b> showing."; $("riskDot").className = "site-dot"; }
+    else { $("riskText").innerHTML = "Open TradingView's <b>trading panel</b>."; $("riskDot").className = "site-dot"; }
+    stats(settings.enabled && fresh);
 
     var isLocked = locked();
     $("riskLock").hidden = !isLocked;
@@ -44,7 +50,26 @@
     $("rPrevent").disabled = frozen; $("riskSave").disabled = frozen; $("riskOn").disabled = frozen; $("riskRestart").disabled = frozen;
     $("riskLockNow").disabled = isLocked;
     $("riskLockNowBox").hidden = isLocked;
-    if (frozen) msg("Settings can't be changed while trading is locked.", "");
+
+  }
+  // Where today's count starts, the balance now, and the room left before
+  // the daily loss limit (or the weekly one, if that's all that's set).
+  function plain(n) { return "$" + Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function room() {
+    if (!live) return null;
+    if (settings.dailyLoss > 0) return { label: "Room (DLL)", left: settings.dailyLoss + live.day };
+    if (settings.weeklyLoss > 0) return { label: "Room (weekly)", left: settings.weeklyLoss + live.week };
+    return null;
+  }
+  function stats(show) {
+    $("riskStats").hidden = !show || live.dayStart == null;
+    if ($("riskStats").hidden) return;
+    $("sStart").textContent = plain(live.dayStart);
+    $("sNow").textContent = plain(live.equity);
+    var r = room();
+    $("sRoomLabel").textContent = r ? r.label : "Room (DLL)";
+    $("sRoom").textContent = r ? plain(Math.max(0, r.left)) : "No limit";
+    $("sRoom").className = r && r.left <= (settings.dailyLoss || settings.weeklyLoss) * 0.25 ? "neg" : "";
   }
   function fill() {
     Object.keys(FIELDS).forEach(function (f) { var v = settings[FIELDS[f]]; $(f).value = v != null ? v : ""; });
@@ -93,14 +118,29 @@
     next.preventChanges = $("rPrevent").checked;
     if (!next.enabled) next.enabled = true;
     settings = next;
-    store.set({ [SETTINGS_KEY]: settings }, function () { fill(); render(); msg("Saved. Risk Management is on.", "good"); });
+    store.set({ [SETTINGS_KEY]: settings }, function () { fill(); render(); msg("Saved. Hit a limit and EZPayouts closes your trades and locks trading for " + settings.lockHours + " hour" + (settings.lockHours === 1 ? "" : "s") + ".", "good"); });
   });
 
   // Count today and this week from the balance right now.
   $("riskRestart").addEventListener("click", function () {
     if (locked() && settings.preventChanges) return;
-    state.accounts = {};
-    store.set({ [STATE_KEY]: state }, function () { msg("Today and this week now count from your balance right now.", "good"); });
+    var fresh = live && Date.now() - live.at < 30000;
+    if (!fresh) {
+      state.accounts = {};
+      store.set({ [STATE_KEY]: state }, function () { msg("Done. Open TradingView's trading panel to see your numbers.", "good"); });
+      return;
+    }
+    // Start today and this week from the balance right now.
+    var a = state.accounts[live.account] || {};
+    a.dayKey = live.dayKey; a.weekKey = live.weekKey; a.dayStart = live.equity; a.weekStart = live.equity; a.fired = {};
+    state.accounts[live.account] = a;
+    live = Object.assign({}, live, { day: 0, week: 0, dayStart: live.equity, weekStart: live.equity });
+    store.set({ [STATE_KEY]: state, [LIVE_KEY]: live }, function () {
+      render();
+      var r = room();
+      msg("Counting from " + plain(live.equity) + "." + (r ? " You have " + plain(r.left) + " of room before your " + (r.label === "Room (DLL)" ? "daily" : "weekly") + " loss limit." : ""), "good");
+      var box = $("riskStats"); box.classList.add("flash"); setTimeout(function () { box.classList.remove("flash"); }, 1200);
+    });
   });
 
   // ---------- Lock now (two clicks) ----------
@@ -111,7 +151,7 @@
     var btn = this;
     if (!armed) {
       armed = true; btn.classList.add("confirm"); btn.textContent = "Confirm lock";
-      msg("Locks trading for " + hours + " hour" + (hours === 1 ? "" : "s") + ", closes your open trades and cancels orders." + (settings.preventChanges ? " Settings can't be changed until it ends." : ""));
+      msg("Locks trading for " + hours + " hour" + (hours === 1 ? "" : "s") + ", closes your open trades and cancels orders." + (settings.preventChanges ? " Settings can't be changed until it ends." : ""), "", true);
       setTimeout(function () { if (armed) { armed = false; btn.classList.remove("confirm"); btn.textContent = "Lock trading"; } }, 6000);
       return;
     }
