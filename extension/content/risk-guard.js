@@ -71,7 +71,7 @@
     return rows;
   }
   function readPanel() {
-    var sumRows = tableRows(document.querySelector('[data-name*="accountsummary-table"], [data-name*="accountSummary-table"]'));
+    var sumRows = tableRows(shownFirst('[data-name*="accountsummary-table"], [data-name*="accountSummary-table"]'));
     if (sumRows && sumRows.length) {
       var name = accountName().toLowerCase(), row = sumRows.filter(function (r) { return (r.title || "").toLowerCase() === name; })[0] || sumRows[0], nums = {};
       Object.keys(row).forEach(function (k) { var n = num(row[k]); if (n != null) nums[k] = n; });
@@ -81,7 +81,7 @@
     if (pos) seen.positions = pos.map(function (r) {
       return { symbol: r.symbol || "", side: r.side || "", qty: num(r.qty) || 0, pl: num(r.profit != null ? r.profit : (r["p&l"] || r.pl || r["unrealized p&l"])) };
     });
-    var ord = tableRows(document.querySelector('[data-name="Broker.orders-table"], [data-name*="orders-table"]'));
+    var ord = tableRows(ordersTable());
     if (ord) seen.orders = ord;
     return Object.assign({}, seen.summary, headerFields());
   }
@@ -109,7 +109,13 @@
     return { equity: equityNow, balance: balance ? balance.value : null, open: openPl, day: day, source: source,
       week: weekF ? weekF.value + openPl : null };
   }
-  function positionsTable() { return document.querySelector('[data-name="Broker.positions-table"]'); }
+  // TradingView can keep a hidden copy of a table: the one on screen wins.
+  function shownFirst(sel) {
+    var all = document.querySelectorAll(sel);
+    for (var i = 0; i < all.length; i++) if (visible(all[i])) return all[i];
+    return all[0] || null;
+  }
+  function positionsTable() { return shownFirst('[data-name="Broker.positions-table"]'); }
   // The account TradingView's trading panel is on: the name in its header
   // (where you switch accounts), most specific first. Outside that header,
   // only what's on screen counts: TradingView keeps hidden copies.
@@ -258,26 +264,65 @@
   // or cancel in the other one (or once, when a lock starts), and goes
   // back to the tab you were on.
   var swept = 0;
-  function ordersTable() { return document.querySelector('[data-name="Broker.orders-table"], [data-name*="orders-table"]'); }
+  function ordersTable() { return shownFirst('[data-name="Broker.orders-table"], [data-name*="orders-table"]'); }
   function working(o) { return !/fill|cancel|reject|expire|done/i.test(o.status || ""); }
   function currentTab() {
     return [].filter.call(document.querySelectorAll('[class*="roundTabButton-"], [role="tab"]'), function (b) {
       return visible(b) && (/(^|\s)selected-|(^|\s)active-/.test(b.className) || b.getAttribute("aria-selected") === "true");
     })[0] || null;
   }
+  // The rows still to close or cancel: ones with a close button, and open
+  // positions even without one.
+  function rowsToClear(table, isPositions) {
+    if (!table || !visible(table)) return [];
+    return [].filter.call(table.querySelectorAll("tbody tr"), function (tr) {
+      if (!tr.querySelector("td[data-label]")) return false;
+      if (tr.querySelector('[data-name="close-settings-cell-button"]')) return true;
+      if (!isPositions) return false;
+      var q = tr.querySelector('td[data-label="Qty"], td[data-label="Quantity"], td[data-label="Qty."]');
+      return !!(q && num(q.textContent));
+    });
+  }
+  // The backup: the row's right-click menu, "Close Position" / "Cancel Order".
+  async function closeByMenu(row, isPositions) {
+    var cell = row.querySelector("td[data-label]") || row, r = cell.getBoundingClientRect();
+    cell.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, button: 2, view: window,
+      clientX: r.left + Math.min(30, r.width / 2), clientY: r.top + r.height / 2 }));
+    await sleep(350);
+    var want = isPositions ? /^close position$/i : /^cancel order$/i;
+    var item = [].filter.call(document.querySelectorAll('[role="menuitem"], [class*="item-"]'), function (e) {
+      return visible(e) && want.test(e.textContent.trim());
+    })[0];
+    if (!item) { document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); return false; }
+    item.click();
+    await confirmSoon();
+    return true;
+  }
+  function rowKey(tr) { return tr.textContent.replace(/\s+/g, " ").trim().slice(0, 120); }
   async function clearTable(get) {
-    var tries = 0;
+    var isPositions = get === positionsTable, fails = {};
     for (var i = 0; i < 30; i++) {
-      var b = closeButtons(get())[0];
-      if (!b) return true;
-      var row = b.closest("tr");
-      if (row) { hover(row); await sleep(120); }
-      b.click();
-      var asked = await confirmSoon();
+      var row = rowsToClear(get(), isPositions)[0];
+      if (!row) return true;
+      var key = rowKey(row), n = fails[key] || 0;
+      var b = row.querySelector('[data-name="close-settings-cell-button"]');
+      // Its close button first; the right-click menu if that didn't do it.
+      if (b && n < 2) {
+        hover(row); await sleep(120);
+        b.click();
+        await confirmSoon();
+      } else {
+        await closeByMenu(row, isPositions);
+      }
       await sleep(500);
-      if (closeButtons(get())[0] === b && ++tries >= 3) {
-        enforceNote = asked ? "TradingView didn't close it after confirming." : "Couldn't close your trade: TradingView didn't respond.";
-        return false;
+      var again = rowsToClear(get(), isPositions)[0];
+      if (again && rowKey(again) === key) {
+        fails[key] = n + 1;
+        if (fails[key] >= 4) {
+          var names = [].map.call(row.querySelectorAll("[data-name]"), function (e) { return e.getAttribute("data-name"); }).join(", ");
+          enforceNote = "Couldn't close your trade (it sees: " + (names || "no buttons") + ").";
+          return false;
+        }
       }
     }
     return true;
@@ -293,7 +338,7 @@
     var firstLook = swept !== curLock.lockedUntil;
     var openThere = seen.positions && seen.positions.some(function (p) { return p.qty; });
     var workingThere = seen.orders && seen.orders.some(working);
-    var visibleWork = closeButtons(positionsTable()).length || (ordersTable() && seen.orders && seen.orders.some(working));
+    var visibleWork = rowsToClear(positionsTable(), true).length || (ordersTable() && seen.orders && seen.orders.some(working));
     // Keeps at it for as long as it sees something open or working.
     if (!firstLook && !visibleWork && !openThere && !workingThere) return;
     busy = true; lastEnforce = Date.now();
@@ -398,6 +443,13 @@
       }
     }
     if (!msg) return;
+    // A Buy/Sell menu item only opens a new order to adjust (the order
+    // panel's Place is what sends it, and that's checked): so not locked,
+    // it just warns.
+    if (!locked && !el.closest(ORDER_BUTTONS) && !el.closest('[data-name="submit-button"]') && !(e.type === "keydown")) {
+      if (e.type === "click") toast(msg + " Lower it before you place it.");
+      return;
+    }
     e.preventDefault(); e.stopImmediatePropagation(); e.stopPropagation();
     if (e.type === "click" || e.type === "keydown") toast(msg);
   }
