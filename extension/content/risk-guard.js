@@ -243,7 +243,7 @@
     var btn = dlg.querySelector('[data-name="submit-button"]') || [].filter.call(dlg.querySelectorAll("button"), function (b) {
       return visible(b) && /^(close( position)?|cancel order|flatten|exit|yes|confirm|ok)\b/i.test(b.textContent.trim());
     })[0];
-    if (btn) { btn.click(); return true; }
+    if (btn) { realClick(btn); return true; }
     return false;
   }
   // The dialog can take a moment to show (or not show at all, with
@@ -261,6 +261,17 @@
     ["pointerover", "pointerenter", "mouseover", "mouseenter", "mousemove"].forEach(function (t) {
       el.dispatchEvent(new MouseEvent(t, { bubbles: t.indexOf("enter") < 0, view: window }));
     });
+  }
+  // A click the way a mouse makes one: press, release, click. Some of
+  // TradingView's buttons act on the press.
+  function realClick(el) {
+    var r = el.getBoundingClientRect(), o = { bubbles: true, cancelable: true, view: window, button: 0,
+      clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 };
+    try { el.dispatchEvent(new PointerEvent("pointerdown", Object.assign({ pointerId: 1, isPrimary: true }, o))); } catch (e) {}
+    el.dispatchEvent(new MouseEvent("mousedown", o));
+    try { el.dispatchEvent(new PointerEvent("pointerup", Object.assign({ pointerId: 1, isPrimary: true }, o))); } catch (e) {}
+    el.dispatchEvent(new MouseEvent("mouseup", o));
+    el.click();
   }
   var enforceNote = "";
   // Closes what's open and cancels what's working. It works in the tab
@@ -298,23 +309,76 @@
       return visible(e) && want.test(e.textContent.trim());
     })[0];
     if (!item) { document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); return false; }
-    item.click();
+    realClick(item);
     await confirmSoon();
     return true;
   }
-  function rowKey(tr) { return tr.textContent.replace(/\s+/g, " ").trim().slice(0, 120); }
+  // The last resort: an opposite market order for the same size, from
+  // the order panel (Long 3: Sell 3 at Market), which leaves you flat.
+  // Only when the row says plainly which side and how many.
+  async function flattenByOrder(row, only) {
+    var cells = {};
+    row.querySelectorAll("td[data-label]").forEach(function (td) { cells[td.getAttribute("data-label").trim().toLowerCase()] = td.textContent.trim(); });
+    var qty = Math.abs(num(cells.qty != null ? cells.qty : cells.quantity) || 0);
+    var sideText = cells.side || "", long = /buy|long/i.test(sideText), short = /sell|short/i.test(sideText);
+    if (!sideText) { var raw = num(cells.qty != null ? cells.qty : cells.quantity) || 0; long = raw > 0; short = raw < 0; }
+    if (!qty || long === short) return false;
+    if (only > 0) qty = Math.min(qty, only);
+    var panel = shownFirst('[data-name="order-panel"]');
+    if (!panel || !visible(panel)) return false;
+    var side = panel.querySelector('[data-name="side-control-' + (long ? "sell" : "buy") + '"]');
+    if (!side) return false;
+    realClick(side); await sleep(250);
+    var market = [].filter.call(panel.querySelectorAll("button, [role='tab'], div, span"), function (e) {
+      return visible(e) && e.children.length === 0 && /^market$/i.test(e.textContent.trim());
+    })[0];
+    if (!market) return false;
+    realClick(market); await sleep(300);
+    var input = qtyInput(panel);
+    if (!input) return false;
+    setInput(input, qty); await sleep(250);
+    if (num(input.value) !== qty) return false;
+    // Check again: still that side and size, and the panel set to the other side.
+    var on = panel.querySelector('[data-name^="side-control-"][class*="active-"]');
+    if (!on || on.getAttribute("data-name") !== "side-control-" + (long ? "sell" : "buy")) return false;
+    var place = panel.querySelector('[data-name="place-and-modify-button"]');
+    if (!place || !/market/i.test(place.textContent) || !new RegExp("\\b" + qty + "\\b").test(place.textContent)) return false;
+    realClick(place);
+    // TradingView may ask to confirm the order.
+    for (var i = 0; i < 10; i++) {
+      await sleep(150);
+      var dlg = [].filter.call(document.querySelectorAll('[data-name*="dialog"], [role="dialog"]'), visible).pop();
+      var ok = dlg && dlg.querySelector('[data-name="submit-button"]');
+      if (ok && /^(buy|sell|place|send|confirm)/i.test(ok.textContent.trim())) { realClick(ok); break; }
+    }
+    return true;
+  }
+  // Which position or order a row is: its symbol, side and type (not its
+  // price or P&L, which change every tick).
+  function rowKey(tr) {
+    var k = [];
+    tr.querySelectorAll("td[data-label]").forEach(function (td) {
+      if (/^(symbol|side|type|id|order id)$/i.test(td.getAttribute("data-label").trim())) k.push(td.textContent.trim());
+    });
+    return k.length ? k.join("|") : tr.textContent.replace(/\s+/g, " ").trim().slice(0, 40);
+  }
   async function clearTable(get) {
-    var isPositions = get === positionsTable, fails = {};
+    var isPositions = get === positionsTable, fails = {}, flattened = {};
     for (var i = 0; i < 30; i++) {
       var row = rowsToClear(get(), isPositions)[0];
       if (!row) return true;
       var key = rowKey(row), n = fails[key] || 0;
       var b = row.querySelector('[data-name="close-settings-cell-button"]');
-      // Its close button first; the right-click menu if that didn't do it.
-      if (b && n < 2) {
+      // Its close button first; then (a position) an opposite market order;
+      // then the row's right-click menu; then all of it again.
+      if (b && n % 3 === 0) {
         hover(row); await sleep(120);
-        b.click();
+        realClick(b);
         await confirmSoon();
+      } else if (isPositions && !flattened[key] && n % 3 === 1) {
+        flattened[key] = true;
+        if (await flattenByOrder(row)) await sleep(900);
+        else await closeByMenu(row, isPositions);
       } else {
         await closeByMenu(row, isPositions);
       }
@@ -322,9 +386,11 @@
       var again = rowsToClear(get(), isPositions)[0];
       if (again && rowKey(again) === key) {
         fails[key] = n + 1;
-        if (fails[key] >= 4) {
+        if (fails[key] >= 5) {
           var names = [].map.call(row.querySelectorAll("[data-name]"), function (e) { return e.getAttribute("data-name"); }).join(", ");
-          enforceNote = "Couldn't close your trade (it sees: " + (names || "no buttons") + ").";
+          var panelOpen = !!(shownFirst('[data-name="order-panel"]') && visible(shownFirst('[data-name="order-panel"]')));
+          enforceNote = panelOpen ? "Couldn't close your trade (it sees: " + (names || "no buttons") + ")."
+            : "Couldn't close your trade. Open TradingView's order panel so it can close it with a market order.";
           return false;
         }
       }
@@ -406,14 +472,23 @@
     if (m) return m[1].toLowerCase();
     var box = el.closest('[data-name*="dialog"]') || el.closest('[data-name="order-panel"]') || document.querySelector('[data-name="order-panel"]');
     var on = box && box.querySelector('[data-name="side-control-buy"][class*="active-"], [data-name="side-control-sell"][class*="active-"]');
-    return on ? (/buy/.test(on.getAttribute("data-name")) ? "buy" : "sell") : null;
+    if (on) return /buy/.test(on.getAttribute("data-name")) ? "buy" : "sell";
+    // Else what its Place button says: "Buy 1 MNQ1! …".
+    var place = box && box.querySelector('[data-name="place-and-modify-button"], [data-name="submit-button"]');
+    var pm = place && place.textContent.trim().match(/^(buy|sell)\b/i);
+    return pm ? pm[1].toLowerCase() : null;
   }
   // Contracts already held on that side.
+  // From the Positions table if it's showing, else from the last time it
+  // was (on the Orders tab, say).
   function heldOn(side) {
-    var rows = tableRows(positionsTable()) || [];
+    var t = positionsTable();
+    var rows = t && visible(t) ? (tableRows(t) || []).map(function (r) {
+      return { side: r.side || "", qty: num(r.qty) || 0 };
+    }) : (seen.positions || []);
     return rows.reduce(function (s, r) {
-      var sd = /buy|long/i.test(r.side || "") ? "buy" : /sell|short/i.test(r.side || "") ? "sell" : null;
-      return s + (sd === side ? Math.abs(num(r.qty) || 0) : 0);
+      var sd = /buy|long/i.test(r.side || "") ? "buy" : /sell|short/i.test(r.side || "") ? "sell" : r.qty > 0 ? "buy" : r.qty < 0 ? "sell" : null;
+      return s + (sd === side ? Math.abs(r.qty || 0) : 0);
     }, 0);
   }
   function isOrderAction(el, e) {
@@ -478,7 +553,7 @@
       var cells = {};
       rows[i].querySelectorAll("td[data-label]").forEach(function (td) { cells[td.getAttribute("data-label").trim().toLowerCase()] = td.textContent.trim(); });
       var q = Math.abs(qtyOf(cells) || 0), btn = rows[i].querySelector('[data-name="close-settings-cell-button"]');
-      if (q > settings.maxQty && btn) return { qty: q, btn: btn, row: rows[i] };
+      if (q > settings.maxQty && (btn || table === positionsTable())) return { qty: q, btn: btn, row: rows[i] };
     }
     return null;
   }
@@ -493,8 +568,14 @@
     trimming = true; lastTrim = Date.now();
     (async function () {
       try {
+        // Over the max: an opposite market order for just the extra.
+        if (pos && await flattenByOrder(hit.row, hit.qty - settings.maxQty)) {
+          toast("Closed " + (hit.qty - settings.maxQty) + " of " + hit.qty + " contracts. Your max is " + settings.maxQty + ".");
+          await sleep(1500); trimming = false; return;
+        }
+        if (!hit.btn) { trimming = false; return; }
         hover(hit.row); await sleep(120);
-        hit.btn.click(); await sleep(500);
+        realClick(hit.btn); await sleep(500);
         if (pos) {
           var dlg = [].filter.call(document.querySelectorAll('[data-name*="closing-dialog"], [data-name*="dialog"]'), function (d) {
             return visible(d) && /clos/i.test(d.getAttribute("data-name") + " " + d.textContent);
