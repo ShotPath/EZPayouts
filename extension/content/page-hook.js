@@ -1451,9 +1451,10 @@
       }
       return orig.apply(ctx, args);
     }
-    if (kind === "fill" && args.length === 0 && p.arcs >= 2) {
+    if (kind === "fill" && args.length === 0 && p.arcs >= 2 && !p.circle) {
       var lr = devRect(ctx, p);
-      if (lr.y1 - lr.y0 >= 10 * g.s && lr.y1 - lr.y0 <= 90 * g.s && lr.x1 - lr.x0 >= 16 * g.s) {
+      // A label: a rounded box, as narrow as a one-digit risk/reward ("2").
+      if (lr.y1 - lr.y0 >= 10 * g.s && lr.y1 - lr.y0 <= 90 * g.s && lr.x1 - lr.x0 >= 7 * g.s) {
         g.labels.push({ rect: lr, texts: [] });
         return;
       }
