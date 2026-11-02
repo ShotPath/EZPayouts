@@ -106,7 +106,7 @@
     if (dayF) { day = dayF.value; source = dayF.label; }
     else if (real) { day = real.value + openPl; source = real.label + (openPl ? " + open" : ""); }
     else if (total) { day = total.value; source = total.label; }
-    return { equity: equityNow, balance: balance ? balance.value : null, open: openPl, day: day, source: source,
+    return { equity: equityNow, balance: balance ? balance.value : null, open: openPl, day: day, source: source, daily: !!dayF,
       week: weekF ? weekF.value + openPl : null };
   }
   // TradingView can keep a hidden copy of a table: the one on screen wins.
@@ -176,14 +176,36 @@
     }
     var a = state.accounts[name] || {};
     var changed = false;
-    if (a.dayKey !== k.day) { a.dayKey = k.day; a.dayStart = eq; changed = true; }
-    // The broker's own day P/L: today started at equity minus it.
-    if (f.day != null) {
-      var start = Math.round((eq - f.day) * 100) / 100;
+    // Where today started: where the account was when the last session
+    // ended (the last balance seen before today), so trades taken before
+    // TradingView was opened still count. The very first time, from the
+    // broker's P/L. A broker's total or realized P/L can run across days,
+    // so after the first day only a P/L it calls daily is taken as today's.
+    var firstEver = a.dayKey == null, newDay = a.dayKey !== k.day, rr = function (n) { return Math.round(n * 100) / 100; };
+    if (newDay || (!a.dayFrom && !f.daily)) {
+      var prev = a.lastEq != null && a.lastEqDay && a.lastEqDay !== k.day ? a.lastEq : null;
+      a.dayStart = prev != null ? prev : firstEver && f.day != null ? rr(eq - f.day) : eq;
+      a.dayFrom = prev != null ? "close" : firstEver && f.day != null ? "broker" : "count";
+      // A new day (or week) ends yesterday's daily (last week's weekly) lock.
+      if (a.lockedUntil > now && /^daily/.test(KEY_OF[a.lockReason] || "")) { a.lockedUntil = 0; a.lockReason = ""; curLock = null; overlay(false); }
+      if (/^daily/.test(a.limitHit || "")) { a.limitHit = null; a.limitSince = 0; a.limitAt = null; }
+      a.dayKey = k.day; changed = true;
+    }
+    if (f.daily || (a.dayFrom === "broker" && f.day != null)) {
+      var start = rr(eq - f.day);
       if (a.dayStart !== start) { a.dayStart = start; changed = true; }
     }
-    if (a.weekKey !== k.week) { a.weekKey = k.week; a.weekStart = a.dayStart; changed = true; }
-    var day = f.day != null ? f.day : eq - a.dayStart;
+    if (a.weekKey !== k.week) {
+      if (a.weekKey && a.lockedUntil > now && /^weekly/.test(KEY_OF[a.lockReason] || "")) { a.lockedUntil = 0; a.lockReason = ""; curLock = null; overlay(false); }
+      if (/^weekly/.test(a.limitHit || "")) { a.limitHit = null; a.limitSince = 0; a.limitAt = null; }
+      a.weekKey = k.week; a.weekStart = a.dayStart; changed = true;
+    }
+    // The last balance seen today: tomorrow starts from it.
+    if (a.lastEqDay !== k.day || Math.abs((a.lastEq || 0) - eq) >= 0.01) {
+      a.lastEq = eq; a.lastEqDay = k.day;
+      if (now - (lastEqSaved || 0) > 20000) { lastEqSaved = now; changed = true; }
+    }
+    var day = f.daily ? f.day : eq - a.dayStart;
     var week = f.week != null ? f.week : eq - a.weekStart;
     // Simple: every second, where you are today and this week against your
     // limits. Past one: your trades are closed and the account locks (for
@@ -220,13 +242,14 @@
 
     var fills = seen.orders ? seen.orders.filter(function (o) { return /fill/i.test(o.status || ""); }).length : null;
     var live = { account: name, equity: eq, balance: f.balance, open: Math.round(f.open * 100) / 100,
-      day: Math.round(day * 100) / 100, week: Math.round(week * 100) / 100, source: f.source,
+      day: Math.round(day * 100) / 100, week: Math.round(week * 100) / 100,
+      source: f.daily || a.dayFrom === "broker" ? f.source : a.dayFrom === "close" ? "close" : "count",
       dayKey: a.dayKey, weekKey: a.weekKey, dayStart: a.dayStart, weekStart: a.weekStart,
       positions: (seen.positions || []).filter(function (p) { return p.qty; }), fills: fills, from: nameFrom, note: curLock ? enforceNote : "", at: now };
     var sig = JSON.stringify([live.note, live.account, live.equity, live.day, live.week, live.dayStart, live.weekStart, live.positions, live.fills, live.source]);
     if (sig !== lastLive || now - (liveAt || 0) > 15000) { lastLive = sig; liveAt = now; st.set({ [LIVE_KEY]: live }); }
   }
-  var liveAt = 0;
+  var liveAt = 0, lastEqSaved = 0;
 
   // ---------- Closing trades while locked ----------
   var busy = false, lastEnforce = 0;
@@ -420,7 +443,12 @@
         if (positionsTable()) ok = await clearTable(positionsTable);
         else if (pt && (firstLook || openThere)) { pt.click(); await sleep(400); readPanel(); ok = await clearTable(positionsTable); }
         readPanel();
-        if (ordersTable()) ok = (await clearTable(ordersTable)) && ok;
+        // Working orders (a trade's take profit and stop loss among them)
+        // are cancelled only once the trade is closed: if it can't be, they
+        // stay, so it's still protected.
+        var stillOpen = !ok || rowsToClear(positionsTable(), true).length || (seen.positions && seen.positions.some(function (p) { return p.qty; }));
+        if (stillOpen) ok = false;
+        else if (ordersTable()) ok = (await clearTable(ordersTable)) && ok;
         else if (ot && (firstLook || workingThere)) { ot.click(); await sleep(450); readPanel(); ok = (await clearTable(ordersTable)) && ok; readPanel(); }
         swept = curLock ? curLock.lockedUntil : 0;
         // Didn't work: tries again in a bit, and says why.

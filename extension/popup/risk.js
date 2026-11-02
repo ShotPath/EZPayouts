@@ -95,7 +95,8 @@
     }
     // Counted from the broker's own P/L: no need to restart the count.
     $("riskRestart").hidden = !!(show && live.source && live.source !== "count");
-    $("riskStats").title = show && live.source && live.source !== "count" ? "Today's P/L from your broker's " + live.source : "Counted from your balance when EZPayouts first saw it today";
+    $("riskStats").title = !show ? "" : live.source === "close" ? "Today counted from your balance at the end of the last session"
+      : live.source && live.source !== "count" ? "Today's P/L from your broker's " + live.source : "Counted from your balance when EZPayouts first saw it today";
     $("riskStats").hidden = !show || live.dayStart == null;
     if ($("riskStats").hidden) return;
     $("sStart").textContent = plain(live.dayStart);
