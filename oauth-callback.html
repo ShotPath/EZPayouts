@@ -29,6 +29,12 @@
     window.opener.postMessage(payload, window.location.origin);
     document.getElementById("msg").textContent = payload.error ? "Sign-in was cancelled — you can close this window." : "Signed in — you can close this window.";
     setTimeout(function(){ window.close(); }, payload.error ? 600 : 250);
+  } else if (/^ezdesktop\./.test(payload.state || "")){
+    // Started from the EZPayouts desktop app, which sends Google sign-in to
+    // the real browser (Google blocks it inside the app): hand the result
+    // back to the app through its ezpayouts:// link.
+    document.getElementById("msg").textContent = "Returning to the EZPayouts app — you can close this tab.";
+    window.location.replace("ezpayouts://oauth-callback?" + window.location.hash.replace(/^#/, ""));
   } else {
     document.getElementById("msg").textContent = "This page should be opened as a popup. You can close this window.";
   }
