@@ -641,6 +641,26 @@
   .share-period-tabs button.active{ color:var(--mint-text); }
   .share-period-tabs button[hidden]{ display:none; }
   .share-period-tabs.is-locked{ pointer-events:none; opacity:0.55; }
+  /* Month picker for Monthly / Calendar cards opened from the header Share
+     button (no single trade picked), so a month with no trades yet — or any
+     earlier month — can be shared too. */
+  .share-month-picker{
+    flex:none; display:flex; align-items:center; justify-content:center; gap:10px; margin:-4px 0 12px;
+  }
+  .share-month-picker[hidden]{ display:none; }
+  .share-month-picker.is-locked{ pointer-events:none; opacity:0.55; }
+  .share-month-label{
+    min-width:150px; text-align:center; font-family:var(--font-mono); font-size:12px; font-weight:700;
+    letter-spacing:0.04em; color:var(--ice);
+  }
+  .share-month-btn{
+    width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center;
+    border-radius:999px; border:1px solid var(--hairline-bright); background:var(--panel); color:var(--ice);
+    cursor:pointer; transition:border-color .15s, background .15s;
+  }
+  .share-month-btn:hover:not(:disabled){ border-color:var(--phosphor-dim); background:var(--panel-hi); }
+  .share-month-btn:disabled{ opacity:0.35; cursor:default; }
+  .share-month-btn svg{ width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
   .share-card-wrap{ position:relative; margin-bottom:10px; }
   /* Square cards keep the Standard preview's height (9/16 of its width),
      so the window doesn't change size when switching. */
@@ -1469,6 +1489,16 @@
       <button type="button" data-period="calendar">Calendar</button>
     </div>
 
+    <div class="share-month-picker" id="shareMonthPicker" hidden>
+      <button type="button" class="share-month-btn" id="shareMonthPrev" aria-label="Previous month">
+        <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" /></svg>
+      </button>
+      <span class="share-month-label" id="shareMonthLabel"></span>
+      <button type="button" class="share-month-btn" id="shareMonthNext" aria-label="Next month">
+        <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" /></svg>
+      </button>
+    </div>
+
     <div class="share-workspace">
       <div class="share-workspace-main">
         <div class="share-card-wrap" id="shareCardWrap">
@@ -1997,6 +2027,11 @@
   var shareModalClose = document.getElementById("shareModalClose");
   var shareModalSub = document.getElementById("shareModalSub");
   var sharePeriodTabs = document.getElementById("sharePeriodTabs");
+  var shareMonthPicker = document.getElementById("shareMonthPicker");
+  var shareMonthLabel = document.getElementById("shareMonthLabel");
+  var shareMonthPrev = document.getElementById("shareMonthPrev");
+  var shareMonthNext = document.getElementById("shareMonthNext");
+  var shareIsRealTrade = false;
   var shareSubTabs = document.getElementById("shareSubTabs");
   var shareBgPanel = document.getElementById("shareBgPanel");
   var shareAdjustPanel = document.getElementById("shareAdjustPanel");
@@ -2412,9 +2447,44 @@
     sharePeriodTabs.querySelectorAll("button[data-period]").forEach(function(b){ b.classList.toggle("active", b === btn); });
     layoutSegThumb(sharePeriodTabs);
     updateShareModalSub();
+    syncShareMonthPicker();
     restartShareClock();
     syncFramePlayUI();
   });
+
+  // Month picker (header Share only, Monthly / Calendar cards): steps the
+  // card to another month, up to the current one. Lands on that month's
+  // latest traded day, or its 1st when it has none, so switching back to
+  // Daily / Weekly still shows a sensible day.
+  function shareMonthStart(){
+    var d = new Date(shareCurrentTrade.date + "T00:00:00");
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  }
+  function syncShareMonthPicker(){
+    var show = !!shareCurrentTrade && !shareIsRealTrade && (sharePeriod === "monthly" || sharePeriod === "calendar");
+    shareMonthPicker.hidden = !show;
+    if (!show) return;
+    var start = shareMonthStart();
+    var now = new Date();
+    shareMonthLabel.textContent = start.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+    shareMonthNext.disabled = start.getFullYear() > now.getFullYear() ||
+      (start.getFullYear() === now.getFullYear() && start.getMonth() >= now.getMonth());
+  }
+  function shiftShareMonth(delta){
+    var start = shareMonthStart();
+    var target = new Date(start.getFullYear(), start.getMonth() + delta, 1);
+    var prefix = target.getFullYear() + "-" + pad2(target.getMonth() + 1) + "-";
+    var latest = shareSourceTrades().reduce(function(m, t){
+      return t.date && t.date.indexOf(prefix) === 0 && t.date > m ? t.date : m;
+    }, "");
+    shareCurrentTrade = { date: latest || prefix + "01" };
+    syncShareMonthPicker();
+    restartShareClock();
+    syncFramePlayUI();
+    updateExportSubLabels();
+  }
+  shareMonthPrev.addEventListener("click", function(){ shiftShareMonth(-1); });
+  shareMonthNext.addEventListener("click", function(){ if (!shareMonthNext.disabled) shiftShareMonth(1); });
 
   shareSubTabs.addEventListener("click", function(e){
     var btn = e.target.closest("button[data-subtab]");
@@ -3609,6 +3679,7 @@
     shareFrameBar.hidden = busy;
     shareExportStatus.hidden = !busy;
     sharePeriodTabs.classList.toggle("is-locked", busy);
+    shareMonthPicker.classList.toggle("is-locked", busy);
     shareFormatTabs.classList.toggle("is-locked", busy);
     if (busy) setExportProgress(0, label || "Working…");
   }
@@ -3729,6 +3800,7 @@
     // Opened from the header (no specific trade): there's no single trade
     // to show, so the Trade tab is hidden.
     var isRealTrade = !!trade && typeof trade.pnl === "number";
+    shareIsRealTrade = isRealTrade;
     sharePeriod = period || (isRealTrade ? "trade" : "daily");
     if (sharePeriod === "trade" && !isRealTrade) sharePeriod = "daily";
     sharePeriodTabs.querySelectorAll("button[data-period]").forEach(function(b){
@@ -3736,6 +3808,7 @@
       b.classList.toggle("active", b.getAttribute("data-period") === sharePeriod);
     });
     updateShareModalSub();
+    syncShareMonthPicker();
     shareSubTabs.querySelectorAll("button[data-subtab]").forEach(function(b){
       b.classList.toggle("active", b.getAttribute("data-subtab") === "background");
     });
